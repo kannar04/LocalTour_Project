@@ -1,0 +1,418 @@
+# Research Report: Phân tích dữ liệu khảo sát website đặt tour du lịch địa phương
+
+> **Phạm vi dữ liệu:** 200 câu trả lời trong tệp khảo sát được cung cấp. Các tỷ lệ được tính trên tổng số 200 người trả lời, trừ khi ghi chú khác. Với câu hỏi cho phép chọn nhiều đáp án, tỷ lệ của từng lựa chọn không cộng thành 100% vì một người có thể chọn nhiều phương án.
+
+## 1. Tóm tắt điều hành
+
+Khảo sát gồm **200 câu trả lời** và có dữ liệu ở toàn bộ các ô của 41 câu hỏi nội dung trong tệp. Trong dữ liệu đang có, không phát hiện dòng trùng lặp hoàn toàn. Kết quả cho thấy vấn đề nổi bật nhất nằm ở quá trình **so sánh giá và hiểu rõ những gì được bao gồm trong tour**: 147 người (73.5%) chọn khó so sánh giá giữa các đơn vị và 146 người (73.0%) cho biết không rõ giá đã bao gồm những gì. Bên cạnh đó, 133 người (66.5%) đề cập đến việc thiếu đánh giá đáng tin cậy và 132 người (66.0%) gặp tình trạng thông tin nằm rải rác ở nhiều nguồn.
+
+Những vấn đề này phù hợp với các chức năng được đánh giá tương đối cao: hiển thị giá minh bạch (điểm trung bình 4,06/5), lọc tour (4,00/5), đánh giá của khách hàng (4,00/5) và tìm kiếm theo các tiêu chí cơ bản (3,98/5). Tuy nhiên, mức độ sẵn sàng thanh toán trực tuyến chưa hoàn toàn rõ ràng: 74 người chọn “Có lẽ có”, 48 người “Chắc chắn có”, trong khi 51 người chưa quyết định. Vì vậy, website không chỉ cần tạo luồng đặt tour thuận tiện mà còn phải giảm rủi ro cảm nhận bằng xác nhận giao dịch, trạng thái đặt chỗ và chính sách hủy/đổi minh bạch.
+
+Các kết quả phản ánh **nhóm người tham gia khảo sát**, không mặc nhiên đại diện cho toàn bộ thị trường du lịch. Báo cáo không suy diễn quan hệ nhân quả từ dữ liệu mô tả.
+
+## 2. Mục tiêu và phương pháp phân tích
+
+Mục tiêu của phân tích là xác định thói quen tìm kiếm và lựa chọn tour, những khó khăn thường gặp, mức độ ưu tiên đối với các chức năng của website, cũng như các yếu tố ảnh hưởng đến niềm tin và ý định sử dụng.
+
+Dữ liệu được tổng hợp bằng thống kê mô tả:
+- Đếm số lượt chọn và tính tỷ lệ trên tổng số người trả lời.
+- Với các câu hỏi đánh giá theo thang 1–5, tính điểm trung bình và xem phân bố câu trả lời.
+- Với câu hỏi nhiều lựa chọn, mỗi phương án được đếm riêng; tổng tỷ lệ có thể vượt 100%.
+- Không tự bổ sung dữ liệu thiếu hoặc tạo ra số liệu không có trong tệp.
+
+Trong tệp có 200 dòng phản hồi, không có ô trống và không có dòng trùng lặp hoàn toàn theo phép kiểm tra dữ liệu. Điều này không đảm bảo mọi câu trả lời đều hợp lý hoặc người trả lời đại diện cho dân số mục tiêu; các giới hạn về mẫu vẫn cần được xem xét.
+
+## 3. Đặc điểm người tham gia và hành vi du lịch
+
+### 3.1. Độ tuổi và nghề nghiệp
+
+**Nhóm tuổi (Câu 1)**
+
+| Phương án | Số người | Tỷ lệ |
+|---|---:|---:|
+| 23–30 | 75 | 37.5% |
+| 18–22 | 50 | 25.0% |
+| 31–40 | 33 | 16.5% |
+| 41–50 | 16 | 8.0% |
+| Không muốn trả lời | 9 | 4.5% |
+| Trên 50 | 9 | 4.5% |
+| Dưới 18 | 8 | 4.0% |
+
+**Nghề nghiệp hiện tại (Câu 2)**
+
+| Phương án | Số người | Tỷ lệ |
+|---|---:|---:|
+| Nhân viên văn phòng | 72 | 36.0% |
+| Học sinh/sinh viên | 57 | 28.5% |
+| Kinh doanh/tự doanh | 21 | 10.5% |
+| Cán bộ/viên chức | 18 | 9.0% |
+| Lao động tự do | 16 | 8.0% |
+| Khác | 10 | 5.0% |
+| Không muốn trả lời | 6 | 3.0% |
+
+**Mức chi tiêu dự kiến cho một chuyến du lịch (Câu 3)**
+
+| Phương án | Số người | Tỷ lệ |
+|---|---:|---:|
+| 1–3 triệu đồng | 59 | 29.5% |
+| Trên 3–5 triệu đồng | 57 | 28.5% |
+| Trên 5–10 triệu đồng | 34 | 17.0% |
+| Tùy chuyến đi | 25 | 12.5% |
+| Dưới 1 triệu đồng | 17 | 8.5% |
+| Trên 10 triệu đồng | 8 | 4.0% |
+
+Nhóm tuổi 23–30 là nhóm có số người trả lời nhiều nhất (75 người, 37,5%), tiếp theo là nhóm 18–22 (50 người, 25,0%). Về nghề nghiệp, nhân viên văn phòng chiếm 72 người (36,0%) và học sinh/sinh viên chiếm 57 người (28,5%). Như vậy, mẫu có sự hiện diện đáng kể của người trẻ và người đang đi làm, nhưng không nên coi đây là cơ cấu đại diện cho dân số nói chung vì chưa có thông tin về phương pháp chọn mẫu.
+
+### 3.2. Kinh nghiệm và tần suất du lịch
+
+**Kinh nghiệm tham gia tour do đơn vị tổ chức (Câu 4)**
+
+| Phương án | Số người | Tỷ lệ |
+|---|---:|---:|
+| Đã từng | 128 | 64.0% |
+| Chưa từng nhưng có dự định | 58 | 29.0% |
+| Chưa từng và chưa có dự định | 14 | 7.0% |
+
+**Số lần đi du lịch trong 12 tháng qua (Câu 5)**
+
+| Phương án | Số người | Tỷ lệ |
+|---|---:|---:|
+| 2–3 lần | 88 | 44.0% |
+| 1 lần | 52 | 26.0% |
+| 4–5 lần | 32 | 16.0% |
+| 0 lần | 15 | 7.5% |
+| Trên 5 lần | 13 | 6.5% |
+
+**Hình thức du lịch thường chọn (Câu 6)**
+
+| Phương án | Số người | Tỷ lệ |
+|---|---:|---:|
+| Đặt tour trọn gói | 76 | 38.0% |
+| Tự túc hoàn toàn | 59 | 29.5% |
+| Chưa có trải nghiệm | 30 | 15.0% |
+| Đặt riêng một số dịch vụ | 20 | 10.0% |
+| Kết hợp tự túc và tour | 15 | 7.5% |
+
+**Thời gian đặt tour trước ngày khởi hành (Câu 9)**
+
+| Phương án | Số người | Tỷ lệ |
+|---|---:|---:|
+| 4–7 ngày | 52 | 26.0% |
+| 1–2 tuần | 51 | 25.5% |
+| Trên 2 tuần | 42 | 21.0% |
+| 1–3 ngày | 31 | 15.5% |
+| Không áp dụng/chưa từng đặt | 15 | 7.5% |
+| Trong ngày | 9 | 4.5% |
+
+**Số tour thường so sánh trước khi quyết định (Câu 12)**
+
+| Phương án | Số người | Tỷ lệ |
+|---|---:|---:|
+| 2–3 tour | 104 | 52.0% |
+| 4–5 tour | 51 | 25.5% |
+| Trên 5 tour | 21 | 10.5% |
+| 1 tour | 15 | 7.5% |
+| Không có thói quen so sánh | 9 | 4.5% |
+
+Có 128 người (64,0%) cho biết đã từng tham gia tour do công ty hoặc đơn vị tổ chức; 58 người (29,0%) chưa từng tham gia nhưng có dự định. Điều này cho thấy phần lớn người trả lời đã có trải nghiệm hoặc ít nhất có sự quan tâm đến hình thức tour có tổ chức.
+
+Về hình thức du lịch, đặt tour trọn gói là lựa chọn được ghi nhận nhiều nhất (76 người, 38,0%), nhưng tự túc hoàn toàn cũng khá phổ biến (59 người, 29,5%). Website vì thế nên hỗ trợ việc tìm hiểu và so sánh thông tin đủ tốt để phục vụ cả người đã quen đặt tour lẫn người đang cân nhắc giữa tour và tự túc.
+
+Đáng chú ý, 104 người (52,0%) thường so sánh 2–3 tour và 51 người (25,5%) so sánh 4–5 tour trước khi quyết định. Đây là căn cứ thực tế để ưu tiên công cụ lọc và trình bày thông tin nhất quán, thay vì chỉ tập trung vào một trang giới thiệu tour riêng lẻ.
+
+### 3.3. Kênh tìm thông tin, ngân sách và thiết bị
+
+**Kênh tìm thông tin tour (Câu 8)**
+
+| Phương án | Số lượt chọn | Tỷ lệ người trả lời |
+|---|---:|---:|
+| Google/công cụ tìm kiếm | 134 | 67.0% |
+| Facebook/TikTok/mạng xã hội | 131 | 65.5% |
+| Nền tảng đặt tour | 124 | 62.0% |
+| Bạn bè/người thân | 92 | 46.0% |
+| Website công ty du lịch | 70 | 35.0% |
+| Đại lý trực tiếp | 53 | 26.5% |
+| Khác | 13 | 6.5% |
+
+**Ngân sách cho một người trong một tour/ngày (Câu 10)**
+
+| Phương án | Số lượt chọn | Tỷ lệ người trả lời |
+|---|---:|---:|
+| 500.000–1.000.000 đồng | 62 | 31.0% |
+| 1.000.001–2.000.000 đồng | 50 | 25.0% |
+| 2.000.001–3.000.000 đồng | 36 | 18.0% |
+| Dưới 500.000 đồng | 23 | 11.5% |
+| Tùy điểm đến và thời lượng | 20 | 10.0% |
+| Trên 3.000.000 đồng | 9 | 4.5% |
+
+**Thiết bị sử dụng để tìm kiếm hoặc đặt tour (Câu 41)**
+
+| Phương án | Số lượt chọn | Tỷ lệ người trả lời |
+|---|---:|---:|
+| Điện thoại | 162 | 81.0% |
+| Máy tính xách tay | 103 | 51.5% |
+| Nhiều thiết bị tương đương | 69 | 34.5% |
+| Máy tính để bàn | 35 | 17.5% |
+| Máy tính bảng | 28 | 14.0% |
+
+Google/công cụ tìm kiếm (134 lượt chọn, 67,0%) và mạng xã hội (131 lượt, 65,5%) là hai kênh phổ biến nhất để tìm thông tin tour; các nền tảng đặt tour cũng được 124 người (62,0%) lựa chọn. Các kênh này cùng tồn tại, cho thấy người dùng có thể phải di chuyển giữa nhiều nguồn trước khi ra quyết định. Đây là bối cảnh phù hợp cho một website tập trung thông tin và hỗ trợ so sánh.
+
+Điện thoại được 162 người lựa chọn (81,0%), cao hơn máy tính xách tay (103 người, 51,5%). Vì câu hỏi cho phép chọn nhiều thiết bị, hai tỷ lệ không loại trừ nhau. Thiết kế ưu tiên di động là cần thiết, đồng thời giao diện trên màn hình lớn vẫn nên thuận tiện cho việc so sánh nhiều tour.
+
+## 4. Khó khăn trong quá trình tìm và chọn tour
+
+### 4.1. Những vấn đề thường gặp khi tìm tour
+
+| Vấn đề được chọn | Số người | Tỷ lệ |
+|---|---:|---:|
+| Khó so sánh giá giữa các đơn vị | 147 | 73.5% |
+| Không rõ giá đã bao gồm những gì | 146 | 73.0% |
+| Thiếu đánh giá đáng tin cậy | 133 | 66.5% |
+| Thông tin nằm rải rác ở nhiều nguồn | 132 | 66.0% |
+| Không biết tour còn chỗ hay không | 119 | 59.5% |
+| Khó xác minh uy tín đơn vị tổ chức | 96 | 48.0% |
+| Lịch trình mô tả chưa rõ | 87 | 43.5% |
+| Tôi ít gặp khó khăn | 31 | 15.5% |
+| Khác | 4 | 2.0% |
+
+Khó so sánh giá giữa các đơn vị là vấn đề được chọn nhiều nhất (147 người, 73,5%), theo sát là không rõ giá đã bao gồm những gì (146 người, 73,0%). Hai kết quả này có liên quan về mặt trải nghiệm: ngay cả khi người dùng tìm được nhiều tour, việc so sánh vẫn khó nếu cách công bố giá và danh sách dịch vụ không thống nhất.
+
+Thiếu đánh giá đáng tin cậy (133 người, 66,5%) và thông tin rải rác ở nhiều nguồn (132 người, 66,0%) là hai vấn đề tiếp theo. Ngoài ra, 119 người (59,5%) không biết tour còn chỗ hay không. Điều này cho thấy nhu cầu không dừng ở việc cung cấp danh sách tour; thông tin cần đủ rõ, có thể đối chiếu và phản ánh được tình trạng đặt chỗ.
+
+### 4.2. Mức độ khó khăn theo thang điểm 1–5
+
+| Nội dung đánh giá | Điểm trung bình | Điểm 4–5 | Tỷ lệ chọn 4–5 |
+|---|---:|---:|---:|
+| Tìm thông tin tour đầy đủ và nhất quán | 3.51/5 | 113/200 | 56.5% |
+| So sánh giá và dịch vụ giữa nhiều tour | 3.90/5 | 148/200 | 74.0% |
+| Xác minh độ tin cậy của đơn vị tổ chức | 3.51/5 | 114/200 | 57.0% |
+
+Khó khăn khi so sánh giá và dịch vụ có điểm trung bình cao nhất (3,90/5); 148 người (74,0%) chấm ở mức 4 hoặc 5. Mức khó khăn khi tìm thông tin đầy đủ và nhất quán đạt trung bình 3,51/5, cũng như việc xác minh độ tin cậy đạt 3,51/5. Các kết quả củng cố nhận định rằng so sánh là điểm nghẽn đáng ưu tiên, trong khi tính đầy đủ của thông tin và độ tin cậy là hai vấn đề cần giải quyết song song.
+
+## 5. Tiêu chí lựa chọn tour và thông tin cần hiển thị
+
+### 5.1. Yếu tố ảnh hưởng đến quyết định
+
+| Yếu tố | Số người | Tỷ lệ |
+|---|---:|---:|
+| Giá tour | 150 | 75.0% |
+| Lịch trình/điểm đến | 142 | 71.0% |
+| Dịch vụ bao gồm | 141 | 70.5% |
+| Đánh giá của khách hàng | 135 | 67.5% |
+| Thời gian khởi hành | 117 | 58.5% |
+| Chính sách hủy/hoàn tiền | 110 | 55.0% |
+| Uy tín nhà cung cấp | 101 | 50.5% |
+| Phương thức thanh toán | 74 | 37.0% |
+
+Giá tour là yếu tố được chọn nhiều nhất (150 người, 75,0%). Tiếp theo là lịch trình/điểm đến (142 người, 71,0%), dịch vụ bao gồm (141 người, 70,5%) và đánh giá khách hàng (135 người, 67,5%). Điều này cho thấy quyết định không chỉ phụ thuộc vào mức giá thấp; người dùng còn cần hiểu mình sẽ trải nghiệm những gì và có cơ sở đánh giá chất lượng.
+
+### 5.2. Thông tin cần có trên trang chi tiết tour
+
+| Thông tin | Số người | Tỷ lệ |
+|---|---:|---:|
+| Tổng giá và phụ phí | 152 | 76.0% |
+| Ảnh/video thực tế | 147 | 73.5% |
+| Tình trạng chỗ | 141 | 70.5% |
+| Dịch vụ bao gồm/không bao gồm | 140 | 70.0% |
+| Đánh giá của khách đã đi | 134 | 67.0% |
+| Lịch trình chi tiết | 125 | 62.5% |
+| Điểm đón/trả và phương tiện | 114 | 57.0% |
+| Thông tin nhà cung cấp | 90 | 45.0% |
+
+Tổng giá và phụ phí đứng đầu với 152 người (76,0%), tiếp theo là ảnh/video thực tế (147 người, 73,5%) và tình trạng chỗ (141 người, 70,5%). Dịch vụ bao gồm/không bao gồm cũng được 140 người (70,0%) chọn. Vì vậy, trang chi tiết tour nên trình bày giá cuối cùng hoặc cấu phần giá dễ hiểu, danh sách dịch vụ rõ ràng, lịch trình, hình ảnh thực tế và tình trạng chỗ ở vị trí dễ nhìn.
+
+### 5.3. Vấn đề sau khi bắt đầu đặt tour
+
+| Vấn đề từng gặp hoặc lựa chọn phản hồi | Số người | Tỷ lệ |
+|---|---:|---:|
+| Phí phát sinh không được thông báo trước | 93 | 46.5% |
+| Khó hủy hoặc yêu cầu hoàn tiền | 73 | 36.5% |
+| Khó liên hệ đơn vị tổ chức | 54 | 27.0% |
+| Chưa từng gặp vấn đề | 50 | 25.0% |
+| Không nhận được xác nhận đặt chỗ | 41 | 20.5% |
+| Thanh toán lỗi/không rõ trạng thái | 38 | 19.0% |
+| Thông tin tour thay đổi sau khi đặt | 38 | 19.0% |
+| Chưa từng đặt tour | 20 | 10.0% |
+
+Phí phát sinh không được thông báo trước là vấn đề được chọn nhiều nhất (93 người, 46,5%), tiếp theo là khó hủy hoặc yêu cầu hoàn tiền (73 người, 36,5%). Có 50 người (25,0%) chọn “Chưa từng gặp vấn đề” và 20 người (10,0%) chọn “Chưa từng đặt tour”. Vì câu hỏi cho phép chọn nhiều đáp án, các lựa chọn này có thể xuất hiện cùng những lựa chọn khác trong dữ liệu; do đó, không nên diễn giải chúng như các nhóm loại trừ lẫn nhau.
+
+## 6. Nhu cầu chức năng của website
+
+Các câu 25–33 sử dụng thang điểm 1–5 để đánh giá mức độ cần thiết/đồng tình đối với từng chức năng. Điểm trung bình giúp so sánh tương đối giữa các chức năng trong cùng bảng hỏi, nhưng không tự nó chứng minh hành vi sử dụng thực tế.
+
+| Chức năng | Điểm trung bình /5 | Số người chấm 4–5 | Tỷ lệ chấm 4–5 |
+|---|---:|---:|---:|
+| Tìm kiếm tour theo địa điểm, ngày đi, mức giá và số người. | 3.98 | 152 | 76.0% |
+| Lọc tour theo loại hình, thời lượng, mức giá và tiện ích. | 4.00 | 148 | 74.0% |
+| So sánh nhiều tour trên cùng một màn hình. | 3.51 | 112 | 56.0% |
+| Hiển thị giá rõ ràng, gồm phụ phí và dịch vụ bao gồm/không bao gồm. | 4.06 | 159 | 79.5% |
+| Hiển thị đánh giá và nhận xét của khách đã tham gia tour. | 4.00 | 151 | 75.5% |
+| Hiển thị hồ sơ, thông tin liên hệ và mức độ xác minh của nhà cung cấp. | 3.53 | 116 | 58.0% |
+| Đặt tour trực tuyến và nhận xác nhận ngay trên website. | 3.89 | 146 | 73.0% |
+| Có bản đồ điểm đến, điểm đón/trả và vị trí tham quan. | 3.38 | 100 | 50.0% |
+| Có hỗ trợ liên hệ/giải đáp thắc mắc với nhà cung cấp. | 3.43 | 104 | 52.0% |
+
+Hiển thị giá rõ ràng đạt điểm trung bình cao nhất (4,06/5), với 159 người (79,5%) chấm 4 hoặc 5. Chức năng lọc tour đạt 4,00/5 và đánh giá của khách hàng cũng đạt 4,00/5. Tìm kiếm tour đạt 3,98/5, trong khi đặt tour trực tuyến và nhận xác nhận ngay đạt 3,89/5.
+
+So sánh nhiều tour trên cùng màn hình đạt 3,51/5, thấp hơn các chức năng trên nhưng vẫn có 112 người (56,0%) chấm 4–5. Kết quả này không mâu thuẫn với việc nhiều người gặp khó khăn khi so sánh giá: người dùng có thể thấy việc so sánh là khó khăn, nhưng mức độ ưu tiên của một giao diện so sánh riêng chưa cao bằng sự minh bạch về giá. Nên xây dựng phần giá và bộ lọc tốt trước, sau đó thiết kế chức năng so sánh theo cách gọn và dễ hiểu.
+
+Bản đồ điểm đến/điểm đón trả (3,38/5) và hỗ trợ liên hệ nhà cung cấp (3,43/5) có điểm trung bình thấp hơn. Chúng vẫn có giá trị với một số tình huống, nhưng nếu nguồn lực có hạn, có thể triển khai sau nhóm chức năng tìm kiếm, lọc, giá minh bạch, đánh giá và xác nhận đặt tour.
+
+### 6.1. Chức năng bổ sung
+
+| Chức năng bổ sung | Số người | Tỷ lệ |
+|---|---:|---:|
+| Đánh giá sau chuyến đi | 132 | 66.0% |
+| Thông báo khi tour thay đổi | 127 | 63.5% |
+| Lịch sử đặt tour | 124 | 62.0% |
+| Lưu tour yêu thích | 120 | 60.0% |
+| Mã giảm giá/ưu đãi | 110 | 55.0% |
+| Gợi ý tour theo ngân sách/sở thích | 89 | 44.5% |
+| Hỗ trợ trực tuyến | 81 | 40.5% |
+| Không cần thêm chức năng | 13 | 6.5% |
+
+Đánh giá sau chuyến đi được chọn nhiều nhất (132 người, 66,0%), tiếp theo là thông báo khi tour thay đổi (127 người, 63,5%), lịch sử đặt tour (124 người, 62,0%) và lưu tour yêu thích (120 người, 60,0%). Đây là nhóm chức năng hỗ trợ cả trước và sau khi đặt tour. Việc có nhu cầu đối với đánh giá sau chuyến đi cũng phù hợp với việc đánh giá của khách hàng được xem là một yếu tố quan trọng khi lựa chọn tour.
+
+## 7. Thanh toán, xác nhận và niềm tin
+
+### 7.1. Phương thức thanh toán và mức độ sẵn sàng
+
+| Phương thức thanh toán ưu tiên | Số người | Tỷ lệ |
+|---|---:|---:|
+| Chuyển khoản ngân hàng/QR | 57 | 28.5% |
+| Ví điện tử | 43 | 21.5% |
+| Thanh toán khi đến/cho nhà cung cấp | 38 | 19.0% |
+| Thẻ ATM nội địa | 26 | 13.0% |
+| Thanh toán trực tiếp | 15 | 7.5% |
+| Thẻ tín dụng/ghi nợ quốc tế | 14 | 7.0% |
+| Khác | 7 | 3.5% |
+
+| Mức độ sẵn sàng thanh toán trực tuyến khi thông tin rõ ràng và có xác nhận | Số người | Tỷ lệ |
+|---|---:|---:|
+| Có lẽ có | 74 | 37.0% |
+| Chưa quyết định | 51 | 25.5% |
+| Chắc chắn có | 48 | 24.0% |
+| Có lẽ không | 18 | 9.0% |
+| Chắc chắn không | 9 | 4.5% |
+
+Chuyển khoản ngân hàng/QR là phương thức được chọn nhiều nhất (57 người, 28,5%), sau đó là ví điện tử (43 người, 21,5%). Tuy vậy, không có một phương thức nào chiếm đa số tuyệt đối. Website nên cân nhắc hỗ trợ các phương thức phổ biến và thông báo rõ điều kiện thanh toán, thay vì mặc định mọi người dùng có cùng thói quen.
+
+Về mức độ sẵn sàng thanh toán trực tuyến, 48 người (24,0%) chọn “Chắc chắn có” và 74 người (37,0%) chọn “Có lẽ có”. Tổng cộng hai nhóm này là 122 người (61,0%), nhưng 51 người (25,5%) vẫn chưa quyết định. Do đó, có tín hiệu chấp nhận thanh toán trực tuyến, song vẫn còn một nhóm đáng kể cần thêm sự bảo đảm. Không nên diễn giải 61,0% này thành tỷ lệ chắc chắn sẽ giao dịch thực tế.
+
+### 7.2. Lo ngại khi thanh toán và chính sách hủy/đổi
+
+| Lo ngại khi thanh toán trực tuyến | Số người | Tỷ lệ |
+|---|---:|---:|
+| Chuyển tiền nhưng không có chỗ | 125 | 62.5% |
+| Phí không minh bạch | 119 | 59.5% |
+| Khó hoàn tiền khi hủy | 116 | 58.0% |
+| Website không đáng tin | 99 | 49.5% |
+| Lộ thông tin cá nhân/thẻ | 96 | 48.0% |
+| Tôi không lo ngại đáng kể | 20 | 10.0% |
+| Khác | 5 | 2.5% |
+
+| Mức độ cần xem chính sách hủy/đổi trước khi đặt | Số người | Tỷ lệ |
+|---|---:|---:|
+| Cần | 86 | 43.0% |
+| Rất cần | 55 | 27.5% |
+| Bình thường | 38 | 19.0% |
+| Ít cần | 17 | 8.5% |
+| Không cần | 4 | 2.0% |
+
+Lo ngại được chọn nhiều nhất là chuyển tiền nhưng không có chỗ (125 người, 62,5%), tiếp theo là phí không minh bạch (119 người, 59,5%) và khó hoàn tiền khi hủy (116 người, 58,0%). Đồng thời, 141 người (70,5%) cho rằng việc xem chính sách hủy/đổi ở mức “Cần” hoặc “Rất cần”. Các kết quả này cho thấy minh bạch thông tin phải đi cùng minh bạch quy trình: cần thông báo trạng thái giữ chỗ, xác nhận thanh toán, điều kiện hủy/đổi và cách liên hệ hỗ trợ.
+
+### 7.3. Kênh xác nhận và theo dõi đặt tour
+
+| Kênh xác nhận mong muốn | Số người | Tỷ lệ |
+|---|---:|---:|
+| Thông báo trên website | 136 | 68.0% |
+| Email | 107 | 53.5% |
+| Zalo | 82 | 41.0% |
+| Tin nhắn SMS | 64 | 32.0% |
+| Ứng dụng di động | 53 | 26.5% |
+| Khác | 5 | 2.5% |
+
+| Cách theo dõi trạng thái đặt tour | Số người | Tỷ lệ |
+|---|---:|---:|
+| Trực tiếp trong tài khoản website | 139 | 69.5% |
+| Email/SMS | 112 | 56.0% |
+| Zalo | 70 | 35.0% |
+| Gọi điện từ đơn vị tổ chức | 54 | 27.0% |
+| Không có nhu cầu | 14 | 7.0% |
+
+Thông báo trên website là kênh xác nhận được chọn nhiều nhất (136 người, 68,0%), còn theo dõi trực tiếp trong tài khoản website được 139 người (69,5%) lựa chọn. Email cũng là kênh xác nhận phổ biến (107 người, 53,5%). Điều này ủng hộ việc xây dựng một trang quản lý đơn đặt tour trong tài khoản, kết hợp thông báo trên website và email; các kênh như Zalo hoặc SMS có thể được cân nhắc theo nguồn lực và phạm vi dự án.
+
+## 8. Niềm tin, ý định sử dụng và khả năng giới thiệu
+
+| Phát biểu | Điểm trung bình /5 | Số người chấm 4–5 | Tỷ lệ chấm 4–5 |
+|---|---:|---:|---:|
+| Tôi tin tưởng website hơn khi thông tin tour được trình bày đầy đủ và nhất quán. | 3.90 | 140 | 70.0% |
+| Đánh giá từ khách hàng đã trải nghiệm giúp tôi tự tin hơn khi chọn tour. | 3.88 | 139 | 69.5% |
+| Tôi sẵn sàng sử dụng website nếu có thông tin nhà cung cấp rõ ràng và chính sách minh bạch. | 3.80 | 138 | 69.0% |
+| Tôi có ý định sử dụng website đặt tour địa phương nếu đáp ứng các nhu cầu đã nêu. | 3.74 | 135 | 67.5% |
+| Tôi có khả năng giới thiệu website này cho người khác nếu trải nghiệm tốt. | 3.62 | 114 | 57.0% |
+
+Niềm tin khi thông tin tour đầy đủ và nhất quán đạt trung bình 3,90/5; tác động của đánh giá khách hàng đạt 3,88/5. Mức sẵn sàng sử dụng khi thông tin nhà cung cấp và chính sách minh bạch đạt 3,80/5, còn ý định sử dụng website đạt 3,74/5. Khả năng giới thiệu cho người khác đạt 3,62/5, thấp hơn các phát biểu còn lại.
+
+Nhìn chung, phản hồi có xu hướng tích cực nhưng chưa thể xem là cam kết sử dụng. Khoảng cách giữa đánh giá tương đối tích cực về sự minh bạch và điểm ý định/giới thiệu cho thấy trải nghiệm thực tế sẽ còn phụ thuộc vào chất lượng triển khai, độ tin cậy của nhà cung cấp, độ chính xác dữ liệu và quy trình xử lý sự cố.
+
+## 9. Tần suất sử dụng dự kiến
+
+| Tần suất dự kiến nếu website đáp ứng nhu cầu | Số người | Tỷ lệ |
+|---|---:|---:|
+| 1–3 lần/năm | 95 | 47.5% |
+| Ít hơn 1 lần/năm | 40 | 20.0% |
+| 4–6 lần/năm | 27 | 13.5% |
+| Chưa thể xác định | 19 | 9.5% |
+| Chỉ thử một lần | 11 | 5.5% |
+| Trên 6 lần/năm | 8 | 4.0% |
+
+Phương án phổ biến nhất là 1–3 lần/năm (95 người, 47,5%), tiếp theo là ít hơn 1 lần/năm (40 người, 20,0%). Điều này phù hợp với đặc điểm dịch vụ du lịch vốn không nhất thiết được sử dụng thường xuyên hàng tháng. Vì vậy, nên tập trung vào việc làm cho mỗi lần tìm và đặt tour đáng tin cậy, dễ thực hiện, đồng thời hỗ trợ lưu tour và xem lại lịch sử đặt tour để người dùng quay lại khi có nhu cầu.
+
+## 10. Đề xuất ưu tiên phát triển
+
+Dựa trên tần suất lựa chọn và điểm đánh giá, có thể chia định hướng phát triển thành ba mức:
+
+### Ưu tiên 1 — Nên có trong phiên bản đầu
+1. **Tìm kiếm và lọc tour:** hỗ trợ địa điểm, ngày đi, mức giá, số người, loại hình và thời lượng. Điểm tìm kiếm trung bình 3,98/5; lọc tour 4,00/5.
+2. **Minh bạch giá:** thể hiện tổng giá, phụ phí và dịch vụ bao gồm/không bao gồm. Đây vừa là nhu cầu nội dung hàng đầu (152 người chọn tổng giá/phụ phí), vừa là chức năng có điểm trung bình cao nhất trong nhóm 25–33 (4,06/5).
+3. **Thông tin tour nhất quán:** lịch trình, tình trạng chỗ, điểm đón/trả và hình ảnh thực tế; hạn chế tình trạng thông tin thiếu hoặc nằm rải rác.
+4. **Đánh giá và thông tin nhà cung cấp:** trình bày đánh giá khách hàng, thông tin liên hệ và thông tin xác minh ở mức có thể kiểm chứng.
+5. **Đặt tour, xác nhận và theo dõi trạng thái:** người dùng cần biết đơn đang ở trạng thái nào và có bằng chứng xác nhận sau thao tác.
+6. **Chính sách hủy/đổi rõ ràng:** nêu điều kiện, thời hạn, phí và quy trình yêu cầu hỗ trợ trước khi người dùng thanh toán.
+
+### Ưu tiên 2 — Nên cân nhắc sau khi luồng cốt lõi ổn định
+1. So sánh nhiều tour trên một màn hình.
+2. Lưu tour yêu thích và lịch sử đặt tour.
+3. Đánh giá sau chuyến đi và thông báo khi tour thay đổi.
+4. Bản đồ điểm đến/điểm đón trả và kênh hỗ trợ trực tuyến.
+
+Các chức năng bổ sung được nhiều người chọn, nhưng cần đối chiếu với phạm vi, thời gian và nguồn lực thực tế. Không nên đưa tất cả vào phiên bản đầu nếu làm giảm chất lượng của các chức năng cốt lõi.
+
+### Ưu tiên 3 — Cần kiểm chứng thêm
+1. Gợi ý tour theo ngân sách/sở thích.
+2. Mở rộng số lượng kênh xác nhận và tích hợp thanh toán.
+3. Các chức năng cá nhân hóa nâng cao.
+
+Những chức năng này có tiềm năng, nhưng nên được xác nhận thêm qua phỏng vấn người dùng, kiểm thử nguyên mẫu hoặc đánh giá chi phí tích hợp trước khi cam kết triển khai.
+
+## 11. Hạn chế của dữ liệu
+
+- **Chưa rõ phương pháp chọn mẫu:** không có thông tin đầy đủ về cách mời người tham gia, địa bàn, thời gian thu thập dự kiến hay tiêu chí chọn mẫu. Do đó, không thể khẳng định mẫu đại diện cho toàn bộ khách du lịch.
+- **Dữ liệu tự khai báo:** câu trả lời phản ánh nhận thức và ý định của người tham gia, không đồng nghĩa với hành vi thực tế khi sử dụng website.
+- **Câu hỏi nhiều lựa chọn:** tỷ lệ được tính trên tổng số người trả lời; một người có thể chọn nhiều phương án nên tổng tỷ lệ không bằng 100%.
+- **Thang điểm 1–5:** điểm trung bình hỗ trợ so sánh mô tả, nhưng cần xem cùng phân bố câu trả lời và cách diễn đạt câu hỏi; không nên coi chênh lệch nhỏ là khác biệt có ý nghĩa thống kê.
+- **Chưa phân tích sâu theo nhóm:** báo cáo chủ yếu mô tả toàn bộ mẫu. Các khác biệt theo tuổi, nghề nghiệp, kinh nghiệm đặt tour hoặc ngân sách chưa được kiểm định.
+- **Không suy luận nhân quả:** dữ liệu khảo sát cắt ngang không đủ để kết luận một yếu tố trực tiếp gây ra niềm tin hay ý định sử dụng.
+
+## 12. Kết luận
+
+Kết quả khảo sát cho thấy cơ hội chính của website đặt tour du lịch địa phương là giúp người dùng **tìm đúng tour, so sánh dễ hơn và yên tâm hơn trước khi thanh toán**. Khó khăn về so sánh giá, phạm vi dịch vụ và độ tin cậy xuất hiện nổi bật trong câu trả lời. Vì vậy, hướng phát triển hợp lý là ưu tiên tìm kiếm/lọc, giá minh bạch, thông tin tour nhất quán, đánh giá khách hàng, xác nhận đặt chỗ và chính sách hủy/đổi rõ ràng.
+
+Khảo sát cũng ghi nhận sự quan tâm đối với các chức năng sau khi đặt như theo dõi trạng thái, lịch sử đặt tour, thông báo thay đổi và đánh giá sau chuyến đi. Tuy nhiên, mức độ sẵn sàng thanh toán trực tuyến còn có nhóm chưa quyết định; đây là lý do cần xem bảo đảm giao dịch và khả năng hỗ trợ là một phần của trải nghiệm cốt lõi.
+
+Tóm lại, báo cáo đề xuất xây dựng phiên bản đầu tập trung vào độ rõ ràng và độ tin cậy thay vì chạy theo số lượng chức năng. Trước khi đưa ra kết luận về thị trường rộng hơn, nhóm nên bổ sung mô tả phương pháp lấy mẫu, kiểm tra tính phù hợp của đối tượng trả lời và thực hiện kiểm thử nguyên mẫu với người dùng mục tiêu.
+
+---
+
+*Nguồn dữ liệu: tệp “Khảo sát định lượng - Website đặt tour du lịch địa phương (Câu trả lời).xlsx” do nhóm cung cấp. Báo cáo được tổng hợp từ dữ liệu trong tệp; không sử dụng số liệu bên ngoài để thay thế hoặc bổ sung kết quả khảo sát.*
