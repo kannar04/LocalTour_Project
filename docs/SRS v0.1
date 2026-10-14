@@ -1,0 +1,1033 @@
+
+# SRS v0.1 – ĐẶC TẢ YÊU CẦU PHẦN MỀM
+## Dự án: Website đặt tour du lịch địa phương
+
+- Phiên bản: 0.1
+- Trạng thái: Bản dự thảo
+- Ngày lập: 14/10/2026
+- Cơ sở xây dựng: Khảo sát định lượng với 200 người trả lời
+- Đơn vị thực hiện: Nhóm dự án
+
+---
+
+# 1. GIỚI THIỆU
+
+## 1.1. Mục đích tài liệu
+
+Tài liệu SRS (Software Requirements Specification) phiên bản 0.1 mô tả các yêu cầu sơ bộ đối với hệ thống Website đặt tour du lịch địa phương.
+
+Tài liệu được xây dựng nhằm:
+- Xác định vấn đề và nhu cầu của người dùng dựa trên kết quả khảo sát.
+- Xác định mục tiêu, phạm vi và đối tượng sử dụng hệ thống.
+- Mô tả các yêu cầu chức năng và phi chức năng của website.
+- Làm cơ sở để phân tích, thiết kế, lập trình, kiểm thử và quản lý phạm vi dự án.
+- Hỗ trợ nhóm thống nhất các yêu cầu trước khi phát triển những phiên bản SRS tiếp theo.
+
+Phiên bản 0.1 là bản dự thảo ban đầu. Các yêu cầu, mức độ ưu tiên và chỉ tiêu kỹ thuật sẽ được điều chỉnh sau khi nhóm thảo luận và xác nhận.
+
+## 1.2. Bối cảnh và vấn đề
+
+Trong quá trình tìm kiếm, lựa chọn và đặt tour du lịch địa phương, người dùng có thể phải tham khảo thông tin từ nhiều nguồn khác nhau như công cụ tìm kiếm, mạng xã hội, website của đơn vị tổ chức và nền tảng đặt tour.
+
+Việc thông tin được trình bày không thống nhất có thể khiến người dùng gặp khó khăn khi so sánh giá, xác định dịch vụ được bao gồm, đánh giá độ tin cậy của nhà cung cấp và kiểm tra tình trạng chỗ.
+
+Ngoài ra, các vấn đề liên quan đến phụ phí, xác nhận đặt chỗ, trạng thái thanh toán và chính sách hủy hoặc hoàn tiền cũng có thể ảnh hưởng đến sự tin tưởng của người dùng.
+
+Dự án đề xuất xây dựng một website tập trung thông tin tour du lịch địa phương, hỗ trợ tìm kiếm, lọc, xem chi tiết, đặt tour và theo dõi đơn đặt nhằm giúp quá trình lựa chọn tour thuận tiện và minh bạch hơn.
+
+## 1.3. Căn cứ từ khảo sát người dùng
+
+Khảo sát có 200 câu trả lời. Một số kết quả nổi bật gồm:
+
+- 147 người (73,5%) gặp khó khăn khi so sánh giá giữa các đơn vị.
+- 146 người (73,0%) không rõ giá tour đã bao gồm những gì.
+- 152 người (76,0%) muốn xem tổng giá và phụ phí trên trang chi tiết tour.
+- 141 người (70,5%) muốn biết tình trạng chỗ của tour.
+- 133 người (66,5%) cho biết thiếu đánh giá đáng tin cậy.
+- 132 người (66,0%) gặp tình trạng thông tin tour nằm rải rác ở nhiều nguồn.
+- 162 người (81,0%) lựa chọn điện thoại là thiết bị dùng để tìm kiếm hoặc đặt tour.
+- 159 người (79,5%) đánh giá mức 4–5/5 cho tính năng hiển thị giá rõ ràng.
+- 148 người (74,0%) đánh giá mức 4–5/5 cho tính năng lọc tour.
+- 151 người (75,5%) đánh giá mức 4–5/5 cho tính năng hiển thị đánh giá của khách hàng.
+- 141 người (70,5%) cho rằng cần hoặc rất cần xem chính sách hủy/đổi trước khi đặt.
+- 139 người (69,5%) muốn theo dõi trạng thái đặt tour trực tiếp trong tài khoản website.
+
+Từ các kết quả trên, dự án ưu tiên tính minh bạch của giá, tính đầy đủ của thông tin tour, chức năng tìm kiếm và lọc, đánh giá khách hàng, xác nhận đặt chỗ và theo dõi trạng thái đơn.
+
+Các số liệu trên phản ánh nhóm người tham gia khảo sát, không mặc nhiên đại diện cho toàn bộ thị trường du lịch.
+
+## 1.4. Đối tượng đọc tài liệu
+
+- Thành viên nhóm dự án.
+- Trưởng nhóm và người phụ trách quản lý dự án.
+- Người phân tích yêu cầu.
+- Người thiết kế giao diện và trải nghiệm người dùng.
+- Người phát triển phần mềm.
+- Người kiểm thử phần mềm.
+- Giảng viên hoặc người đánh giá dự án.
+
+## 1.5. Thuật ngữ và viết tắt
+
+- SRS: Software Requirements Specification – Đặc tả yêu cầu phần mềm.
+- FR: Functional Requirement – Yêu cầu chức năng.
+- NFR: Non-functional Requirement – Yêu cầu phi chức năng.
+- Admin: Quản trị viên hệ thống.
+- Nhà cung cấp: Đơn vị hoặc cá nhân tổ chức và cung cấp tour.
+- Đơn đặt tour: Bản ghi thể hiện yêu cầu đặt một tour của khách hàng.
+- Cổng thanh toán: Dịch vụ bên ngoài hỗ trợ xử lý giao dịch thanh toán trực tuyến.
+- Phiên bản v0.1: Bản đặc tả yêu cầu sơ bộ, chưa phải phạm vi cuối cùng.
+
+---
+
+# 2. TỔNG QUAN HỆ THỐNG
+
+## 2.1. Mục tiêu hệ thống
+
+Website đặt tour du lịch địa phương hướng đến các mục tiêu sau:
+
+- Tập trung thông tin tour tại một nền tảng.
+- Hỗ trợ người dùng tìm kiếm và lọc tour theo các tiêu chí phù hợp.
+- Trình bày rõ giá tour, phụ phí và các dịch vụ bao gồm hoặc không bao gồm.
+- Cung cấp thông tin về lịch trình, thời gian khởi hành, tình trạng chỗ và nhà cung cấp.
+- Hỗ trợ khách hàng đặt tour và theo dõi trạng thái đơn đặt.
+- Tăng tính minh bạch của quá trình xác nhận và thanh toán.
+- Cung cấp chức năng quản lý tour và đơn đặt cho nhà cung cấp.
+- Cung cấp chức năng quản lý và kiểm duyệt cho quản trị viên.
+
+## 2.2. Phạm vi hệ thống
+
+### 2.2.1. Chức năng dự kiến trong hệ thống
+
+- Đăng ký, đăng nhập và quản lý tài khoản.
+- Tìm kiếm, lọc và xem danh sách tour.
+- Xem chi tiết tour và thông tin giá.
+- Kiểm tra tình trạng tour.
+- So sánh thông tin các tour.
+- Đặt tour và nhận xác nhận.
+- Thanh toán trực tuyến nếu có tích hợp cổng thanh toán.
+- Theo dõi và yêu cầu hủy đơn đặt tour.
+- Xem chính sách hủy và hoàn tiền.
+- Đánh giá tour sau chuyến đi.
+- Lưu tour yêu thích và xem lịch sử đặt tour.
+- Quản lý tour, lịch khởi hành và đơn đặt của nhà cung cấp.
+- Quản lý người dùng, nhà cung cấp và nội dung bởi Admin.
+- Gửi thông báo về các sự kiện liên quan đến đơn đặt.
+- Hiển thị bản đồ và cung cấp kênh hỗ trợ khi nằm trong phạm vi triển khai.
+
+### 2.2.2. Chức năng chưa cam kết triển khai
+
+Các chức năng sau chưa được xác nhận là một phần bắt buộc của phiên bản đầu:
+
+- Ứng dụng di động độc lập.
+- Chatbot AI.
+- Chương trình tích điểm khách hàng.
+- Hệ thống gợi ý tour bằng trí tuệ nhân tạo.
+- Tích hợp đồng thời nhiều cổng thanh toán.
+- Đồng bộ thông báo qua tất cả các nền tảng bên ngoài.
+- Hệ thống quản lý kế toán hoặc điều hành nội bộ của nhà cung cấp.
+
+Việc bổ sung các chức năng này phải được đánh giá về chi phí, thời gian, nguồn lực và tác động đến phạm vi dự án.
+
+## 2.3. Nhóm người dùng và tác nhân
+
+### 2.3.1. Khách hàng
+
+Khách hàng có nhu cầu tìm hiểu, so sánh và đặt tour du lịch địa phương.
+
+Các hoạt động chính:
+- Tìm kiếm và lọc tour.
+- Xem chi tiết và giá tour.
+- Đặt tour và thanh toán theo phương thức được hỗ trợ.
+- Theo dõi trạng thái đơn đặt.
+- Gửi yêu cầu hủy tour.
+- Đánh giá tour sau khi tham gia.
+- Quản lý danh sách tour yêu thích.
+
+### 2.3.2. Nhà cung cấp tour
+
+Nhà cung cấp là đơn vị hoặc cá nhân tổ chức tour và đăng tải thông tin lên website.
+
+Các hoạt động chính:
+- Quản lý thông tin tour.
+- Cập nhật lịch khởi hành, giá và số lượng chỗ.
+- Xem và xử lý đơn đặt tour.
+- Cập nhật trạng thái đơn theo quyền được cấp.
+
+### 2.3.3. Quản trị viên (Admin)
+
+Admin chịu trách nhiệm quản lý hoạt động chung của hệ thống.
+
+Các hoạt động chính:
+- Quản lý tài khoản người dùng.
+- Quản lý nhà cung cấp.
+- Kiểm duyệt thông tin tour và đánh giá.
+- Theo dõi đơn đặt và giao dịch.
+- Quản lý nội dung và cấu hình website.
+- Kiểm tra nhật ký hoạt động khi cần thiết.
+
+### 2.3.4. Cổng thanh toán
+
+Cổng thanh toán là tác nhân bên ngoài, có trách nhiệm tiếp nhận và xử lý yêu cầu thanh toán theo khả năng của dịch vụ được tích hợp.
+
+### 2.3.5. Dịch vụ thông báo
+
+Dịch vụ thông báo hỗ trợ gửi thông tin xác nhận hoặc cập nhật trạng thái đơn đặt qua các kênh được triển khai.
+
+### 2.3.6. Dịch vụ bản đồ
+
+Dịch vụ bản đồ hỗ trợ hiển thị địa điểm tour, điểm tham quan hoặc điểm đón/trả khi được tích hợp.
+
+---
+
+# 3. YÊU CẦU CHỨC NĂNG
+
+## 3.1. Quy ước mức độ ưu tiên
+
+- Cao: Chức năng cốt lõi, cần ưu tiên xem xét cho phiên bản đầu.
+- Trung bình: Chức năng có giá trị nhưng có thể triển khai sau khi các chức năng cốt lõi ổn định.
+- Thấp: Chức năng mở rộng, cần cân nhắc theo nguồn lực.
+- Các mức ưu tiên trong tài liệu là đề xuất ban đầu, chưa phải quyết định phạm vi chính thức.
+
+## 3.2. Nhóm A – Tài khoản và hồ sơ người dùng
+
+### FR-01. Đăng ký tài khoản
+Mức ưu tiên: Cao
+
+Mô tả:
+Hệ thống cho phép khách hàng tạo tài khoản bằng các thông tin cần thiết.
+
+Đầu vào:
+Thông tin đăng ký theo biểu mẫu của hệ thống.
+
+Xử lý:
+- Kiểm tra các trường bắt buộc.
+- Kiểm tra định dạng dữ liệu.
+- Kiểm tra tính hợp lệ của thông tin tài khoản.
+- Tạo tài khoản nếu dữ liệu hợp lệ.
+
+Đầu ra:
+Thông báo đăng ký thành công hoặc thông báo lỗi phù hợp.
+
+Điều kiện:
+Tài khoản chỉ được tạo khi dữ liệu đáp ứng các quy tắc hợp lệ của hệ thống.
+
+### FR-02. Đăng nhập và đăng xuất
+Mức ưu tiên: Cao
+
+Mô tả:
+Hệ thống cho phép người dùng đăng nhập để sử dụng chức năng phù hợp với vai trò và đăng xuất khi kết thúc phiên làm việc.
+
+Đầu vào:
+Thông tin xác thực tài khoản.
+
+Xử lý:
+- Xác thực thông tin đăng nhập.
+- Kiểm tra trạng thái tài khoản.
+- Xác định quyền truy cập theo vai trò.
+
+Đầu ra:
+Kết quả đăng nhập hoặc thông báo lỗi.
+
+### FR-03. Quản lý hồ sơ cá nhân
+Mức ưu tiên: Trung bình
+
+Mô tả:
+Hệ thống cho phép người dùng xem và cập nhật các thông tin cá nhân được phép chỉnh sửa.
+
+Đầu vào:
+Thông tin hồ sơ mới.
+
+Xử lý:
+Kiểm tra dữ liệu và lưu thông tin hợp lệ.
+
+Đầu ra:
+Thông báo kết quả cập nhật hồ sơ.
+
+---
+
+## 3.3. Nhóm B – Tìm kiếm và lựa chọn tour
+
+### FR-04. Tìm kiếm tour
+Mức ưu tiên: Cao
+
+Mô tả:
+Hệ thống cho phép khách hàng tìm tour theo tên, địa điểm hoặc các từ khóa liên quan.
+
+Đầu vào:
+Từ khóa tìm kiếm và các tiêu chí được hỗ trợ.
+
+Xử lý:
+- Tiếp nhận tiêu chí tìm kiếm.
+- Tìm các tour phù hợp.
+- Trả về danh sách kết quả.
+
+Đầu ra:
+Danh sách tour phù hợp hoặc thông báo không tìm thấy kết quả.
+
+Cơ sở khảo sát:
+152/200 người đánh giá mức 4–5/5 cho chức năng tìm kiếm theo các tiêu chí cơ bản.
+
+### FR-05. Lọc và sắp xếp tour
+Mức ưu tiên: Cao
+
+Mô tả:
+Hệ thống cho phép lọc tour theo các tiêu chí như địa điểm, ngày đi, giá, loại hình, thời lượng và tiện ích nếu có dữ liệu.
+
+Đầu vào:
+Các điều kiện lọc và sắp xếp do khách hàng lựa chọn.
+
+Xử lý:
+Lọc danh sách tour theo điều kiện hợp lệ và sắp xếp theo tiêu chí được chọn.
+
+Đầu ra:
+Danh sách tour đáp ứng các điều kiện.
+
+Cơ sở khảo sát:
+148/200 người đánh giá mức 4–5/5 cho chức năng lọc tour.
+
+### FR-06. Xem danh sách tour
+Mức ưu tiên: Cao
+
+Mô tả:
+Hệ thống hiển thị danh sách tour đang được phép công khai.
+
+Thông tin tổng quan có thể gồm:
+- Tên tour.
+- Địa điểm.
+- Giá tham khảo.
+- Thời lượng.
+- Hình ảnh.
+- Đánh giá nếu có.
+- Tình trạng tour nếu có dữ liệu cập nhật.
+
+Đầu ra:
+Danh sách tour có thể được xem và lựa chọn.
+
+### FR-07. Xem chi tiết tour
+Mức ưu tiên: Cao
+
+Mô tả:
+Hệ thống hiển thị thông tin chi tiết của tour để khách hàng có đủ cơ sở đánh giá trước khi đặt.
+
+Thông tin cần xem xét:
+- Tên tour và địa điểm.
+- Lịch trình chi tiết.
+- Thời lượng và thời gian khởi hành.
+- Điểm đón/trả và phương tiện nếu có.
+- Giá tour và phụ phí.
+- Dịch vụ bao gồm và không bao gồm.
+- Hình ảnh hoặc video.
+- Tình trạng chỗ.
+- Thông tin nhà cung cấp.
+- Đánh giá của khách hàng.
+- Chính sách hủy, đổi và hoàn tiền.
+
+### FR-08. Hiển thị giá tour minh bạch
+Mức ưu tiên: Cao
+
+Mô tả:
+Hệ thống hiển thị giá tour và các khoản phí liên quan theo cách dễ hiểu, giúp khách hàng biết các khoản chi phí trước khi xác nhận đặt tour.
+
+Yêu cầu:
+- Hiển thị giá áp dụng cho mỗi người hoặc đơn vị tính phù hợp.
+- Nêu rõ các dịch vụ đã bao gồm và chưa bao gồm.
+- Công khai phụ phí đã biết.
+- Hiển thị tổng tiền dự kiến theo số lượng khách và các lựa chọn.
+- Thông báo các khoản chi phí phát sinh hợp lệ trước khi khách hàng xác nhận.
+
+Cơ sở khảo sát:
+- 147/200 người gặp khó khăn khi so sánh giá.
+- 146/200 người không rõ giá đã bao gồm những gì.
+- 152/200 người muốn xem tổng giá và phụ phí.
+- Điểm đánh giá trung bình của tính năng hiển thị giá rõ ràng là 4,06/5.
+
+### FR-09. Kiểm tra tình trạng tour
+Mức ưu tiên: Cao
+
+Mô tả:
+Hệ thống hiển thị tình trạng chỗ của tour dựa trên dữ liệu được nhà cung cấp cập nhật.
+
+Đầu vào:
+Tour và ngày khởi hành được lựa chọn.
+
+Xử lý:
+Kiểm tra số lượng chỗ và trạng thái tour trong hệ thống.
+
+Đầu ra:
+Tình trạng còn chỗ, hết chỗ hoặc không khả dụng.
+
+Lưu ý:
+Trạng thái hiển thị cần được cập nhật phù hợp với quy trình đặt chỗ thực tế.
+
+### FR-10. So sánh tour
+Mức ưu tiên: Trung bình
+
+Mô tả:
+Hệ thống cho phép khách hàng chọn nhiều tour để so sánh các thông tin quan trọng trên cùng một giao diện.
+
+Thông tin so sánh có thể gồm:
+- Giá và phụ phí.
+- Lịch trình.
+- Thời lượng.
+- Dịch vụ bao gồm và không bao gồm.
+- Thời gian khởi hành.
+- Đánh giá.
+- Tình trạng chỗ.
+
+Mục tiêu:
+Giúp khách hàng đánh giá sự khác biệt giữa các lựa chọn trước khi quyết định.
+
+Cơ sở khảo sát:
+104/200 người thường so sánh 2–3 tour trước khi quyết định. Tuy nhiên, giao diện so sánh riêng nên được cân nhắc theo nguồn lực sau khi hoàn thiện tìm kiếm, lọc và hiển thị giá.
+
+### FR-28. Quản lý tour yêu thích
+Mức ưu tiên: Trung bình
+
+Mô tả:
+Hệ thống cho phép khách hàng lưu tour vào danh sách yêu thích và xóa tour khỏi danh sách khi không còn nhu cầu.
+
+Điều kiện:
+Khách hàng phải đăng nhập nếu hệ thống lưu danh sách yêu thích theo tài khoản.
+
+---
+
+## 3.4. Nhóm C – Đặt tour và thanh toán
+
+### FR-11. Đặt tour
+Mức ưu tiên: Cao
+
+Mô tả:
+Hệ thống cho phép khách hàng gửi yêu cầu đặt tour.
+
+Đầu vào:
+- Tour được chọn.
+- Ngày khởi hành.
+- Số lượng khách.
+- Thông tin liên hệ cần thiết.
+- Các lựa chọn dịch vụ nếu có.
+
+Xử lý:
+- Kiểm tra dữ liệu đầu vào.
+- Kiểm tra tính khả dụng của tour.
+- Tính tổng tiền theo giá và các lựa chọn hợp lệ.
+- Hiển thị thông tin để khách hàng kiểm tra trước khi xác nhận.
+- Tạo đơn đặt theo quy trình của hệ thống.
+
+Đầu ra:
+Thông tin đơn đặt và trạng thái xử lý ban đầu.
+
+### FR-12. Xác nhận đặt tour
+Mức ưu tiên: Cao
+
+Mô tả:
+Hệ thống cung cấp thông báo về kết quả tiếp nhận hoặc xác nhận đơn đặt.
+
+Yêu cầu:
+- Gán mã đơn đặt để tra cứu.
+- Hiển thị thông tin tour, ngày đi, số khách và số tiền.
+- Thể hiện trạng thái đơn đặt.
+- Phân biệt việc tiếp nhận yêu cầu, xác nhận chỗ và thanh toán thành công.
+
+Điều kiện:
+Hệ thống không được hiển thị đơn đã xác nhận thành công nếu quy trình xác nhận thực tế chưa hoàn tất.
+
+### FR-13. Thanh toán trực tuyến
+Mức ưu tiên: Cao, phụ thuộc phạm vi tích hợp
+
+Mô tả:
+Hệ thống hỗ trợ khách hàng thanh toán thông qua cổng thanh toán được tích hợp.
+
+Yêu cầu:
+- Hiển thị số tiền cần thanh toán trước khi chuyển sang bước thanh toán.
+- Gửi yêu cầu đến cổng thanh toán theo giao thức được hỗ trợ.
+- Tiếp nhận kết quả giao dịch.
+- Cập nhật trạng thái thanh toán theo kết quả đã xác minh.
+- Thông báo rõ giao dịch thành công, thất bại hoặc đang chờ xử lý.
+
+Ràng buộc:
+Việc tích hợp cổng thanh toán cụ thể cần được nhóm quyết định theo chi phí, điều kiện kỹ thuật và phạm vi dự án.
+
+### FR-14. Theo dõi đơn đặt tour
+Mức ưu tiên: Cao
+
+Mô tả:
+Hệ thống cho phép khách hàng xem danh sách đơn đặt và chi tiết từng đơn.
+
+Thông tin hiển thị:
+- Mã đơn đặt.
+- Tour và ngày khởi hành.
+- Số lượng khách.
+- Tổng tiền.
+- Trạng thái đặt tour.
+- Trạng thái thanh toán.
+- Thông tin cập nhật liên quan.
+
+Cơ sở khảo sát:
+139/200 người muốn theo dõi trạng thái trực tiếp trong tài khoản website.
+
+### FR-15. Hủy đặt tour
+Mức ưu tiên: Trung bình
+
+Mô tả:
+Hệ thống cho phép khách hàng gửi yêu cầu hủy đơn đặt theo điều kiện áp dụng.
+
+Xử lý:
+- Kiểm tra trạng thái đơn.
+- Kiểm tra điều kiện hủy.
+- Hiển thị các thông tin liên quan đến phí hủy hoặc hoàn tiền nếu có.
+- Ghi nhận yêu cầu và thông báo trạng thái xử lý.
+
+Lưu ý:
+Hủy đơn và hoàn tiền là hai nghiệp vụ có thể có trạng thái khác nhau; không được mặc định rằng hủy đơn đồng nghĩa với hoàn tiền ngay lập tức.
+
+### FR-16. Xem chính sách hủy và hoàn tiền
+Mức ưu tiên: Cao
+
+Mô tả:
+Hệ thống công khai điều kiện, thời hạn, phí hủy, điều kiện đổi lịch và quy định hoàn tiền của tour trước khi khách hàng xác nhận đặt.
+
+Cơ sở khảo sát:
+- 110/200 người lựa chọn chính sách hủy/hoàn tiền là yếu tố ảnh hưởng đến quyết định chọn tour.
+- 141/200 người cho rằng cần hoặc rất cần xem chính sách hủy/đổi trước khi đặt.
+
+### FR-25. Theo dõi đơn đặt và giao dịch
+Mức ưu tiên: Cao đối với Admin
+
+Mô tả:
+Hệ thống cho phép Admin tra cứu thông tin đơn đặt, trạng thái thanh toán và kết quả giao dịch trong phạm vi quyền hạn.
+
+Mục tiêu:
+Hỗ trợ kiểm tra sai lệch, xử lý yêu cầu hỗ trợ và đối chiếu trạng thái đơn đặt.
+
+---
+
+## 3.5. Nhóm D – Đánh giá, thông báo và hỗ trợ
+
+### FR-17. Đánh giá và nhận xét tour
+Mức ưu tiên: Cao
+
+Mô tả:
+Hệ thống cho phép khách hàng gửi đánh giá và nhận xét về tour đã tham gia theo quy định của website.
+
+Yêu cầu:
+- Ghi nhận nội dung đánh giá và điểm đánh giá.
+- Liên kết đánh giá với tour tương ứng.
+- Hạn chế đánh giá không hợp lệ hoặc vi phạm quy định.
+- Cho phép Admin kiểm duyệt khi cần thiết.
+
+Cơ sở khảo sát:
+133/200 người gặp khó khăn do thiếu đánh giá đáng tin cậy; 151/200 người đánh giá mức 4–5/5 cho chức năng hiển thị đánh giá khách hàng.
+
+### FR-26. Gửi thông báo
+Mức ưu tiên: Cao đối với thông báo cốt lõi
+
+Mô tả:
+Hệ thống gửi thông báo về các sự kiện quan trọng liên quan đến đơn đặt.
+
+Các sự kiện có thể gồm:
+- Tiếp nhận hoặc xác nhận đơn đặt.
+- Kết quả thanh toán.
+- Thay đổi trạng thái đơn.
+- Thay đổi lịch hoặc thông tin tour.
+- Kết quả xử lý yêu cầu hủy.
+
+Kênh ưu tiên ban đầu:
+Thông báo trên website; email được cân nhắc tích hợp theo phạm vi và nguồn lực.
+
+### FR-27. Hỗ trợ khách hàng
+Mức ưu tiên: Trung bình
+
+Mô tả:
+Hệ thống cung cấp phương thức liên hệ hoặc gửi yêu cầu hỗ trợ khi khách hàng gặp vấn đề.
+
+Thông tin yêu cầu có thể gồm:
+- Mã đơn đặt nếu có.
+- Nội dung cần hỗ trợ.
+- Thông tin liên hệ cần thiết.
+- Trạng thái xử lý yêu cầu nếu được triển khai.
+
+### FR-29. Hiển thị vị trí tour
+Mức ưu tiên: Thấp đến trung bình
+
+Mô tả:
+Hệ thống hiển thị vị trí điểm đến, điểm tham quan hoặc điểm đón/trả trên bản đồ khi có dữ liệu và dịch vụ bản đồ phù hợp.
+
+Ràng buộc:
+Việc tích hợp phụ thuộc vào dịch vụ bản đồ, chi phí và khả năng cung cấp dữ liệu vị trí.
+
+---
+
+## 3.6. Nhóm E – Quản lý dành cho nhà cung cấp
+
+### FR-18. Quản lý thông tin tour của nhà cung cấp
+Mức ưu tiên: Cao
+
+Mô tả:
+Hệ thống cho phép nhà cung cấp tạo mới, chỉnh sửa và cập nhật thông tin tour theo quyền được cấp.
+
+Yêu cầu:
+- Nhập tên và mô tả tour.
+- Cập nhật lịch trình, hình ảnh và địa điểm.
+- Cập nhật thông tin giá và dịch vụ.
+- Gửi thông tin tour để công khai hoặc chờ kiểm duyệt theo quy trình.
+
+### FR-19. Quản lý lịch khởi hành và giá
+Mức ưu tiên: Cao
+
+Mô tả:
+Hệ thống cho phép nhà cung cấp cập nhật ngày khởi hành, giá áp dụng và số lượng chỗ của tour.
+
+Yêu cầu:
+- Kiểm tra dữ liệu bắt buộc.
+- Lưu thông tin hợp lệ.
+- Cập nhật dữ liệu dùng cho tìm kiếm và đặt tour.
+- Hạn chế phát sinh đơn đặt vượt quá số chỗ còn lại.
+
+### FR-20. Quản lý đơn đặt tour của nhà cung cấp
+Mức ưu tiên: Cao
+
+Mô tả:
+Hệ thống cho phép nhà cung cấp xem và xử lý các đơn đặt thuộc tour do mình quản lý.
+
+Yêu cầu:
+- Xem danh sách và chi tiết đơn.
+- Xem thông tin cần thiết để tổ chức tour.
+- Cập nhật trạng thái đơn theo quyền được cấp.
+- Không cho phép truy cập đơn của nhà cung cấp khác nếu không được phân quyền.
+
+---
+
+## 3.7. Nhóm F – Quản trị hệ thống
+
+### FR-21. Quản lý tài khoản người dùng
+Mức ưu tiên: Cao
+
+Mô tả:
+Admin được phép xem, quản lý và khóa hoặc mở khóa tài khoản theo quyền hạn và quy định hệ thống.
+
+### FR-22. Quản lý nhà cung cấp
+Mức ưu tiên: Cao
+
+Mô tả:
+Admin quản lý thông tin và trạng thái hoạt động của nhà cung cấp, bao gồm việc phê duyệt hoặc tạm ngừng hoạt động theo quy trình được xác định.
+
+### FR-23. Kiểm duyệt thông tin tour
+Mức ưu tiên: Cao
+
+Mô tả:
+Admin kiểm tra thông tin tour trước khi công khai hoặc xử lý thông tin vi phạm.
+
+Đầu ra:
+Trạng thái được phê duyệt, yêu cầu chỉnh sửa hoặc từ chối.
+
+### FR-24. Kiểm duyệt đánh giá
+Mức ưu tiên: Trung bình
+
+Mô tả:
+Admin xem xét và xử lý đánh giá có dấu hiệu vi phạm quy định của website.
+
+Yêu cầu:
+Việc ẩn hoặc gỡ đánh giá phải tuân theo quy định kiểm duyệt và quyền hạn được cấp.
+
+### FR-30. Quản lý nội dung và cấu hình website
+Mức ưu tiên: Trung bình
+
+Mô tả:
+Admin quản lý các nội dung và thiết lập cơ bản được phép thay đổi trên website.
+
+Phạm vi cụ thể:
+Nhóm cần xác định các nội dung và cấu hình nào được quản trị qua giao diện Admin trong giai đoạn thiết kế chi tiết.
+
+---
+
+# 4. YÊU CẦU PHI CHỨC NĂNG
+
+Các chỉ tiêu định lượng trong phần này là mục tiêu đề xuất ban đầu. Nhóm cần xác nhận chúng dựa trên hạ tầng, ngân sách, phạm vi và khả năng kiểm thử thực tế.
+
+## NFR-01. Hiệu năng tải trang
+Mức ưu tiên: Cao
+
+Các trang thông dụng cần tải trong thời gian phù hợp với trải nghiệm người dùng. Mục tiêu đề xuất là 95% yêu cầu tải trang thông dụng hoàn thành trong tối đa 3 giây trong điều kiện kiểm thử đã xác định.
+
+## NFR-02. Hiệu năng tìm kiếm
+Mức ưu tiên: Cao
+
+Mục tiêu đề xuất là 95% truy vấn tìm kiếm trả kết quả trong tối đa 3 giây khi hệ thống hoạt động trong điều kiện tải kiểm thử đã thống nhất.
+
+## NFR-03. Bảo mật và phân quyền
+Mức ưu tiên: Cao
+
+Hệ thống phải kiểm soát quyền truy cập theo vai trò. Người dùng không được truy cập hoặc thay đổi dữ liệu nằm ngoài quyền hạn của mình.
+
+## NFR-04. Bảo mật tài khoản
+Mức ưu tiên: Cao
+
+Mật khẩu phải được lưu bằng phương pháp băm an toàn. Dữ liệu trao đổi qua mạng phải được bảo vệ bằng HTTPS khi triển khai thực tế.
+
+## NFR-05. Bảo vệ dữ liệu cá nhân
+Mức ưu tiên: Cao
+
+Hệ thống chỉ thu thập dữ liệu cần thiết cho các nghiệp vụ đã xác định và phải hạn chế việc truy cập, sử dụng hoặc tiết lộ dữ liệu trái phép.
+
+## NFR-06. Tính dễ sử dụng
+Mức ưu tiên: Cao
+
+Giao diện và quy trình tìm kiếm, xem giá, đặt tour và theo dõi đơn phải dễ hiểu, hạn chế các bước không cần thiết và cung cấp thông báo rõ ràng.
+
+## NFR-07. Tương thích thiết bị
+Mức ưu tiên: Cao
+
+Website cần hoạt động trên các trình duyệt phổ biến trên máy tính và thiết bị di động.
+
+Cơ sở khảo sát:
+162/200 người (81,0%) lựa chọn điện thoại là thiết bị dùng để tìm kiếm hoặc đặt tour.
+
+## NFR-08. Thiết kế giao diện đáp ứng
+Mức ưu tiên: Cao
+
+Giao diện phải tự điều chỉnh theo kích thước màn hình, đảm bảo nội dung, giá, nút thao tác và biểu mẫu không bị che khuất hoặc tràn ngoài vùng hiển thị.
+
+## NFR-09. Tính sẵn sàng
+Mức ưu tiên: Trung bình
+
+Hệ thống cần duy trì khả năng truy cập trong thời gian vận hành đã thống nhất. Tỷ lệ sẵn sàng cụ thể sẽ được xác định theo hạ tầng và phạm vi dự án.
+
+## NFR-10. Độ tin cậy của giao dịch
+Mức ưu tiên: Cao
+
+Hệ thống phải xử lý kết quả đặt tour và thanh toán một cách nhất quán, tránh ghi nhận giao dịch trùng và không thông báo thành công khi chưa xác minh được kết quả.
+
+## NFR-11. Tính nhất quán dữ liệu
+Mức ưu tiên: Cao
+
+Thông tin tour, giá, số chỗ, đơn đặt và trạng thái thanh toán phải nhất quán giữa các chức năng liên quan.
+
+## NFR-12. Khả năng bảo trì
+Mức ưu tiên: Trung bình
+
+Mã nguồn cần được tổ chức rõ ràng, có cấu trúc hợp lý để thuận tiện cho việc sửa lỗi, kiểm thử và cập nhật.
+
+## NFR-13. Khả năng mở rộng
+Mức ưu tiên: Trung bình
+
+Kiến trúc hệ thống cần cho phép bổ sung tour, nhà cung cấp và người dùng mà không phải thiết kế lại toàn bộ hệ thống.
+
+## NFR-14. Sao lưu và phục hồi
+Mức ưu tiên: Trung bình
+
+Dữ liệu quan trọng cần được sao lưu định kỳ và có phương án phục hồi khi xảy ra sự cố. Tần suất sao lưu và thời gian phục hồi mục tiêu sẽ được xác định trong kế hoạch kỹ thuật.
+
+## NFR-15. Khả năng tiếp cận
+Mức ưu tiên: Trung bình
+
+Giao diện cần sử dụng văn bản dễ đọc, độ tương phản phù hợp và các thành phần điều khiển có nhãn rõ ràng để hỗ trợ nhiều nhóm người dùng.
+
+## NFR-16. Khả năng xử lý lỗi
+Mức ưu tiên: Cao
+
+Khi xảy ra lỗi, hệ thống cần hiển thị thông báo dễ hiểu, hướng dẫn bước tiếp theo nếu phù hợp và không tiết lộ thông tin kỹ thuật nhạy cảm.
+
+## NFR-17. Tính toàn vẹn dữ liệu
+Mức ưu tiên: Cao
+
+Hệ thống phải kiểm tra dữ liệu đầu vào, từ chối dữ liệu không hợp lệ và bảo vệ tính toàn vẹn của dữ liệu trong các nghiệp vụ quan trọng.
+
+## NFR-18. Khả năng kiểm thử
+Mức ưu tiên: Cao
+
+Các chức năng cần có đầu vào, đầu ra và điều kiện xử lý đủ rõ để nhóm có thể xây dựng và thực hiện kiểm thử.
+
+## NFR-19. Tính minh bạch của thông tin
+Mức ưu tiên: Cao
+
+Giá, phụ phí, dịch vụ bao gồm/không bao gồm, tình trạng chỗ và chính sách hủy/đổi phải được trình bày rõ ràng trước khi khách hàng xác nhận đặt tour.
+
+## NFR-20. Khả năng ghi nhận hoạt động
+Mức ưu tiên: Trung bình
+
+Hệ thống cần ghi nhận các hoạt động quan trọng như thay đổi trạng thái đơn, cập nhật thông tin tour và thao tác quản trị để hỗ trợ kiểm tra và xử lý sự cố. Nhật ký không được lưu trữ thông tin nhạy cảm không cần thiết.
+
+---
+
+# 5. QUY TẮC NGHIỆP VỤ
+
+## BR-01. Công khai tour
+Chỉ những tour đáp ứng điều kiện công khai của hệ thống mới được hiển thị cho khách hàng.
+
+## BR-02. Thông tin giá
+Giá và các khoản phụ phí đã biết phải được trình bày trước khi khách hàng xác nhận đặt tour.
+
+## BR-03. Tình trạng chỗ
+Số lượng chỗ và trạng thái tour phải được cập nhật theo dữ liệu quản lý của nhà cung cấp và hệ thống.
+
+## BR-04. Đặt tour
+Một đơn đặt chỉ được tiếp nhận khi thông tin bắt buộc hợp lệ và tour đáp ứng các điều kiện đặt tại thời điểm xử lý.
+
+## BR-05. Trạng thái đơn đặt
+Đơn đặt và thanh toán phải có trạng thái riêng khi cần thiết. Không được đồng nhất trạng thái đã gửi yêu cầu đặt tour với trạng thái đã thanh toán thành công.
+
+## BR-06. Hủy và hoàn tiền
+Việc hủy tour và hoàn tiền phải tuân theo chính sách áp dụng cho tour và trạng thái giao dịch thực tế.
+
+## BR-07. Đánh giá tour
+Quyền gửi đánh giá và điều kiện hiển thị đánh giá phải tuân theo quy định của website.
+
+## BR-08. Phân quyền nhà cung cấp
+Nhà cung cấp chỉ được quản lý tour và đơn đặt thuộc phạm vi được cấp quyền.
+
+## BR-09. Phân quyền Admin
+Admin được thực hiện các chức năng quản trị theo quyền hạn của tài khoản.
+
+## BR-10. Bảo vệ dữ liệu
+Dữ liệu cá nhân và thông tin giao dịch chỉ được truy cập cho mục đích nghiệp vụ hợp lệ và bởi đối tượng được cấp quyền.
+
+---
+
+# 6. CÁC LUỒNG NGHIỆP VỤ CHÍNH
+
+## UC-01. Tìm kiếm và xem tour
+
+Tác nhân chính: Khách hàng
+
+Luồng chính:
+1. Khách hàng truy cập website.
+2. Khách hàng nhập từ khóa hoặc chọn tiêu chí tìm kiếm.
+3. Hệ thống hiển thị danh sách tour phù hợp.
+4. Khách hàng áp dụng bộ lọc nếu cần.
+5. Khách hàng chọn một tour.
+6. Hệ thống hiển thị thông tin chi tiết của tour.
+
+Kết quả:
+Khách hàng có thể xem và đánh giá thông tin tour trước khi quyết định.
+
+## UC-02. Đặt tour
+
+Tác nhân chính: Khách hàng
+
+Luồng chính:
+1. Khách hàng chọn tour.
+2. Khách hàng chọn ngày khởi hành và số lượng khách.
+3. Hệ thống kiểm tra tính khả dụng của tour.
+4. Hệ thống tính toán và hiển thị thông tin giá.
+5. Khách hàng kiểm tra thông tin và gửi yêu cầu đặt.
+6. Hệ thống tạo đơn đặt theo quy trình đã xác định.
+7. Hệ thống hiển thị mã đơn và trạng thái hiện tại.
+
+Luồng ngoại lệ:
+- Tour hết chỗ hoặc không khả dụng.
+- Dữ liệu nhập không hợp lệ.
+- Giá hoặc tình trạng chỗ thay đổi trước khi xác nhận.
+- Hệ thống gặp lỗi khi tạo đơn.
+
+Kết quả:
+Khách hàng nhận được thông tin chính xác về việc tiếp nhận đơn đặt.
+
+## UC-03. Thanh toán và nhận kết quả
+
+Tác nhân chính: Khách hàng
+
+Tác nhân phụ: Cổng thanh toán
+
+Luồng chính:
+1. Khách hàng chọn phương thức thanh toán được hỗ trợ.
+2. Hệ thống chuyển yêu cầu đến cổng thanh toán.
+3. Khách hàng thực hiện thanh toán.
+4. Cổng thanh toán trả kết quả giao dịch.
+5. Hệ thống xác minh kết quả và cập nhật trạng thái.
+6. Hệ thống thông báo kết quả cho khách hàng.
+
+Luồng ngoại lệ:
+- Giao dịch thất bại.
+- Giao dịch đang chờ xử lý.
+- Không nhận được phản hồi hoặc phản hồi chưa thể xác minh.
+
+Kết quả:
+Trạng thái thanh toán phản ánh kết quả giao dịch đã được xác minh.
+
+## UC-04. Nhà cung cấp cập nhật tour
+
+Tác nhân chính: Nhà cung cấp
+
+Luồng chính:
+1. Nhà cung cấp đăng nhập.
+2. Nhà cung cấp chọn chức năng quản lý tour.
+3. Nhà cung cấp thêm mới hoặc chỉnh sửa thông tin.
+4. Hệ thống kiểm tra dữ liệu.
+5. Hệ thống lưu thông tin hợp lệ.
+6. Tour được công khai hoặc chuyển sang trạng thái chờ kiểm duyệt theo quy trình.
+
+Kết quả:
+Thông tin tour được cập nhật trong phạm vi quyền hạn của nhà cung cấp.
+
+## UC-05. Khách hàng theo dõi đơn đặt
+
+Tác nhân chính: Khách hàng
+
+Luồng chính:
+1. Khách hàng đăng nhập.
+2. Khách hàng mở danh sách đơn đặt.
+3. Hệ thống hiển thị các đơn thuộc tài khoản.
+4. Khách hàng chọn một đơn để xem chi tiết.
+5. Hệ thống hiển thị trạng thái đơn và trạng thái thanh toán.
+
+Kết quả:
+Khách hàng có thể theo dõi tiến trình xử lý đơn đặt.
+
+## UC-06. Admin kiểm duyệt tour
+
+Tác nhân chính: Admin
+
+Luồng chính:
+1. Admin đăng nhập.
+2. Admin mở danh sách tour cần kiểm duyệt.
+3. Admin xem thông tin tour.
+4. Admin phê duyệt, từ chối hoặc yêu cầu chỉnh sửa.
+5. Hệ thống cập nhật trạng thái xử lý.
+
+Kết quả:
+Tour được xử lý theo quy trình kiểm duyệt của hệ thống.
+
+---
+
+# 7. GIẢ ĐỊNH VÀ RÀNG BUỘC
+
+## 7.1. Giả định
+
+- Website được xây dựng cho người dùng có nhu cầu tìm kiếm và đặt tour du lịch địa phương.
+- Nhà cung cấp chịu trách nhiệm cung cấp và cập nhật thông tin tour của mình.
+- Thông tin giá, lịch khởi hành và số chỗ phụ thuộc vào dữ liệu được cung cấp và cập nhật.
+- Khách hàng có thể truy cập website thông qua trình duyệt trên máy tính hoặc điện thoại.
+- Cổng thanh toán, dịch vụ email và bản đồ chỉ được sử dụng khi nhóm quyết định tích hợp.
+- Nhóm sẽ xác nhận phạm vi triển khai thực tế trước khi lập kế hoạch phát triển chi tiết.
+
+## 7.2. Ràng buộc
+
+- Thời gian và ngân sách dự án có giới hạn.
+- Chức năng tích hợp bên ngoài phụ thuộc vào khả năng kỹ thuật, chi phí và điều kiện sử dụng của nhà cung cấp dịch vụ.
+- Hệ thống phải có cơ chế xác thực và phân quyền phù hợp.
+- Giao diện cần ưu tiên khả năng sử dụng trên điện thoại.
+- Dữ liệu tour cần được trình bày nhất quán để hỗ trợ so sánh.
+- Mọi thay đổi phạm vi lớn cần được đánh giá về ảnh hưởng đến thời gian, chi phí và nguồn lực.
+
+## 7.3. Ngoài phạm vi dự kiến của phiên bản đầu
+
+- Phát triển ứng dụng di động độc lập.
+- Chatbot AI và hệ thống gợi ý tour nâng cao.
+- Chương trình tích điểm hoặc thành viên nhiều cấp.
+- Hệ thống điều hành nội bộ đầy đủ cho doanh nghiệp lữ hành.
+- Tích hợp đồng thời nhiều dịch vụ bên ngoài khi chưa được phê duyệt.
+- Các chức năng chưa được xác nhận trong phạm vi dự án.
+
+---
+
+# 8. MỨC ĐỘ ƯU TIÊN ĐỀ XUẤT
+
+## 8.1. Ưu tiên cao – Chức năng cốt lõi
+
+- Đăng ký, đăng nhập và phân quyền.
+- Tìm kiếm, lọc và xem chi tiết tour.
+- Hiển thị giá, phụ phí và dịch vụ bao gồm/không bao gồm.
+- Hiển thị tình trạng chỗ.
+- Đặt tour và xác nhận trạng thái.
+- Theo dõi đơn đặt.
+- Công khai chính sách hủy/đổi.
+- Quản lý tour, lịch khởi hành và số chỗ.
+- Quản lý đơn đặt của nhà cung cấp.
+- Bảo mật và tính nhất quán dữ liệu.
+- Thiết kế giao diện đáp ứng trên điện thoại.
+
+## 8.2. Ưu tiên trung bình – Chức năng tăng cường trải nghiệm
+
+- So sánh nhiều tour.
+- Đánh giá và nhận xét tour.
+- Lưu tour yêu thích.
+- Lịch sử đặt tour.
+- Gửi thông báo khi có thay đổi.
+- Quản lý nội dung và kiểm duyệt.
+- Chức năng hỗ trợ khách hàng.
+- Hiển thị bản đồ.
+
+## 8.3. Cần xác nhận thêm
+
+- Cổng thanh toán cụ thể và phương thức thanh toán được hỗ trợ.
+- Kênh thông báo ngoài website.
+- Quy trình hoàn tiền tự động hay xử lý thủ công.
+- Phạm vi xác minh nhà cung cấp.
+- Các chỉ tiêu định lượng về hiệu năng và tính sẵn sàng.
+- Các chức năng nâng cao có thể ảnh hưởng đến tiến độ dự án.
+
+---
+
+# 9. TIÊU CHÍ NGHIỆM THU SƠ BỘ
+
+## 9.1. Tìm kiếm và lọc tour
+- Người dùng có thể nhập tiêu chí tìm kiếm hợp lệ.
+- Hệ thống hiển thị danh sách kết quả phù hợp.
+- Bộ lọc được áp dụng đúng với dữ liệu hiện có.
+- Hệ thống thông báo khi không tìm thấy kết quả.
+
+## 9.2. Xem chi tiết và giá tour
+- Người dùng xem được thông tin cơ bản và chi tiết của tour.
+- Giá, phụ phí và dịch vụ bao gồm/không bao gồm được thể hiện rõ.
+- Tổng tiền được tính đúng theo dữ liệu giá và lựa chọn hợp lệ.
+- Thông tin tình trạng chỗ được hiển thị theo dữ liệu hệ thống.
+
+## 9.3. Đặt tour
+- Hệ thống từ chối dữ liệu đặt tour không hợp lệ.
+- Hệ thống kiểm tra tính khả dụng trước khi tiếp nhận đơn.
+- Đơn đặt được tạo và có mã tra cứu khi quy trình thành công.
+- Trạng thái đơn được hiển thị rõ ràng.
+
+## 9.4. Thanh toán
+- Kết quả thanh toán được cập nhật dựa trên phản hồi đã xác minh.
+- Giao dịch thất bại không được ghi nhận là thành công.
+- Trạng thái chờ xử lý được thể hiện phù hợp nếu có.
+
+## 9.5. Quản lý tour
+- Nhà cung cấp có thể thêm hoặc cập nhật tour theo quyền hạn.
+- Dữ liệu không hợp lệ không được lưu.
+- Admin có thể xử lý tour theo quy trình kiểm duyệt.
+- Người dùng không có quyền không thể thực hiện thao tác quản trị trái phép.
+
+## 9.6. Hiệu năng và giao diện
+- Các chỉ tiêu hiệu năng đã thống nhất được kiểm thử trong môi trường xác định.
+- Giao diện sử dụng được trên các kích thước màn hình mục tiêu.
+- Các thông báo lỗi chính được kiểm tra.
+- Các luồng nghiệp vụ quan trọng được kiểm thử trước khi nghiệm thu.
+
+---
+
+# 10. CÁC VẤN ĐỀ CẦN XÁC NHẬN Ở PHIÊN BẢN TIẾP THEO
+
+1. Chốt danh sách chức năng thuộc phạm vi phiên bản đầu.
+2. Xác định quy trình đặt tour: xác nhận tự động hay cần nhà cung cấp duyệt.
+3. Xác định đơn đặt có cần thanh toán trước hay có thể thanh toán sau.
+4. Chọn cổng thanh toán và các phương thức được hỗ trợ.
+5. Xác định trạng thái đơn đặt, trạng thái thanh toán và trạng thái hoàn tiền.
+6. Xác định điều kiện hủy tour và trách nhiệm xử lý hoàn tiền.
+7. Xác định quyền cụ thể của khách hàng, nhà cung cấp và Admin.
+8. Xác định các chỉ tiêu hiệu năng, sao lưu và phục hồi.
+9. Xác định công nghệ và dịch vụ bên ngoài sẽ sử dụng.
+10. Xác định kế hoạch kiểm thử và tiêu chí nghiệm thu chi tiết.
+
+---
+
+# 11. LỊCH SỬ PHIÊN BẢN
+
+## v0.1 – 14/10/2026
+- Xây dựng bản đặc tả yêu cầu sơ bộ từ kết quả khảo sát 200 người trả lời.
+- Xác định mục tiêu, phạm vi dự kiến và các tác nhân chính.
+- Đề xuất danh sách yêu cầu chức năng và phi chức năng.
+- Xây dựng các quy tắc nghiệp vụ và luồng nghiệp vụ chính.
+- Đề xuất mức độ ưu tiên và tiêu chí nghiệm thu sơ bộ.
+- Ghi nhận các vấn đề cần xác nhận trước khi hoàn thiện SRS.
+
+---
+
+# 12. KẾT LUẬN
+
+SRS v0.1 đề xuất xây dựng website đặt tour du lịch địa phương tập trung vào ba mục tiêu chính: hỗ trợ người dùng tìm và lựa chọn tour thuận tiện, minh bạch thông tin giá và dịch vụ, đồng thời tăng độ tin cậy của quá trình đặt tour.
+
+Các yêu cầu được đề xuất dựa trên những vấn đề và nhu cầu nổi bật trong khảo sát, đặc biệt là khó khăn khi so sánh giá, thiếu thông tin về dịch vụ bao gồm, nhu cầu xem tình trạng chỗ và nhu cầu theo dõi trạng thái đơn đặt.
+
+Tài liệu này là cơ sở ban đầu để nhóm thảo luận và chốt phạm vi. Những yêu cầu chưa được xác nhận cần tiếp tục được làm rõ trước khi chuyển sang SRS phiên bản tiếp theo và lập kế hoạch triển khai chi tiết.
