@@ -6,8 +6,7 @@ Lựa chọn đề tài, xác định vấn đề và người dùng mục tiêu
 
 ## Công việc và tiến độ
 
-Trạng thái dưới đây được ghi nhận theo ảnh chụp bảng Trello `LocalTour_Project` do nhóm cung cấp. Hạn trong ảnh chỉ hiển thị ngày và tháng, không hiển thị năm.
-
+Trạng thái dưới đây được ghi nhận theo ảnh chụp bảng Trello `LocalTour_Project` do nhóm cung cấp.
 | Công việc | Người phụ trách theo ảnh | Hạn | Trạng thái |
 | --- | --- | --- | --- |
 | Đề xuất và lựa chọn đề tài | Lê Trung Phong, Đỗ Sơn Thành | 11/10 | Done |
