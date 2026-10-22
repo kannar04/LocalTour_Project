@@ -32,21 +32,29 @@
         return $('<span>').addClass('lt-soon').text('Sắp có');
     }
 
-    /** ID dạng chuỗi số dương hợp lệ, ngược lại ''. */
-    function normaliseId(value) {
-        var text = String(value === undefined || value === null ? '' : value);
-        return /^[1-9][0-9]{0,9}$/.test(text) ? text : '';
+    var DESTINATION_MAX_LENGTH = 100;
+
+    /** Tên điểm đến dùng để lọc: bỏ khoảng trắng hai đầu, tối đa 100 ký tự; '' = tất cả. */
+    function normaliseDestination(value) {
+        var text = String(value === undefined || value === null ? '' : value).trim();
+        return text.slice(0, DESTINATION_MAX_LENGTH).trim();
     }
 
-    /** Link lọc theo điểm đến; destinationId '' = tất cả. */
-    function destinationHref(destinationId) {
-        return destinationId ? url('/tours') + '?destination=' + encodeURIComponent(destinationId) : url('/tours');
+    /** Khóa so sánh tên điểm đến: không phân biệt hoa thường và dấu thanh ("ha noi" = "Hà Nội"); "d" khác "đ" như CSDL. */
+    function destinationKey(name) {
+        return normaliseDestination(name).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    }
+
+    /** Link lọc theo điểm đến; name '' = tất cả. */
+    function destinationHref(name) {
+        return name ? url('/tours') + '?destination=' + encodeURIComponent(name) : url('/tours');
     }
 
     /** Đánh dấu điểm đến đang chọn trong danh sách ở thanh bên. */
-    function setActiveDestination($list, destinationId) {
+    function setActiveDestination($list, name) {
+        var activeKey = destinationKey(name);
         $list.find('.lt-dest-link').each(function () {
-            var isActive = $(this).attr('data-destination-id') === String(destinationId || '');
+            var isActive = destinationKey($(this).attr('data-destination')) === activeKey;
             $(this).toggleClass('is-active', isActive);
             if (isActive) {
                 $(this).attr('aria-current', 'true');
@@ -56,8 +64,8 @@
         });
     }
 
-    /** Dựng danh sách điểm đến (kèm số tour) trong #sidebar-destinations. */
-    function renderDestinationNav($list, destinations, activeId) {
+    /** Dựng danh sách điểm đến (kèm số tour) trong #sidebar-destinations; điểm đến được nhận diện bằng tên. */
+    function renderDestinationNav($list, destinations, activeName) {
         var total = 0;
         var items = [];
 
@@ -67,24 +75,23 @@
 
         items.push(buildDestinationItem('', 'Tất cả điểm đến', total));
         $.each(destinations, function (index, destination) {
-            items.push(buildDestinationItem(
-                normaliseId(destination.destination_id),
-                destination.name,
-                Number(destination.tour_count) || 0
-            ));
+            var name = normaliseDestination(destination.name);
+            if (name) {
+                items.push(buildDestinationItem(name, name, Number(destination.tour_count) || 0));
+            }
         });
 
         $list.empty().append(items);
-        setActiveDestination($list, activeId);
+        setActiveDestination($list, activeName);
     }
 
-    function buildDestinationItem(destinationId, name, count) {
+    function buildDestinationItem(name, label, count) {
         var $link = $('<a>')
             .addClass('lt-dest-link')
-            .attr('href', destinationHref(destinationId))
-            .attr('data-destination-id', destinationId)
+            .attr('href', destinationHref(name))
+            .attr('data-destination', name)
             .append(
-                $('<span>').addClass('lt-dest-link__name').text(name),
+                $('<span>').addClass('lt-dest-link__name').text(label),
                 $('<span>').addClass('lt-dest-link__count')
                     .append(document.createTextNode(String(count)), $('<span>').addClass('sr-only').text(' tour'))
             );
@@ -119,7 +126,8 @@
         formatVnd: formatVnd,
         icon: icon,
         soonBadge: soonBadge,
-        normaliseId: normaliseId,
+        normaliseDestination: normaliseDestination,
+        destinationKey: destinationKey,
         destinationHref: destinationHref,
         renderDestinationNav: renderDestinationNav,
         renderDestinationStatus: renderDestinationStatus,

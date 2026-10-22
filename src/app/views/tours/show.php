@@ -2,35 +2,171 @@
 <?php
 /*
  * Chi tiết tour (UIEx2, Nguyễn Tuấn Khôi) – render phía server, tour-detail.js chỉ xử lý thẻ giá và tab neo.
- * Biến: $tour (NMT_sp_tour_detail), $schedules, $itinerary, $images, $inclusions, $reviews, $title.
+ * Biến: $tour (NMT_sp_tour_detail, gồm transport, guide_info, dropoff_point, excluded_summary, document_terms,
+ *       meal_terms, voucher_terms, reschedule_terms), $schedules (lịch còn đặt được), $tickets (vé đang bán của các lịch đó),
+ *       $itinerary (điểm lịch trình theo stop_order), $extras (phụ thu / hoạt động tùy chọn, phụ thu trước),
+ *       $reviews (tối đa 5, mới nhất trước), $policy (null hoặc chính sách hủy mới nhất),
+ *       $gallery (ảnh của chính tour: [{url, caption}], có thể rỗng), $title.
+ * Dữ liệu thiếu hiển thị "Chưa cập nhật" (FR-01..05), không lấy từ tour khác và không tự suy diễn.
+ * Không có nút cần tài khoản khách (lưu, chia sẻ, nhắn tin): khách đặt tour không cần tài khoản.
  */
+$missing = or_missing(null);
+
+/** Văn bản mỗi dòng một mục (vd. meal_terms) → các dòng; trống → ["Chưa cập nhật"]. */
+$linesOrMissing = static function (?string $text) use ($missing): array {
+    $lines = text_lines($text);
+
+    return $lines !== [] ? $lines : [$missing];
+};
 $listUrl = url('/tours');
-$ratingText = format_rating($tour['rating_avg'] === null ? null : (string) $tour['rating_avg']);
+$destination = (string) $tour['destination'];
+$destinationUrl = url('/tours?destination=' . rawurlencode($destination));
+$ratingText = format_rating($tour['rating_avg']);
 $reviewCount = (int) $tour['review_count'];
-$priceText = format_vnd((int) $tour['price_per_person']);
-$maxGroup = (int) $tour['max_group_size'];
+$priceText = $tour['from_price_vnd'] === null ? null : format_vnd((int) $tour['from_price_vnd']);
+$maxGroup = max(1, (int) $tour['max_group_size']);
 $hasSchedules = !empty($schedules);
 $providerName = (string) $tour['provider_name'];
 $providerInitial = mb_strtoupper(mb_substr($providerName, 0, 1));
-$isVerified = !empty($tour['provider_verified']);
+$providerSince = format_date($tour['provider_approved_at'] === null ? null : (string) $tour['provider_approved_at']);
+$isHotelPickup = $tour['pickup_mode'] === 'hotel_pickup';
+$meetingPoint = trim((string) ($tour['meeting_point'] ?? ''));
 
-$galleryFallbacks = ['Ảnh chính của tour', 'Ảnh trải nghiệm', 'Ảnh hành trình'];
+// Đoạn đầu của mô tả làm câu dẫn, các đoạn sau là nội dung.
+$paragraphs = text_paragraphs((string) $tour['description']);
+$leadParagraph = array_shift($paragraphs);
+$includedItems = text_lines((string) $tour['included_summary']);
+$excludedItems = text_lines($tour['excluded_summary'] === null ? null : (string) $tour['excluded_summary']);
 
-$includedItems = [];
-$excludedItems = [];
-foreach ($inclusions as $inclusion) {
-    if ((int) $inclusion['is_included'] === 1) {
-        $includedItems[] = (string) $inclusion['item_text'];
-    } else {
-        $excludedItems[] = (string) $inclusion['item_text'];
+// Phụ thu / hoạt động tùy chọn (FR-04, FR-10): giá tách riêng, không bao giờ cộng vào giá tour hay tạm tính.
+$extraGroups = [
+    'surcharge' => ['title' => 'Phụ thu', 'items' => []],
+    'optional' => ['title' => 'Hoạt động tùy chọn', 'items' => []],
+];
+foreach ($extras as $extra) {
+    $extraKind = (string) $extra['kind'];
+    if (!isset($extraGroups[$extraKind])) {
+        continue;
     }
+    $extraUnit = trim((string) ($extra['price_unit'] ?? ''));
+    $extraGroups[$extraKind]['items'][] = [
+        'name' => (string) $extra['name'],
+        'price' => $extra['price_vnd'] === null
+            ? 'Giá: ' . $missing
+            : format_vnd($extra['price_vnd']) . ($extraUnit !== '' ? ' / ' . $extraUnit : ' · đơn vị chưa cập nhật'),
+        'priceMissing' => $extra['price_vnd'] === null,
+        'conditions' => trim((string) ($extra['conditions'] ?? '')),
+    ];
 }
 
+// Thư viện ảnh: tối đa 3 ảnh đầu của tour; bố cục đổi theo số ảnh.
+$galleryImages = array_slice(array_values($gallery), 0, 3);
+$galleryLayout = ['lt-gallery--empty', 'lt-gallery--single', 'lt-gallery--pair', ''][count($galleryImages)];
+
+// Thông tin tour (FR-02).
+$departureLines = [departure_text((string) $tour['pickup_mode'], $meetingPoint)];
+if ($isHotelPickup && $meetingPoint !== '') {
+    $departureLines[] = 'Khu vực đón: ' . $meetingPoint;
+}
+$infoRows = [
+    'Điểm đến' => [or_missing($destination)],
+    'Nơi khởi hành / điểm đón' => $departureLines,
+    'Điểm trả' => [or_missing($tour['dropoff_point'])],
+    'Phương tiện' => [or_missing($tour['transport'])],
+    'Hướng dẫn viên' => [or_missing($tour['guide_info'])],
+    'Ngôn ngữ hướng dẫn' => [or_missing(format_languages($tour['language_codes'] === null ? null : (string) $tour['language_codes']))],
+    'Thời lượng' => [format_duration($tour['duration_minutes'])],
+    'Số khách tối đa' => [$maxGroup . ' khách'],
+];
+
+/** "17:00 – 21:00"; thêm ngày kết thúc nếu tour qua ngày hôm sau. */
+$scheduleTime = static function (array $schedule): string {
+    $start = (string) $schedule['starts_at'];
+    $end = (string) $schedule['ends_at'];
+    $text = format_time($start) . ' – ' . format_time($end);
+    if ($end !== '' && substr($end, 0, 10) !== substr($start, 0, 10)) {
+        $text .= ' (' . format_date($end) . ')';
+    }
+
+    return $text;
+};
+
+// Dữ liệu cho tour-detail.js: mỗi lịch kèm các loại vé để dựng hàng chọn số khách.
+// Đồng thời gom độ tuổi theo loại vé cho mục "Điều kiện & chính sách" (bỏ trùng giữa các lịch).
+$ticketsBySchedule = [];
+$ageLines = [];
+foreach ($tickets as $ticket) {
+    $ticketLabel = ticket_label((string) $ticket['name']);
+    $ticketAges = age_range_text($ticket['min_age'], $ticket['max_age']);
+    $ticketsBySchedule[(string) $ticket['schedule_id']][] = [
+        'id' => (string) $ticket['ticket_type_id'],
+        'label' => $ticketLabel,
+        'ages' => $ticketAges,
+        'price' => (int) $ticket['price_vnd'],
+    ];
+    if ($ticketAges !== '') {
+        $ageLines[$ticketLabel . ': ' . $ticketAges] = true;
+    }
+}
+$ageLines = array_keys($ageLines);
+$bookingData = ['maxGroup' => $maxGroup, 'schedules' => []];
+foreach ($schedules as $schedule) {
+    $scheduleId = (string) $schedule['schedule_id'];
+    $bookingData['schedules'][] = [
+        'id' => $scheduleId,
+        'timeText' => $scheduleTime($schedule),
+        'remaining' => (int) $schedule['remaining'],
+        'tickets' => $ticketsBySchedule[$scheduleId] ?? [],
+    ];
+}
+$bookingJson = json_encode($bookingData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?: 'null';
+
+// Chính sách hủy (phiên bản mới nhất).
+$policyLines = [];
+$policyTerms = [];
+if ($policy !== null) {
+    $freeHours = $policy['free_before_hours'] === null ? null : (int) $policy['free_before_hours'];
+    $refundPercent = (int) $policy['refund_percent'];
+    if ($freeHours !== null) {
+        $policyLines[] = $freeHours > 0
+            ? 'Hủy miễn phí trước giờ khởi hành ' . $freeHours . ' giờ.'
+            : 'Hủy miễn phí đến giờ khởi hành.';
+        $policyLines[] = $refundPercent > 0
+            ? 'Sau thời điểm này hoàn ' . $refundPercent . '% tiền tour.'
+            : 'Sau thời điểm này không hoàn tiền.';
+    } else {
+        $policyLines[] = $refundPercent > 0
+            ? 'Hủy tour được hoàn ' . $refundPercent . '% tiền tour.'
+            : 'Tour không hoàn tiền khi hủy.';
+    }
+    $policyTerms = text_lines($policy['terms'] === null ? null : (string) $policy['terms']);
+}
+
+// Điều kiện đón khách: hình thức đón theo dữ liệu tour; gặp tại điểm hẹn mà chưa ghi điểm hẹn → thiếu dữ liệu.
+$pickupLines = $isHotelPickup || $meetingPoint !== ''
+    ? [pickup_text((string) $tour['pickup_mode'], $meetingPoint)]
+    : [$missing];
+if ($isHotelPickup && $meetingPoint !== '') {
+    $pickupLines[] = 'Khu vực đón: ' . $meetingPoint;
+}
+
+// Điều kiện & chính sách (FR-05).
+$policyRows = [
+    'Độ tuổi' => $ageLines !== [] ? $ageLines : [$missing],
+    'Giấy tờ' => $linesOrMissing($tour['document_terms']),
+    'Ăn uống' => $linesOrMissing($tour['meal_terms']),
+    'Voucher' => $linesOrMissing($tour['voucher_terms']),
+    'Đổi lịch' => $linesOrMissing($tour['reschedule_terms']),
+    'Hủy & hoàn tiền' => $policy !== null ? array_merge($policyLines, $policyTerms) : [$missing],
+    'Điều kiện đón khách' => $pickupLines,
+];
+
 $sections = [
-    'tong-quan' => 'Tổng quan',
+    'thong-tin' => 'Thông tin tour',
     'lich-trinh' => 'Lịch trình',
-    'bao-gom' => 'Bao gồm',
-    'diem-don' => 'Điểm đón',
+    'lich-khoi-hanh' => 'Lịch khởi hành',
+    'dich-vu' => 'Dịch vụ',
+    'chinh-sach' => 'Chính sách',
     'danh-gia' => 'Đánh giá',
 ];
 ?>
@@ -41,8 +177,8 @@ $sections = [
         <nav aria-label="Đường dẫn">
             <ol class="breadcrumb lt-breadcrumb">
                 <li class="breadcrumb-item"><a href="<?= e($listUrl) ?>">Bảng tin</a></li>
-                <li class="breadcrumb-item"><a href="<?= e(url('/tours?destination=' . (int) $tour['destination_id'])) ?>"><?= e($tour['destination_name']) ?></a></li>
-                <li class="breadcrumb-item active"><?= e($tour['category_name']) ?></li>
+                <li class="breadcrumb-item"><a href="<?= e($destinationUrl) ?>"><?= e($destination) ?></a></li>
+                <li class="breadcrumb-item active" aria-current="page"><?= e($tour['title']) ?></li>
             </ol>
         </nav>
 
@@ -60,47 +196,32 @@ $sections = [
                     </li>
                     <li class="lt-detail-meta__item">
                         <span class="lt-icon lt-icon--pin" aria-hidden="true"></span>
-                        <span><?= e($tour['destination_name']) ?></span>
+                        <span><?= e($destination) ?></span>
                     </li>
                     <li class="lt-detail-meta__item">
                         <span>Tổ chức bởi <strong><?= e($providerName) ?></strong></span>
-<?php if ($isVerified): ?>
-                        <span class="lt-verified" title="Nhà tổ chức đã xác minh">
+                        <span class="lt-verified" title="Đã được LocalTour duyệt">
                             <span class="lt-icon lt-icon--verified" aria-hidden="true"></span>
-                            <span class="sr-only">Đã xác minh</span>
+                            <span class="sr-only">Đã được LocalTour duyệt</span>
                         </span>
-<?php endif; ?>
                     </li>
                 </ul>
             </div>
-            <div class="lt-detail-head__actions">
-                <button type="button" class="lt-btn lt-btn--soft" disabled title="Sắp có">
-                    <span class="lt-icon lt-icon--bookmark" aria-hidden="true"></span>
-                    Lưu tour
-                </button>
-                <button type="button" class="lt-btn lt-btn--light" disabled title="Sắp có">
-                    <span class="lt-icon lt-icon--share" aria-hidden="true"></span>
-                    Chia sẻ
-                </button>
-                <span class="lt-soon">Sắp có</span>
-            </div>
         </div>
 
-        <div class="lt-gallery">
-<?php foreach ([0, 1, 2] as $slot): ?>
-<?php
-    $image = $images[$slot] ?? null;
-    $imageUrl = $image === null ? null : tour_image_url($image['image_path'] === null ? null : (string) $image['image_path']);
-    $caption = $image === null ? $galleryFallbacks[$slot] : (string) $image['caption'];
-?>
-            <figure class="lt-gallery__item<?= $slot === 0 ? ' lt-gallery__item--main' : '' ?>">
-<?php if ($imageUrl !== null): ?>
-                <img src="<?= e($imageUrl) ?>" alt="<?= e($caption) ?>" width="1280" height="720"<?= $slot === 0 ? '' : ' loading="lazy"' ?> decoding="async">
-<?php else: ?>
-                <div class="lt-media-placeholder" role="img" aria-label="<?= e($caption) ?>">
+        <div class="lt-gallery<?= $galleryLayout !== '' ? ' ' . e($galleryLayout) : '' ?>">
+<?php if ($galleryImages === []): ?>
+            <div class="lt-gallery__item lt-gallery__item--main">
+                <div class="lt-media-placeholder">
                     <span class="lt-icon lt-icon--image" aria-hidden="true"></span>
+                    <span>Chưa cập nhật ảnh</span>
                 </div>
+            </div>
 <?php endif; ?>
+<?php foreach ($galleryImages as $slot => $image): ?>
+<?php $caption = (string) $image['caption']; ?>
+            <figure class="lt-gallery__item<?= $slot === 0 ? ' lt-gallery__item--main' : '' ?>">
+                <img src="<?= e($image['url']) ?>" alt="<?= e($caption) ?>" width="1280" height="720"<?= $slot === 0 ? '' : ' loading="lazy"' ?> decoding="async">
                 <figcaption class="lt-gallery__caption" aria-hidden="true"><?= e($caption) ?></figcaption>
             </figure>
 <?php endforeach; ?>
@@ -112,96 +233,164 @@ $sections = [
                 <nav class="lt-anchor-tabs js-detail-tabs" aria-label="Mục trong trang">
                     <ul class="lt-anchor-tabs__list">
 <?php foreach ($sections as $sectionId => $sectionLabel): ?>
-                        <li><a class="lt-anchor-tab<?= $sectionId === 'tong-quan' ? ' is-active' : '' ?>" href="#<?= e($sectionId) ?>"<?= $sectionId === 'tong-quan' ? ' aria-current="true"' : '' ?>><?= e($sectionLabel) ?></a></li>
+                        <li><a class="lt-anchor-tab<?= $sectionId === 'thong-tin' ? ' is-active' : '' ?>" href="#<?= e($sectionId) ?>"<?= $sectionId === 'thong-tin' ? ' aria-current="true"' : '' ?>><?= e($sectionLabel) ?></a></li>
 <?php endforeach; ?>
                     </ul>
                 </nav>
 
-                <section class="lt-section" id="tong-quan" tabindex="-1" aria-labelledby="tong-quan-title">
-                    <h2 class="lt-section__title" id="tong-quan-title">Tổng quan</h2>
-                    <p class="lt-section__lead"><?= e($tour['summary']) ?></p>
-                    <div class="lt-prose"><?= nl2br(e($tour['description']), false) ?></div>
-                    <ul class="lt-facts">
-                        <li class="lt-chip"><span class="lt-icon lt-icon--clock" aria-hidden="true"></span><?= e(format_duration((string) $tour['duration_hours'])) ?></li>
-                        <li class="lt-chip"><span class="lt-icon lt-icon--users" aria-hidden="true"></span>Nhóm tối đa <?= e($maxGroup) ?> khách</li>
-                        <li class="lt-chip"><span class="lt-icon lt-icon--globe" aria-hidden="true"></span><?= e($tour['languages']) ?></li>
-                        <li class="lt-chip"><span class="lt-icon lt-icon--tag" aria-hidden="true"></span><?= e($tour['category_name']) ?></li>
-                    </ul>
+                <section class="lt-section" id="thong-tin" tabindex="-1" aria-labelledby="thong-tin-title">
+                    <h2 class="lt-section__title" id="thong-tin-title">Thông tin tour</h2>
+<?php if ($leadParagraph === null): ?>
+                    <p class="lt-empty-note">Mô tả tour: <?= e($missing) ?></p>
+<?php else: ?>
+                    <p class="lt-section__lead"><?= nl2br(e($leadParagraph), false) ?></p>
+<?php endif; ?>
+<?php if ($paragraphs !== []): ?>
+                    <div class="lt-prose">
+<?php foreach ($paragraphs as $paragraph): ?>
+                        <p><?= nl2br(e($paragraph), false) ?></p>
+<?php endforeach; ?>
+                    </div>
+<?php endif; ?>
+                    <dl class="lt-info">
+<?php foreach ($infoRows as $rowLabel => $rowLines): ?>
+                        <dt class="lt-info__label"><?= e($rowLabel) ?></dt>
+                        <dd class="lt-info__value<?= $rowLines === [$missing] ? ' lt-info__value--missing' : '' ?>">
+<?php foreach ($rowLines as $rowLine): ?>
+                            <span class="lt-info__line"><?= e($rowLine) ?></span>
+<?php endforeach; ?>
+                        </dd>
+<?php endforeach; ?>
+                    </dl>
                 </section>
 
                 <section class="lt-section" id="lich-trinh" tabindex="-1" aria-labelledby="lich-trinh-title">
                     <h2 class="lt-section__title" id="lich-trinh-title">Lịch trình</h2>
 <?php if (empty($itinerary)): ?>
-                    <p class="lt-empty-note">Lịch trình chi tiết đang được cập nhật.</p>
+                    <p class="lt-empty-note"><?= e($missing) ?></p>
 <?php else: ?>
-                    <ol class="lt-timeline">
-<?php foreach ($itinerary as $step): ?>
-                        <li class="lt-timeline__item">
-                            <span class="lt-timeline__time"><?= $step['start_time'] === null ? '—' : e(format_time((string) $step['start_time'])) ?></span>
-                            <span class="lt-timeline__text"><?= e($step['description']) ?></span>
+                    <ol class="lt-itinerary">
+<?php foreach (array_values($itinerary) as $stopIndex => $stop): ?>
+<?php
+    $stopDuration = $stop['duration_minutes'] === null ? null : format_duration($stop['duration_minutes']);
+    $stopDescription = trim((string) ($stop['description'] ?? ''));
+?>
+                        <li class="lt-itinerary__stop">
+                            <span class="lt-itinerary__marker" aria-hidden="true"><?= e($stopIndex + 1) ?></span>
+                            <div class="lt-itinerary__body">
+                                <div class="lt-itinerary__head">
+                                    <h3 class="lt-itinerary__title"><?= e($stop['title']) ?></h3>
+<?php if ($stopDuration !== null): ?>
+                                    <span class="lt-itinerary__duration"><span class="lt-icon lt-icon--clock" aria-hidden="true"></span><?= e($stopDuration) ?></span>
+<?php endif; ?>
+                                </div>
+<?php if ($stopDescription !== ''): ?>
+                                <p class="lt-itinerary__desc"><?= nl2br(e($stopDescription), false) ?></p>
+<?php endif; ?>
+                            </div>
                         </li>
 <?php endforeach; ?>
                     </ol>
 <?php endif; ?>
                 </section>
 
-                <section class="lt-section" id="bao-gom" tabindex="-1" aria-labelledby="bao-gom-title">
-                    <h2 class="lt-section__title" id="bao-gom-title">Chi phí bao gồm</h2>
-                    <div class="row lt-inclusions">
-                        <div class="col-12 col-sm-6">
-                            <h3 class="lt-subheading">Đã bao gồm</h3>
-<?php if (empty($includedItems)): ?>
-                            <p class="lt-empty-note">Chưa có thông tin.</p>
+                <section class="lt-section" id="lich-khoi-hanh" tabindex="-1" aria-labelledby="lich-khoi-hanh-title">
+                    <h2 class="lt-section__title" id="lich-khoi-hanh-title">Lịch khởi hành</h2>
+<?php if (!$hasSchedules): ?>
+                    <p class="lt-empty-note">Chưa có lịch khởi hành sắp tới.</p>
 <?php else: ?>
-                            <ul class="lt-checklist">
-<?php foreach ($includedItems as $itemText): ?>
-                                <li class="lt-checklist__item"><span class="lt-checklist__mark" aria-hidden="true"><span class="lt-icon lt-icon--check"></span></span><?= e($itemText) ?></li>
-<?php endforeach; ?>
-                            </ul>
-<?php endif; ?>
-                        </div>
-                        <div class="col-12 col-sm-6">
-                            <h3 class="lt-subheading">Không gồm</h3>
-<?php if (empty($excludedItems)): ?>
-                            <p class="lt-empty-note">Không có khoản phát sinh được ghi nhận.</p>
+                    <ul class="lt-schedules">
+<?php foreach ($schedules as $schedule): ?>
+<?php $schedulePrice = $schedule['from_price_vnd'] === null ? null : format_vnd((int) $schedule['from_price_vnd']); ?>
+                        <li class="lt-schedule">
+                            <span class="lt-schedule__icon" aria-hidden="true"><span class="lt-icon lt-icon--calendar"></span></span>
+                            <div class="lt-schedule__when">
+                                <p class="lt-schedule__date"><?= e(format_date((string) $schedule['starts_at'])) ?></p>
+                                <p class="lt-schedule__time"><?= e($scheduleTime($schedule)) ?></p>
+                            </div>
+                            <p class="lt-schedule__seats">Còn <?= e((int) $schedule['remaining']) ?>/<?= e((int) $schedule['capacity']) ?> chỗ</p>
+                            <p class="lt-schedule__price">
+<?php if ($schedulePrice !== null): ?>
+                                Từ <strong><?= e($schedulePrice) ?></strong> / người lớn
 <?php else: ?>
-                            <ul class="lt-checklist lt-checklist--excluded">
-<?php foreach ($excludedItems as $itemText): ?>
-                                <li class="lt-checklist__item"><span class="lt-checklist__mark" aria-hidden="true"><span class="lt-icon lt-icon--x"></span></span><?= e($itemText) ?></li>
-<?php endforeach; ?>
-                            </ul>
+                                Giá: <?= e($missing) ?>
 <?php endif; ?>
-                        </div>
-                    </div>
+                            </p>
+                        </li>
+<?php endforeach; ?>
+                    </ul>
+<?php endif; ?>
                 </section>
 
-                <section class="lt-section" id="diem-don" tabindex="-1" aria-labelledby="diem-don-title">
-                    <h2 class="lt-section__title" id="diem-don-title">Điểm đón</h2>
-                    <div class="lt-meeting">
-                        <div class="lt-meeting__row">
-                            <span class="lt-meeting__icon" aria-hidden="true"><span class="lt-icon lt-icon--pin"></span></span>
-                            <div>
-                                <p class="lt-meeting__label">Điểm hẹn</p>
-                                <p class="lt-meeting__value"><?= e($tour['meeting_point']) ?></p>
-<?php if (!empty($tour['meeting_note'])): ?>
-                                <p class="lt-meeting__note"><?= e($tour['meeting_note']) ?></p>
+                <section class="lt-section" id="dich-vu" tabindex="-1" aria-labelledby="dich-vu-title">
+                    <h2 class="lt-section__title" id="dich-vu-title">Dịch vụ</h2>
+                    <h3 class="lt-subheading">Đã bao gồm</h3>
+<?php if ($includedItems === []): ?>
+                    <p class="lt-empty-note"><?= e($missing) ?></p>
+<?php else: ?>
+                    <ul class="lt-checklist">
+<?php foreach ($includedItems as $itemText): ?>
+                        <li class="lt-checklist__item"><span class="lt-checklist__mark" aria-hidden="true"><span class="lt-icon lt-icon--check"></span></span><?= e($itemText) ?></li>
+<?php endforeach; ?>
+                    </ul>
 <?php endif; ?>
-                            </div>
-                        </div>
-<?php if (!empty($tour['transport_note'])): ?>
-                        <div class="lt-meeting__row">
-                            <span class="lt-meeting__icon" aria-hidden="true"><span class="lt-icon lt-icon--navigation"></span></span>
-                            <div>
-                                <p class="lt-meeting__label">Di chuyển</p>
-                                <p class="lt-meeting__value"><?= e($tour['transport_note']) ?></p>
-                            </div>
-                        </div>
+                    <h3 class="lt-subheading">Không bao gồm</h3>
+<?php if ($excludedItems === []): ?>
+                    <p class="lt-empty-note"><?= e($missing) ?></p>
+<?php else: ?>
+                    <ul class="lt-checklist lt-checklist--excluded">
+<?php foreach ($excludedItems as $itemText): ?>
+                        <li class="lt-checklist__item"><span class="lt-checklist__mark" aria-hidden="true"><span class="lt-icon lt-icon--x"></span></span><?= e($itemText) ?></li>
+<?php endforeach; ?>
+                    </ul>
 <?php endif; ?>
-                    </div>
+                    <h3 class="lt-subheading">Phụ thu / hoạt động tùy chọn</h3>
+<?php if (empty($extras)): ?>
+                    <p class="lt-empty-note"><?= e($missing) ?></p>
+<?php else: ?>
+                    <p class="lt-empty-note">Tính riêng, không cộng vào giá tour và phần tạm tính.</p>
+<?php foreach ($extraGroups as $extraGroup): ?>
+                    <h4 class="lt-extras__title"><?= e($extraGroup['title']) ?></h4>
+<?php if ($extraGroup['items'] === []): ?>
+                    <p class="lt-empty-note"><?= e($missing) ?></p>
+<?php else: ?>
+                    <ul class="lt-extras">
+<?php foreach ($extraGroup['items'] as $extraItem): ?>
+                        <li class="lt-extra">
+                            <div class="lt-extra__head">
+                                <span class="lt-extra__name"><?= e($extraItem['name']) ?></span>
+                                <span class="lt-extra__price<?= $extraItem['priceMissing'] ? ' lt-extra__price--missing' : '' ?>"><?= e($extraItem['price']) ?></span>
+                            </div>
+<?php if ($extraItem['conditions'] !== ''): ?>
+                            <p class="lt-extra__conditions"><?= nl2br(e($extraItem['conditions']), false) ?></p>
+<?php endif; ?>
+                        </li>
+<?php endforeach; ?>
+                    </ul>
+<?php endif; ?>
+<?php endforeach; ?>
+<?php endif; ?>
+                </section>
+
+                <section class="lt-section" id="chinh-sach" tabindex="-1" aria-labelledby="chinh-sach-title">
+                    <h2 class="lt-section__title" id="chinh-sach-title">Điều kiện & chính sách</h2>
+                    <dl class="lt-info">
+<?php foreach ($policyRows as $rowLabel => $rowLines): ?>
+                        <dt class="lt-info__label"><?= e($rowLabel) ?></dt>
+                        <dd class="lt-info__value<?= $rowLines === [$missing] ? ' lt-info__value--missing' : '' ?>">
+<?php foreach ($rowLines as $rowLine): ?>
+                            <span class="lt-info__line"><?= e($rowLine) ?></span>
+<?php endforeach; ?>
+                        </dd>
+<?php endforeach; ?>
+                    </dl>
+<?php if ($policy !== null): ?>
+                    <p class="lt-empty-note lt-info__note">Chính sách hủy phiên bản <?= e((int) $policy['version']) ?> · minh họa · Kiểm tra trước khi đặt</p>
+<?php endif; ?>
                 </section>
 
                 <section class="lt-section" id="danh-gia" tabindex="-1" aria-labelledby="danh-gia-title">
-                    <h2 class="lt-section__title" id="danh-gia-title">Đánh giá của khách</h2>
+                    <h2 class="lt-section__title" id="danh-gia-title">Đánh giá</h2>
 <?php if ($ratingText !== null && $reviewCount > 0): ?>
                     <div class="lt-review-summary">
                         <span class="lt-review-summary__score"><?= e($ratingText) ?></span>
@@ -222,18 +411,26 @@ $sections = [
 <?php else: ?>
                     <ul class="lt-reviews">
 <?php foreach ($reviews as $review): ?>
+<?php
+    $reviewerName = (string) $review['reviewer_name'];
+    $reviewRating = (int) $review['rating'];
+    $reviewContent = trim((string) $review['content']);
+    $tourDate = format_date($review['tour_date'] === null ? null : (string) $review['tour_date']);
+?>
                         <li class="lt-review">
                             <div class="lt-review__head">
-                                <span class="lt-avatar lt-avatar--sm" aria-hidden="true"><?= e(mb_strtoupper(mb_substr((string) $review['reviewer_name'], 0, 1))) ?></span>
+                                <span class="lt-avatar lt-avatar--sm" aria-hidden="true"><?= e(mb_strtoupper(mb_substr($reviewerName, 0, 1))) ?></span>
                                 <div class="lt-review__who">
-                                    <p class="lt-review__name"><?= e($review['reviewer_name']) ?></p>
+                                    <p class="lt-review__name"><?= e($reviewerName) ?></p>
                                     <p class="lt-review__meta">
-                                        <span class="lt-stars lt-stars--sm" style="--lt-rating: <?= e((int) $review['rating']) ?>" role="img" aria-label="<?= e((int) $review['rating']) ?> trên 5 sao"></span>
-                                        <span><?= e((int) $review['rating']) ?>/5 · <?= e(format_date(substr((string) $review['created_at'], 0, 10))) ?> · Đã tham gia tour (minh họa)</span>
+                                        <span class="lt-stars lt-stars--sm" style="--lt-rating: <?= e($reviewRating) ?>" role="img" aria-label="<?= e($reviewRating) ?> trên 5 sao"></span>
+                                        <span><?= e($reviewRating) ?>/5<?= $tourDate !== '' ? ' · Tham gia ngày ' . e($tourDate) : '' ?></span>
                                     </p>
                                 </div>
                             </div>
-                            <p class="lt-review__text">“<?= e($review['comment']) ?>”</p>
+<?php if ($reviewContent !== ''): ?>
+                            <p class="lt-review__text">“<?= nl2br(e($reviewContent), false) ?>”</p>
+<?php endif; ?>
                         </li>
 <?php endforeach; ?>
                     </ul>
@@ -250,32 +447,28 @@ $sections = [
                         <p class="lt-provider__eyebrow">Tổ chức bởi</p>
                         <h2 class="lt-provider__name" id="provider-title">
                             <?= e($providerName) ?>
-<?php if ($isVerified): ?>
-                            <span class="lt-provider__badge"><span class="lt-icon lt-icon--verified" aria-hidden="true"></span>Đã xác minh</span>
-<?php endif; ?>
+                            <span class="lt-provider__badge"><span class="lt-icon lt-icon--verified" aria-hidden="true"></span>Đã được LocalTour duyệt</span>
                         </h2>
-<?php if (!empty($tour['provider_description'])): ?>
-                        <p class="lt-provider__desc"><?= e($tour['provider_description']) ?></p>
+<?php if ($providerSince !== ''): ?>
+                        <p class="lt-provider__desc">Đối tác của LocalTour từ <?= e($providerSince) ?>.</p>
 <?php endif; ?>
                     </div>
-                    <button type="button" class="lt-btn lt-btn--light lt-provider__action" disabled title="Sắp có">
-                        <span class="lt-icon lt-icon--message" aria-hidden="true"></span>
-                        Nhắn tin
-                        <span class="lt-soon">Sắp có</span>
-                    </button>
                 </section>
             </div>
 
             <div class="col-12 col-lg-5 col-xl-4 lt-detail-aside">
-                <aside class="lt-booking" id="booking-card" aria-labelledby="booking-title"
-                       data-price="<?= e((int) $tour['price_per_person']) ?>"
-                       data-max-group="<?= e($maxGroup) ?>">
+                <aside class="lt-booking" id="booking-card" aria-labelledby="booking-title">
                     <h2 class="sr-only" id="booking-title">Chọn lịch và giá</h2>
                     <p class="lt-booking__price">
+<?php if ($priceText !== null): ?>
+                        <span class="lt-booking__unit">Từ</span>
                         <span class="lt-booking__amount"><?= e($priceText) ?></span>
-                        <span class="lt-booking__unit">/ người</span>
+                        <span class="lt-booking__unit">/ người lớn</span>
+<?php else: ?>
+                        <span class="lt-booking__amount lt-booking__amount--none">Giá: <?= e($missing) ?></span>
+<?php endif; ?>
                     </p>
-                    <p class="lt-booking__note"><?= e(!empty($tour['price_note']) ? $tour['price_note'] : 'Giá minh họa · VND') ?></p>
+                    <p class="lt-booking__note">Giá minh họa · VND</p>
 
                     <form class="lt-booking__form" id="booking-form" action="#" novalidate>
                         <div class="lt-field">
@@ -283,9 +476,7 @@ $sections = [
 <?php if ($hasSchedules): ?>
                             <select class="lt-input lt-select" id="booking-schedule" name="schedule_id">
 <?php foreach ($schedules as $schedule): ?>
-                                <option value="<?= e((int) $schedule['schedule_id']) ?>"
-                                        data-start-time="<?= e(format_time((string) $schedule['start_time'])) ?>"
-                                        data-seats-left="<?= e((int) $schedule['seats_left']) ?>"><?= e(format_date((string) $schedule['departure_date'])) ?> · còn <?= e((int) $schedule['seats_left']) ?> chỗ</option>
+                                <option value="<?= e($schedule['schedule_id']) ?>"><?= e(format_date((string) $schedule['starts_at'])) ?> · <?= e(format_time((string) $schedule['starts_at'])) ?> · còn <?= e((int) $schedule['remaining']) ?> chỗ</option>
 <?php endforeach; ?>
                             </select>
 <?php else: ?>
@@ -300,37 +491,45 @@ $sections = [
                         </div>
 
                         <div class="lt-field">
-                            <label class="lt-field__label" for="booking-guests">Số khách</label>
-                            <div class="lt-stepper">
-                                <button type="button" class="lt-stepper__btn" id="booking-guests-dec" aria-controls="booking-guests" aria-label="Bớt 1 khách"<?= $hasSchedules ? '' : ' disabled' ?>>
-                                    <span class="lt-icon lt-icon--minus" aria-hidden="true"></span>
-                                </button>
-                                <input class="lt-input lt-stepper__input" type="number" id="booking-guests" name="guests"
-                                       value="1" min="1" max="<?= e($maxGroup) ?>" step="1" inputmode="numeric"
-                                       aria-describedby="booking-guests-hint"<?= $hasSchedules ? '' : ' disabled' ?>>
-                                <button type="button" class="lt-stepper__btn" id="booking-guests-inc" aria-controls="booking-guests" aria-label="Thêm 1 khách"<?= $hasSchedules ? '' : ' disabled' ?>>
-                                    <span class="lt-icon lt-icon--plus" aria-hidden="true"></span>
-                                </button>
+                            <label class="lt-field__label" for="booking-time">Giờ</label>
+                            <input class="lt-input" type="text" id="booking-time" readonly
+                                   value="<?= e($hasSchedules ? $scheduleTime($schedules[array_key_first($schedules)]) : '—') ?>"<?= $hasSchedules ? '' : ' disabled' ?>>
+                        </div>
+
+                        <fieldset class="lt-field lt-tickets" aria-describedby="booking-guests-hint">
+                            <legend class="lt-field__label">Số khách</legend>
+                            <div class="lt-tickets__list" id="booking-tickets">
+<?php if ($hasSchedules): ?>
+                                <p class="lt-field__hint">Chọn ngày tham gia để xem giá vé từng loại khách.</p>
+<?php else: ?>
+                                <div class="lt-ticket">
+                                    <div class="lt-ticket__info">
+                                        <span class="lt-ticket__label">Khách</span>
+                                        <span class="lt-ticket__meta">Giá: <?= e($missing) ?></span>
+                                    </div>
+                                    <div class="lt-stepper">
+                                        <button type="button" class="lt-stepper__btn" aria-label="Bớt 1 khách" disabled>
+                                            <span class="lt-icon lt-icon--minus" aria-hidden="true"></span>
+                                        </button>
+                                        <input class="lt-input lt-stepper__input" type="number" value="1" aria-label="Số khách" disabled>
+                                        <button type="button" class="lt-stepper__btn" aria-label="Thêm 1 khách" disabled>
+                                            <span class="lt-icon lt-icon--plus" aria-hidden="true"></span>
+                                        </button>
+                                    </div>
+                                </div>
+<?php endif; ?>
                             </div>
                             <p class="lt-field__hint" id="booking-guests-hint">Nhóm tối đa <?= e($maxGroup) ?> khách</p>
-                        </div>
+                        </fieldset>
 
-                        <div class="lt-field">
-                            <label class="lt-field__label" for="booking-start-time">Giờ bắt đầu</label>
-                            <input class="lt-input" type="text" id="booking-start-time" readonly
-                                   value="<?= $hasSchedules ? e(format_time((string) $schedules[0]['start_time'])) : '—' ?>"<?= $hasSchedules ? '' : ' disabled' ?>>
+                        <div class="lt-booking__total" id="booking-total" aria-live="polite" aria-atomic="true">
+                            <div class="lt-booking__total-main">
+                                <span class="lt-booking__total-label">Tạm tính tiền vé</span>
+                                <span class="lt-booking__total-formula js-total-formula"><?= e($hasSchedules ? '' : 'Chưa thể tính') ?></span>
+                            </div>
+                            <strong class="lt-booking__total-value js-total-amount">—</strong>
                         </div>
-
-                        <div class="lt-booking__total">
-                            <span class="lt-booking__total-label">Tạm tính</span>
-                            <output class="lt-booking__total-value" id="booking-total" for="booking-schedule booking-guests" aria-live="polite">
-<?php if ($hasSchedules): ?>
-                                <span class="js-total-formula">1 khách × <?= e($priceText) ?></span> = <strong class="js-total-amount"><?= e($priceText) ?></strong>
-<?php else: ?>
-                                <span class="js-total-formula">Chưa thể tính</span>
-<?php endif; ?>
-                            </output>
-                        </div>
+                        <p class="lt-field__hint">Chưa gồm phụ thu và hoạt động tùy chọn.</p>
 
                         <div class="lt-booking__actions">
                             <button type="button" class="lt-btn lt-btn--primary lt-btn--block" disabled title="Sắp có">
@@ -342,12 +541,20 @@ $sections = [
                             </button>
                         </div>
                     </form>
+                    <script type="application/json" id="booking-data"><?= $bookingJson ?></script>
 
                     <div class="lt-booking__policy">
                         <span class="lt-icon lt-icon--shield" aria-hidden="true"></span>
                         <div>
-                            <p><?= e($tour['cancellation_policy']) ?></p>
+<?php if ($policy !== null): ?>
+<?php foreach ($policyLines as $policyLine): ?>
+                            <p><?= e($policyLine) ?></p>
+<?php endforeach; ?>
+                            <p class="lt-booking__policy-note">Chính sách phiên bản <?= e((int) $policy['version']) ?> · minh họa · Kiểm tra trước khi đặt</p>
+<?php else: ?>
+                            <p>Chính sách hủy: <?= e($missing) ?></p>
                             <p class="lt-booking__policy-note">Chính sách minh họa · Kiểm tra trước khi đặt</p>
+<?php endif; ?>
                         </div>
                     </div>
 
@@ -361,7 +568,11 @@ $sections = [
     </div>
 
     <div class="lt-mobile-cta d-lg-none">
-        <p class="lt-mobile-cta__price"><strong><?= e($priceText) ?></strong> / người</p>
+<?php if ($priceText !== null): ?>
+        <p class="lt-mobile-cta__price">Từ <strong><?= e($priceText) ?></strong> / người lớn</p>
+<?php else: ?>
+        <p class="lt-mobile-cta__price">Giá: <strong><?= e($missing) ?></strong></p>
+<?php endif; ?>
         <a class="lt-btn lt-btn--primary js-scroll-link" href="#booking-card">Chọn lịch</a>
     </div>
 </main>

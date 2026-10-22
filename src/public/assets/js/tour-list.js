@@ -1,25 +1,23 @@
 /*
  * LocalTour – tour-list.js (Nguyễn Tuấn Khôi)
  * Bảng tin du lịch: tải /api/destinations và /api/tours bằng AJAX, hiển thị skeleton / thẻ tour /
- * trạng thái rỗng / lỗi; tìm kiếm, lọc điểm đến, sắp xếp không tải lại trang và giữ URL đồng bộ.
+ * trạng thái rỗng / lỗi; tìm kiếm, lọc điểm đến (theo tên), sắp xếp không tải lại trang và giữ URL đồng bộ.
  * Mọi dữ liệu từ server được đưa vào DOM bằng .text() / .attr().
  */
 (function (window, document, $) {
     'use strict';
 
-    var SORTS = ['recommended', 'newest', 'price_asc', 'price_desc'];
+    var SORTS = ['recommended', 'upcoming', 'price_asc', 'price_desc'];
+    var UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    var PRICE_SORTS = ['price_asc', 'price_desc'];
     var DEFAULT_SORT = 'recommended';
+    var MISSING = 'Chưa cập nhật';
+    var UNPRICED_NOTE = 'Các tour dưới đây chưa cập nhật giá nên không được xếp theo giá.';
     var QUERY_MAX_LENGTH = 100;
     var SEARCH_DELAY_MS = 400;
     var REQUEST_TIMEOUT_MS = 15000;
     var GENERIC_ERROR = 'Máy chủ đang bận hoặc mất kết nối. Vui lòng thử lại sau ít phút.';
     var TIMEOUT_ERROR = 'Máy chủ phản hồi quá lâu. Vui lòng thử lại.';
-    var INTERACTIONS = [
-        { icon: 'heart', label: 'Thích' },
-        { icon: 'message', label: 'Bình luận' },
-        { icon: 'share', label: 'Chia sẻ' },
-        { icon: 'bookmark', label: 'Lưu' }
-    ];
 
     $(function () {
         var LT = window.LocalTour;
@@ -46,10 +44,9 @@
         var urlSort = new URLSearchParams(window.location.search).get('sort');
         var state = {
             q: String($page.attr('data-initial-query') || '').trim().slice(0, QUERY_MAX_LENGTH),
-            destination: LT.normaliseId($page.attr('data-initial-destination')),
+            destination: LT.normaliseDestination($page.attr('data-initial-destination')),
             sort: SORTS.indexOf(urlSort) !== -1 ? urlSort : DEFAULT_SORT
         };
-        var destinationNames = {};
         var destinationsLoaded = false;
         var requestSeq = 0;
         var currentRequest = null;
@@ -65,21 +62,27 @@
             $priceSort.val(state.sort === 'price_asc' || state.sort === 'price_desc' ? state.sort : '');
         }
 
-        function hasDestinationOption(id) {
+        /** Option có cùng tên điểm đến (không phân biệt hoa thường, dấu – giống cách CSDL so khớp). */
+        function findDestinationOption(name) {
+            var key = LT.destinationKey(name);
             return $destinationSelect.find('option').filter(function () {
-                return this.value === id;
-            }).length > 0;
+                return this.value !== '' && LT.destinationKey(this.value) === key;
+            }).first();
         }
 
         function syncDestinationControls() {
-            var exists = hasDestinationOption(state.destination);
-            if (state.destination && !exists && destinationsLoaded) {
-                // Điểm đến trong URL không còn tồn tại: vẫn hiển thị để người dùng biết đang lọc.
-                $destinationSelect.append($('<option>').val(state.destination).text('Điểm đến không xác định'));
-                exists = true;
+            $destinationSelect.find('option[data-unknown]').remove();
+            var $match = state.destination ? findDestinationOption(state.destination) : $();
+            if ($match.length) {
+                // Dùng đúng tên trong danh sách (vd. URL "?destination=ha noi" → "Hà Nội").
+                state.destination = $match.val();
+            } else if (state.destination && destinationsLoaded) {
+                // Điểm đến trong URL không có tour nào: vẫn hiển thị để người dùng biết đang lọc.
+                $match = $('<option>').attr('data-unknown', '1').val(state.destination).text(state.destination + ' (0)');
+                $destinationSelect.append($match);
             }
-            // Chưa tải xong danh sách thì tạm giữ "Tất cả điểm đến" thay vì để ô chọn trống.
-            $destinationSelect.val(exists ? state.destination : '');
+            // Chưa tải xong danh sách thì tạm giữ "Tất cả" thay vì để ô chọn trống.
+            $destinationSelect.val($match.length ? state.destination : '');
             LT.setActiveDestination($sidebarList, state.destination);
         }
 
@@ -122,7 +125,7 @@
                 parts.push('từ khóa “' + state.q + '”');
             }
             if (state.destination) {
-                parts.push(destinationNames[state.destination] || 'điểm đến đã chọn');
+                parts.push(state.destination);
             }
             return parts;
         }
@@ -166,48 +169,42 @@
                 .append(LT.icon(iconName), $('<span>').addClass('lt-meta__text').text(text));
         }
 
-        function mediaPlaceholder(caption) {
+        function mediaPlaceholder(text) {
             return $('<div>')
                 .addClass('lt-media-placeholder')
-                .attr({ role: 'img', 'aria-label': caption })
-                .append(LT.icon('image'), $('<span>').attr('aria-hidden', 'true').text(caption));
+                .append(LT.icon('image'), $('<span>').text(text));
         }
 
-        function disabledAction(iconName, label, collapsible) {
+        function hasPrice(tour) {
+            return typeof tour.price_text === 'string' && tour.price_text !== '';
+        }
+
+        function disabledAction(iconName, label) {
             return $('<button>')
                 .attr({ type: 'button', title: 'Sắp có' })
                 .prop('disabled', true)
                 .addClass('lt-action')
-                .append(
-                    LT.icon(iconName),
-                    $('<span>').addClass('lt-action__label' + (collapsible ? ' lt-action__label--collapsible' : '')).text(label)
-                );
+                .append(LT.icon(iconName), $('<span>').text(label));
         }
 
-        function buildCard(tour) {
-            var tourId = parseInt(tour.tour_id, 10) || 0;
-            var titleId = 'tour-title-' + tourId;
+        function buildCard(tour, index) {
+            var tourId = UUID_PATTERN.test(String(tour.tour_id || '')) ? String(tour.tour_id).toLowerCase() : '';
+            var titleId = 'tour-title-' + (tourId || 'i' + index);
             var href = safeTourUrl(tour);
-            var caption = tour.cover_caption || tour.title || 'Ảnh tour';
+            var caption = tour.cover_caption || tour.title || '';
             var $card = $('<article>').addClass('lt-tour-card').attr({ 'data-tour-id': tourId, 'aria-labelledby': titleId });
 
-            // Người tổ chức
-            var $provider = $('<p>').addClass('lt-tour-card__provider')
-                .append($('<span>').text(tour.provider_name || 'Người tổ chức địa phương'));
-            if (tour.provider_verified) {
-                $provider.append(
-                    $('<span>').addClass('lt-verified').attr('title', 'Nhà tổ chức đã xác minh')
-                        .append(LT.icon('verified'), $('<span>').addClass('sr-only').text('Đã xác minh'))
-                );
-            }
-            $provider.append($('<span>').addClass('lt-tour-card__role').text('Người tổ chức'));
+            // Người tổ chức + điểm đến
+            var $provider = $('<p>').addClass('lt-tour-card__provider').append(
+                $('<span>').text(tour.provider_name || 'Người tổ chức địa phương'),
+                $('<span>').addClass('lt-tour-card__role').text('Người tổ chức')
+            );
 
-            var subParts = [tour.category_name, tour.destination_name].filter(Boolean);
             var $head = $('<header>').addClass('lt-tour-card__head').append(
                 $('<span>').addClass('lt-avatar').attr('aria-hidden', 'true').text(initialOf(tour.provider_name)),
                 $('<div>').addClass('lt-tour-card__org').append(
                     $provider,
-                    $('<p>').addClass('lt-tour-card__sub').text(subParts.join(' · '))
+                    $('<p>').addClass('lt-tour-card__sub').text(tour.destination || '')
                 )
             );
 
@@ -228,16 +225,16 @@
                     decoding: 'async'
                 });
                 $img.one('error', function () {
-                    $img.replaceWith(mediaPlaceholder(caption));
+                    $img.replaceWith(mediaPlaceholder('Không tải được ảnh'));
                 });
                 $media.append($img);
             } else {
-                $media.append(mediaPlaceholder(caption));
+                $media.append(mediaPlaceholder('Chưa cập nhật ảnh'));
             }
-            if (tour.destination_name) {
+            if (tour.destination) {
                 $media.append(
                     $('<span>').addClass('lt-tour-card__badge').attr('aria-hidden', 'true')
-                        .append(LT.icon('pin'), $('<span>').text(tour.destination_name))
+                        .append(LT.icon('pin'), $('<span>').text(tour.destination))
                 );
             }
 
@@ -256,41 +253,44 @@
             if (tour.duration_text) {
                 $meta.append(metaItem('clock', tour.duration_text));
             }
-            if (tour.meeting_point) {
-                $meta.append(metaItem('pin', 'Gặp tại ' + tour.meeting_point));
-            }
+            $meta.append(metaItem(
+                tour.pickup_mode === 'hotel_pickup' ? 'navigation' : 'pin',
+                'Nơi khởi hành: ' + (tour.departure_text || MISSING)
+            ));
             $meta.append(metaItem('calendar', tour.next_departure_text
                 ? 'Khởi hành ' + tour.next_departure_text
-                : 'Chưa có lịch khởi hành'));
+                : 'Chưa có lịch khởi hành sắp tới'));
 
-            // Giá + nút xem chi tiết
-            var $buy = $('<div>').addClass('lt-tour-card__buy').append(
-                $('<p>').addClass('lt-price').append(
+            // Giá vé người lớn thấp nhất trong các lịch còn đặt được + nút xem chi tiết
+            var $price = $('<p>').addClass('lt-price');
+            if (hasPrice(tour)) {
+                $price.append(
                     document.createTextNode('Từ '),
-                    $('<strong>').addClass('lt-price__amount').text(tour.price_text || LT.formatVnd(tour.price_per_person)),
-                    document.createTextNode(' / người')
-                ),
+                    $('<strong>').addClass('lt-price__amount').text(tour.price_text),
+                    document.createTextNode(' / người lớn')
+                );
+            } else {
+                $price.addClass('lt-price--none').text('Giá: ' + MISSING);
+            }
+
+            var $buy = $('<div>').addClass('lt-tour-card__buy').append(
+                $price,
                 $('<a>').addClass('lt-btn lt-btn--primary lt-tour-card__cta')
                     .attr({ href: href, 'aria-describedby': titleId })
                     .text('Xem chi tiết')
             );
 
-            // Tương tác: chưa làm ở Sprint 3, luôn tắt.
-            var $actionsMain = $('<div>').addClass('lt-tour-card__actions-main');
-            $.each(INTERACTIONS, function (index, action) {
-                $actionsMain.append(disabledAction(action.icon, action.label, true));
-            });
-            var $actions = $('<div>').addClass('lt-tour-card__actions')
-                .attr({ role: 'group', 'aria-label': 'Tương tác (sắp có)' })
-                .append(
-                    $actionsMain,
-                    disabledAction('columns', 'Thêm vào so sánh', false).addClass('lt-action--compare').append(LT.soonBadge())
-                );
+            // So sánh tour (FR-15): chưa làm ở Sprint 3, luôn tắt. Không có thích/bình luận/lưu vì khách không có tài khoản.
+            var $actions = $('<div>').addClass('lt-tour-card__actions').append(
+                disabledAction('columns', 'Thêm vào so sánh').addClass('lt-action--compare').append(LT.soonBadge())
+            );
 
             return $card.append(
                 $head,
                 $title,
-                $('<p>').addClass('lt-tour-card__summary').text(tour.summary || ''),
+                tour.excerpt
+                    ? $('<p>').addClass('lt-tour-card__excerpt').text(tour.excerpt)
+                    : $('<p>').addClass('lt-tour-card__excerpt lt-tour-card__excerpt--missing').text('Tóm tắt: ' + MISSING),
                 $media,
                 $meta,
                 $buy,
@@ -310,8 +310,19 @@
                 return;
             }
 
-            var cards = $.map(tours, function (tour) {
-                return buildCard(tour);
+            // FR-06: khi xếp theo giá, tour chưa có giá không xếp lẫn với tour có giá mà nằm sau một dải phân cách.
+            var bySort = PRICE_SORTS.indexOf(state.sort) !== -1;
+            var ordered = bySort
+                ? $.grep(tours, hasPrice).concat($.grep(tours, hasPrice, true))
+                : tours;
+            var dividerAdded = false;
+            var cards = [];
+            $.each(ordered, function (index, tour) {
+                if (bySort && !dividerAdded && !hasPrice(tour)) {
+                    dividerAdded = true;
+                    cards.push($('<p>').addClass('lt-feed__divider').text(UNPRICED_NOTE));
+                }
+                cards.push(buildCard(tour, index));
             });
             $feed.append(cards).append(
                 $('<p>').addClass('lt-feed__end').text('Bạn đã xem hết ' + total + ' tour phù hợp.')
@@ -386,19 +397,17 @@
                     }
 
                     var $options = [$('<option>').val('').text('Tất cả')];
-                    destinationNames = {};
                     $.each(list, function (index, destination) {
-                        var id = LT.normaliseId(destination.destination_id);
-                        if (!id) {
-                            return;
+                        var name = LT.normaliseDestination(destination.name);
+                        if (name) {
+                            $options.push($('<option>').val(name).text(name + ' (' + (Number(destination.tour_count) || 0) + ')'));
                         }
-                        destinationNames[id] = String(destination.name || '');
-                        $options.push($('<option>').val(id).text(destination.name + ' (' + (Number(destination.tour_count) || 0) + ')'));
                     });
                     destinationsLoaded = true;
                     $destinationSelect.empty().append($options);
                     LT.renderDestinationNav($sidebarList, list, state.destination);
                     syncDestinationControls();
+                    syncUrl(); // Tên điểm đến có thể vừa được chuẩn hóa theo danh sách.
 
                     // Cập nhật dòng đếm để hiện tên điểm đến khi danh sách tour về trước.
                     if (!$feed.prop('hidden')) {
@@ -443,14 +452,14 @@
         });
 
         $destinationSelect.on('change', function () {
-            state.destination = LT.normaliseId($destinationSelect.val());
-            LT.setActiveDestination($sidebarList, state.destination);
+            state.destination = LT.normaliseDestination($destinationSelect.val());
+            syncDestinationControls();
             refresh();
         });
 
         $sidebarList.on('click', '.lt-dest-link', function (event) {
             event.preventDefault();
-            state.destination = LT.normaliseId($(this).attr('data-destination-id'));
+            state.destination = LT.normaliseDestination($(this).attr('data-destination'));
             syncDestinationControls();
             refresh();
             if ($sidebar.hasClass('show') && window.innerWidth < 992) {

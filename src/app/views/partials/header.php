@@ -1,7 +1,8 @@
 <?php declare(strict_types=1); ?>
 <?php
 /*
- * Header (Nguyễn Tuấn Khôi): logo, ô tìm kiếm (GET /tours?q=), "Thông báo" (sắp có), "Menu".
+ * Header (Nguyễn Tuấn Khôi): logo, ô tìm kiếm (GET /tours?q=), "Menu".
+ * Không có nút tài khoản/thông báo: khách không cần tài khoản (FR board – Won't Have).
  * Trên trang danh sách, tour-list.js chặn submit và tải lại kết quả bằng AJAX.
  * "Menu" chỉ hoạt động dưới 992px: mở/đóng thanh bên #lt-sidebar (Bootstrap collapse).
  */
@@ -25,11 +26,6 @@
         </form>
 
         <div class="lt-header__actions">
-            <button type="button" class="lt-header-btn" disabled title="Sắp có" aria-label="Thông báo (sắp có)">
-                <span class="lt-icon lt-icon--bell" aria-hidden="true"></span>
-                <span class="d-none d-md-inline" aria-hidden="true">Thông báo</span>
-                <span class="lt-soon d-none d-xl-inline-flex" aria-hidden="true">Sắp có</span>
-            </button>
             <button type="button" class="lt-header-btn d-none d-lg-inline-flex" disabled title="Sắp có" aria-label="Menu (sắp có trên máy tính)">
                 <span class="lt-icon lt-icon--menu" aria-hidden="true"></span>
                 <span aria-hidden="true">Menu</span>

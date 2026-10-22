@@ -9,8 +9,8 @@ use App\Models\TourDetailModel;
 use Core\Controller;
 
 /**
- * Trang chi tiết tour theo ID và endpoint JSON tương ứng (WBS 3.2.4 – Nguyễn Minh Thức).
- * ID sai định dạng hoặc không tồn tại đều hiển thị trạng thái "Không tìm thấy tour" (HTTP 404).
+ * Trang chi tiết tour theo UUID và endpoint JSON tương ứng (WBS 3.2.4 – Nguyễn Minh Thức).
+ * UUID sai định dạng hoặc tour không tồn tại / chưa duyệt đều hiển thị "Không tìm thấy tour" (HTTP 404).
  */
 final class TourDetailController extends Controller
 {
@@ -26,7 +26,7 @@ final class TourDetailController extends Controller
     /** GET /tours/{id} */
     public function show(string $id): void
     {
-        $tourId = self::parseId($id);
+        $tourId = self::parseUuid($id);
         $tour = $tourId === null ? null : $this->details->find($tourId);
 
         if ($tour === null) {
@@ -40,20 +40,15 @@ final class TourDetailController extends Controller
         $this->render('tours/show', [
             'title' => $tour['title'],
             'tour' => $tour,
-            'schedules' => $this->details->schedules($tourId),
-            'itinerary' => $this->details->itinerary($tourId),
-            'images' => $this->content->images($tourId),
-            'inclusions' => $this->content->inclusions($tourId),
-            'reviews' => $this->content->reviews($tourId),
             'pageStyles' => ['css/tour-detail.css'],
             'pageScripts' => ['js/tour-detail.js'],
-        ]);
+        ] + $this->sections($tourId, $tour));
     }
 
     /** GET /api/tours/{id} */
     public function apiShow(string $id): void
     {
-        $tourId = self::parseId($id);
+        $tourId = self::parseUuid($id);
         if ($tourId === null) {
             $this->json(false, 'Mã tour không hợp lệ.', null, 400);
         }
@@ -63,23 +58,42 @@ final class TourDetailController extends Controller
             $this->json(false, 'Không tìm thấy tour.', null, 404);
         }
 
-        $images = $this->content->images($tourId);
-        foreach ($images as $index => $image) {
-            $images[$index]['image_url'] = tour_image_url($image['image_path']);
-        }
+        $price = $tour['from_price_vnd'] === null ? null : (int) $tour['from_price_vnd'];
 
         $this->json(true, '', [
             'tour' => $tour + [
                 'url' => url('/tours/' . $tourId),
-                'price_text' => format_vnd($tour['price_per_person']),
-                'duration_text' => format_duration((string) $tour['duration_hours']),
+                'price_text' => $price === null ? null : format_vnd($price),
+                'duration_text' => format_duration($tour['duration_minutes']),
+                'languages_text' => format_languages($tour['language_codes']),
+                'pickup_text' => pickup_text($tour['pickup_mode'], $tour['meeting_point']),
+                'departure_text' => departure_text($tour['pickup_mode'], $tour['meeting_point']),
                 'rating_text' => format_rating($tour['rating_avg']),
             ],
+        ] + $this->sections($tourId, $tour));
+    }
+
+    /**
+     * Các phần dùng chung cho trang HTML và JSON: lịch, vé, lịch trình, phụ thu/tùy chọn, đánh giá, chính sách và ảnh của chính tour.
+     *
+     * @param array<string, mixed> $tour
+     * @return array<string, mixed>
+     */
+    private function sections(string $tourId, array $tour): array
+    {
+        $gallery = array_map(static fn (array $image): array => [
+            'url' => image_src((string) $image['url']),
+            'caption' => trim((string) $image['alt_text']) !== '' ? $image['alt_text'] : $tour['title'],
+        ], $this->details->images($tourId));
+
+        return [
             'schedules' => $this->details->schedules($tourId),
-            'itinerary' => $this->details->itinerary($tourId),
-            'images' => $images,
-            'inclusions' => $this->content->inclusions($tourId),
+            'tickets' => $this->details->tickets($tourId),
+            'itinerary' => $this->content->itinerary($tourId),
+            'extras' => $this->content->extras($tourId),
             'reviews' => $this->content->reviews($tourId),
-        ]);
+            'policy' => $this->content->cancellationPolicy($tourId),
+            'gallery' => $gallery,
+        ];
     }
 }

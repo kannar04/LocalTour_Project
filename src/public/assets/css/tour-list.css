@@ -1,7 +1,7 @@
 /*
  * LocalTour – tour-list.css (Nguyễn Tuấn Khôi)
  * Bảng tin du lịch (UIEx1): cột bảng tin, bộ lọc, tab sắp xếp, thẻ tour, skeleton,
- * trạng thái rỗng/lỗi và cột phải (so sánh – sắp có, gợi ý cộng đồng).
+ * trạng thái rỗng/lỗi và cột phải (so sánh – sắp có).
  */
 
 /* ---------- Cột ---------- */
@@ -242,11 +242,6 @@
     background: var(--lt-teal);
 }
 
-.lt-tab:disabled {
-    color: #8a909b;
-    cursor: not-allowed;
-}
-
 .lt-tab:focus-visible {
     outline-offset: -2px;
 }
@@ -302,18 +297,6 @@
 
     .lt-sort-price {
         margin-bottom: 0;
-    }
-}
-
-/* Điện thoại hẹp: ẩn nhãn "Sắp có" của tab bằng mắt (vẫn đọc được bằng trình đọc màn hình) để "Mới nhất" không bị cắt. */
-@media (max-width: 419.98px) {
-    .lt-tab .lt-soon {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
-        white-space: nowrap;
     }
 }
 
@@ -424,10 +407,15 @@
     outline: none;
 }
 
-.lt-tour-card__summary {
+.lt-tour-card__excerpt {
     margin-bottom: 14px;
     color: var(--lt-text-soft);
     font-size: 0.9375rem;
+}
+
+.lt-tour-card__excerpt--missing {
+    color: var(--lt-muted);
+    font-size: 0.875rem;
 }
 
 .lt-tour-card__media {
@@ -529,7 +517,14 @@
     letter-spacing: -0.01em;
 }
 
-/* Nút và hàng tương tác nằm trên lớp phủ "stretched-link" của tiêu đề. */
+/* Tour chưa có lịch còn đặt được nên chưa có giá. */
+.lt-price--none {
+    color: var(--lt-muted);
+    font-size: 0.9375rem;
+    font-weight: 600;
+}
+
+/* Nút "Xem chi tiết" và hàng "Thêm vào so sánh" nằm trên lớp phủ "stretched-link" của tiêu đề. */
 .lt-tour-card__cta {
     position: relative;
     z-index: 2;
@@ -548,12 +543,6 @@
     padding: 6px 12px;
     border-top: 1px solid var(--lt-border);
     cursor: default;
-}
-
-.lt-tour-card__actions-main {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 2px;
 }
 
 .lt-action {
@@ -595,6 +584,26 @@
     text-align: center;
 }
 
+/* Xếp theo giá: dải phân cách trước nhóm tour chưa cập nhật giá (FR-06). */
+.lt-feed__divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 4px 0;
+    color: var(--lt-muted-strong);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.lt-feed__divider::before,
+.lt-feed__divider::after {
+    content: "";
+    flex: 1 1 24px;
+    height: 1px;
+    background: var(--lt-border-strong);
+}
+
 @media (max-width: 575.98px) {
     .lt-tour-card {
         padding: 16px 16px 0;
@@ -607,15 +616,6 @@
     .lt-tour-card__actions {
         margin: 0 -16px;
         padding: 4px 8px;
-    }
-
-    .lt-action__label--collapsible {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
-        white-space: nowrap;
     }
 
     .lt-action {
@@ -825,47 +825,4 @@
     background: #e9ecef;
     color: var(--lt-muted-strong);
     font-weight: 700;
-}
-
-.lt-tips .lt-panel__title {
-    margin-bottom: 14px;
-}
-
-.lt-tips__list {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-
-.lt-tip {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-}
-
-.lt-tip__icon {
-    display: inline-flex;
-    flex-shrink: 0;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: var(--lt-highlight);
-    color: var(--lt-highlight-text);
-}
-
-.lt-tip__title {
-    font-size: 0.875rem;
-    font-weight: 600;
-    line-height: 1.4;
-}
-
-.lt-tip__text {
-    color: var(--lt-muted);
-    font-size: 0.8125rem;
-    line-height: 1.45;
 }

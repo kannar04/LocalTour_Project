@@ -3,7 +3,7 @@
 /*
  * Bảng tin du lịch – khung trang danh sách tour (UIEx1, Nguyễn Tuấn Khôi).
  * Không in dữ liệu tour ở đây: tour-list.js tải /api/destinations và /api/tours bằng AJAX.
- * Biến: $title, $initialQuery (string), $initialDestination (int|null).
+ * Biến: $title, $initialQuery (string), $initialDestination (string – tên điểm đến, '' = tất cả).
  */
 ?>
 <div class="container-xl lt-container lt-page" id="tour-list-page"
@@ -17,7 +17,7 @@
         <main id="main-content" class="col-12 col-lg lt-col-feed" tabindex="-1" aria-labelledby="feed-title">
             <header class="lt-feed-head">
                 <h1 class="lt-feed-head__title" id="feed-title">Bảng tin du lịch</h1>
-                <p class="lt-feed-head__subtitle">Gợi ý tour và câu chuyện từ người địa phương</p>
+                <p class="lt-feed-head__subtitle">Tìm tour địa phương theo điểm đến, lịch khởi hành và giá</p>
             </header>
 
             <div class="lt-filters" role="group" aria-label="Bộ lọc tour">
@@ -44,9 +44,8 @@
 
             <div class="lt-sortbar">
                 <div class="lt-tabs" role="group" aria-label="Sắp xếp bảng tin">
-                    <button type="button" class="lt-tab js-sort-tab is-active" data-sort="recommended" aria-pressed="true">Dành cho bạn</button>
-                    <button type="button" class="lt-tab" disabled title="Sắp có">Đang theo dõi <span class="lt-soon">Sắp có</span></button>
-                    <button type="button" class="lt-tab js-sort-tab" data-sort="newest" aria-pressed="false">Mới nhất</button>
+                    <button type="button" class="lt-tab js-sort-tab is-active" data-sort="recommended" aria-pressed="true">Nổi bật</button>
+                    <button type="button" class="lt-tab js-sort-tab" data-sort="upcoming" aria-pressed="false">Sắp khởi hành</button>
                 </div>
                 <div class="lt-sort-price">
                     <label class="lt-sort-price__label" for="sort-price">Giá</label>
@@ -113,7 +112,7 @@
             </noscript>
         </main>
 
-        <aside class="col-12 lt-col-aside d-none d-lg-block" aria-label="So sánh và gợi ý">
+        <aside class="col-12 lt-col-aside d-none d-lg-block" aria-label="So sánh tour">
             <div class="lt-aside-sticky">
                 <section class="lt-panel lt-compare" aria-labelledby="compare-title">
                     <div class="lt-panel__head">
@@ -133,35 +132,7 @@
                         <span class="lt-icon lt-icon--columns" aria-hidden="true"></span>
                         So sánh tour
                     </button>
-                    <p class="lt-panel__note">Tối đa 3 tour cùng điểm đến.</p>
-                </section>
-
-                <section class="lt-panel lt-tips" aria-labelledby="tips-title">
-                    <h2 class="lt-panel__title" id="tips-title">Gợi ý từ cộng đồng</h2>
-                    <ul class="lt-tips__list">
-                        <li class="lt-tip">
-                            <span class="lt-tip__icon" aria-hidden="true"><span class="lt-icon lt-icon--bulb"></span></span>
-                            <div>
-                                <p class="lt-tip__title">Lần đầu đến Hà Nội?</p>
-                                <p class="lt-tip__text">Xem kinh nghiệm chọn tour đi bộ.</p>
-                            </div>
-                        </li>
-                        <li class="lt-tip">
-                            <span class="lt-tip__icon" aria-hidden="true"><span class="lt-icon lt-icon--pin"></span></span>
-                            <div>
-                                <p class="lt-tip__title">Chọn tour phù hợp</p>
-                                <p class="lt-tip__text">Kiểm tra điểm đón và các khoản phí.</p>
-                            </div>
-                        </li>
-                        <li class="lt-tip">
-                            <span class="lt-tip__icon" aria-hidden="true"><span class="lt-icon lt-icon--users"></span></span>
-                            <div>
-                                <p class="lt-tip__title">Đi theo nhóm nhỏ</p>
-                                <p class="lt-tip__text">Nhóm dưới 8 khách dễ trò chuyện với người dẫn hơn.</p>
-                            </div>
-                        </li>
-                    </ul>
-                    <p class="lt-panel__note">Gợi ý minh họa, chưa lấy từ cộng đồng thật.</p>
+                    <p class="lt-panel__note">Chọn 2–3 tour để so sánh.</p>
                 </section>
             </div>
         </aside>

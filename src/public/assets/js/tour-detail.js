@@ -1,8 +1,9 @@
 /*
  * LocalTour – tour-detail.js (Nguyễn Tuấn Khôi)
- * Trang chi tiết tour: lịch khởi hành quyết định "Giờ bắt đầu" và số khách tối đa
- * (min(nhóm tối đa, chỗ còn lại)), tính tạm tính trực tiếp; tab neo cuộn mượt + đánh dấu mục đang xem.
- * Đặt tour chưa có ở Sprint 3 nên form không bao giờ gửi đi.
+ * Trang chi tiết tour: lịch khởi hành quyết định giờ và các loại vé (người lớn, trẻ em...). Mỗi loại vé có
+ * ô chọn số lượng; tổng số khách từ 1 đến min(nhóm tối đa, chỗ còn lại), tạm tính cập nhật trực tiếp.
+ * Tab neo cuộn mượt + đánh dấu mục đang xem. Đặt tour chưa có ở Sprint 3 nên form không bao giờ gửi đi.
+ * Dữ liệu vé đọc từ <script type="application/json" id="booking-data"> và chỉ đưa vào DOM bằng .text() / .attr().
  */
 (function (window, document, $) {
     'use strict';
@@ -19,20 +20,35 @@
 
     /* ---------- Thẻ giá ---------- */
 
+    function toInt(value) {
+        var number = parseInt(value, 10);
+        return isNaN(number) ? 0 : number;
+    }
+
+    /** { maxGroup, schedules: [{ id, timeText, remaining, tickets: [{ id, label, ages, price }] }] } hoặc null. */
+    function readBookingData() {
+        var node = document.getElementById('booking-data');
+        if (!node) {
+            return null;
+        }
+        try {
+            var data = JSON.parse(node.textContent || 'null');
+            return data && $.isArray(data.schedules) ? data : null;
+        } catch (error) {
+            return null;
+        }
+    }
+
     function initBookingCard(LT) {
         var $card = $('#booking-card');
         if (!$card.length) {
             return;
         }
 
-        var price = parseInt($card.attr('data-price'), 10) || 0;
-        var maxGroup = Math.max(1, parseInt($card.attr('data-max-group'), 10) || 1);
         var $form = $('#booking-form');
         var $schedule = $('#booking-schedule');
-        var $guests = $('#booking-guests');
-        var $dec = $('#booking-guests-dec');
-        var $inc = $('#booking-guests-inc');
-        var $startTime = $('#booking-start-time');
+        var $time = $('#booking-time');
+        var $tickets = $('#booking-tickets');
         var $hint = $('#booking-guests-hint');
         var $formula = $('#booking-total .js-total-formula');
         var $amount = $('#booking-total .js-total-amount');
@@ -41,100 +57,208 @@
             event.preventDefault(); // Chưa có đặt tour ở Sprint 3.
         });
 
-        var hasSchedule = $schedule.length && !$schedule.prop('disabled') && $schedule.find('option[data-seats-left]').length > 0;
-        if (!hasSchedule) {
-            $guests.prop('disabled', true);
-            $dec.prop('disabled', true);
-            $inc.prop('disabled', true);
-            $startTime.prop('disabled', true).val('—');
+        var data = readBookingData();
+        var maxGroup = Math.max(1, toInt(data && data.maxGroup));
+        var schedules = {};
+        $.each(data ? data.schedules : [], function (index, schedule) {
+            if (schedule && schedule.id !== undefined && schedule.id !== null) {
+                schedules[String(schedule.id)] = schedule;
+            }
+        });
+
+        if (!$schedule.length || $schedule.prop('disabled') || $.isEmptyObject(schedules)) {
+            $time.prop('disabled', true).val('—');
+            $tickets.find('input, button').prop('disabled', true);
+            $formula.text('Chưa thể tính');
+            $amount.text('—');
             return;
         }
 
-        function selectedOption() {
-            return $schedule.find('option:selected');
+        var rows = []; // { label, price, qty, $input, $dec, $inc } của lịch đang chọn
+
+        function currentSchedule() {
+            return schedules[String($schedule.val())] || null;
         }
 
-        function seatsLeft() {
-            return parseInt(selectedOption().attr('data-seats-left'), 10) || 0;
+        /** Số khách tối đa của lịch: min(nhóm tối đa, chỗ còn lại). */
+        function maxGuests(schedule) {
+            var remaining = toInt(schedule && schedule.remaining);
+            return Math.max(1, remaining > 0 ? Math.min(maxGroup, remaining) : maxGroup);
         }
 
-        function maxGuests() {
-            var seats = seatsLeft();
-            return seats > 0 ? Math.max(1, Math.min(maxGroup, seats)) : maxGroup;
+        function totalGuests(exceptRow) {
+            var total = 0;
+            $.each(rows, function (index, row) {
+                if (row !== exceptRow) {
+                    total += row.qty;
+                }
+            });
+            return total;
         }
 
-        function clamp(value) {
-            var max = maxGuests();
-            var number = parseInt(value, 10);
-            if (isNaN(number) || number < 1) {
-                return 1;
-            }
-            return number > max ? max : number;
+        /** Số vé hợp lệ của một loại: từ 0 đến số chỗ còn lại sau khi trừ các loại vé khác. */
+        function clampRow(row, value) {
+            var limit = Math.max(0, maxGuests(currentSchedule()) - totalGuests(row));
+            return Math.min(Math.max(toInt(value), 0), limit);
         }
 
-        function renderHint(max) {
-            var seats = seatsLeft();
+        function renderHint(schedule, max) {
+            var remaining = toInt(schedule && schedule.remaining);
             var text = 'Tối đa ' + max + ' khách';
-            if (seats > 0 && seats < maxGroup) {
-                text += ' · lịch này còn ' + seats + ' chỗ';
+            if (remaining > 0 && remaining < maxGroup) {
+                text += ' · lịch này còn ' + remaining + ' chỗ';
             } else {
                 text += ' mỗi nhóm';
             }
             $hint.text(text);
         }
 
-        function renderTotal(guests) {
-            $formula.text(guests + ' khách × ' + LT.formatVnd(price));
-            if (!$amount.length) {
-                $amount = $('<strong>').addClass('js-total-amount');
-                $formula.after(document.createTextNode(' = '), $amount);
-            }
-            $amount.text(LT.formatVnd(guests * price));
-        }
+        /** Cập nhật nút +/−, giới hạn ô nhập, gợi ý và dòng "Tạm tính tiền vé" theo số vé hiện tại. */
+        function render() {
+            var schedule = currentSchedule();
+            var max = maxGuests(schedule);
+            var total = totalGuests(null);
+            var amount = 0;
+            var parts = [];
 
-        /** Cập nhật mọi thứ phụ thuộc lịch và số khách; commit = ghi lại giá trị đã kẹp vào ô nhập. */
-        function update(commit) {
-            var max = maxGuests();
-            var guests = clamp($guests.val());
-
-            $guests.attr('max', max);
-            if (commit || String(guests) !== String($guests.val()).trim()) {
-                // Khi đang gõ dở (ô trống) thì chưa ghi đè, chỉ tính với giá trị hợp lệ gần nhất.
-                if (commit || $guests.val() !== '') {
-                    $guests.val(guests);
+            $.each(rows, function (index, row) {
+                row.$dec.prop('disabled', row.qty <= 0 || total <= 1);
+                row.$inc.prop('disabled', total >= max);
+                row.$input.attr('max', row.qty + Math.max(0, max - total));
+                if (row.qty > 0) {
+                    parts.push(row.qty + ' ' + row.label);
+                    amount += row.qty * row.price;
                 }
-            }
+            });
 
-            $dec.prop('disabled', guests <= 1);
-            $inc.prop('disabled', guests >= max);
-            $startTime.val(selectedOption().attr('data-start-time') || '—');
-            renderHint(max);
-            renderTotal(guests);
+            renderHint(schedule, max);
+            if (!rows.length) {
+                $formula.text('Chưa thể tính');
+                $amount.text('—');
+            } else if (!parts.length) {
+                $formula.text('Chưa chọn khách');
+                $amount.text(LT.formatVnd(0));
+            } else {
+                $formula.text(parts.join(' + '));
+                $amount.text(LT.formatVnd(amount));
+            }
         }
 
-        $schedule.on('change', function () {
-            update(true);
-        });
+        /** Đổi số vé của một loại; commit = ghi giá trị đã kẹp vào ô nhập và giữ tổng ít nhất 1 khách. */
+        function setQty(row, value, commit) {
+            var typed = String(row.$input.val()).trim();
+            row.qty = clampRow(row, value);
+            if (commit && totalGuests(null) === 0) {
+                row.qty = 1;
+            }
+            // Khi đang gõ dở (ô trống) thì chưa ghi đè, chỉ tính với giá trị hợp lệ.
+            if (commit || (typed !== '' && String(row.qty) !== typed)) {
+                row.$input.val(row.qty);
+            }
+            render();
+        }
 
-        $guests.on('input', function () {
-            update(false);
-        });
+        function buildRow(ticket, label, index, qty) {
+            var inputId = 'booking-ticket-' + index;
+            var metaId = inputId + '-meta';
+            var price = Math.max(0, toInt(ticket.price));
+            var ages = ticket.ages ? String(ticket.ages) : '';
 
-        $guests.on('change blur', function () {
-            update(true);
-        });
+            var $dec = $('<button>').addClass('lt-stepper__btn')
+                .attr({ type: 'button', 'aria-controls': inputId, 'aria-label': 'Bớt 1 vé ' + label })
+                .append(LT.icon('minus'));
+            var $inc = $('<button>').addClass('lt-stepper__btn')
+                .attr({ type: 'button', 'aria-controls': inputId, 'aria-label': 'Thêm 1 vé ' + label })
+                .append(LT.icon('plus'));
+            var $input = $('<input>').addClass('lt-input lt-stepper__input')
+                .attr({
+                    type: 'number',
+                    id: inputId,
+                    name: 'tickets[' + String(ticket.id) + ']',
+                    min: 0,
+                    step: 1,
+                    inputmode: 'numeric',
+                    'aria-describedby': metaId
+                })
+                .val(qty);
 
-        $dec.on('click', function () {
-            $guests.val(clamp($guests.val()) - 1);
-            update(true);
-        });
+            var $meta = $('<span>').addClass('lt-ticket__meta').attr('id', metaId);
+            if (ages) {
+                $meta.append(document.createTextNode(ages + ' · '));
+            }
+            $meta.append($('<strong>').text(LT.formatVnd(price)));
 
-        $inc.on('click', function () {
-            $guests.val(clamp($guests.val()) + 1);
-            update(true);
-        });
+            $tickets.append(
+                $('<div>').addClass('lt-ticket').append(
+                    $('<div>').addClass('lt-ticket__info').append(
+                        $('<label>').addClass('lt-ticket__label').attr('for', inputId).text(label),
+                        $meta
+                    ),
+                    $('<div>').addClass('lt-stepper').append($dec, $input, $inc)
+                )
+            );
 
-        update(true);
+            var row = { label: label, price: price, qty: qty, $input: $input, $dec: $dec, $inc: $inc };
+            $dec.on('click', function () {
+                setQty(row, row.qty - 1, true);
+            });
+            $inc.on('click', function () {
+                setQty(row, row.qty + 1, true);
+            });
+            $input.on('input', function () {
+                setQty(row, $input.val(), false);
+            });
+            $input.on('change blur', function () {
+                setQty(row, $input.val(), true);
+            });
+            return row;
+        }
+
+        /**
+         * Dựng lại hàng vé cho lịch đã chọn. Lần đầu: vé đầu tiên 1, các vé khác 0;
+         * khi đổi lịch: giữ số vé theo loại nếu còn đủ chỗ.
+         */
+        function buildRows(schedule) {
+            var previous = Object.create(null);
+            var keepPrevious = rows.length > 0;
+            $.each(rows, function (index, row) {
+                previous[row.label] = row.qty;
+            });
+
+            rows = [];
+            $tickets.empty();
+
+            var tickets = schedule && $.isArray(schedule.tickets) ? schedule.tickets : [];
+            if (!tickets.length) {
+                $tickets.append($('<p>').addClass('lt-field__hint').text('Lịch này chưa có giá vé.'));
+                return;
+            }
+
+            var max = maxGuests(schedule);
+            var total = 0;
+            $.each(tickets, function (index, ticket) {
+                var label = String((ticket && ticket.label) || 'Khách');
+                var wanted = keepPrevious ? toInt(previous[label]) : (index === 0 ? 1 : 0);
+                var qty = Math.max(0, Math.min(wanted, max - total));
+                total += qty;
+                rows.push(buildRow(ticket || {}, label, index, qty));
+            });
+
+            if (total === 0) {
+                rows[0].qty = 1;
+                rows[0].$input.val(1);
+            }
+        }
+
+        function selectSchedule() {
+            var schedule = currentSchedule();
+            $time.val(schedule && schedule.timeText ? String(schedule.timeText) : '—');
+            buildRows(schedule);
+            render();
+        }
+
+        $schedule.on('change', selectSchedule);
+        selectSchedule();
     }
 
     /* ---------- Tab neo + cuộn mượt ---------- */
@@ -252,7 +376,7 @@
             }
         });
 
-        // Mở trang với #muc (vd. /tours/1#danh-gia): đánh dấu đúng tab.
+        // Mở trang với #muc (vd. /tours/<mã tour>#danh-gia): đánh dấu đúng tab.
         if (window.location.hash && document.getElementById(window.location.hash.slice(1))) {
             setActive(window.location.hash.slice(1));
         }

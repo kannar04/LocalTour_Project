@@ -4,6 +4,7 @@
  * Thanh bên (Nguyễn Tuấn Khôi).
  * $sidebarMode = 'column' (mặc định, trang danh sách): cột trái trên desktop, panel thu gọn trên mobile;
  *                'mobile' (trang chi tiết / không tìm thấy): chỉ là panel thu gọn dưới 992px.
+ * Chỉ giữ mục không cần tài khoản khách: Bảng tin và "So sánh tour" (FR-15, sắp có).
  * Danh sách #sidebar-destinations được JS điền từ /api/destinations
  * (tour-list.js ở chế độ 'column', app.js tải khi mở panel ở chế độ 'mobile').
  */
@@ -11,11 +12,7 @@ $sidebarMode = $sidebarMode ?? 'column';
 $isColumn = $sidebarMode === 'column';
 $isFeedActive = ($activeNav ?? 'feed') === 'feed';
 $comingSoonItems = [
-    ['icon' => 'bookmark', 'label' => 'Tour đã lưu'],
     ['icon' => 'columns', 'label' => 'So sánh tour'],
-    ['icon' => 'ticket', 'label' => 'Đặt chỗ của tôi'],
-    ['icon' => 'users', 'label' => 'Cộng đồng'],
-    ['icon' => 'send', 'label' => 'Tin nhắn'],
 ];
 ?>
 <?php if (!$isColumn): ?>

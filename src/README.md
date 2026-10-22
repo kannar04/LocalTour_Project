@@ -55,7 +55,7 @@ src/
 │   └── assets/
 │       ├── css/                  # base.css, tour-list.css, tour-detail.css
 │       ├── js/                   # app.js, tour-list.js, tour-detail.js
-│       └── img/                  # Ảnh SVG minh họa
+│       └── img/                  # Ảnh SVG minh họa; bảng tour_images lưu đường dẫn tới các file này
 ├── routes/
 │   └── web.php                   # Khai báo route
 └── storage/
@@ -102,7 +102,7 @@ Chọn một trong hai cách.
 
 Nếu không có file gộp: tạo database `db_localtour` với collation `utf8mb4_unicode_ci`, chọn database đó, rồi import lần lượt `01_schema.sql`, `02_seed.sql`, `03_procedures_LTP.sql`, `04_procedures_NMT.sql`, `05_procedures_NTK.sql`.
 
-Import lại bất cứ lúc nào để đưa dữ liệu về trạng thái ban đầu: `01_schema.sql` xóa và tạo lại các bảng. Ngày khởi hành mẫu được tính theo ngày import, vì vậy nên import lại trước mỗi buổi kiểm thử hoặc demo. Chi tiết xem [02 – Lược đồ dữ liệu](../docs/sprint3/02-luoc-do-du-lieu.md) và `src/database/README.md`.
+Import lại bất cứ lúc nào để đưa dữ liệu về trạng thái ban đầu: `01_schema.sql` xóa và tạo lại 17 bảng của lược đồ gộp, đồng thời xóa 7 bảng đã bỏ của ERD trang 02 (`notifications`, `tour_posts`, `comparisons`…) và các bảng của lược đồ cũ (`destinations`, `categories`, `tour_itinerary_items`…). Ngày khởi hành mẫu được tính theo ngày import, vì vậy nên import lại trước mỗi buổi kiểm thử hoặc demo. Chi tiết xem [02 – Lược đồ dữ liệu](../docs/sprint3/02-luoc-do-du-lieu.md) và `src/database/README.md`.
 
 ### Bước 3. Tạo file `.env`
 
@@ -148,17 +148,27 @@ Mở `http://127.0.0.1:8080`. Giữ cửa sổ dòng lệnh mở trong lúc dùn
 
 ### Bước 5. Tự kiểm tra nhanh
 
-Ghép đường dẫn với gốc ứng dụng: `http://127.0.0.1:8080` (built-in server) hoặc `http://localhost/LocalTour_Project/src/public` (Apache).
+**Database (chỉ với Cách B).** Trong phpMyAdmin, bấm `db_localtour` ở cột trái, mở tab **SQL**, chạy lần lượt từng câu:
+
+```sql
+SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'db_localtour';                                  -- 17
+SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = 'db_localtour' AND ROUTINE_TYPE = 'PROCEDURE'; -- 10
+```
+
+Ra số khác thì xem mục "Cách 1" của `src/database/README.md` để so tên bảng và procedure. Với Cách A, tài khoản ứng dụng chỉ có quyền gọi procedure nên bỏ qua bước này; các đường dẫn dưới đây đã đủ để kiểm tra.
+
+**Ứng dụng.** Ghép đường dẫn với gốc ứng dụng: `http://127.0.0.1:8080` (built-in server) hoặc `http://localhost/LocalTour_Project/src/public` (Apache).
 
 | Đường dẫn | Kết quả mong đợi |
 | --- | --- |
-| `/tours` | Trang "Bảng tin du lịch" hiện thẻ tour sau hiệu ứng tải; bộ lọc điểm đến có dữ liệu. |
-| `/tours/1` | Trang chi tiết của tour có ID 1, có nút "Quay lại danh sách". |
-| `/tours/9999` | Trang "Không tìm thấy tour" (HTTP 404), không có thông báo lỗi PHP. |
-| `/api/tours` | JSON có `"success":true` và `data.tours` gồm 9 tour. |
-| `/api/tours/1` | JSON có `data.tour`, `schedules`, `itinerary`, `images`, `inclusions`, `reviews`. |
+| `/tours` | Trang "Bảng tin du lịch" hiện 9 thẻ tour sau hiệu ứng tải, thẻ đầu là "Phố cổ theo cách của bạn"; bộ lọc điểm đến có 4 điểm đến. |
+| `/tours/c0000000-0000-4000-8000-000000000001` | Trang chi tiết của tour 1 "Hà Nội qua những món ăn phố cổ", có nút "Quay lại danh sách". Mục "Phụ thu / hoạt động tùy chọn" có nhóm "Phụ thu" (1 dòng) trước nhóm "Hoạt động tùy chọn" (1 dòng). |
+| `/tours/c0000000-0000-4000-8000-000000009999` | Trang "Không tìm thấy tour" (HTTP 404), không có thông báo lỗi PHP. |
+| `/tours/c0000000-0000-4000-8000-000000000010` | Cũng là trang "Không tìm thấy tour": tour 10 đang chờ duyệt nên không được hiển thị. |
+| `/api/tours` | JSON có `"success":true`, `data.total` là 9 và `data.tours` gồm 9 tour. |
+| `/api/tours/c0000000-0000-4000-8000-000000000001` | JSON có `data.tour`, `schedules`, `tickets`, `itinerary`, `extras`, `reviews`, `policy`, `gallery`. `data.extras` có 2 phần tử, phần tử đầu có `"kind":"surcharge"`. |
 
-Nếu cả năm đường dẫn cho kết quả đúng, môi trường đã sẵn sàng.
+Mã tour là UUID (chuỗi 36 ký tự), không còn là số như bản đầu tiên; `/tours/1` giờ cũng trả trang "Không tìm thấy tour". Nếu mọi dòng trong bảng cho kết quả đúng, môi trường đã sẵn sàng.
 
 ## Khuyến nghị cho máy host database chung (Phong)
 
@@ -190,6 +200,7 @@ GRANT EXECUTE ON db_localtour.* TO 'localtour_app'@'<tiền tố IP của VPN>.%
 | `http://localhost/LocalTour_Project/src/` báo 403 | Hành vi đúng: `src/.htaccess` chặn mọi thứ ngoài `public/`. | Mở `http://localhost/LocalTour_Project/src/public/`. |
 | Tiếng Việt hiển thị sai (`Ã¡`, `?`) | File SQL được import với bảng mã khác UTF-8, hoặc database tạo sai collation. | Import lại `db_localtour.sql`, chọn character set `utf-8`; database phải dùng `utf8mb4` và `utf8mb4_unicode_ci`. |
 | Trang lỗi 500, log có `PROCEDURE db_localtour.… does not exist` | Chưa import đủ các file procedure. | Import lại `db_localtour.sql`, hoặc import `03`, `04`, `05` theo thứ tự. |
+| Trang lỗi 500, log có `Unknown column` hoặc `Table 'db_localtour.…' doesn't exist` | Database vẫn là lược đồ cũ (trước lược đồ gộp 17 bảng), hoặc file gộp được sinh từ bản cũ. | Sinh lại `db_localtour.sql` từ `01`–`05` mới nhất rồi import lại. |
 | Mọi tour đều "Chưa có lịch khởi hành sắp tới" | Dữ liệu mẫu đã import từ lâu, các ngày khởi hành đã qua. | Import lại `db_localtour.sql`. |
 | Built-in server: trang không có CSS hoặc mọi đường dẫn đều về trang lỗi | Chạy lệnh sai thư mục hoặc thiếu `public/router.php`. | Chạy đúng lệnh ở Bước 4 từ thư mục `src/`. |
 | Built-in server không khởi động, báo cổng đang được dùng | Cổng 8080 đã bị chương trình khác chiếm. | Đổi sang cổng khác, ví dụ `127.0.0.1:8081`. |

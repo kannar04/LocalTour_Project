@@ -11,9 +11,6 @@ use RuntimeException;
  */
 class Controller
 {
-    /** ID hợp lệ: số nguyên dương, tối đa 10 chữ số, trong miền INT UNSIGNED của MySQL. */
-    private const MAX_ID = 4294967295;
-
     public function render(string $view, array $data = [], int $status = 200): void
     {
         $viewFile = BASE_PATH . '/app/views/' . $view . '.php';
@@ -57,15 +54,13 @@ class Controller
         return is_string($value) ? trim($value) : '';
     }
 
-    /** Trả về ID nếu chuỗi là số nguyên dương hợp lệ, ngược lại null (0, -1, abc, 1.5, quá lớn...). */
-    protected static function parseId(string $value): ?int
+    /** Trả về UUID (chữ thường) nếu chuỗi đúng dạng 8-4-4-4-12 ký tự hex, ngược lại null (1, abc, UUID thiếu ký tự...). */
+    protected static function parseUuid(string $value): ?string
     {
-        if (!preg_match('/^[1-9][0-9]{0,9}$/', $value)) {
+        if (!preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $value)) {
             return null;
         }
 
-        $id = (int) $value;
-
-        return $id <= self::MAX_ID ? $id : null;
+        return strtolower($value);
     }
 }
