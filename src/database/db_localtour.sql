@@ -27,8 +27,12 @@ SET NAMES utf8mb4;
 --             * Cột NULL = "chưa cập nhật": giao diện hiện "Chưa cập nhật", không tự đoán.
 --             * Khóa ngoại: ON DELETE RESTRICT ON UPDATE CASCADE (không xóa dây chuyền).
 --             * Ràng buộc giá trị (vd. rating 1-5) kiểm tra ở tầng ứng dụng, không dùng CHECK.
---             * Khách hàng KHÔNG có tài khoản (FR board): đơn đặt chỉ lưu thông tin liên hệ,
---               tra cứu đơn bằng mã đơn + email / số điện thoại.
+--             * Khách hàng vẫn là tác nhân nghiệp vụ nhưng KHÔNG có tài khoản (FR board).
+--               Mỗi booking lưu ảnh chụp thông tin người đặt tại contact_name,
+--               contact_email, contact_phone; hành khách nằm trong passengers.
+--             * Khách tra cứu booking bằng code + contact_email / contact_phone. Sau khi
+--               nhân viên xác nhận chỗ và tổng tiền, payment liên kết trực tiếp với booking
+--               qua payments.booking_id; vì vậy thanh toán không cần customer_id hay đăng nhập.
 -- Chạy lại  : Được. File xóa toàn bộ bảng (kể cả các bảng đã bỏ và bảng của thiết kế
 --             cũ) rồi tạo lại, nên MỌI DỮ LIỆU CŨ SẼ MẤT.
 -- Lưu ý     : File này không có CREATE DATABASE / USE. Chọn database
@@ -269,11 +273,14 @@ CREATE TABLE cancellation_policies (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
--- 5. ĐẶT CHỖ
+-- 5. KHÁCH HÀNG KHÔNG TÀI KHOẢN & ĐẶT CHỖ
 -- ---------------------------------------------------------------------
 
 -- ĐƠN_ĐẶT_TOUR (FR-08 yêu cầu đặt tour, FR-11 mã và trạng thái, FR-09 thông tin liên hệ).
--- Khách không có tài khoản: tra cứu đơn bằng code + contact_email / contact_phone.
+-- Mỗi dòng bookings đại diện cho một giao dịch của khách hàng theo mô hình guest checkout.
+-- contact_* là ảnh chụp thông tin người đặt tại thời điểm gửi yêu cầu, không phải tài khoản;
+-- cùng một người đặt nhiều lần có thể xuất hiện ở nhiều booking mà không bị gộp hồ sơ.
+-- Khách tra cứu đúng đơn bằng code + contact_email / contact_phone.
 -- code: mã đơn đưa cho khách (vd. 'LT123456').
 -- status: pending = Chờ xác nhận, awaiting_payment = Chờ thanh toán,
 --         confirmed = Đã xác nhận, rejected = Từ chối, cancelled = Đã hủy,
@@ -336,8 +343,12 @@ CREATE TABLE passengers (
 -- 6. GIAO DỊCH
 -- ---------------------------------------------------------------------
 
--- THANH_TOÁN (FR-17 thanh toán trực tuyến): method chỉ có 'vnpay' hoặc 'vietqr'
--- (FR board không có hình thức trả sau / trả tại điểm hẹn).
+-- THANH_TOÁN (FR-17 thanh toán trực tuyến): khách hàng được xác định qua booking_id;
+-- JOIN payments -> bookings lấy được mã đơn và contact_name/contact_email/contact_phone,
+-- nên không cần bảng customers hoặc khóa ngoại tới users.
+-- Chỉ tạo thanh toán sau khi booking được nhân viên xác nhận và chuyển sang
+-- status = 'awaiting_payment'; quy tắc chuyển trạng thái được kiểm tra ở tầng ứng dụng.
+-- method chỉ có 'vnpay' hoặc 'vietqr' (FR board không có hình thức trả sau / trả tại điểm hẹn).
 -- provider_txn_id: mã giao dịch phía cổng VNPay / VietQR (NULL khi chưa tạo giao dịch).
 -- status: pending = Chưa thanh toán, processing = Đang xử lý,
 --         awaiting_reconciliation = Chờ đối chiếu, paid = Thành công, failed = Thất bại.
