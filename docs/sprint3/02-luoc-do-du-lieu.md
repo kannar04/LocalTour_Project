@@ -642,7 +642,7 @@ Thay đổi theo lược đồ gộp:
 
 Mọi procedure trả 0 dòng khi tour không công khai (mục 7). Các procedure của lược đồ cũ (`NMT_sp_tour_itinerary_list`, `NTK_sp_tour_image_list`, `NTK_sp_tour_inclusion_list`) đã bỏ; file `04`, `05` vẫn `DROP PROCEDURE IF EXISTS` chúng để database dùng chung không còn procedure thừa. Mục đã bao gồm và không bao gồm lấy từ `tours.included_summary`, `tours.excluded_summary`, không có procedure riêng.
 
-File gộp `db_localtour.sql` gồm phần đầu (`CREATE DATABASE IF NOT EXISTS db_localtour CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; USE db_localtour; SET NAMES utf8mb4;`) và năm file trên theo đúng thứ tự. File gộp không đưa lên Git (đã có trong `.gitignore`); cách import xem [src/README.md](../../src/README.md).
+File gộp `db_localtour.sql` gồm phần đầu (`CREATE DATABASE IF NOT EXISTS db_localtour CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; USE db_localtour; SET NAMES utf8mb4;`) và năm file trên theo đúng thứ tự. File gộp nằm ở `src/database/db_localtour.sql` và được sinh lại mỗi khi sửa năm file trên; cách import xem [src/README.md](../../src/README.md).
 
 ## 11. Đối chiếu tiêu chí nghiệm thu 3.1.2
 

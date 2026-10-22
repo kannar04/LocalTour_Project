@@ -97,7 +97,7 @@ Chọn một trong hai cách.
 **Cách B – Import database trên máy mình.**
 
 1. Mở XAMPP Control Panel, bấm Start cho **MySQL**.
-2. Lấy file `db_localtour.sql` từ Phong. File này được gộp từ `src/database/01_schema.sql` đến `05_procedures_NTK.sql` và không có trong Git.
+2. Dùng file `src/database/db_localtour.sql` trong repo. File này được gộp từ `src/database/01_schema.sql` đến `05_procedures_NTK.sql`.
 3. Mở `http://localhost/phpmyadmin`, chọn tab **Import**, chọn file `db_localtour.sql`, giữ **Character set of the file** là `utf-8`, bấm **Import** (hoặc **Go**). File tự tạo database `db_localtour` với `utf8mb4_unicode_ci`.
 
 Nếu không có file gộp: tạo database `db_localtour` với collation `utf8mb4_unicode_ci`, chọn database đó, rồi import lần lượt `01_schema.sql`, `02_seed.sql`, `03_procedures_LTP.sql`, `04_procedures_NMT.sql`, `05_procedures_NTK.sql`.
@@ -213,4 +213,5 @@ GRANT EXECUTE ON db_localtour.* TO 'localtour_app'@'<tiền tố IP của VPN>.%
 - Chỉ truy cập dữ liệu qua `Core\Database::call('<TIỀN TỐ>_sp_<tên>', [...])`; không viết `SELECT`, `INSERT`, `UPDATE`, `DELETE` trong PHP.
 - Escape mọi giá trị in ra HTML bằng `e()`; trong JavaScript dựng DOM bằng `.text()` hoặc `document.createElement`.
 - Thêm route trong `routes/web.php`, cập nhật [03 – Route và quy ước lỗi](../docs/sprint3/03-route-va-quy-uoc-loi.md) trong cùng lần thay đổi.
-- Không commit `.env`, mật khẩu, địa chỉ IP thật, file log hay `db_localtour.sql`.
+- Không commit `.env`, mật khẩu, địa chỉ IP thật hay file log.
+- Sửa `src/database/01`–`05` thì sinh lại `src/database/db_localtour.sql` và commit cùng lúc (cách sinh xem [database/README.md](database/README.md)).

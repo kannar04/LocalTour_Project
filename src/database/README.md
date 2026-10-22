@@ -22,28 +22,30 @@ Thư mục này chứa toàn bộ script tạo database cho trang danh sách tou
 
 ## File gộp `db_localtour.sql`
 
-Để import một lần bằng phpMyAdmin, nhóm dùng **một file gộp** `db_localtour.sql` do nhóm trưởng (Phong) giữ và gửi cho cả nhóm. File này:
+Để import một lần bằng phpMyAdmin, nhóm dùng **một file gộp** `src/database/db_localtour.sql`. File này:
 
-- **được sinh tự động** từ 5 file trên, theo đúng thứ tự, có thêm 3 dòng đầu:
+- **được sinh tự động** từ 5 file trên, theo đúng thứ tự, có thêm 4 dòng đầu:
   ```sql
+  -- File sinh tự động từ src/database/01..05, không sửa tay.
   CREATE DATABASE IF NOT EXISTS db_localtour CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   USE db_localtour;
   SET NAMES utf8mb4;
   ```
-- **không commit** lên Git (đã có trong `.gitignore`). Muốn sửa dữ liệu hay procedure thì sửa file `01`–`05` rồi sinh lại file gộp, không sửa tay file gộp.
+- **có trong Git**, để cả nhóm dùng cùng một bản. Muốn sửa dữ liệu hay procedure thì sửa file `01`–`05`, sinh lại file gộp rồi commit cùng lúc; không sửa tay file gộp.
 
 Tự sinh file gộp (Git Bash, đứng ở thư mục gốc repo):
 
 ```bash
-{ printf '%s\n' 'CREATE DATABASE IF NOT EXISTS db_localtour CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;' \
-    'USE db_localtour;' 'SET NAMES utf8mb4;'; cat src/database/0[1-5]_*.sql; } > db_localtour.sql
+{ printf '%s\n' '-- File sinh tự động từ src/database/01..05, không sửa tay.' \
+    'CREATE DATABASE IF NOT EXISTS db_localtour CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;' \
+    'USE db_localtour;' 'SET NAMES utf8mb4;'; cat src/database/0[1-5]_*.sql; } > src/database/db_localtour.sql
 ```
 
 ## Cách 1: Import bằng phpMyAdmin
 
 1. Bật **Apache** và **MySQL** trong XAMPP Control Panel, mở <http://localhost/phpmyadmin>.
 2. Bấm vào tên server ở góc trên bên trái (**không cần** chọn hay tạo database trước; file gộp tự tạo `db_localtour`).
-3. Chọn tab **Import (Nhập)** → **Choose File** → chọn `db_localtour.sql`.
+3. Chọn tab **Import (Nhập)** → **Choose File** → chọn `src/database/db_localtour.sql`.
 4. Giữ **Character set of the file: utf-8**, **Format: SQL**, các tùy chọn khác để mặc định → bấm **Import / Go**.
 5. Kiểm tra: bấm `db_localtour` ở cột trái, mở tab **SQL** rồi chạy lần lượt 4 câu dưới đây (mỗi lần dán một câu, bấm **Go**, so với số ghi ở cuối dòng).
 
@@ -62,16 +64,16 @@ Tự sinh file gộp (Git Bash, đứng ở thư mục gốc repo):
 
 Luôn thêm `--default-character-set=utf8mb4`, nếu không tiếng Việt có thể bị lỗi thành `?`. Với XAMPP, `mysql` nằm ở `C:\xampp\mysql\bin\mysql.exe`.
 
-File gộp, dùng Git Bash hoặc cmd:
+File gộp, dùng Git Bash hoặc cmd (đứng ở thư mục gốc repo):
 
 ```bash
-mysql -uroot --default-character-set=utf8mb4 < db_localtour.sql
+mysql -uroot --default-character-set=utf8mb4 < src/database/db_localtour.sql
 ```
 
-File gộp, dùng PowerShell (PowerShell không hỗ trợ dấu `<`):
+File gộp, dùng PowerShell (đứng ở thư mục gốc repo; PowerShell không hỗ trợ dấu `<`):
 
 ```powershell
-& C:\xampp\mysql\bin\mysql.exe -uroot --default-character-set=utf8mb4 -e "source db_localtour.sql"
+& C:\xampp\mysql\bin\mysql.exe -uroot --default-character-set=utf8mb4 -e "source src/database/db_localtour.sql"
 ```
 
 Từng file, không cần file gộp (Git Bash, đứng trong `src/database`):

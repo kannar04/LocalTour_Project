@@ -3,9 +3,6 @@ src/.env
 src/storage/logs/*
 !src/storage/logs/.gitkeep
 
-# File database gộp để import (sinh từ src/database/01..05)
-db_localtour.sql
-
 # Hệ điều hành / editor
 .DS_Store
 Thumbs.db
