@@ -30,6 +30,8 @@ Ghi chú:
 - Trang danh sách (R1) không gọi database. Nếu database mất kết nối, trang vẫn mở được và hiển thị trạng thái lỗi khi AJAX gọi R2 thất bại.
 - Liên kết từ danh sách sang chi tiết dùng trường `url` do server tạo trong R2, nên luôn đúng gốc ứng dụng dù chạy bằng Apache hay built-in server.
 - Ảnh và file tĩnh trong `public/assets/` do Apache hoặc `public/router.php` trả trực tiếp, không qua router của ứng dụng.
+- Danh sách trên là hợp đồng route của **increment Sprint 3 (Tour List/Tour Detail)**, không phải toàn bộ route của MVP. Route tạo booking, tra cứu booking và thanh toán chưa có trong source Sprint 3 nên không được khai báo giả trong bảng trên.
+- "Khách hàng" trong bảng FR tuần 2 là tác nhân nghiệp vụ, không bắt buộc có tài khoản `users`. Luồng MVP dự kiến là guest checkout: khách nhập họ tên, email, số điện thoại khi đặt; hệ thống sinh mã booking; sau khi nhân viên xác nhận chỗ và tổng tiền, khách tra cứu bằng mã booking + email hoặc số điện thoại để thanh toán. Giao dịch liên kết qua `payments.booking_id`, vì vậy không cần `customer_id` hay phiên đăng nhập khách hàng.
 
 ## 2. Tham số của trang và API danh sách
 
@@ -252,7 +254,7 @@ Khác với `/api/tours`, các mảng trong `/api/tours/{uuid}` giữ nguyên ki
 - `itinerary`: các điểm lịch trình của tour theo `stop_order`; `description`, `duration_minutes` có thể `null`. Mảng rỗng → giao diện hiện "Chưa cập nhật".
 - `extras`: phụ thu (`surcharge`) trước, rồi hoạt động tùy chọn (`optional`), mỗi loại theo `sort_order`. `price_vnd`, `price_unit`, `conditions` có thể `null`. Giá tách riêng, không cộng vào `from_price_vnd` hay phần tạm tính. Mảng rỗng → "Chưa cập nhật".
 - `gallery`: ảnh của chính tour trong `tour_images`, theo `sort_order`. Mỗi phần tử `{ url, caption }`: `url` đã sẵn sàng để dùng (đường dẫn tương đối được đổi qua `asset()`, link `http(s)://` giữ nguyên), `caption` là `alt_text`, rỗng thì là tên tour. Mảng rỗng → ô xám "Chưa cập nhật ảnh".
-- `reviews`: tối đa 5 đánh giá đã duyệt, chuyến đi gần nhất trước; `reviewer_name` là tên liên hệ của đơn đặt (khách không có tài khoản).
+- `reviews`: tối đa 5 đánh giá đã duyệt, chuyến đi gần nhất trước; `reviewer_name` là tên liên hệ của đơn đặt. Quan hệ `reviews.booking_id` cho phép xác thực khách đã tham gia tour mà không cần tài khoản khách hàng.
 - `policy`: phiên bản chính sách hủy lớn nhất; `null` nếu tour chưa có chính sách.
 - Cột trạng thái (`approval_status`, `status`, `active`, `moderation_status`) không được trả về.
 
@@ -309,7 +311,7 @@ Khi sắp theo giá (`price_asc`, `price_desc`) và danh sách có tour chưa c�
 | Tour không có lịch khởi hành đặt được | 200 | Giá hiện "Giá: Chưa cập nhật"; tab "Lịch khởi hành" và ô chọn lịch hiện "Chưa có lịch khởi hành sắp tới" kèm lời nhắc "Vui lòng quay lại sau."; các dòng vé bị khóa, dòng "Tạm tính tiền vé" hiện "Chưa thể tính". |
 | Tour chưa có đánh giá đã duyệt | 200 | Dòng tóm tắt "Chưa có đánh giá"; mục Đánh giá hiện trạng thái rỗng. |
 | Tour thiếu ảnh, lịch trình, phụ thu / tùy chọn hoặc một số thông tin | 200 | Thư viện ảnh là ô xám "Chưa cập nhật ảnh"; mục Lịch trình, Phụ thu / hoạt động tùy chọn và các trường thiếu dữ liệu hiện "Chưa cập nhật" (xem mục 6.4). |
-| Chức năng chưa làm | 200 | Nút "Đặt tour" và "Thêm vào so sánh" bị khóa, có nhãn "Sắp có". Không có nút Lưu tour, Chia sẻ, Nhắn tin. |
+| Chức năng chưa làm trong Sprint 3 | 200 | Nút "Đặt tour" và "Thêm vào so sánh" bị khóa, có nhãn "Sắp có". Chưa có route tạo/tra cứu booking hoặc thanh toán. Đây là giới hạn của increment hiện tại; đặt tour và thanh toán vẫn thuộc MVP tổng thể và dùng luồng khách không đăng nhập. Không có nút Lưu tour, Chia sẻ, Nhắn tin. |
 | UUID sai định dạng, không tồn tại hoặc tour không công khai | 404 | View `tours/not-found` trong layout chính: nhãn "Lỗi 404", tiêu đề "Không tìm thấy tour", "Tour bạn tìm không tồn tại hoặc đã ngừng hiển thị." và nút "Quay lại danh sách tour". UUID sai định dạng không cần gọi database nên trang này vẫn hiện được khi database mất kết nối. |
 | Mất kết nối database | 503 | `errors/500.php`: "Tạm thời không tải được dữ liệu", thông báo 503 ở mục 5, nút "Thử lại" và "Về bảng tin du lịch". |
 | Lỗi khác | 500 | `errors/500.php`: "Đã có lỗi xảy ra", thông báo 500 ở mục 5 và hai nút như trên. |
@@ -343,7 +345,7 @@ Các ca dưới đây dùng dữ liệu mẫu minh họa (`02_seed.sql`). Kết 
 | TC-11 | Phụ thu / tùy chọn thiếu giá hoặc điều kiện (FR-04, FR-10) | Tour 4 "Phụ thu ngày lễ", tour 8 "Thêm điểm dừng ở quán bar trên cao"; tour 2 và 9 không có dòng nào. | Giá `NULL` → "Giá: Chưa cập nhật" (không hiện "0đ"); có giá và đơn vị → dạng "500.000đ / nhóm"; thiếu điều kiện → không có dòng điều kiện. Tour 2, 9: cả mục hiện "Chưa cập nhật". |
 | TC-12 | Phụ thu / tùy chọn có giá nhưng thiếu đơn vị (FR-10) | Tour 6, dòng "Thuê áo dài chụp ảnh" (`price_unit` là `NULL`). | Giá hiện "120.000đ · đơn vị chưa cập nhật"; không bị hiểu nhầm là giá theo người hay theo nhóm. |
 | TC-13 | "Tạm tính tiền vé" không gồm phụ thu (FR-10) | Tour 1: chọn lịch và số vé ở thẻ giá; so với giá trên thẻ ở danh sách. | Dòng tổng có nhãn "Tạm tính tiền vé" và ghi chú "Chưa gồm phụ thu và hoạt động tùy chọn". Số tiền chỉ là số lượng × giá vé; giá "Từ" vẫn 650.000đ; không khoản phụ thu hay tùy chọn nào được cộng. |
-| TC-14 | Không có chức năng cần tài khoản (bảng FR: khách không cần tài khoản) | Xem header, thanh bên, tab, thẻ tour ở `/tours` và trang chi tiết. | Không có nút Thông báo, ảnh đại diện, mục Tour đã lưu, Đặt chỗ của tôi, Cộng đồng, Tin nhắn, tab Đang theo dõi, hàng Thích/Bình luận/Chia sẻ/Lưu, nút Lưu tour, Chia sẻ, Nhắn tin. "So sánh tour" / "Thêm vào so sánh" vẫn còn nhưng bị khóa, có nhãn "Sắp có" (FR-15). |
+| TC-14 | Không có chức năng cá nhân hóa cần tài khoản khách | Xem header, thanh bên, tab, thẻ tour ở `/tours` và trang chi tiết. | Không có nút Thông báo, ảnh đại diện, mục Tour đã lưu, Đặt chỗ của tôi, Cộng đồng, Tin nhắn, tab Đang theo dõi, hàng Thích/Bình luận/Chia sẻ/Lưu, nút Lưu tour, Chia sẻ, Nhắn tin. "So sánh tour" / "Thêm vào so sánh" vẫn còn nhưng bị khóa, có nhãn "Sắp có" (FR-15). Việc không có các mục này không ảnh hưởng luồng guest checkout bằng mã booking ở increment sau. |
 
 ## 7. Ánh xạ stored procedure – model – controller
 
