@@ -1,8 +1,8 @@
 -- =====================================================================
 -- LocalTour v0.1 - 04_procedures_NMT.sql
--- Mục đích  : Stored procedures cho trang chi tiết tour (thông tin chính kèm
---             phương tiện, dịch vụ không bao gồm, điều kiện; lịch khởi hành đặt được,
---             loại vé và giá vé, bộ ảnh của tour).
+-- Mục đích  : Stored procedures cho trang chi tiết tour (thông tin chính kèm điểm đến,
+--             loại hình, phương tiện, điều kiện; lịch khởi hành đặt được, loại vé và
+--             giá vé, bộ ảnh của tour).
 -- Phụ trách : Nguyễn Minh Thức (NMT) - WBS 3.2.4
 -- Procedures: NMT_sp_tour_detail, NMT_sp_tour_schedule_list, NMT_sp_tour_ticket_list,
 --             NMT_sp_tour_image_list
@@ -16,21 +16,23 @@
 -- Chạy sau  : 01_schema.sql. Chạy lại được (DROP PROCEDURE IF EXISTS).
 -- =====================================================================
 
--- Procedure của thiết kế cũ: bảng tour_itinerary_items không còn trong ERD
--- (lịch trình nay là bảng itinerary_stops, đọc bằng NTK_sp_tour_itinerary_list ở file 05).
+-- Procedure của thiết kế cũ: lịch trình nay đọc bằng NTK_sp_tour_itinerary_list (file 05).
 DROP PROCEDURE IF EXISTS NMT_sp_tour_itinerary_list;
 
 -- ---------------------------------------------------------------------
 -- NMT_sp_tour_detail(p_tour_id)
---   0 hoặc 1 dòng. Cột: tour_id, provider_id, title, description, destination,
+--   0 hoặc 1 dòng. Cột: tour_id, provider_id, title, description, destination_id,
+--   destination_name (destinations.name; tour chưa gán destination_id thì dùng
+--   tours.destination), category_id, category_name (NULL nếu chưa gán loại hình),
 --   duration_minutes, max_group_size, language_codes, pickup_mode, meeting_point,
---   included_summary, provider_name, provider_approved_at,
+--   provider_name, provider_approved_at,
 --   rating_avg (DECIMAL(2,1), NULL nếu chưa có đánh giá đã duyệt), review_count,
 --   from_price_vnd (vé 'adult' active rẻ nhất trong các lịch đặt được; NULL nếu không
 --   có lịch đặt được hoặc không lịch nào còn vé người lớn đang bán), next_starts_at,
---   transport, guide_info, dropoff_point (FR-02), excluded_summary (FR-04),
+--   transport, guide_info, dropoff_point (FR-02),
 --   document_terms, meal_terms, voucher_terms, reschedule_terms (FR-05).
---   8 cột cuối NULL = chưa cập nhật (giao diện hiện "Chưa cập nhật").
+--   7 cột cuối NULL = chưa cập nhật (giao diện hiện "Chưa cập nhật").
+--   Dịch vụ bao gồm / không bao gồm (FR-04) đọc bằng NTK_sp_tour_inclusion_list (file 05).
 --   Không trả các cột NFR-07 (source_url, verified_at, verification_status):
 --   chúng dành cho trang quản trị sau này.
 -- ---------------------------------------------------------------------
@@ -47,13 +49,15 @@ BEGIN
         t.provider_id,
         t.title,
         t.description,
-        t.destination,
+        t.destination_id,
+        COALESCE(d.name, t.destination) AS destination_name,
+        t.category_id,
+        c.name              AS category_name,
         t.duration_minutes,
         t.max_group_size,
         t.language_codes,
         t.pickup_mode,
         t.meeting_point,
-        t.included_summary,
         p.business_name     AS provider_name,
         p.approved_at       AS provider_approved_at,
         (SELECT CAST(ROUND(AVG(r.rating), 1) AS DECIMAL(2,1))
@@ -69,7 +73,6 @@ BEGIN
         t.transport,                -- FR-02 phương tiện
         t.guide_info,               -- FR-02 hướng dẫn viên
         t.dropoff_point,            -- FR-02 điểm trả
-        t.excluded_summary,         -- FR-04 không bao gồm (mỗi mục một dòng)
         t.document_terms,           -- FR-05 giấy tờ
         t.meal_terms,               -- FR-05 ăn uống
         t.voucher_terms,            -- FR-05 voucher
@@ -77,6 +80,8 @@ BEGIN
     FROM tours t
     JOIN providers p ON p.id = t.provider_id
     JOIN users     u ON u.id = p.user_id
+    LEFT JOIN destinations d ON d.id = t.destination_id
+    LEFT JOIN categories   c ON c.id = t.category_id
     -- Lịch đặt được của tour: giá "Từ" và lịch khởi hành gần nhất
     LEFT JOIN (SELECT s.tour_id,
                       MIN(s.starts_at) AS next_starts_at,

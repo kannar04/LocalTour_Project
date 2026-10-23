@@ -1,14 +1,17 @@
 -- =====================================================================
 -- LocalTour v0.1 - 02_seed.sql
--- Mục đích  : Nạp dữ liệu mẫu để kiểm thử trang danh sách và trang chi tiết tour
---             cho lược đồ gộp 17 bảng (01_schema.sql). Bảng admin_logs để trống.
+-- Mục đích  : Nạp dữ liệu mẫu để kiểm thử trang danh sách, trang chi tiết tour và
+--             tài khoản khách hàng cho lược đồ gộp 27 bảng (01_schema.sql).
+--             Các bảng chưa dùng để trống: itinerary_stops, tour_schedules, tour_posts,
+--             favorite_tours, notifications, comparisons, comparison_tours, admin_logs.
 -- Phụ trách : Nguyễn Minh Thức (NMT) - WBS 3.2.2
 -- Dữ liệu   : TẤT CẢ dữ liệu (tài khoản, nhà cung cấp, tour, giá, lịch, đơn đặt,
 --             thanh toán, đánh giá) là dữ liệu MINH HỌA, không phải thông tin thật
 --             của bất kỳ người hay đơn vị nào:
 --               * email dùng tên miền @localtour.test (không tồn tại);
 --               * số điện thoại là số giả dạng 0000000xxx; users.phone để NULL;
---               * password_hash NULL (Sprint 3 chưa có đăng nhập);
+--               * mọi tài khoản mẫu có password_hash NULL nên KHÔNG đăng nhập được.
+--                 Người kiểm thử tự tạo tài khoản khách hàng ở trang đăng ký (/register);
 --               * NFR-07: mọi tour có source_url NULL, verified_at NULL,
 --                 verification_status 'unverified' vì dữ liệu là minh họa (không gán
 --                 nguồn hay ngày kiểm tra giả).
@@ -21,27 +24,34 @@
 --   ticket_types e0000000 · cancellation_policies f0000000 · bookings 10000000
 --   booking_lines 20000000 · passengers 30000000 · payments 40000000
 --   payment_events 50000000 · refunds 60000000 · reviews 70000000
---   tour_images 80000000 · itinerary_stops 90000000 · tour_extras c1000000
+--   tour_images 80000000 · tour_extras c1000000 · destinations c2000000
+--   categories c3000000 · tour_itinerary_items c4000000 · tour_inclusions c5000000
 --   Tour N = c0000000-0000-4000-8000-00000000000N; tour 1 = "Hà Nội qua những món ăn phố cổ".
 -- Cách đánh số:
 --   users        : 1 = quản trị viên; 2 = nhân viên hỗ trợ khách hàng;
---                  11-17 = tài khoản của nhà cung cấp 1-7. Khách KHÔNG có tài khoản
---                  (FR board: Won't Have); đơn đặt chỉ lưu thông tin liên hệ.
+--                  11-17 = tài khoản của nhà cung cấp 1-7;
+--                  101-130 = tài khoản khách hàng: khách hàng 100 + N là người đặt đơn N
+--                  (name = contact_name, email = contact_email của đơn).
+--   destinations : 1 = Hà Nội, 2 = Đà Nẵng, 3 = Hội An, 4 = TP. Hồ Chí Minh,
+--                  5 = Huế (chưa có tour).
+--   categories   : 1 = Ẩm thực, 2 = Văn hóa – lịch sử, 3 = Thiên nhiên, 4 = Về đêm,
+--                  5 = Trải nghiệm địa phương, 6 = Đạp xe.
 --   schedules    : 1-37 = lịch của các tour; 101-128 = lịch đã đi của đơn có đánh giá
 --                  (lịch 100 + N thuộc đơn N).
 --   ticket_types : số lịch x 10 + 1 = người lớn, + 2 = trẻ em (vd. lịch 3 -> 31, 32).
 --   bookings     : 1-28 = đơn có đánh giá đã duyệt (đơn N <-> đánh giá N);
 --                  29 = đơn có đánh giá đang chờ duyệt; 30 = đơn đã hủy.
 --   booking_lines, passengers: số đơn x 10 + thứ tự. payments: trùng số đơn.
---   tour_images, itinerary_stops, tour_extras: đánh số theo thứ tự chèn, cố ý lệch
---                  với thứ tự hiển thị để kiểm tra ORDER BY.
+--   tour_images, tour_itinerary_items, tour_inclusions, tour_extras: đánh số theo thứ tự
+--                  chèn, cố ý lệch với thứ tự hiển thị để kiểm tra ORDER BY.
 --
 -- Ca kiểm thử có sẵn trong dữ liệu:
 --   * Tour 1-9 hiển thị. Tour 10 approval_status = 'pending': KHÔNG BAO GIỜ hiển thị,
 --     dù có lịch mở và 3 đánh giá 5 sao (nếu bị lộ sẽ đứng đầu tab "Nổi bật").
 --   * Tour 9: chưa có đánh giá, không có lịch đặt được (chỉ 1 lịch đã hủy) -> giá NULL;
---     không có ảnh và lịch trình -> giao diện hiện "Chưa cập nhật".
---   * Tour 10 có ảnh và lịch trình riêng: không bao giờ được trả về.
+--     không có ảnh, lịch trình, dịch vụ (tour_inclusions) và loại hình -> giao diện hiện
+--     "Chưa cập nhật".
+--   * Tour 10 có ảnh, lịch trình và dịch vụ riêng: không bao giờ được trả về.
 --   * Tour 1: lịch đã qua 'completed' (lịch 1), lịch 'full' (lịch 2) và lịch giá cao hơn
 --     690.000đ (lịch 6). Có 1 đánh giá 'pending' 1 sao: không hiện, không tính điểm.
 --   * Tour 2: lịch 'open' nhưng remaining = 0 (lịch 7) -> bị lọc; vé trẻ em của lịch 8
@@ -54,11 +64,25 @@
 --   * Ảnh: mỗi file SVG chỉ thuộc 1 tour. Tour 2 không có ảnh (Hà Nội chỉ có 3 file cho
 --     4 tour). Tour 4: 2 ảnh cùng sort_order -> ảnh bìa là ảnh có id nhỏ hơn. Tour 6: ảnh
 --     bìa có id lớn hơn ảnh thứ 2. Tour 8: 3 ảnh chèn lệch thứ tự, 1 ảnh alt_text NULL.
---   * Lịch trình: tour 1-8 có 4-5 chặng chèn lệch thứ tự; một số chặng không có mô tả
---     hoặc thời lượng (NULL).
---   * Thông tin tour (FR-02/04/05): tour 9 chưa cập nhật cả 8 trường; tour 3 thiếu
---     dropoff_point, voucher_terms; tour 5 thiếu excluded_summary; tour 7 thiếu guide_info,
---     reschedule_terms. Các trường thiếu -> giao diện hiện "Chưa cập nhật".
+--   * Điểm đến (destinations): bộ lọc và thanh bên chỉ hiện điểm đến có tour hiển thị:
+--     Hà Nội 3 tour (1-3; tour 10 chờ duyệt không tính), Đà Nẵng 2, Hội An 2,
+--     TP. Hồ Chí Minh 2. Huế không có tour -> bị ẩn. sort_order theo Bắc -> Nam
+--     (Hà Nội, Huế, Đà Nẵng, Hội An, TP. Hồ Chí Minh), khác thứ tự id.
+--   * Loại hình (categories): Ẩm thực 2 tour (1, 2), Văn hóa – lịch sử 2 (3, 6),
+--     Về đêm 2 (5, 8), Thiên nhiên 1 (4), Trải nghiệm địa phương 1 (7). Đạp xe chỉ có
+--     tour 10 (chờ duyệt) -> bị ẩn. Tour 9 category_id NULL -> "Loại hình" hiện
+--     "Chưa cập nhật" và tour 9 không thuộc bộ lọc loại hình nào.
+--   * Lịch trình (tour_itinerary_items): tour 1-8 có 4-5 mục chèn lệch thứ tự.
+--     start_time = giờ khởi hành của lịch + thời lượng các chặng trước. Tour 3 (lộ trình
+--     linh hoạt, lịch 08:30 hoặc 14:00): mọi mục start_time NULL -> chỉ hiện mô tả.
+--     Tour 4, 8: mục trả khách về khách sạn start_time NULL (giờ tùy khách sạn).
+--   * Dịch vụ (tour_inclusions): tour 1-8 có danh sách bao gồm; tour 5 không có dòng
+--     không bao gồm -> phần "không bao gồm" hiện "Chưa cập nhật". Tour 4 chèn dòng không
+--     bao gồm trước và lệch sort_order (kiểm tra ORDER BY is_included DESC, sort_order).
+--   * Thông tin tour (FR-02/05): tour 9 chưa cập nhật cả 7 trường (transport, guide_info,
+--     dropoff_point, document_terms, meal_terms, voucher_terms, reschedule_terms); tour 3
+--     thiếu dropoff_point, voucher_terms; tour 7 thiếu guide_info, reschedule_terms.
+--     Các trường thiếu -> giao diện hiện "Chưa cập nhật".
 --   * Phụ thu / tùy chọn (tour_extras): 0-3 dòng mỗi tour; tour 2 và tour 9 không có.
 --     Có dòng thiếu giá, thiếu đơn vị hoặc thiếu điều kiện (NULL). Tour 10 có 2 dòng.
 --   * Điểm TB (chỉ đánh giá 'approved'): tour 3 = 5,0; tour 1, 6 = 4,8; tour 2, 7 = 4,7;
@@ -66,19 +90,28 @@
 --   * Giá "Từ" = vé người lớn rẻ nhất trong các lịch đặt được (nghìn đồng):
 --     tour 1: 650, tour 2: 720, tour 3: 900, tour 4: 550, tour 5: 480,
 --     tour 6: 590, tour 7: 750, tour 8: 850, tour 9: NULL.
+--   * Tài khoản: mọi tài khoản mẫu (quản trị, hỗ trợ, nhà cung cấp, khách hàng 101-130)
+--     có password_hash NULL -> đăng nhập luôn báo "Email hoặc mật khẩu không đúng.".
+--     Đăng ký bằng email đã có, kể cả khác chữ hoa / thường (vd. quoc.huy@localtour.test,
+--     Quoc.Huy@LocalTour.test) -> "Email này đã được dùng.".
+--   * Đánh giá: tên người đánh giá = users.name của chủ đơn (bookings.user_id), trùng
+--     contact_name của đơn.
 --
--- Số dòng: users 9, providers 7, tours 10, cancellation_policies 11, schedules 65,
---          ticket_types 118, bookings 30, booking_lines 35, passengers 60,
---          payments 30, payment_events 30, refunds 1, reviews 29,
---          tour_images 12, itinerary_stops 43, tour_extras 15,
---          admin_logs 0 (để trống).
+-- Số dòng: users 39, providers 7, destinations 5, categories 6, tours 10,
+--          cancellation_policies 11, schedules 65, ticket_types 118, bookings 30,
+--          booking_lines 35, passengers 60, payments 30, payment_events 30, refunds 1,
+--          reviews 29, tour_images 12, tour_itinerary_items 43, tour_inclusions 45,
+--          tour_extras 15. Để trống (0 dòng): itinerary_stops, tour_schedules,
+--          tour_posts, favorite_tours, notifications, comparisons, comparison_tours,
+--          admin_logs.
 -- =====================================================================
 
 SET NAMES utf8mb4;
 
 -- ---------------------------------------------------------------------
 -- 1. users (NGƯỜI_DÙNG)
---   Chỉ tài khoản nhân viên và nhà cung cấp; khách đặt tour không có tài khoản.
+--   Tài khoản nhân viên, nhà cung cấp và khách hàng. Mọi tài khoản mẫu có password_hash
+--   NULL nên không đăng nhập được; người kiểm thử tự đăng ký tài khoản ở /register.
 -- ---------------------------------------------------------------------
 INSERT INTO users (id, email, password_hash, name, phone, role, status) VALUES
 -- Quản trị viên
@@ -92,7 +125,39 @@ INSERT INTO users (id, email, password_hash, name, phone, role, status) VALUES
 ('a0000000-0000-4000-8000-000000000014', 'demsonghan@localtour.test', NULL, 'Đêm Sông Hàn', NULL, 'provider', 'active'),
 ('a0000000-0000-4000-8000-000000000015', 'phohoicham@localtour.test', NULL, 'Phố Hội Chậm', NULL, 'provider', 'active'),
 ('a0000000-0000-4000-8000-000000000016', 'saigonvedem@localtour.test', NULL, 'Sài Gòn Về Đêm', NULL, 'provider', 'active'),
-('a0000000-0000-4000-8000-000000000017', 'cholonkechuyen@localtour.test', NULL, 'Chợ Lớn Kể Chuyện', NULL, 'provider', 'active');
+('a0000000-0000-4000-8000-000000000017', 'cholonkechuyen@localtour.test', NULL, 'Chợ Lớn Kể Chuyện', NULL, 'provider', 'active'),
+-- Tài khoản khách hàng 101-130: khách hàng 100 + N là người đặt đơn N
+-- (name = contact_name, email = contact_email của đơn; 129 = đơn có đánh giá chờ duyệt, 130 = đơn đã hủy)
+('a0000000-0000-4000-8000-000000000101', 'quoc.huy@localtour.test', NULL, 'Quốc Huy', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000102', 'lan.phuong@localtour.test', NULL, 'Lan Phương', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000103', 'thu.trang@localtour.test', NULL, 'Thu Trang', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000104', 'minh.anh@localtour.test', NULL, 'Minh Anh', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000105', 'hoang.yen@localtour.test', NULL, 'Hoàng Yến', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000106', 'duc.thinh@localtour.test', NULL, 'Đức Thịnh', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000107', 'bao.ngoc@localtour.test', NULL, 'Bảo Ngọc', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000108', 'gia.bao@localtour.test', NULL, 'Gia Bảo', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000109', 'khanh.linh@localtour.test', NULL, 'Khánh Linh', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000110', 'hai.dang@localtour.test', NULL, 'Hải Đăng', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000111', 'thanh.ha@localtour.test', NULL, 'Thanh Hà', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000112', 'van.long@localtour.test', NULL, 'Văn Long', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000113', 'ngoc.mai@localtour.test', NULL, 'Ngọc Mai', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000114', 'tuan.kiet@localtour.test', NULL, 'Tuấn Kiệt', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000115', 'mai.chi@localtour.test', NULL, 'Mai Chi', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000116', 'phuong.thao@localtour.test', NULL, 'Phương Thảo', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000117', 'kim.ngan@localtour.test', NULL, 'Kim Ngân', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000118', 'trong.nghia@localtour.test', NULL, 'Trọng Nghĩa', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000119', 'thao.vy@localtour.test', NULL, 'Thảo Vy', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000120', 'nhat.minh@localtour.test', NULL, 'Nhật Minh', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000121', 'diem.my@localtour.test', NULL, 'Diễm My', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000122', 'huu.phuoc@localtour.test', NULL, 'Hữu Phước', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000123', 'anh.thu@localtour.test', NULL, 'Anh Thư', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000124', 'thanh.tung@localtour.test', NULL, 'Thanh Tùng', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000125', 'quynh.nhu@localtour.test', NULL, 'Quỳnh Như', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000126', 'bich.ngoc@localtour.test', NULL, 'Bích Ngọc', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000127', 'hoai.nam@localtour.test', NULL, 'Hoài Nam', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000128', 'thu.hang@localtour.test', NULL, 'Thu Hằng', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000129', 'dinh.khoa@localtour.test', NULL, 'Đình Khoa', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000130', 'minh.chau@localtour.test', NULL, 'Minh Châu', NULL, 'customer', 'active');
 
 -- ---------------------------------------------------------------------
 -- 2. providers (NHÀ_CUNG_CẤP)
@@ -108,39 +173,60 @@ INSERT INTO providers (id, user_id, business_name, contact_phone, approval_statu
 ('b0000000-0000-4000-8000-000000000007', 'a0000000-0000-4000-8000-000000000017', 'Chợ Lớn Kể Chuyện', '0000000007', 'approved', NOW() - INTERVAL 7 DAY);
 
 -- ---------------------------------------------------------------------
--- 3. tours (TOUR)
---   description = tóm tắt + dòng trống + mô tả. Lịch trình nằm ở bảng itinerary_stops (mục 15).
---   included_summary: mỗi mục đã gồm trong giá một dòng. CHAR(10) = ký tự xuống dòng.
---   excluded_summary: mục không bao gồm, mỗi mục một dòng. NULL = chưa cập nhật.
+-- 3. destinations (ĐIỂM_ĐẾN)
+--   name trùng đúng cột tours.destination. sort_order theo Bắc -> Nam, khác thứ tự id.
+--   Huế (5) chưa có tour nào: không được hiện trong bộ lọc và thanh bên.
+-- ---------------------------------------------------------------------
+INSERT INTO destinations (id, name, slug, sort_order) VALUES
+('c2000000-0000-4000-8000-000000000001', 'Hà Nội', 'ha-noi', 1),
+('c2000000-0000-4000-8000-000000000002', 'Đà Nẵng', 'da-nang', 3),
+('c2000000-0000-4000-8000-000000000003', 'Hội An', 'hoi-an', 4),
+('c2000000-0000-4000-8000-000000000004', 'TP. Hồ Chí Minh', 'tp-ho-chi-minh', 5),
+('c2000000-0000-4000-8000-000000000005', 'Huế', 'hue', 2);
+
+-- ---------------------------------------------------------------------
+-- 4. categories (LOẠI_HÌNH)
+--   Tour 9 chưa có loại hình (category_id NULL). Đạp xe chỉ có tour 10 (chờ duyệt):
+--   không được hiện trong bộ lọc "Loại hình".
+-- ---------------------------------------------------------------------
+INSERT INTO categories (id, name, slug) VALUES
+('c3000000-0000-4000-8000-000000000001', 'Ẩm thực', 'am-thuc'),
+('c3000000-0000-4000-8000-000000000002', 'Văn hóa – lịch sử', 'van-hoa-lich-su'),
+('c3000000-0000-4000-8000-000000000003', 'Thiên nhiên', 'thien-nhien'),
+('c3000000-0000-4000-8000-000000000004', 'Về đêm', 've-dem'),
+('c3000000-0000-4000-8000-000000000005', 'Trải nghiệm địa phương', 'trai-nghiem-dia-phuong'),
+('c3000000-0000-4000-8000-000000000006', 'Đạp xe', 'dap-xe');
+
+-- ---------------------------------------------------------------------
+-- 5. tours (TOUR)
+--   destination_id / category_id: điểm đến (mục 3) và loại hình (mục 4). Cột destination giữ
+--   tên điểm đến dạng chữ, trùng destinations.name. Tour 9 chưa có loại hình (NULL).
+--   description = tóm tắt + dòng trống + mô tả. CHAR(10) = ký tự xuống dòng.
+--   Lịch trình nằm ở tour_itinerary_items (mục 17); dịch vụ bao gồm / không bao gồm nằm ở
+--   tour_inclusions (mục 18). included_summary / excluded_summary để NULL (không dùng).
 --   NFR-07: source_url, verified_at NULL và verification_status 'unverified' cho mọi tour.
 --   Tour 10: approval_status = 'pending' (đang chờ duyệt lại sau khi đổi lộ trình).
 -- ---------------------------------------------------------------------
-INSERT INTO tours (id, provider_id, title, description, destination, duration_minutes, max_group_size,
-                   language_codes, pickup_mode, meeting_point, included_summary,
+INSERT INTO tours (id, provider_id, destination_id, category_id, title, description, destination,
+                   duration_minutes, max_group_size, language_codes, pickup_mode, meeting_point, included_summary,
                    transport, guide_info, dropoff_point, excluded_summary,
                    document_terms, meal_terms, voucher_terms, reschedule_terms,
                    source_url, verified_at, verification_status, approval_status) VALUES
 -- Tour 1 (Hà Nội) --------------------------------------------
 ('c0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001',
+    'c2000000-0000-4000-8000-000000000001', 'c3000000-0000-4000-8000-000000000001',   -- Hà Nội, Ẩm thực
     'Hà Nội qua những món ăn phố cổ',
     CONCAT_WS(CHAR(10),
         'Đi bộ cùng người địa phương, khám phá món ngon và câu chuyện phố cổ.',
         '',
         'Tour đi bộ 4 giờ cùng người dẫn địa phương. Ghé các quán nhỏ, thưởng thức món ăn và tìm hiểu cuộc sống thường ngày tại Hà Nội. Lộ trình đi qua những con phố nhỏ quanh hồ Hoàn Kiếm, mỗi điểm dừng là một món ăn và một câu chuyện về con phố đó.'),
     'Hà Nội', 240, 8, 'vi,en', 'meeting_point', 'Nhà hát Múa rối Thăng Long',
-    CONCAT_WS(CHAR(10),
-        'Người dẫn địa phương',
-        '5 món ăn',
-        '1 đồ uống'),
+    NULL,   -- included_summary: không dùng (tour_inclusions, mục 18)
     -- FR-02 phương tiện / hướng dẫn viên / điểm trả
     'Đi bộ (khoảng 3 km)',
     'Người dẫn địa phương nói tiếng Việt và tiếng Anh',
     'Khu vực hồ Hoàn Kiếm',
-    -- FR-04 không bao gồm
-    CONCAT_WS(CHAR(10),
-        'Đồ uống gọi thêm ngoài 1 đồ uống của tour',
-        'Tiền tip cho người dẫn (tùy ý)',
-        'Chi phí đi lại đến điểm hẹn'),
+    NULL,   -- excluded_summary: không dùng (tour_inclusions, mục 18)
     -- FR-05 giấy tờ / ăn uống / voucher / đổi lịch
     'Không yêu cầu giấy tờ tùy thân.',
     'Gồm 5 món ăn và 1 đồ uống. Báo trước khi đặt nếu ăn chay hoặc dị ứng thực phẩm.',
@@ -150,24 +236,19 @@ INSERT INTO tours (id, provider_id, title, description, destination, duration_mi
     'approved'),
 -- Tour 2 (Hà Nội) --------------------------------------------
 ('c0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000002',
+    'c2000000-0000-4000-8000-000000000001', 'c3000000-0000-4000-8000-000000000001',   -- Hà Nội, Ẩm thực
     'Ẩm thực Hà Nội & cà phê trứng',
     CONCAT_WS(CHAR(10),
         'Một góc nhìn khác về phố cổ, với nhóm nhỏ và thời gian thư thả.',
         '',
         'Bắt đầu từ chợ Đồng Xuân, nhóm đi qua các phố quanh chợ để thử bánh cuốn nóng và những món ăn vặt quen thuộc của người Hà Nội. Tour kết thúc ở một quán cà phê trứng trên tầng cao nhìn ra phố. Nhịp đi chậm, phù hợp với người lần đầu đến Hà Nội.'),
     'Hà Nội', 180, 6, 'vi,en', 'meeting_point', 'Chợ Đồng Xuân (cổng chính)',
-    CONCAT_WS(CHAR(10),
-        'Người dẫn địa phương',
-        'Bánh cuốn và 3 món ăn vặt',
-        '1 ly cà phê trứng'),
+    NULL,   -- included_summary: không dùng (tour_inclusions, mục 18)
     -- FR-02 phương tiện / hướng dẫn viên / điểm trả
     'Đi bộ',
     'Người dẫn địa phương nói tiếng Việt và tiếng Anh',
     'Quán cà phê trứng ở chặng cuối, trong khu phố cổ',
-    -- FR-04 không bao gồm
-    CONCAT_WS(CHAR(10),
-        'Món ăn, đồ uống gọi thêm',
-        'Tiền tip cho người dẫn (tùy ý)'),
+    NULL,   -- excluded_summary: không dùng (tour_inclusions, mục 18)
     -- FR-05 giấy tờ / ăn uống / voucher / đổi lịch
     'Không yêu cầu giấy tờ tùy thân.',
     'Gồm bánh cuốn, 3 món ăn vặt và 1 ly cà phê trứng (có thể đổi sang đồ uống khác).',
@@ -177,24 +258,19 @@ INSERT INTO tours (id, provider_id, title, description, destination, duration_mi
     'approved'),
 -- Tour 3 (Hà Nội) --------------------------------------------
 ('c0000000-0000-4000-8000-000000000003', 'b0000000-0000-4000-8000-000000000002',
+    'c2000000-0000-4000-8000-000000000001', 'c3000000-0000-4000-8000-000000000002',   -- Hà Nội, Văn hóa – lịch sử
     'Phố cổ theo cách của bạn',
     CONCAT_WS(CHAR(10),
         'Tour riêng cho nhóm nhỏ: bạn chọn chủ đề, người dẫn thiết kế lộ trình quanh phố cổ.',
         '',
         'Trước ngày đi, người dẫn liên hệ để hỏi sở thích của nhóm: kiến trúc nhà ống, phố nghề, đền chùa hay những góc chụp ảnh. Lộ trình được sắp xếp riêng trong khoảng 4 giờ, đi bộ kết hợp một đoạn xích lô ngắn. Phù hợp với gia đình hoặc nhóm bạn muốn tìm hiểu phố cổ sâu hơn.'),
     'Hà Nội', 240, 4, 'vi,en,fr', 'meeting_point', 'Đền Bạch Mã, phố Hàng Buồm',
-    CONCAT_WS(CHAR(10),
-        'Người dẫn riêng cho nhóm',
-        'Vé vào nhà cổ',
-        'Xích lô 20 phút'),
+    NULL,   -- included_summary: không dùng (tour_inclusions, mục 18)
     -- FR-02 phương tiện / hướng dẫn viên / điểm trả (thiếu: dropoff_point, voucher_terms)
     'Đi bộ kết hợp xích lô 20 phút',
     'Người dẫn riêng cho nhóm, nói tiếng Việt, tiếng Anh hoặc tiếng Pháp',
     NULL,
-    -- FR-04 không bao gồm
-    CONCAT_WS(CHAR(10),
-        'Bữa ăn và đồ uống',
-        'Mua sắm cá nhân tại phố nghề'),
+    NULL,   -- excluded_summary: không dùng (tour_inclusions, mục 18)
     -- FR-05 giấy tờ / ăn uống / voucher / đổi lịch
     'Không yêu cầu giấy tờ tùy thân.',
     'Không gồm bữa ăn. Người dẫn gợi ý quán ăn tối sau tour.',
@@ -204,25 +280,19 @@ INSERT INTO tours (id, provider_id, title, description, destination, duration_mi
     'approved'),
 -- Tour 4 (Đà Nẵng) -------------------------------------------
 ('c0000000-0000-4000-8000-000000000004', 'b0000000-0000-4000-8000-000000000003',
+    'c2000000-0000-4000-8000-000000000002', 'c3000000-0000-4000-8000-000000000003',   -- Đà Nẵng, Thiên nhiên
     'Bình minh trên bán đảo Sơn Trà',
     CONCAT_WS(CHAR(10),
         'Đón bình minh trên bán đảo Sơn Trà, đi bộ đường rừng nhẹ và tìm voọc chà vá chân nâu.',
         '',
         'Xe đón nhóm ở trung tâm thành phố lúc 5 giờ sáng để kịp ngắm mặt trời mọc trên đỉnh Bàn Cờ. Sau đó cả nhóm đi bộ một cung đường rừng ngắn, nghe người dẫn giới thiệu hệ sinh thái của bán đảo và quan sát voọc chà vá chân nâu nếu may mắn. Tour kết thúc bằng bữa sáng mì Quảng gần chân núi.'),
     'Đà Nẵng', 300, 10, 'vi,en,ko', 'hotel_pickup', 'Khách sạn ở trung tâm Đà Nẵng',
-    CONCAT_WS(CHAR(10),
-        'Xe đưa đón hai chiều',
-        'Bữa sáng mì Quảng',
-        'Nước uống',
-        'Ống nhòm cho mượn'),
+    NULL,   -- included_summary: không dùng (tour_inclusions, mục 18)
     -- FR-02 phương tiện / hướng dẫn viên / điểm trả
     'Xe 16 chỗ đưa đón hai chiều; đi bộ đường rừng khoảng 2 km',
     'Hướng dẫn viên nói tiếng Việt, tiếng Anh và tiếng Hàn',
     'Khách sạn ở trung tâm Đà Nẵng',
-    -- FR-04 không bao gồm
-    CONCAT_WS(CHAR(10),
-        'Đồ uống ngoài nước suối',
-        'Chi phí cá nhân'),
+    NULL,   -- excluded_summary: không dùng (tour_inclusions, mục 18)
     -- FR-05 giấy tờ / ăn uống / voucher / đổi lịch
     'Không yêu cầu giấy tờ tùy thân.',
     'Gồm bữa sáng mì Quảng và nước uống. Có mì chay nếu báo trước.',
@@ -232,22 +302,19 @@ INSERT INTO tours (id, provider_id, title, description, destination, duration_mi
     'approved'),
 -- Tour 5 (Đà Nẵng) -------------------------------------------
 ('c0000000-0000-4000-8000-000000000005', 'b0000000-0000-4000-8000-000000000004',
+    'c2000000-0000-4000-8000-000000000002', 'c3000000-0000-4000-8000-000000000004',   -- Đà Nẵng, Về đêm
     'Đà Nẵng về đêm: cầu Rồng và chợ đêm',
     CONCAT_WS(CHAR(10),
         'Dạo bờ sông Hàn, ngắm cầu Rồng lên đèn và ăn tối ở chợ đêm cùng người địa phương.',
         '',
         'Tour bắt đầu khi thành phố lên đèn, đi bộ dọc bờ sông Hàn và dừng lại ở những góc ngắm cầu Rồng đẹp nhất. Sau đó nhóm ghé chợ đêm thử bánh tráng cuốn thịt heo, ốc hút và chè. Vào tối thứ Bảy và Chủ nhật, nhóm xem cầu Rồng phun lửa, phun nước lúc 21:00.'),
     'Đà Nẵng', 210, 12, 'vi,en', 'meeting_point', 'Đầu cầu Rồng, phía đường Bạch Đằng',
-    CONCAT_WS(CHAR(10),
-        'Người dẫn địa phương',
-        'Ăn tối nhẹ 3 món',
-        'Taxi sang chợ đêm'),
-    -- FR-02 phương tiện / hướng dẫn viên / điểm trả (thiếu: excluded_summary)
+    NULL,   -- included_summary: không dùng (tour_inclusions, mục 18)
+    -- FR-02 phương tiện / hướng dẫn viên / điểm trả
     'Đi bộ dọc bờ sông Hàn, taxi sang chợ đêm',
     'Người dẫn địa phương nói tiếng Việt và tiếng Anh',
     'Chợ đêm, nơi kết thúc tour',
-    -- FR-04 không bao gồm
-    NULL,
+    NULL,   -- excluded_summary: không dùng (tour_inclusions, mục 18)
     -- FR-05 giấy tờ / ăn uống / voucher / đổi lịch
     'Không yêu cầu giấy tờ tùy thân.',
     'Gồm ăn tối nhẹ 3 món ở chợ đêm.',
@@ -257,25 +324,19 @@ INSERT INTO tours (id, provider_id, title, description, destination, duration_mi
     'approved'),
 -- Tour 6 (Hội An) --------------------------------------------
 ('c0000000-0000-4000-8000-000000000006', 'b0000000-0000-4000-8000-000000000005',
+    'c2000000-0000-4000-8000-000000000003', 'c3000000-0000-4000-8000-000000000002',   -- Hội An, Văn hóa – lịch sử
     'Hội An: phố cổ, đèn lồng và hoa đăng',
     CONCAT_WS(CHAR(10),
         'Đi chậm qua phố cổ Hội An lúc chiều tối, nghe chuyện hội quán và thả hoa đăng trên sông Hoài.',
         '',
         'Người dẫn đưa nhóm qua chùa Cầu, một ngôi nhà cổ và hội quán Phúc Kiến, kể về thương cảng Hội An xưa. Khi phố lên đèn, cả nhóm học làm một chiếc đèn lồng nhỏ và thả hoa đăng trên sông Hoài. Nhịp đi chậm, có nhiều thời gian chụp ảnh.'),
     'Hội An', 180, 10, 'vi,en', 'meeting_point', 'Chùa Cầu, đầu phố Trần Phú',
-    CONCAT_WS(CHAR(10),
-        'Vé tham quan phố cổ',
-        'Đèn lồng tự làm mang về',
-        'Hoa đăng'),
+    NULL,   -- included_summary: không dùng (tour_inclusions, mục 18)
     -- FR-02 phương tiện / hướng dẫn viên / điểm trả
     'Đi bộ trong phố cổ',
     'Người dẫn địa phương nói tiếng Việt và tiếng Anh',
     'Chợ đêm Nguyễn Hoàng',
-    -- FR-04 không bao gồm
-    CONCAT_WS(CHAR(10),
-        'Ăn tối',
-        'Đi thuyền trên sông Hoài (xem hoạt động tùy chọn)',
-        'Chi phí cá nhân'),
+    NULL,   -- excluded_summary: không dùng (tour_inclusions, mục 18)
     -- FR-05 giấy tờ / ăn uống / voucher / đổi lịch
     'Không yêu cầu giấy tờ tùy thân.',
     'Không gồm bữa ăn. Người dẫn gợi ý quán ăn tối gần chợ đêm.',
@@ -285,24 +346,19 @@ INSERT INTO tours (id, provider_id, title, description, destination, duration_mi
     'approved'),
 -- Tour 7 (Hội An) --------------------------------------------
 ('c0000000-0000-4000-8000-000000000007', 'b0000000-0000-4000-8000-000000000005',
+    'c2000000-0000-4000-8000-000000000003', 'c3000000-0000-4000-8000-000000000005',   -- Hội An, Trải nghiệm địa phương
     'Làng rau Trà Quế: đạp xe và học nấu ăn',
     CONCAT_WS(CHAR(10),
         'Đạp xe qua đồng lúa ra làng rau Trà Quế, làm vườn cùng nông dân và tự nấu bữa trưa kiểu Hội An.',
         '',
         'Từ trung tâm Hội An, nhóm đạp xe khoảng 4 km ra làng rau Trà Quế. Bạn được nông dân hướng dẫn xới đất, gánh nước tưới rau và tìm hiểu cách bón rau bằng rong sông. Phần cuối là lớp nấu ăn nhỏ: tự làm bánh xèo, gỏi cuốn và cùng ăn trưa trong vườn.'),
     'Hội An', 270, 8, 'vi,en', 'meeting_point', 'Bãi xe đạp cạnh chợ Hội An',
-    CONCAT_WS(CHAR(10),
-        'Xe đạp và nón lá',
-        'Lớp nấu ăn và bữa trưa',
-        'Nước uống'),
+    NULL,   -- included_summary: không dùng (tour_inclusions, mục 18)
     -- FR-02 phương tiện / hướng dẫn viên / điểm trả (thiếu: guide_info, reschedule_terms)
     'Xe đạp, khoảng 4 km mỗi chiều',
     NULL,
     'Bãi xe đạp cạnh chợ Hội An',
-    -- FR-04 không bao gồm
-    CONCAT_WS(CHAR(10),
-        'Đồ uống gọi thêm',
-        'Chi phí cá nhân'),
+    NULL,   -- excluded_summary: không dùng (tour_inclusions, mục 18)
     -- FR-05 giấy tờ / ăn uống / voucher / đổi lịch
     'Không yêu cầu giấy tờ tùy thân.',
     'Gồm bữa trưa tự nấu (bánh xèo, gỏi cuốn). Có thực đơn chay nếu báo trước.',
@@ -312,25 +368,19 @@ INSERT INTO tours (id, provider_id, title, description, destination, duration_mi
     'approved'),
 -- Tour 8 (TP. Hồ Chí Minh) -----------------------------------
 ('c0000000-0000-4000-8000-000000000008', 'b0000000-0000-4000-8000-000000000006',
+    'c2000000-0000-4000-8000-000000000004', 'c3000000-0000-4000-8000-000000000004',   -- TP. Hồ Chí Minh, Về đêm
     'Sài Gòn về đêm trên xe máy',
     CONCAT_WS(CHAR(10),
         'Ngồi sau xe máy cùng người dẫn, đi qua các quận trung tâm và ăn tối như người Sài Gòn.',
         '',
         'Mỗi khách ngồi sau một tài xế kiêm người dẫn có kinh nghiệm. Nhóm đi qua quận 1, quận 4 và quận 5, ghé quán ốc, xe chè và một quán cà phê nhạc sống. Tour có mũ bảo hiểm đạt chuẩn, áo mưa và bảo hiểm du lịch cho từng khách.'),
     'TP. Hồ Chí Minh', 240, 6, 'vi,en', 'hotel_pickup', 'Khách sạn ở quận 1 hoặc quận 3',
-    CONCAT_WS(CHAR(10),
-        'Xe máy và tài xế riêng cho mỗi khách',
-        'Ăn tối 4 món',
-        'Mũ bảo hiểm và áo mưa',
-        'Bảo hiểm du lịch'),
+    NULL,   -- included_summary: không dùng (tour_inclusions, mục 18)
     -- FR-02 phương tiện / hướng dẫn viên / điểm trả
     'Xe máy, mỗi khách ngồi sau một tài xế',
     'Tài xế kiêm người dẫn, nói tiếng Việt và tiếng Anh',
     'Khách sạn ở quận 1 hoặc quận 3',
-    -- FR-04 không bao gồm
-    CONCAT_WS(CHAR(10),
-        'Đồ uống gọi thêm tại quán cà phê',
-        'Tiền tip cho tài xế (tùy ý)'),
+    NULL,   -- excluded_summary: không dùng (tour_inclusions, mục 18)
     -- FR-05 giấy tờ / ăn uống / voucher / đổi lịch
     'Mang theo giấy tờ tùy thân (bản chụp cũng được) để làm bảo hiểm du lịch.',
     'Gồm ăn tối 4 món. Báo trước nếu ăn chay hoặc dị ứng hải sản.',
@@ -340,21 +390,19 @@ INSERT INTO tours (id, provider_id, title, description, destination, duration_mi
     'approved'),
 -- Tour 9 (TP. Hồ Chí Minh) -----------------------------------
 ('c0000000-0000-4000-8000-000000000009', 'b0000000-0000-4000-8000-000000000007',
+    'c2000000-0000-4000-8000-000000000004', NULL,   -- TP. Hồ Chí Minh, chưa có loại hình
     'Chợ Lớn: hẻm nhỏ, hội quán và món Hoa',
     CONCAT_WS(CHAR(10),
         'Khám phá Chợ Lớn qua các hội quán, tiệm thuốc bắc lâu đời và món ăn của người Hoa.',
         '',
         'Tour đi bộ qua các con hẻm ở quận 5, ghé chùa Bà Thiên Hậu và vài hội quán, nghe chuyện về cộng đồng người Hoa ở Sài Gòn. Nhóm dừng chân ở một tiệm thuốc bắc và kết thúc bằng bữa ăn nhẹ với sủi cảo, há cảo. Lịch khởi hành đang được cập nhật.'),
     'TP. Hồ Chí Minh', 210, 10, 'vi,en,zh', 'meeting_point', 'Chùa Bà Thiên Hậu, đường Nguyễn Trãi, quận 5',
-    CONCAT_WS(CHAR(10),
-        'Người dẫn địa phương',
-        'Phần ăn nhẹ'),
-    -- FR-02 phương tiện / hướng dẫn viên / điểm trả (thiếu: cả 8 trường)
+    NULL,   -- included_summary: không dùng (tour_inclusions, mục 18)
+    -- FR-02 phương tiện / hướng dẫn viên / điểm trả (thiếu: cả 7 trường FR-02 / FR-05)
     NULL,
     NULL,
     NULL,
-    -- FR-04 không bao gồm
-    NULL,
+    NULL,   -- excluded_summary: không dùng (tour_inclusions, mục 18)
     -- FR-05 giấy tờ / ăn uống / voucher / đổi lịch
     NULL,
     NULL,
@@ -364,22 +412,19 @@ INSERT INTO tours (id, provider_id, title, description, destination, duration_mi
     'approved'),
 -- Tour 10 (Hà Nội) --------------------------------------------
 ('c0000000-0000-4000-8000-000000000010', 'b0000000-0000-4000-8000-000000000001',
+    'c2000000-0000-4000-8000-000000000001', 'c3000000-0000-4000-8000-000000000006',   -- Hà Nội, Đạp xe
     'Đạp xe quanh Hồ Tây lúc bình minh',
     CONCAT_WS(CHAR(10),
         'Đạp xe một vòng Hồ Tây buổi sớm, ghé chùa Trấn Quốc và ăn sáng bún ốc.',
         '',
         'Nhóm nhận xe đạp ở đường Thanh Niên, đạp một vòng Hồ Tây khi mặt trời mọc, ghé chùa Trấn Quốc trước giờ đông khách và kết thúc bằng bát bún ốc nóng. Tour đang tạm ẩn để cập nhật lộ trình.'),
     'Hà Nội', 150, 8, 'vi,en', 'meeting_point', 'Đầu đường Thanh Niên, phía Hồ Tây',
-    CONCAT_WS(CHAR(10),
-        'Xe đạp và mũ bảo hiểm',
-        'Bữa sáng bún ốc'),
+    NULL,   -- included_summary: không dùng (tour_inclusions, mục 18)
     -- FR-02 phương tiện / hướng dẫn viên / điểm trả
     'Xe đạp',
     'Người dẫn địa phương nói tiếng Việt và tiếng Anh',
     'Quán bún ốc gần Hồ Tây',
-    -- FR-04 không bao gồm
-    CONCAT_WS(CHAR(10),
-        'Đồ uống gọi thêm'),
+    NULL,   -- excluded_summary: không dùng (tour_inclusions, mục 18)
     -- FR-05 giấy tờ / ăn uống / voucher / đổi lịch
     'Không yêu cầu giấy tờ tùy thân.',
     'Gồm bữa sáng bún ốc.',
@@ -389,7 +434,7 @@ INSERT INTO tours (id, provider_id, title, description, destination, duration_mi
     'pending');
 
 -- ---------------------------------------------------------------------
--- 4. cancellation_policies (CHÍNH_SÁCH_HỦY)
+-- 6. cancellation_policies (CHÍNH_SÁCH_HỦY)
 --   id = số tour x 10 + phiên bản. Tour 4 có phiên bản 2 (thêm quy định dời lịch khi trời mưa lớn),
 --   áp dụng cho đơn đặt trong 30 ngày gần đây.
 -- ---------------------------------------------------------------------
@@ -407,7 +452,7 @@ INSERT INTO cancellation_policies (id, tour_id, free_before_hours, refund_percen
 ('f0000000-0000-4000-8000-000000000101', 'c0000000-0000-4000-8000-000000000010', 24, 0, 'Hủy miễn phí nếu báo trước giờ khởi hành ít nhất 24 giờ. Hủy sau mốc này không được hoàn tiền.', 1);
 
 -- ---------------------------------------------------------------------
--- 5. schedules (LỊCH_KHỞI_HÀNH)
+-- 7. schedules (LỊCH_KHỞI_HÀNH)
 --   starts_at = ngày (so với hôm nay) + giờ khởi hành; ends_at = starts_at + duration_minutes của tour.
 --   Lịch đặt được: status 'open', chưa khởi hành, remaining > 0, có vé đang bán.
 --   Bị lọc: lịch 1 (đã qua), 2 (full), 7 (open nhưng remaining = 0), 15 và 34 (cancelled).
@@ -573,7 +618,7 @@ INSERT INTO schedules (id, tour_id, starts_at, ends_at, capacity, remaining, sta
     TIMESTAMP(CURDATE() - INTERVAL 101 DAY, '05:30:00'), TIMESTAMP(CURDATE() - INTERVAL 101 DAY, '08:00:00'), 8, 5, 'completed');
 
 -- ---------------------------------------------------------------------
--- 6. ticket_types (VÉ_THEO_LỊCH)
+-- 8. ticket_types (VÉ_THEO_LỊCH)
 --   adult: từ 12 tuổi (tour 8 từ 16 tuổi), giá vé của tour; child: 4-11 tuổi, 70% giá người lớn
 --   làm tròn tới 10.000đ. Tour 3 và 8 chỉ bán vé người lớn.
 --   Lịch 6 (tour 1, cuối tuần) giá người lớn 690.000đ. Vé trẻ em của lịch 8 (tour 2) ngừng bán.
@@ -710,87 +755,89 @@ INSERT INTO ticket_types (id, schedule_id, name, min_age, max_age, price_vnd, ac
 ('e0000000-0000-4000-8000-000000001282', 'd0000000-0000-4000-8000-000000000128', 'child', 4, 11, 280000, TRUE);
 
 -- ---------------------------------------------------------------------
--- 7. bookings (ĐƠN_ĐẶT_TOUR)
+-- 9. bookings (ĐƠN_ĐẶT_TOUR)
 --   Đơn 1-29: 'completed' (đã đi tour). Đơn 30: 'cancelled' (lịch 4 của tour 1, đã hoàn tiền).
 --   total_vnd = tổng line_total_vnd. policy_version = phiên bản chính sách hủy lúc đặt.
---   Khách không có tài khoản: tra cứu đơn bằng mã đơn + contact_email / contact_phone.
+--   Mỗi đơn thuộc một tài khoản khách hàng: user_id = khách hàng 100 + N (đơn N); contact_name /
+--   contact_email trùng tên và email của tài khoản. Khách chưa đăng nhập (chế độ khách) chỉ xem
+--   tour, không đặt được.
 -- ---------------------------------------------------------------------
-INSERT INTO bookings (id, schedule_id, code, contact_name, contact_email, contact_phone,
+INSERT INTO bookings (id, user_id, schedule_id, code, contact_name, contact_email, contact_phone,
                       status, total_vnd, policy_version, hold_expires_at) VALUES
 -- Tour 1
-('10000000-0000-4000-8000-000000000001', 'd0000000-0000-4000-8000-000000000101',
+('10000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000101', 'd0000000-0000-4000-8000-000000000101',
     'LT812768', 'Quốc Huy', 'quoc.huy@localtour.test', '0000000101', 'completed', 1760000, 1, NULL),
-('10000000-0000-4000-8000-000000000002', 'd0000000-0000-4000-8000-000000000102',
+('10000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000102', 'd0000000-0000-4000-8000-000000000102',
     'LT469739', 'Lan Phương', 'lan.phuong@localtour.test', '0000000102', 'completed', 1950000, 1, NULL),
-('10000000-0000-4000-8000-000000000003', 'd0000000-0000-4000-8000-000000000103',
+('10000000-0000-4000-8000-000000000003', 'a0000000-0000-4000-8000-000000000103', 'd0000000-0000-4000-8000-000000000103',
     'LT707426', 'Thu Trang', 'thu.trang@localtour.test', '0000000103', 'completed', 650000, 1, NULL),
-('10000000-0000-4000-8000-000000000004', 'd0000000-0000-4000-8000-000000000104',
+('10000000-0000-4000-8000-000000000004', 'a0000000-0000-4000-8000-000000000104', 'd0000000-0000-4000-8000-000000000104',
     'LT396700', 'Minh Anh', 'minh.anh@localtour.test', '0000000104', 'completed', 1300000, 1, NULL),
 -- Tour 2
-('10000000-0000-4000-8000-000000000005', 'd0000000-0000-4000-8000-000000000105',
+('10000000-0000-4000-8000-000000000005', 'a0000000-0000-4000-8000-000000000105', 'd0000000-0000-4000-8000-000000000105',
     'LT995361', 'Hoàng Yến', 'hoang.yen@localtour.test', '0000000105', 'completed', 1440000, 1, NULL),
-('10000000-0000-4000-8000-000000000006', 'd0000000-0000-4000-8000-000000000106',
+('10000000-0000-4000-8000-000000000006', 'a0000000-0000-4000-8000-000000000106', 'd0000000-0000-4000-8000-000000000106',
     'LT280930', 'Đức Thịnh', 'duc.thinh@localtour.test', '0000000106', 'completed', 1220000, 1, NULL),
-('10000000-0000-4000-8000-000000000007', 'd0000000-0000-4000-8000-000000000107',
+('10000000-0000-4000-8000-000000000007', 'a0000000-0000-4000-8000-000000000107', 'd0000000-0000-4000-8000-000000000107',
     'LT150872', 'Bảo Ngọc', 'bao.ngoc@localtour.test', '0000000107', 'completed', 1440000, 1, NULL),
 -- Tour 3
-('10000000-0000-4000-8000-000000000008', 'd0000000-0000-4000-8000-000000000108',
+('10000000-0000-4000-8000-000000000008', 'a0000000-0000-4000-8000-000000000108', 'd0000000-0000-4000-8000-000000000108',
     'LT963617', 'Gia Bảo', 'gia.bao@localtour.test', '0000000108', 'completed', 2700000, 1, NULL),
-('10000000-0000-4000-8000-000000000009', 'd0000000-0000-4000-8000-000000000109',
+('10000000-0000-4000-8000-000000000009', 'a0000000-0000-4000-8000-000000000109', 'd0000000-0000-4000-8000-000000000109',
     'LT353315', 'Khánh Linh', 'khanh.linh@localtour.test', '0000000109', 'completed', 1800000, 1, NULL),
 -- Tour 4
-('10000000-0000-4000-8000-000000000010', 'd0000000-0000-4000-8000-000000000110',
+('10000000-0000-4000-8000-000000000010', 'a0000000-0000-4000-8000-000000000110', 'd0000000-0000-4000-8000-000000000110',
     'LT341641', 'Hải Đăng', 'hai.dang@localtour.test', '0000000110', 'completed', 1100000, 1, NULL),
-('10000000-0000-4000-8000-000000000011', 'd0000000-0000-4000-8000-000000000111',
+('10000000-0000-4000-8000-000000000011', 'a0000000-0000-4000-8000-000000000111', 'd0000000-0000-4000-8000-000000000111',
     'LT345953', 'Thanh Hà', 'thanh.ha@localtour.test', '0000000111', 'completed', 550000, 1, NULL),
-('10000000-0000-4000-8000-000000000012', 'd0000000-0000-4000-8000-000000000112',
+('10000000-0000-4000-8000-000000000012', 'a0000000-0000-4000-8000-000000000112', 'd0000000-0000-4000-8000-000000000112',
     'LT103067', 'Văn Long', 'van.long@localtour.test', '0000000112', 'completed', 1490000, 2, NULL),
-('10000000-0000-4000-8000-000000000013', 'd0000000-0000-4000-8000-000000000113',
+('10000000-0000-4000-8000-000000000013', 'a0000000-0000-4000-8000-000000000113', 'd0000000-0000-4000-8000-000000000113',
     'LT848329', 'Ngọc Mai', 'ngoc.mai@localtour.test', '0000000113', 'completed', 1100000, 2, NULL),
 -- Tour 5
-('10000000-0000-4000-8000-000000000014', 'd0000000-0000-4000-8000-000000000114',
+('10000000-0000-4000-8000-000000000014', 'a0000000-0000-4000-8000-000000000114', 'd0000000-0000-4000-8000-000000000114',
     'LT965599', 'Tuấn Kiệt', 'tuan.kiet@localtour.test', '0000000114', 'completed', 960000, 1, NULL),
-('10000000-0000-4000-8000-000000000015', 'd0000000-0000-4000-8000-000000000115',
+('10000000-0000-4000-8000-000000000015', 'a0000000-0000-4000-8000-000000000115', 'd0000000-0000-4000-8000-000000000115',
     'LT673352', 'Mai Chi', 'mai.chi@localtour.test', '0000000115', 'completed', 480000, 1, NULL),
-('10000000-0000-4000-8000-000000000016', 'd0000000-0000-4000-8000-000000000116',
+('10000000-0000-4000-8000-000000000016', 'a0000000-0000-4000-8000-000000000116', 'd0000000-0000-4000-8000-000000000116',
     'LT238066', 'Phương Thảo', 'phuong.thao@localtour.test', '0000000116', 'completed', 1440000, 1, NULL),
 -- Tour 6
-('10000000-0000-4000-8000-000000000017', 'd0000000-0000-4000-8000-000000000117',
+('10000000-0000-4000-8000-000000000017', 'a0000000-0000-4000-8000-000000000117', 'd0000000-0000-4000-8000-000000000117',
     'LT161961', 'Kim Ngân', 'kim.ngan@localtour.test', '0000000117', 'completed', 1180000, 1, NULL),
-('10000000-0000-4000-8000-000000000018', 'd0000000-0000-4000-8000-000000000118',
+('10000000-0000-4000-8000-000000000018', 'a0000000-0000-4000-8000-000000000118', 'd0000000-0000-4000-8000-000000000118',
     'LT308511', 'Trọng Nghĩa', 'trong.nghia@localtour.test', '0000000118', 'completed', 1000000, 1, NULL),
-('10000000-0000-4000-8000-000000000019', 'd0000000-0000-4000-8000-000000000119',
+('10000000-0000-4000-8000-000000000019', 'a0000000-0000-4000-8000-000000000119', 'd0000000-0000-4000-8000-000000000119',
     'LT302797', 'Thảo Vy', 'thao.vy@localtour.test', '0000000119', 'completed', 1180000, 1, NULL),
-('10000000-0000-4000-8000-000000000020', 'd0000000-0000-4000-8000-000000000120',
+('10000000-0000-4000-8000-000000000020', 'a0000000-0000-4000-8000-000000000120', 'd0000000-0000-4000-8000-000000000120',
     'LT423521', 'Nhật Minh', 'nhat.minh@localtour.test', '0000000120', 'completed', 590000, 1, NULL),
 -- Tour 7
-('10000000-0000-4000-8000-000000000021', 'd0000000-0000-4000-8000-000000000121',
+('10000000-0000-4000-8000-000000000021', 'a0000000-0000-4000-8000-000000000121', 'd0000000-0000-4000-8000-000000000121',
     'LT770177', 'Diễm My', 'diem.my@localtour.test', '0000000121', 'completed', 1500000, 1, NULL),
-('10000000-0000-4000-8000-000000000022', 'd0000000-0000-4000-8000-000000000122',
+('10000000-0000-4000-8000-000000000022', 'a0000000-0000-4000-8000-000000000122', 'd0000000-0000-4000-8000-000000000122',
     'LT836154', 'Hữu Phước', 'huu.phuoc@localtour.test', '0000000122', 'completed', 750000, 1, NULL),
-('10000000-0000-4000-8000-000000000023', 'd0000000-0000-4000-8000-000000000123',
+('10000000-0000-4000-8000-000000000023', 'a0000000-0000-4000-8000-000000000123', 'd0000000-0000-4000-8000-000000000123',
     'LT970081', 'Anh Thư', 'anh.thu@localtour.test', '0000000123', 'completed', 2560000, 1, NULL),
 -- Tour 8
-('10000000-0000-4000-8000-000000000024', 'd0000000-0000-4000-8000-000000000124',
+('10000000-0000-4000-8000-000000000024', 'a0000000-0000-4000-8000-000000000124', 'd0000000-0000-4000-8000-000000000124',
     'LT789608', 'Thanh Tùng', 'thanh.tung@localtour.test', '0000000124', 'completed', 850000, 1, NULL),
-('10000000-0000-4000-8000-000000000025', 'd0000000-0000-4000-8000-000000000125',
+('10000000-0000-4000-8000-000000000025', 'a0000000-0000-4000-8000-000000000125', 'd0000000-0000-4000-8000-000000000125',
     'LT753275', 'Quỳnh Như', 'quynh.nhu@localtour.test', '0000000125', 'completed', 1700000, 1, NULL),
 -- Tour 10
-('10000000-0000-4000-8000-000000000026', 'd0000000-0000-4000-8000-000000000126',
+('10000000-0000-4000-8000-000000000026', 'a0000000-0000-4000-8000-000000000126', 'd0000000-0000-4000-8000-000000000126',
     'LT211777', 'Bích Ngọc', 'bich.ngoc@localtour.test', '0000000126', 'completed', 800000, 1, NULL),
-('10000000-0000-4000-8000-000000000027', 'd0000000-0000-4000-8000-000000000127',
+('10000000-0000-4000-8000-000000000027', 'a0000000-0000-4000-8000-000000000127', 'd0000000-0000-4000-8000-000000000127',
     'LT876132', 'Hoài Nam', 'hoai.nam@localtour.test', '0000000127', 'completed', 400000, 1, NULL),
-('10000000-0000-4000-8000-000000000028', 'd0000000-0000-4000-8000-000000000128',
+('10000000-0000-4000-8000-000000000028', 'a0000000-0000-4000-8000-000000000128', 'd0000000-0000-4000-8000-000000000128',
     'LT302831', 'Thu Hằng', 'thu.hang@localtour.test', '0000000128', 'completed', 1200000, 1, NULL),
 -- Đơn có đánh giá đang chờ duyệt
-('10000000-0000-4000-8000-000000000029', 'd0000000-0000-4000-8000-000000000001',
+('10000000-0000-4000-8000-000000000029', 'a0000000-0000-4000-8000-000000000129', 'd0000000-0000-4000-8000-000000000001',
     'LT893219', 'Đình Khoa', 'dinh.khoa@localtour.test', '0000000129', 'completed', 650000, 1, NULL),
 -- Đơn đã hủy
-('10000000-0000-4000-8000-000000000030', 'd0000000-0000-4000-8000-000000000004',
+('10000000-0000-4000-8000-000000000030', 'a0000000-0000-4000-8000-000000000130', 'd0000000-0000-4000-8000-000000000004',
     'LT257589', 'Minh Châu', 'minh.chau@localtour.test', '0000000130', 'cancelled', 1300000, 1, NULL);
 
 -- ---------------------------------------------------------------------
--- 8. booking_lines (DÒNG_ĐƠN)
+-- 10. booking_lines (DÒNG_ĐƠN)
 --   line_total_vnd = quantity x unit_price_vnd.
 -- ---------------------------------------------------------------------
 INSERT INTO booking_lines (id, booking_id, ticket_type_id, quantity, unit_price_vnd, line_total_vnd) VALUES
@@ -831,7 +878,7 @@ INSERT INTO booking_lines (id, booking_id, ticket_type_id, quantity, unit_price_
 ('20000000-0000-4000-8000-000000000301', '10000000-0000-4000-8000-000000000030', 'e0000000-0000-4000-8000-000000000041', 2, 650000, 1300000);
 
 -- ---------------------------------------------------------------------
--- 9. passengers (HÀNH_KHÁCH)
+-- 11. passengers (HÀNH_KHÁCH)
 --   Mỗi vé một hành khách; người đặt là hành khách đầu tiên.
 -- ---------------------------------------------------------------------
 INSERT INTO passengers (id, booking_id, full_name, age_group, special_request) VALUES
@@ -897,10 +944,10 @@ INSERT INTO passengers (id, booking_id, full_name, age_group, special_request) V
 ('30000000-0000-4000-8000-000000000302', '10000000-0000-4000-8000-000000000030', 'Hoàng Long', 'adult', NULL);
 
 -- ---------------------------------------------------------------------
--- 10. payments (THANH_TOÁN)
+-- 12. payments (THANH_TOÁN)
 --   FR-17: chỉ vnpay / vietqr (không có trả sau). Đơn 3k+1 -> vnpay, 3k+2 -> vietqr,
 --   đơn 3k luân phiên vietqr / vnpay. Mọi thanh toán đã 'paid' và có mã giao dịch giả.
---   Đơn 30 đã trả bằng VNPay (status 'paid'); tiền hoàn ghi ở bảng refunds (mục 12).
+--   Đơn 30 đã trả bằng VNPay (status 'paid'); tiền hoàn ghi ở bảng refunds (mục 14).
 -- ---------------------------------------------------------------------
 INSERT INTO payments (id, booking_id, method, provider_txn_id, amount_vnd, status, expires_at) VALUES
 ('40000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001', 'vnpay', 'VNP-DEMO-000001', 1760000, 'paid', NULL),
@@ -935,7 +982,7 @@ INSERT INTO payments (id, booking_id, method, provider_txn_id, amount_vnd, statu
 ('40000000-0000-4000-8000-000000000030', '10000000-0000-4000-8000-000000000030', 'vnpay', 'VNP-DEMO-000015', 1300000, 'paid', NULL);
 
 -- ---------------------------------------------------------------------
--- 11. payment_events (SỰ_KIỆN_THANH_TOÁN)
+-- 13. payment_events (SỰ_KIỆN_THANH_TOÁN)
 --   Một thông báo thành công (result_code '00', đã xác thực) cho mỗi thanh toán VNPay / VietQR.
 --   received_at = lúc khách thanh toán (khoảng 7 ngày trước ngày đi tour).
 -- ---------------------------------------------------------------------
@@ -972,17 +1019,17 @@ INSERT INTO payment_events (id, payment_id, provider_event_id, result_code, veri
 ('50000000-0000-4000-8000-000000000030', '40000000-0000-4000-8000-000000000030', 'EVT-DEMO-000030', '00', TRUE, TIMESTAMP(CURDATE() - INTERVAL 6 DAY, '13:05:00'));
 
 -- ---------------------------------------------------------------------
--- 12. refunds (HOÀN_TIỀN)
+-- 14. refunds (HOÀN_TIỀN)
 --   Đơn 30 hủy trước giờ khởi hành hơn 24 giờ -> hoàn 100%.
 -- ---------------------------------------------------------------------
 INSERT INTO refunds (id, payment_id, amount_vnd, reason, status, requested_at) VALUES
 ('60000000-0000-4000-8000-000000000001', '40000000-0000-4000-8000-000000000030', 1300000, 'Khách đổi kế hoạch du lịch, hủy trước giờ khởi hành hơn 24 giờ nên được hoàn toàn bộ tiền.', 'completed', TIMESTAMP(CURDATE() - INTERVAL 2 DAY, '08:30:00'));
 
 -- ---------------------------------------------------------------------
--- 13. reviews (ĐÁNH_GIÁ)
+-- 15. reviews (ĐÁNH_GIÁ)
 --   Đánh giá N thuộc đơn N. Chỉ 'approved' được hiển thị và tính điểm trung bình.
 --   Đánh giá 29 (tour 1, 1 sao) đang 'pending': không được hiện, không được tính.
---   Tên người đánh giá hiển thị = bookings.contact_name của đơn tương ứng.
+--   Tên người đánh giá hiển thị = users.name của chủ đơn (bookings.user_id), trùng contact_name.
 -- ---------------------------------------------------------------------
 INSERT INTO reviews (id, booking_id, tour_id, rating, content, moderation_status) VALUES
 -- Tour 1
@@ -1055,7 +1102,7 @@ INSERT INTO reviews (id, booking_id, tour_id, rating, content, moderation_status
     1, 'Người dẫn đến muộn gần 30 phút và không báo trước, cả nhóm phải đứng chờ.', 'pending');
 
 -- ---------------------------------------------------------------------
--- 14. tour_images (ẢNH_TOUR) - FR-01, FR-02
+-- 16. tour_images (ẢNH_TOUR) - FR-01, FR-02
 --   url tương đối từ src/public/assets/. Mỗi file chỉ thuộc 1 tour; tour 2 và tour 9 không có ảnh.
 --   Ảnh bìa = sort_order nhỏ nhất, rồi id nhỏ nhất. id theo thứ tự chèn.
 -- ---------------------------------------------------------------------
@@ -1094,109 +1141,177 @@ INSERT INTO tour_images (id, tour_id, url, alt_text, sort_order) VALUES
     'img/tours/hanoi-2.svg', 'Quán ăn sáng vỉa hè với nồi nước dùng bốc khói', 1);
 
 -- ---------------------------------------------------------------------
--- 15. itinerary_stops (ĐIỂM_LỊCH_TRÌNH) - FR-03
---   Chèn lệch thứ tự trong từng tour; trang chi tiết sắp xếp theo stop_order.
---   description / duration_minutes NULL = chưa cập nhật. Tour 9 không có lịch trình.
+-- 17. tour_itinerary_items (LỊCH_TRÌNH_TOUR) - FR-03
+--   Chèn lệch thứ tự trong từng tour; trang chi tiết sắp xếp theo sort_order.
+--   description = tên chặng, thêm ". " + mô tả chặng nếu có.
+--   start_time = giờ khởi hành của lịch (mục 7) + thời lượng các chặng trước;
+--   NULL = không ghi giờ (giao diện chỉ hiện mô tả). Tour 9 không có lịch trình.
+--   Bảng itinerary_stops (thiết kế cũ) để trống.
 -- ---------------------------------------------------------------------
-INSERT INTO itinerary_stops (id, tour_id, stop_order, title, description, duration_minutes) VALUES
--- Tour 1: 5 chặng, chèn theo thứ tự 3, 1, 5, 2, 4
-('90000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001', 3, 'Bún chả và nem rán trong một con ngõ nhỏ',
-    NULL, 60),
-('90000000-0000-4000-8000-000000000002', 'c0000000-0000-4000-8000-000000000001', 1, 'Gặp nhau tại Nhà hát Múa rối Thăng Long',
-    'Người dẫn giới thiệu lộ trình và phát nước uống cho cả nhóm.', 15),
-('90000000-0000-4000-8000-000000000003', 'c0000000-0000-4000-8000-000000000001', 5, 'Kết thúc tại khu vực hồ Hoàn Kiếm',
-    NULL, NULL),
-('90000000-0000-4000-8000-000000000004', 'c0000000-0000-4000-8000-000000000001', 2, 'Đi bộ và thử món ăn quanh phố cổ',
-    'Mỗi điểm dừng là một món ăn và một câu chuyện về con phố đó.', 75),
-('90000000-0000-4000-8000-000000000005', 'c0000000-0000-4000-8000-000000000001', 4, 'Cà phê trứng và câu chuyện địa phương',
-    'Ngồi lại ở quán cà phê, nghe người dẫn kể về cuộc sống thường ngày ở phố cổ.', 90),
--- Tour 2: 4 chặng, chèn theo thứ tự 3, 1, 4, 2
-('90000000-0000-4000-8000-000000000006', 'c0000000-0000-4000-8000-000000000002', 3, 'Bánh cuốn nóng trong một quán gia đình',
-    'Xem cách tráng bánh cuốn trên nồi hấp và ăn ngay khi bánh còn nóng.', 60),
-('90000000-0000-4000-8000-000000000007', 'c0000000-0000-4000-8000-000000000002', 1, 'Gặp nhau tại cổng chính chợ Đồng Xuân',
-    NULL, 20),
-('90000000-0000-4000-8000-000000000008', 'c0000000-0000-4000-8000-000000000002', 4, 'Cà phê trứng trên tầng cao nhìn ra phố',
-    'Tour kết thúc tại quán lúc 18:00.', 45),
-('90000000-0000-4000-8000-000000000009', 'c0000000-0000-4000-8000-000000000002', 2, 'Dạo chợ, thử ô mai và các món ăn vặt',
-    'Người dẫn chỉ cách chọn ô mai và giới thiệu các món ăn vặt quen thuộc của người Hà Nội.', 55),
--- Tour 3: 5 chặng, chèn theo thứ tự 3, 1, 5, 2, 4
-('90000000-0000-4000-8000-000000000010', 'c0000000-0000-4000-8000-000000000003', 3, 'Ghé một phố nghề truyền thống theo lựa chọn của nhóm',
-    NULL, NULL),
-('90000000-0000-4000-8000-000000000011', 'c0000000-0000-4000-8000-000000000003', 1, 'Gặp người dẫn tại đền Bạch Mã, thống nhất lộ trình',
-    'Nhóm chọn chủ đề cho buổi đi: kiến trúc, phố nghề, đền chùa hoặc góc chụp ảnh.', NULL),
-('90000000-0000-4000-8000-000000000012', 'c0000000-0000-4000-8000-000000000003', 5, 'Kết thúc ở quán trà, gợi ý chỗ ăn tối',
-    'Trò chuyện cùng người dẫn và nhận danh sách quán ăn gợi ý.', NULL),
-('90000000-0000-4000-8000-000000000013', 'c0000000-0000-4000-8000-000000000003', 2, 'Tham quan một ngôi nhà cổ',
-    'Tìm hiểu kiến trúc nhà ống: mặt tiền hẹp, giếng trời và cách nhiều thế hệ sống chung.', NULL),
-('90000000-0000-4000-8000-000000000014', 'c0000000-0000-4000-8000-000000000003', 4, 'Đi xích lô một vòng quanh hồ Hoàn Kiếm',
-    NULL, 20),
--- Tour 4: 5 chặng, chèn theo thứ tự 4, 2, 5, 1, 3
-('90000000-0000-4000-8000-000000000015', 'c0000000-0000-4000-8000-000000000004', 4, 'Ăn sáng mì Quảng gần chân núi',
-    NULL, 90),
-('90000000-0000-4000-8000-000000000016', 'c0000000-0000-4000-8000-000000000004', 2, 'Ngắm bình minh trên đỉnh Bàn Cờ',
-    'Đỉnh Bàn Cờ nhìn ra biển và toàn cảnh thành phố; nên mang áo khoác mỏng.', 60),
-('90000000-0000-4000-8000-000000000017', 'c0000000-0000-4000-8000-000000000004', 5, 'Xe đưa về khách sạn',
-    NULL, NULL),
-('90000000-0000-4000-8000-000000000018', 'c0000000-0000-4000-8000-000000000004', 1, 'Xe đón tại khách sạn ở trung tâm',
-    NULL, 30),
-('90000000-0000-4000-8000-000000000019', 'c0000000-0000-4000-8000-000000000004', 3, 'Đi bộ đường rừng, tìm voọc chà vá chân nâu',
-    'Cung đường ngắn, độ dốc vừa phải. Có ống nhòm cho mượn để quan sát voọc.', 120),
--- Tour 5: 5 chặng, chèn theo thứ tự 3, 1, 5, 2, 4
-('90000000-0000-4000-8000-000000000020', 'c0000000-0000-4000-8000-000000000005', 3, 'Ăn tối nhẹ ở chợ đêm',
-    'Thử bánh tráng cuốn thịt heo, ốc hút và chè.', 75),
-('90000000-0000-4000-8000-000000000021', 'c0000000-0000-4000-8000-000000000005', 1, 'Gặp nhau ở đầu cầu Rồng, phía đường Bạch Đằng',
-    NULL, 15),
-('90000000-0000-4000-8000-000000000022', 'c0000000-0000-4000-8000-000000000005', 5, 'Kết thúc tour tại chợ đêm',
-    NULL, NULL),
-('90000000-0000-4000-8000-000000000023', 'c0000000-0000-4000-8000-000000000005', 2, 'Dạo bờ sông Hàn, ngắm cầu Rồng lên đèn',
-    'Dừng ở những góc ngắm cầu Rồng đẹp nhất để chụp ảnh.', 60),
-('90000000-0000-4000-8000-000000000024', 'c0000000-0000-4000-8000-000000000005', 4, 'Xem cầu Rồng phun lửa, phun nước',
-    'Chỉ có vào tối thứ Bảy và Chủ nhật, lúc 21:00.', 60),
--- Tour 6: 5 chặng, chèn theo thứ tự 4, 2, 5, 1, 3
-('90000000-0000-4000-8000-000000000025', 'c0000000-0000-4000-8000-000000000006', 4, 'Thả hoa đăng trên sông Hoài',
-    NULL, 45),
-('90000000-0000-4000-8000-000000000026', 'c0000000-0000-4000-8000-000000000006', 2, 'Tham quan nhà cổ và hội quán Phúc Kiến',
-    'Nghe chuyện về thương cảng Hội An xưa.', 60),
-('90000000-0000-4000-8000-000000000027', 'c0000000-0000-4000-8000-000000000006', 5, 'Kết thúc tour ở chợ đêm Nguyễn Hoàng',
-    NULL, NULL),
-('90000000-0000-4000-8000-000000000028', 'c0000000-0000-4000-8000-000000000006', 1, 'Gặp nhau tại Chùa Cầu',
-    NULL, 15),
-('90000000-0000-4000-8000-000000000029', 'c0000000-0000-4000-8000-000000000006', 3, 'Học làm đèn lồng cùng nghệ nhân',
-    'Mỗi khách tự làm một chiếc đèn lồng nhỏ để mang về.', 60),
--- Tour 7: 5 chặng, chèn theo thứ tự 3, 1, 5, 2, 4
-('90000000-0000-4000-8000-000000000030', 'c0000000-0000-4000-8000-000000000007', 3, 'Lớp nấu ăn: bánh xèo và gỏi cuốn',
-    NULL, 105),
-('90000000-0000-4000-8000-000000000031', 'c0000000-0000-4000-8000-000000000007', 1, 'Nhận xe đạp, đạp xe ra làng rau Trà Quế',
-    'Quãng đường khoảng 4 km qua đồng lúa.', 30),
-('90000000-0000-4000-8000-000000000032', 'c0000000-0000-4000-8000-000000000007', 5, 'Đạp xe về trung tâm Hội An',
-    NULL, NULL),
-('90000000-0000-4000-8000-000000000033', 'c0000000-0000-4000-8000-000000000007', 2, 'Làm vườn cùng nông dân trong làng',
-    'Xới đất, gánh nước tưới rau và tìm hiểu cách bón rau bằng rong sông.', 75),
-('90000000-0000-4000-8000-000000000034', 'c0000000-0000-4000-8000-000000000007', 4, 'Ăn trưa trong vườn',
-    NULL, 60),
--- Tour 8: 5 chặng, chèn theo thứ tự 4, 2, 5, 1, 3
-('90000000-0000-4000-8000-000000000035', 'c0000000-0000-4000-8000-000000000008', 4, 'Cà phê nhạc sống',
-    'Nghỉ chân ở một quán cà phê có ban nhạc chơi nhạc sống.', 90),
-('90000000-0000-4000-8000-000000000036', 'c0000000-0000-4000-8000-000000000008', 2, 'Ăn ốc ở quận 4',
-    NULL, 60),
-('90000000-0000-4000-8000-000000000037', 'c0000000-0000-4000-8000-000000000008', 5, 'Đưa khách về khách sạn',
-    NULL, NULL),
-('90000000-0000-4000-8000-000000000038', 'c0000000-0000-4000-8000-000000000008', 1, 'Đón khách tại khách sạn',
-    'Nhận mũ bảo hiểm, áo mưa và làm quen với tài xế.', 30),
-('90000000-0000-4000-8000-000000000039', 'c0000000-0000-4000-8000-000000000008', 3, 'Dạo Chợ Lớn và ăn chè',
-    NULL, 60),
--- Tour 10: 4 chặng, chèn theo thứ tự 3, 1, 4, 2 (tour đang chờ duyệt: không được hiển thị)
-('90000000-0000-4000-8000-000000000040', 'c0000000-0000-4000-8000-000000000010', 3, 'Ghé chùa Trấn Quốc',
-    'Đến trước giờ đông khách.', 45),
-('90000000-0000-4000-8000-000000000041', 'c0000000-0000-4000-8000-000000000010', 1, 'Nhận xe đạp ở đầu đường Thanh Niên',
-    NULL, 15),
-('90000000-0000-4000-8000-000000000042', 'c0000000-0000-4000-8000-000000000010', 4, 'Ăn sáng bún ốc và kết thúc tour',
-    NULL, 30),
-('90000000-0000-4000-8000-000000000043', 'c0000000-0000-4000-8000-000000000010', 2, 'Đạp xe quanh Hồ Tây, ngắm bình minh',
-    'Đạp chậm, dừng ở vài điểm ngắm mặt trời mọc trên hồ.', 60);
+INSERT INTO tour_itinerary_items (id, tour_id, start_time, description, sort_order) VALUES
+-- Tour 1 (lịch 17:00): 5 mục, chèn theo thứ tự 3, 1, 5, 2, 4
+('c4000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001', '18:30:00',
+    'Bún chả và nem rán trong một con ngõ nhỏ', 3),
+('c4000000-0000-4000-8000-000000000002', 'c0000000-0000-4000-8000-000000000001', '17:00:00',
+    'Gặp nhau tại Nhà hát Múa rối Thăng Long. Người dẫn giới thiệu lộ trình và phát nước uống cho cả nhóm.', 1),
+('c4000000-0000-4000-8000-000000000003', 'c0000000-0000-4000-8000-000000000001', '21:00:00',
+    'Kết thúc tại khu vực hồ Hoàn Kiếm', 5),
+('c4000000-0000-4000-8000-000000000004', 'c0000000-0000-4000-8000-000000000001', '17:15:00',
+    'Đi bộ và thử món ăn quanh phố cổ. Mỗi điểm dừng là một món ăn và một câu chuyện về con phố đó.', 2),
+('c4000000-0000-4000-8000-000000000005', 'c0000000-0000-4000-8000-000000000001', '19:30:00',
+    'Cà phê trứng và câu chuyện địa phương. Ngồi lại ở quán cà phê, nghe người dẫn kể về cuộc sống thường ngày ở phố cổ.', 4),
+-- Tour 2 (lịch 15:00): 4 mục, chèn theo thứ tự 3, 1, 4, 2
+('c4000000-0000-4000-8000-000000000006', 'c0000000-0000-4000-8000-000000000002', '16:15:00',
+    'Bánh cuốn nóng trong một quán gia đình. Xem cách tráng bánh cuốn trên nồi hấp và ăn ngay khi bánh còn nóng.', 3),
+('c4000000-0000-4000-8000-000000000007', 'c0000000-0000-4000-8000-000000000002', '15:00:00',
+    'Gặp nhau tại cổng chính chợ Đồng Xuân', 1),
+('c4000000-0000-4000-8000-000000000008', 'c0000000-0000-4000-8000-000000000002', '17:15:00',
+    'Cà phê trứng trên tầng cao nhìn ra phố. Tour kết thúc tại quán lúc 18:00.', 4),
+('c4000000-0000-4000-8000-000000000009', 'c0000000-0000-4000-8000-000000000002', '15:20:00',
+    'Dạo chợ, thử ô mai và các món ăn vặt. Người dẫn chỉ cách chọn ô mai và giới thiệu các món ăn vặt quen thuộc của người Hà Nội.', 2),
+-- Tour 3: 5 mục, chèn theo thứ tự 3, 1, 5, 2, 4. Lộ trình linh hoạt (lịch 08:30 hoặc 14:00)
+--   -> mọi mục start_time NULL, giao diện chỉ hiện mô tả
+('c4000000-0000-4000-8000-000000000010', 'c0000000-0000-4000-8000-000000000003', NULL,
+    'Ghé một phố nghề truyền thống theo lựa chọn của nhóm', 3),
+('c4000000-0000-4000-8000-000000000011', 'c0000000-0000-4000-8000-000000000003', NULL,
+    'Gặp người dẫn tại đền Bạch Mã, thống nhất lộ trình. Nhóm chọn chủ đề cho buổi đi: kiến trúc, phố nghề, đền chùa hoặc góc chụp ảnh.', 1),
+('c4000000-0000-4000-8000-000000000012', 'c0000000-0000-4000-8000-000000000003', NULL,
+    'Kết thúc ở quán trà, gợi ý chỗ ăn tối. Trò chuyện cùng người dẫn và nhận danh sách quán ăn gợi ý.', 5),
+('c4000000-0000-4000-8000-000000000013', 'c0000000-0000-4000-8000-000000000003', NULL,
+    'Tham quan một ngôi nhà cổ. Tìm hiểu kiến trúc nhà ống: mặt tiền hẹp, giếng trời và cách nhiều thế hệ sống chung.', 2),
+('c4000000-0000-4000-8000-000000000014', 'c0000000-0000-4000-8000-000000000003', NULL,
+    'Đi xích lô một vòng quanh hồ Hoàn Kiếm', 4),
+-- Tour 4 (lịch 05:00): 5 mục, chèn theo thứ tự 4, 2, 5, 1, 3; mục 5 trả khách về khách sạn
+--   không ghi giờ (NULL, tùy khách sạn)
+('c4000000-0000-4000-8000-000000000015', 'c0000000-0000-4000-8000-000000000004', '08:30:00',
+    'Ăn sáng mì Quảng gần chân núi', 4),
+('c4000000-0000-4000-8000-000000000016', 'c0000000-0000-4000-8000-000000000004', '05:30:00',
+    'Ngắm bình minh trên đỉnh Bàn Cờ. Đỉnh Bàn Cờ nhìn ra biển và toàn cảnh thành phố; nên mang áo khoác mỏng.', 2),
+('c4000000-0000-4000-8000-000000000017', 'c0000000-0000-4000-8000-000000000004', NULL,
+    'Xe đưa về khách sạn', 5),
+('c4000000-0000-4000-8000-000000000018', 'c0000000-0000-4000-8000-000000000004', '05:00:00',
+    'Xe đón tại khách sạn ở trung tâm', 1),
+('c4000000-0000-4000-8000-000000000019', 'c0000000-0000-4000-8000-000000000004', '06:30:00',
+    'Đi bộ đường rừng, tìm voọc chà vá chân nâu. Cung đường ngắn, độ dốc vừa phải. Có ống nhòm cho mượn để quan sát voọc.', 3),
+-- Tour 5 (lịch 18:30): 5 mục, chèn theo thứ tự 3, 1, 5, 2, 4
+('c4000000-0000-4000-8000-000000000020', 'c0000000-0000-4000-8000-000000000005', '19:45:00',
+    'Ăn tối nhẹ ở chợ đêm. Thử bánh tráng cuốn thịt heo, ốc hút và chè.', 3),
+('c4000000-0000-4000-8000-000000000021', 'c0000000-0000-4000-8000-000000000005', '18:30:00',
+    'Gặp nhau ở đầu cầu Rồng, phía đường Bạch Đằng', 1),
+('c4000000-0000-4000-8000-000000000022', 'c0000000-0000-4000-8000-000000000005', '22:00:00',
+    'Kết thúc tour tại chợ đêm', 5),
+('c4000000-0000-4000-8000-000000000023', 'c0000000-0000-4000-8000-000000000005', '18:45:00',
+    'Dạo bờ sông Hàn, ngắm cầu Rồng lên đèn. Dừng ở những góc ngắm cầu Rồng đẹp nhất để chụp ảnh.', 2),
+('c4000000-0000-4000-8000-000000000024', 'c0000000-0000-4000-8000-000000000005', '21:00:00',
+    'Xem cầu Rồng phun lửa, phun nước. Chỉ có vào tối thứ Bảy và Chủ nhật, lúc 21:00.', 4),
+-- Tour 6 (lịch 16:30): 5 mục, chèn theo thứ tự 4, 2, 5, 1, 3
+('c4000000-0000-4000-8000-000000000025', 'c0000000-0000-4000-8000-000000000006', '18:45:00',
+    'Thả hoa đăng trên sông Hoài', 4),
+('c4000000-0000-4000-8000-000000000026', 'c0000000-0000-4000-8000-000000000006', '16:45:00',
+    'Tham quan nhà cổ và hội quán Phúc Kiến. Nghe chuyện về thương cảng Hội An xưa.', 2),
+('c4000000-0000-4000-8000-000000000027', 'c0000000-0000-4000-8000-000000000006', '19:30:00',
+    'Kết thúc tour ở chợ đêm Nguyễn Hoàng', 5),
+('c4000000-0000-4000-8000-000000000028', 'c0000000-0000-4000-8000-000000000006', '16:30:00',
+    'Gặp nhau tại Chùa Cầu', 1),
+('c4000000-0000-4000-8000-000000000029', 'c0000000-0000-4000-8000-000000000006', '17:45:00',
+    'Học làm đèn lồng cùng nghệ nhân. Mỗi khách tự làm một chiếc đèn lồng nhỏ để mang về.', 3),
+-- Tour 7 (lịch 08:00): 5 mục, chèn theo thứ tự 3, 1, 5, 2, 4
+('c4000000-0000-4000-8000-000000000030', 'c0000000-0000-4000-8000-000000000007', '09:45:00',
+    'Lớp nấu ăn: bánh xèo và gỏi cuốn', 3),
+('c4000000-0000-4000-8000-000000000031', 'c0000000-0000-4000-8000-000000000007', '08:00:00',
+    'Nhận xe đạp, đạp xe ra làng rau Trà Quế. Quãng đường khoảng 4 km qua đồng lúa.', 1),
+('c4000000-0000-4000-8000-000000000032', 'c0000000-0000-4000-8000-000000000007', '12:30:00',
+    'Đạp xe về trung tâm Hội An', 5),
+('c4000000-0000-4000-8000-000000000033', 'c0000000-0000-4000-8000-000000000007', '08:30:00',
+    'Làm vườn cùng nông dân trong làng. Xới đất, gánh nước tưới rau và tìm hiểu cách bón rau bằng rong sông.', 2),
+('c4000000-0000-4000-8000-000000000034', 'c0000000-0000-4000-8000-000000000007', '11:30:00',
+    'Ăn trưa trong vườn', 4),
+-- Tour 8 (lịch 18:00): 5 mục, chèn theo thứ tự 4, 2, 5, 1, 3; mục 5 trả khách về khách sạn
+--   không ghi giờ (NULL, tùy khách sạn)
+('c4000000-0000-4000-8000-000000000035', 'c0000000-0000-4000-8000-000000000008', '20:30:00',
+    'Cà phê nhạc sống. Nghỉ chân ở một quán cà phê có ban nhạc chơi nhạc sống.', 4),
+('c4000000-0000-4000-8000-000000000036', 'c0000000-0000-4000-8000-000000000008', '18:30:00',
+    'Ăn ốc ở quận 4', 2),
+('c4000000-0000-4000-8000-000000000037', 'c0000000-0000-4000-8000-000000000008', NULL,
+    'Đưa khách về khách sạn', 5),
+('c4000000-0000-4000-8000-000000000038', 'c0000000-0000-4000-8000-000000000008', '18:00:00',
+    'Đón khách tại khách sạn. Nhận mũ bảo hiểm, áo mưa và làm quen với tài xế.', 1),
+('c4000000-0000-4000-8000-000000000039', 'c0000000-0000-4000-8000-000000000008', '19:30:00',
+    'Dạo Chợ Lớn và ăn chè', 3),
+-- Tour 10 (lịch 05:30): 4 mục, chèn theo thứ tự 3, 1, 4, 2 (tour đang chờ duyệt: không được hiển thị)
+('c4000000-0000-4000-8000-000000000040', 'c0000000-0000-4000-8000-000000000010', '06:45:00',
+    'Ghé chùa Trấn Quốc. Đến trước giờ đông khách.', 3),
+('c4000000-0000-4000-8000-000000000041', 'c0000000-0000-4000-8000-000000000010', '05:30:00',
+    'Nhận xe đạp ở đầu đường Thanh Niên', 1),
+('c4000000-0000-4000-8000-000000000042', 'c0000000-0000-4000-8000-000000000010', '07:30:00',
+    'Ăn sáng bún ốc và kết thúc tour', 4),
+('c4000000-0000-4000-8000-000000000043', 'c0000000-0000-4000-8000-000000000010', '05:45:00',
+    'Đạp xe quanh Hồ Tây, ngắm bình minh. Đạp chậm, dừng ở vài điểm ngắm mặt trời mọc trên hồ.', 2);
 
 -- ---------------------------------------------------------------------
--- 16. tour_extras (PHỤ_THU / HOẠT_ĐỘNG_TÙY_CHỌN) - FR-04, FR-10
+-- 18. tour_inclusions (BAO_GỒM_TOUR) - FR-04
+--   is_included TRUE = đã gồm trong giá, FALSE = không bao gồm; sort_order 1, 2, ... trong
+--   từng nhóm. Hiển thị: bao gồm trước, rồi sort_order, rồi id.
+--   Tour 5 chỉ có danh sách bao gồm; tour 9 không có dòng nào.
+-- ---------------------------------------------------------------------
+INSERT INTO tour_inclusions (id, tour_id, item_text, is_included, sort_order) VALUES
+-- Tour 1: 3 mục bao gồm, 3 mục không bao gồm
+('c5000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001', 'Người dẫn địa phương', TRUE, 1),
+('c5000000-0000-4000-8000-000000000002', 'c0000000-0000-4000-8000-000000000001', '5 món ăn', TRUE, 2),
+('c5000000-0000-4000-8000-000000000003', 'c0000000-0000-4000-8000-000000000001', '1 đồ uống', TRUE, 3),
+('c5000000-0000-4000-8000-000000000004', 'c0000000-0000-4000-8000-000000000001', 'Đồ uống gọi thêm ngoài 1 đồ uống của tour', FALSE, 1),
+('c5000000-0000-4000-8000-000000000005', 'c0000000-0000-4000-8000-000000000001', 'Tiền tip cho người dẫn (tùy ý)', FALSE, 2),
+('c5000000-0000-4000-8000-000000000006', 'c0000000-0000-4000-8000-000000000001', 'Chi phí đi lại đến điểm hẹn', FALSE, 3),
+-- Tour 2: 3 mục bao gồm, 2 mục không bao gồm
+('c5000000-0000-4000-8000-000000000007', 'c0000000-0000-4000-8000-000000000002', 'Người dẫn địa phương', TRUE, 1),
+('c5000000-0000-4000-8000-000000000008', 'c0000000-0000-4000-8000-000000000002', 'Bánh cuốn và 3 món ăn vặt', TRUE, 2),
+('c5000000-0000-4000-8000-000000000009', 'c0000000-0000-4000-8000-000000000002', '1 ly cà phê trứng', TRUE, 3),
+('c5000000-0000-4000-8000-000000000010', 'c0000000-0000-4000-8000-000000000002', 'Món ăn, đồ uống gọi thêm', FALSE, 1),
+('c5000000-0000-4000-8000-000000000011', 'c0000000-0000-4000-8000-000000000002', 'Tiền tip cho người dẫn (tùy ý)', FALSE, 2),
+-- Tour 3: 3 mục bao gồm, 2 mục không bao gồm
+('c5000000-0000-4000-8000-000000000012', 'c0000000-0000-4000-8000-000000000003', 'Người dẫn riêng cho nhóm', TRUE, 1),
+('c5000000-0000-4000-8000-000000000013', 'c0000000-0000-4000-8000-000000000003', 'Vé vào nhà cổ', TRUE, 2),
+('c5000000-0000-4000-8000-000000000014', 'c0000000-0000-4000-8000-000000000003', 'Xích lô 20 phút', TRUE, 3),
+('c5000000-0000-4000-8000-000000000015', 'c0000000-0000-4000-8000-000000000003', 'Bữa ăn và đồ uống', FALSE, 1),
+('c5000000-0000-4000-8000-000000000016', 'c0000000-0000-4000-8000-000000000003', 'Mua sắm cá nhân tại phố nghề', FALSE, 2),
+-- Tour 4: chèn 2 mục không bao gồm trước, rồi 4 mục bao gồm theo thứ tự 3, 1, 4, 2
+('c5000000-0000-4000-8000-000000000017', 'c0000000-0000-4000-8000-000000000004', 'Đồ uống ngoài nước suối', FALSE, 1),
+('c5000000-0000-4000-8000-000000000018', 'c0000000-0000-4000-8000-000000000004', 'Chi phí cá nhân', FALSE, 2),
+('c5000000-0000-4000-8000-000000000019', 'c0000000-0000-4000-8000-000000000004', 'Nước uống', TRUE, 3),
+('c5000000-0000-4000-8000-000000000020', 'c0000000-0000-4000-8000-000000000004', 'Xe đưa đón hai chiều', TRUE, 1),
+('c5000000-0000-4000-8000-000000000021', 'c0000000-0000-4000-8000-000000000004', 'Ống nhòm cho mượn', TRUE, 4),
+('c5000000-0000-4000-8000-000000000022', 'c0000000-0000-4000-8000-000000000004', 'Bữa sáng mì Quảng', TRUE, 2),
+-- Tour 5: chỉ có 3 mục bao gồm (không có danh sách không bao gồm)
+('c5000000-0000-4000-8000-000000000023', 'c0000000-0000-4000-8000-000000000005', 'Người dẫn địa phương', TRUE, 1),
+('c5000000-0000-4000-8000-000000000024', 'c0000000-0000-4000-8000-000000000005', 'Ăn tối nhẹ 3 món', TRUE, 2),
+('c5000000-0000-4000-8000-000000000025', 'c0000000-0000-4000-8000-000000000005', 'Taxi sang chợ đêm', TRUE, 3),
+-- Tour 6: 3 mục bao gồm, 3 mục không bao gồm
+('c5000000-0000-4000-8000-000000000026', 'c0000000-0000-4000-8000-000000000006', 'Vé tham quan phố cổ', TRUE, 1),
+('c5000000-0000-4000-8000-000000000027', 'c0000000-0000-4000-8000-000000000006', 'Đèn lồng tự làm mang về', TRUE, 2),
+('c5000000-0000-4000-8000-000000000028', 'c0000000-0000-4000-8000-000000000006', 'Hoa đăng', TRUE, 3),
+('c5000000-0000-4000-8000-000000000029', 'c0000000-0000-4000-8000-000000000006', 'Ăn tối', FALSE, 1),
+('c5000000-0000-4000-8000-000000000030', 'c0000000-0000-4000-8000-000000000006', 'Đi thuyền trên sông Hoài (xem hoạt động tùy chọn)', FALSE, 2),
+('c5000000-0000-4000-8000-000000000031', 'c0000000-0000-4000-8000-000000000006', 'Chi phí cá nhân', FALSE, 3),
+-- Tour 7: 3 mục bao gồm, 2 mục không bao gồm
+('c5000000-0000-4000-8000-000000000032', 'c0000000-0000-4000-8000-000000000007', 'Xe đạp và nón lá', TRUE, 1),
+('c5000000-0000-4000-8000-000000000033', 'c0000000-0000-4000-8000-000000000007', 'Lớp nấu ăn và bữa trưa', TRUE, 2),
+('c5000000-0000-4000-8000-000000000034', 'c0000000-0000-4000-8000-000000000007', 'Nước uống', TRUE, 3),
+('c5000000-0000-4000-8000-000000000035', 'c0000000-0000-4000-8000-000000000007', 'Đồ uống gọi thêm', FALSE, 1),
+('c5000000-0000-4000-8000-000000000036', 'c0000000-0000-4000-8000-000000000007', 'Chi phí cá nhân', FALSE, 2),
+-- Tour 8: 4 mục bao gồm, 2 mục không bao gồm
+('c5000000-0000-4000-8000-000000000037', 'c0000000-0000-4000-8000-000000000008', 'Xe máy và tài xế riêng cho mỗi khách', TRUE, 1),
+('c5000000-0000-4000-8000-000000000038', 'c0000000-0000-4000-8000-000000000008', 'Ăn tối 4 món', TRUE, 2),
+('c5000000-0000-4000-8000-000000000039', 'c0000000-0000-4000-8000-000000000008', 'Mũ bảo hiểm và áo mưa', TRUE, 3),
+('c5000000-0000-4000-8000-000000000040', 'c0000000-0000-4000-8000-000000000008', 'Bảo hiểm du lịch', TRUE, 4),
+('c5000000-0000-4000-8000-000000000041', 'c0000000-0000-4000-8000-000000000008', 'Đồ uống gọi thêm tại quán cà phê', FALSE, 1),
+('c5000000-0000-4000-8000-000000000042', 'c0000000-0000-4000-8000-000000000008', 'Tiền tip cho tài xế (tùy ý)', FALSE, 2),
+-- Tour 10: tour đang chờ duyệt, không bao giờ được hiển thị
+('c5000000-0000-4000-8000-000000000043', 'c0000000-0000-4000-8000-000000000010', 'Xe đạp và mũ bảo hiểm', TRUE, 1),
+('c5000000-0000-4000-8000-000000000044', 'c0000000-0000-4000-8000-000000000010', 'Bữa sáng bún ốc', TRUE, 2),
+('c5000000-0000-4000-8000-000000000045', 'c0000000-0000-4000-8000-000000000010', 'Đồ uống gọi thêm', FALSE, 1);
+
+-- ---------------------------------------------------------------------
+-- 19. tour_extras (PHỤ_THU / HOẠT_ĐỘNG_TÙY_CHỌN) - FR-04, FR-10
 --   kind: surcharge = phụ thu, optional = hoạt động tùy chọn. Giá tách riêng, không cộng vào giá tour.
 --   price_vnd / price_unit / conditions NULL = chưa cập nhật. Tour 2 và tour 9 không có dòng nào.
 --   Hiển thị: phụ thu trước, rồi sort_order, rồi id. id theo thứ tự chèn.

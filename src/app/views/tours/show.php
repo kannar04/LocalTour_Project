@@ -2,13 +2,16 @@
 <?php
 /*
  * Chi tiết tour (UIEx2, Nguyễn Tuấn Khôi) – render phía server, tour-detail.js chỉ xử lý thẻ giá và tab neo.
- * Biến: $tour (NMT_sp_tour_detail, gồm transport, guide_info, dropoff_point, excluded_summary, document_terms,
- *       meal_terms, voucher_terms, reschedule_terms), $schedules (lịch còn đặt được), $tickets (vé đang bán của các lịch đó),
- *       $itinerary (điểm lịch trình theo stop_order), $extras (phụ thu / hoạt động tùy chọn, phụ thu trước),
+ * Biến: $tour (NMT_sp_tour_detail, gồm destination_id/destination_name, category_id/category_name, transport,
+ *       guide_info, dropoff_point, document_terms, meal_terms, voucher_terms, reschedule_terms),
+ *       $schedules (lịch còn đặt được), $tickets (vé đang bán của các lịch đó),
+ *       $itinerary (mục lịch trình theo sort_order: [{item_id, start_time, time_text, description}]),
+ *       $inclusions (['included' => [...], 'excluded' => [...]]), $extras (phụ thu / hoạt động tùy chọn, phụ thu trước),
  *       $reviews (tối đa 5, mới nhất trước), $policy (null hoặc chính sách hủy mới nhất),
  *       $gallery (ảnh của chính tour: [{url, caption}], có thể rỗng), $title.
  * Dữ liệu thiếu hiển thị "Chưa cập nhật" (FR-01..05), không lấy từ tour khác và không tự suy diễn.
- * Không có nút cần tài khoản khách (lưu, chia sẻ, nhắn tin): khách đặt tour không cần tài khoản.
+ * Chế độ khách: thẻ đặt tour hiện nút "Đăng nhập để đặt tour" (quay lại trang này sau khi đăng nhập).
+ * Đã đăng nhập: nút "Đặt tour" (sắp có). Thích / Bình luận / Chia sẻ / Lưu tour / So sánh: sắp có.
  */
 $missing = or_missing(null);
 
@@ -19,8 +22,18 @@ $linesOrMissing = static function (?string $text) use ($missing): array {
     return $lines !== [] ? $lines : [$missing];
 };
 $listUrl = url('/tours');
-$destination = (string) $tour['destination'];
-$destinationUrl = url('/tours?destination=' . rawurlencode($destination));
+$tourPath = '/tours/' . $tour['tour_id'];
+$isGuest = current_user() === null;
+$loginUrl = url('/login') . '?next=' . rawurlencode($tourPath);
+// Điểm đến / loại hình: link lọc bảng tin theo ID; tour chưa gán ID thì chỉ hiện tên (hoặc "Chưa cập nhật").
+$destination = trim((string) $tour['destination_name']);
+$destinationId = $tour['destination_id'] === null ? null : (string) $tour['destination_id'];
+$destinationUrl = $destinationId === null ? null : url('/tours?destination_id=' . rawurlencode($destinationId));
+$categoryName = trim((string) ($tour['category_name'] ?? ''));
+$categoryUrl = $tour['category_id'] === null ? null : url('/tours?' . http_build_query(array_filter([
+    'destination_id' => $destinationId,
+    'category_id' => (string) $tour['category_id'],
+])));
 $ratingText = format_rating($tour['rating_avg']);
 $reviewCount = (int) $tour['review_count'];
 $priceText = $tour['from_price_vnd'] === null ? null : format_vnd((int) $tour['from_price_vnd']);
@@ -35,8 +48,8 @@ $meetingPoint = trim((string) ($tour['meeting_point'] ?? ''));
 // Đoạn đầu của mô tả làm câu dẫn, các đoạn sau là nội dung.
 $paragraphs = text_paragraphs((string) $tour['description']);
 $leadParagraph = array_shift($paragraphs);
-$includedItems = text_lines((string) $tour['included_summary']);
-$excludedItems = text_lines($tour['excluded_summary'] === null ? null : (string) $tour['excluded_summary']);
+$includedItems = $inclusions['included'];
+$excludedItems = $inclusions['excluded'];
 
 // Phụ thu / hoạt động tùy chọn (FR-04, FR-10): giá tách riêng, không bao giờ cộng vào giá tour hay tạm tính.
 $extraGroups = [
@@ -70,6 +83,7 @@ if ($isHotelPickup && $meetingPoint !== '') {
 }
 $infoRows = [
     'Điểm đến' => [or_missing($destination)],
+    'Loại hình' => [or_missing($categoryName)],
     'Nơi khởi hành / điểm đón' => $departureLines,
     'Điểm trả' => [or_missing($tour['dropoff_point'])],
     'Phương tiện' => [or_missing($tour['transport'])],
@@ -177,7 +191,12 @@ $sections = [
         <nav aria-label="Đường dẫn">
             <ol class="breadcrumb lt-breadcrumb">
                 <li class="breadcrumb-item"><a href="<?= e($listUrl) ?>">Bảng tin</a></li>
+<?php if ($destinationUrl !== null): ?>
                 <li class="breadcrumb-item"><a href="<?= e($destinationUrl) ?>"><?= e($destination) ?></a></li>
+<?php endif; ?>
+<?php if ($categoryUrl !== null && $categoryName !== ''): ?>
+                <li class="breadcrumb-item"><a href="<?= e($categoryUrl) ?>"><?= e($categoryName) ?></a></li>
+<?php endif; ?>
                 <li class="breadcrumb-item active" aria-current="page"><?= e($tour['title']) ?></li>
             </ol>
         </nav>
@@ -196,8 +215,14 @@ $sections = [
                     </li>
                     <li class="lt-detail-meta__item">
                         <span class="lt-icon lt-icon--pin" aria-hidden="true"></span>
-                        <span><?= e($destination) ?></span>
+                        <span><?= e(or_missing($destination)) ?></span>
                     </li>
+<?php if ($categoryName !== ''): ?>
+                    <li class="lt-detail-meta__item">
+                        <span class="lt-icon lt-icon--compass" aria-hidden="true"></span>
+                        <span><?= e($categoryName) ?></span>
+                    </li>
+<?php endif; ?>
                     <li class="lt-detail-meta__item">
                         <span>Tổ chức bởi <strong><?= e($providerName) ?></strong></span>
                         <span class="lt-verified" title="Đã được LocalTour duyệt">
@@ -206,6 +231,15 @@ $sections = [
                         </span>
                     </li>
                 </ul>
+            </div>
+            <div class="lt-detail-actions" role="group" aria-label="Tương tác (sắp có)">
+<?php foreach (['heart' => 'Thích', 'message' => 'Bình luận', 'share' => 'Chia sẻ', 'bookmark' => 'Lưu tour'] as $actionIcon => $actionLabel): ?>
+                <button type="button" class="lt-detail-action" disabled title="<?= e($actionLabel) ?> – sắp có">
+                    <span class="lt-icon lt-icon--<?= e($actionIcon) ?>" aria-hidden="true"></span>
+                    <span><?= e($actionLabel) ?></span>
+                </button>
+<?php endforeach; ?>
+                <span class="lt-soon">Sắp có</span>
             </div>
         </div>
 
@@ -270,23 +304,17 @@ $sections = [
                     <p class="lt-empty-note"><?= e($missing) ?></p>
 <?php else: ?>
                     <ol class="lt-itinerary">
-<?php foreach (array_values($itinerary) as $stopIndex => $stop): ?>
-<?php
-    $stopDuration = $stop['duration_minutes'] === null ? null : format_duration($stop['duration_minutes']);
-    $stopDescription = trim((string) ($stop['description'] ?? ''));
-?>
+<?php foreach (array_values($itinerary) as $itemIndex => $item): ?>
                         <li class="lt-itinerary__stop">
-                            <span class="lt-itinerary__marker" aria-hidden="true"><?= e($stopIndex + 1) ?></span>
+                            <span class="lt-itinerary__marker" aria-hidden="true"><?= e($itemIndex + 1) ?></span>
                             <div class="lt-itinerary__body">
-                                <div class="lt-itinerary__head">
-                                    <h3 class="lt-itinerary__title"><?= e($stop['title']) ?></h3>
-<?php if ($stopDuration !== null): ?>
-                                    <span class="lt-itinerary__duration"><span class="lt-icon lt-icon--clock" aria-hidden="true"></span><?= e($stopDuration) ?></span>
+<?php if ($item['time_text'] !== null): ?>
+                                <p class="lt-itinerary__time">
+                                    <span class="lt-icon lt-icon--clock" aria-hidden="true"></span>
+                                    <time datetime="<?= e($item['time_text']) ?>"><?= e($item['time_text']) ?></time>
+                                </p>
 <?php endif; ?>
-                                </div>
-<?php if ($stopDescription !== ''): ?>
-                                <p class="lt-itinerary__desc"><?= nl2br(e($stopDescription), false) ?></p>
-<?php endif; ?>
+                                <p class="lt-itinerary__text"><?= e($item['description']) ?></p>
                             </div>
                         </li>
 <?php endforeach; ?>
@@ -532,9 +560,20 @@ $sections = [
                         <p class="lt-field__hint">Chưa gồm phụ thu và hoạt động tùy chọn.</p>
 
                         <div class="lt-booking__actions">
+<?php if ($isGuest): ?>
+                            <p class="lt-booking__alert">
+                                <span class="lt-icon lt-icon--info" aria-hidden="true"></span>
+                                Bạn đang xem với tư cách khách. Đăng nhập để đặt tour.
+                            </p>
+                            <a class="lt-btn lt-btn--primary lt-btn--block" href="<?= e($loginUrl) ?>">
+                                <span class="lt-icon lt-icon--log-in" aria-hidden="true"></span>
+                                Đăng nhập để đặt tour
+                            </a>
+<?php else: ?>
                             <button type="button" class="lt-btn lt-btn--primary lt-btn--block" disabled title="Sắp có">
                                 Đặt tour <span class="lt-soon">Sắp có</span>
                             </button>
+<?php endif; ?>
                             <button type="button" class="lt-btn lt-btn--soft lt-btn--block" disabled title="Sắp có">
                                 <span class="lt-icon lt-icon--columns" aria-hidden="true"></span>
                                 Thêm vào so sánh <span class="lt-soon">Sắp có</span>

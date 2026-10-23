@@ -55,6 +55,34 @@
     min-width: 0;
 }
 
+/* Thích / Bình luận / Chia sẻ / Lưu tour: sắp có, luôn tắt. */
+.lt-detail-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.lt-detail-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 12px;
+    border: 1px solid var(--lt-border);
+    border-radius: var(--lt-radius);
+    background: var(--lt-surface);
+    color: var(--lt-muted-strong);
+    font-family: inherit;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: not-allowed;
+}
+
+.lt-detail-action .lt-icon {
+    color: #9aa1ad;
+}
+
 .lt-detail-head__title {
     margin: 0 0 8px;
     font-size: 2rem;
@@ -474,32 +502,19 @@
     padding-top: 3px;
 }
 
-.lt-itinerary__head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 2px 10px;
-}
-
-.lt-itinerary__title {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 600;
-    line-height: 1.4;
-}
-
-.lt-itinerary__duration {
+/* Giờ bắt đầu chỉ hiện khi có (tour_itinerary_items.start_time). */
+.lt-itinerary__time {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    color: var(--lt-muted-strong);
+    gap: 5px;
+    margin-bottom: 2px;
+    color: var(--lt-teal);
     font-size: 0.8125rem;
-    white-space: nowrap;
+    font-weight: 700;
 }
 
-.lt-itinerary__desc {
-    margin-top: 4px;
-    color: var(--lt-text-soft);
+.lt-itinerary__text {
+    color: var(--lt-text);
     line-height: 1.6;
 }
 

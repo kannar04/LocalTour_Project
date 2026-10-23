@@ -7,7 +7,7 @@ namespace Core;
 use RuntimeException;
 
 /**
- * Lớp cha của mọi controller: render view trong layout, trả JSON và đọc tham số request an toàn.
+ * Lớp cha của mọi controller: render view trong layout, trả JSON, chuyển hướng và đọc tham số request an toàn.
  */
 class Controller
 {
@@ -18,6 +18,9 @@ class Controller
         if (!is_file($viewFile) || !is_file($layoutFile)) {
             throw new RuntimeException('View không tồn tại: ' . $view);
         }
+
+        // Mở session trước khi in HTML: header cần biết khách đã đăng nhập chưa và cần mã CSRF.
+        Auth::start();
 
         $data += ['title' => 'LocalTour', 'pageStyles' => [], 'pageScripts' => [], 'activeNav' => 'feed'];
         extract($data, EXTR_SKIP);
@@ -46,12 +49,33 @@ class Controller
         exit;
     }
 
-    /** Tham số query string dạng chuỗi; mảng (?q[]=...) hoặc thiếu đều coi là rỗng. */
+    /** Chuyển hướng (303) tới đường dẫn trong ứng dụng, vd. redirect('/tours'). */
+    public function redirect(string $path): never
+    {
+        header('Location: ' . url($path), true, 303);
+        exit;
+    }
+
+    /** Tham số query string dạng chuỗi; mảng (?q[]=...), chuỗi không phải UTF-8 hoặc thiếu đều coi là rỗng. */
     protected function query(string $key): string
     {
         $value = $_GET[$key] ?? '';
 
-        return is_string($value) ? trim($value) : '';
+        return is_string($value) && mb_check_encoding($value, 'UTF-8') ? trim($value) : '';
+    }
+
+    /**
+     * Trường form POST dạng chuỗi; mảng, chuỗi không phải UTF-8 hoặc thiếu đều coi là rỗng.
+     * Mật khẩu đọc với $trim = false.
+     */
+    protected function input(string $key, bool $trim = true): string
+    {
+        $value = $_POST[$key] ?? '';
+        if (!is_string($value) || !mb_check_encoding($value, 'UTF-8')) {
+            return '';
+        }
+
+        return $trim ? trim($value) : $value;
     }
 
     /** Trả về UUID (chữ thường) nếu chuỗi đúng dạng 8-4-4-4-12 ký tự hex, ngược lại null (1, abc, UUID thiếu ký tự...). */

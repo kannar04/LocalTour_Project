@@ -32,29 +32,24 @@
         return $('<span>').addClass('lt-soon').text('Sắp có');
     }
 
-    var DESTINATION_MAX_LENGTH = 100;
+    var UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-    /** Tên điểm đến dùng để lọc: bỏ khoảng trắng hai đầu, tối đa 100 ký tự; '' = tất cả. */
-    function normaliseDestination(value) {
+    /** UUID chữ thường nếu đúng định dạng, ngược lại '' (= tất cả / không hợp lệ). */
+    function normaliseId(value) {
         var text = String(value === undefined || value === null ? '' : value).trim();
-        return text.slice(0, DESTINATION_MAX_LENGTH).trim();
+        return UUID_PATTERN.test(text) ? text.toLowerCase() : '';
     }
 
-    /** Khóa so sánh tên điểm đến: không phân biệt hoa thường và dấu thanh ("ha noi" = "Hà Nội"); "d" khác "đ" như CSDL. */
-    function destinationKey(name) {
-        return normaliseDestination(name).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-    }
-
-    /** Link lọc theo điểm đến; name '' = tất cả. */
-    function destinationHref(name) {
-        return name ? url('/tours') + '?destination=' + encodeURIComponent(name) : url('/tours');
+    /** Link lọc theo điểm đến; id '' = tất cả. */
+    function destinationHref(id) {
+        return id ? url('/tours') + '?destination_id=' + encodeURIComponent(id) : url('/tours');
     }
 
     /** Đánh dấu điểm đến đang chọn trong danh sách ở thanh bên. */
-    function setActiveDestination($list, name) {
-        var activeKey = destinationKey(name);
+    function setActiveDestination($list, id) {
+        var activeId = normaliseId(id);
         $list.find('.lt-dest-link').each(function () {
-            var isActive = destinationKey($(this).attr('data-destination')) === activeKey;
+            var isActive = normaliseId($(this).attr('data-destination-id')) === activeId;
             $(this).toggleClass('is-active', isActive);
             if (isActive) {
                 $(this).attr('aria-current', 'true');
@@ -64,8 +59,8 @@
         });
     }
 
-    /** Dựng danh sách điểm đến (kèm số tour) trong #sidebar-destinations; điểm đến được nhận diện bằng tên. */
-    function renderDestinationNav($list, destinations, activeName) {
+    /** Dựng danh sách điểm đến (kèm số tour) trong #sidebar-destinations; điểm đến được nhận diện bằng destination_id. */
+    function renderDestinationNav($list, destinations, activeId) {
         var total = 0;
         var items = [];
 
@@ -75,21 +70,22 @@
 
         items.push(buildDestinationItem('', 'Tất cả điểm đến', total));
         $.each(destinations, function (index, destination) {
-            var name = normaliseDestination(destination.name);
-            if (name) {
-                items.push(buildDestinationItem(name, name, Number(destination.tour_count) || 0));
+            var id = normaliseId(destination.destination_id);
+            var name = String(destination.name || '').trim();
+            if (id && name) {
+                items.push(buildDestinationItem(id, name, Number(destination.tour_count) || 0));
             }
         });
 
         $list.empty().append(items);
-        setActiveDestination($list, activeName);
+        setActiveDestination($list, activeId);
     }
 
-    function buildDestinationItem(name, label, count) {
+    function buildDestinationItem(id, label, count) {
         var $link = $('<a>')
             .addClass('lt-dest-link')
-            .attr('href', destinationHref(name))
-            .attr('data-destination', name)
+            .attr('href', destinationHref(id))
+            .attr('data-destination-id', id)
             .append(
                 $('<span>').addClass('lt-dest-link__name').text(label),
                 $('<span>').addClass('lt-dest-link__count')
@@ -126,8 +122,7 @@
         formatVnd: formatVnd,
         icon: icon,
         soonBadge: soonBadge,
-        normaliseDestination: normaliseDestination,
-        destinationKey: destinationKey,
+        normaliseId: normaliseId,
         destinationHref: destinationHref,
         renderDestinationNav: renderDestinationNav,
         renderDestinationStatus: renderDestinationStatus,

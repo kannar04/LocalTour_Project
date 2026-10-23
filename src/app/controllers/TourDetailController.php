@@ -74,7 +74,8 @@ final class TourDetailController extends Controller
     }
 
     /**
-     * Các phần dùng chung cho trang HTML và JSON: lịch, vé, lịch trình, phụ thu/tùy chọn, đánh giá, chính sách và ảnh của chính tour.
+     * Các phần dùng chung cho trang HTML và JSON: lịch, vé, lịch trình, dịch vụ bao gồm / không bao gồm,
+     * phụ thu/tùy chọn, đánh giá, chính sách và ảnh của chính tour.
      *
      * @param array<string, mixed> $tour
      * @return array<string, mixed>
@@ -86,10 +87,24 @@ final class TourDetailController extends Controller
             'caption' => trim((string) $image['alt_text']) !== '' ? $image['alt_text'] : $tour['title'],
         ], $this->details->images($tourId));
 
+        // Giờ bắt đầu "08:30" (null = mục không ghi giờ).
+        $itinerary = array_map(static fn (array $item): array => [
+            'item_id' => $item['item_id'],
+            'start_time' => $item['start_time'],
+            'time_text' => $item['start_time'] === null ? null : format_time((string) $item['start_time']),
+            'description' => (string) $item['description'],
+        ], $this->content->itinerary($tourId));
+
+        $inclusions = ['included' => [], 'excluded' => []];
+        foreach ($this->content->inclusions($tourId) as $inclusion) {
+            $inclusions[(int) $inclusion['is_included'] === 1 ? 'included' : 'excluded'][] = (string) $inclusion['item_text'];
+        }
+
         return [
             'schedules' => $this->details->schedules($tourId),
             'tickets' => $this->details->tickets($tourId),
-            'itinerary' => $this->content->itinerary($tourId),
+            'itinerary' => $itinerary,
+            'inclusions' => $inclusions,
             'extras' => $this->content->extras($tourId),
             'reviews' => $this->content->reviews($tourId),
             'policy' => $this->content->cancellationPolicy($tourId),

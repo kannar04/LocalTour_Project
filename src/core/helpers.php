@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /*
- * Hàm tiện ích dùng chung cho controller và view: escape HTML, tạo URL, định dạng giá/ngày/giờ.
+ * Hàm tiện ích dùng chung cho controller và view: escape HTML, tạo URL, tài khoản đăng nhập, định dạng giá/ngày/giờ.
  */
 
 /** Escape giá trị trước khi in ra HTML. */
@@ -34,6 +34,37 @@ function url(string $path = '/'): string
     }
 
     return $base . '/' . ltrim($path, '/');
+}
+
+/**
+ * Đường dẫn quay lại sau khi đăng nhập / đăng ký (tham số next). Chỉ nhận đường dẫn trong ứng dụng
+ * như "/tours/<uuid>"; link ra ngoài ("//...", "https://...", "\...") hoặc rỗng → "/tours".
+ */
+function safe_next_path(?string $next): string
+{
+    $next = trim((string) $next);
+    if ($next === '' || $next[0] !== '/' || str_starts_with($next, '//') || str_contains($next, '\\')
+        || preg_match('/[\x00-\x1F\x7F]/', $next)) {
+        return '/tours';
+    }
+
+    return $next;
+}
+
+/**
+ * Tài khoản đang đăng nhập; null = chế độ khách.
+ *
+ * @return array{user_id: string, name: string, email: string, role: string}|null
+ */
+function current_user(): ?array
+{
+    return Core\Auth::user();
+}
+
+/** Ô ẩn chứa mã CSRF, đặt trong mọi form POST. */
+function csrf_field(): string
+{
+    return '<input type="hidden" name="_csrf" value="' . e(Core\Auth::csrfToken()) . '">';
 }
 
 /** URL tài nguyên tĩnh trong public/assets, kèm phiên bản theo thời gian sửa file để tránh cache cũ. */
@@ -166,7 +197,7 @@ function text_paragraphs(?string $text): array
 }
 
 /**
- * Các dòng không rỗng của văn bản (vd. included_summary: mỗi dòng một mục).
+ * Các dòng không rỗng của văn bản (vd. điều kiện tour: mỗi dòng một ý).
  *
  * @return list<string>
  */

@@ -28,13 +28,14 @@ final class TourListController extends Controller
         $this->render('tours/index', [
             'title' => 'Bảng tin du lịch',
             'initialQuery' => mb_substr($this->query('q'), 0, TourListModel::KEYWORD_MAX_LENGTH),
-            'initialDestination' => mb_substr($this->query('destination'), 0, TourListModel::DESTINATION_MAX_LENGTH),
+            'initialDestinationId' => self::parseUuid($this->query('destination_id')) ?? '',
+            'initialCategoryId' => self::parseUuid($this->query('category_id')) ?? '',
             'pageStyles' => ['css/tour-list.css'],
             'pageScripts' => ['js/tour-list.js'],
         ]);
     }
 
-    /** GET /api/tours?q=&destination=&sort= */
+    /** GET /api/tours?q=&destination_id=&category_id=&sort= */
     public function apiIndex(): void
     {
         $keyword = $this->query('q');
@@ -42,13 +43,24 @@ final class TourListController extends Controller
             $this->json(false, 'Từ khóa tìm kiếm tối đa 100 ký tự.', null, 400);
         }
 
-        $destination = $this->query('destination');
-        if (mb_strlen($destination) > TourListModel::DESTINATION_MAX_LENGTH) {
+        // '' = tất cả; có giá trị thì phải là UUID.
+        $destinationId = $this->query('destination_id');
+        if ($destinationId !== '' && self::parseUuid($destinationId) === null) {
             $this->json(false, 'Điểm đến không hợp lệ.', null, 400);
         }
 
+        $categoryId = $this->query('category_id');
+        if ($categoryId !== '' && self::parseUuid($categoryId) === null) {
+            $this->json(false, 'Loại hình không hợp lệ.', null, 400);
+        }
+
         $sort = $this->query('sort');
-        $rows = $this->tours->search($keyword, $destination, $sort === '' ? TourListModel::DEFAULT_SORT : $sort);
+        $rows = $this->tours->search(
+            $keyword,
+            self::parseUuid($destinationId),
+            self::parseUuid($categoryId),
+            $sort === '' ? TourListModel::DEFAULT_SORT : $sort
+        );
         $tours = array_map([$this, 'presentTour'], $rows);
 
         $this->json(
@@ -66,14 +78,38 @@ final class TourListController extends Controller
         $this->json(true, '', ['destinations' => $destinations]);
     }
 
+    /** GET /api/categories */
+    public function apiCategories(): void
+    {
+        $categories = array_map([$this, 'presentCategory'], $this->tours->categories());
+
+        $this->json(true, '', ['categories' => $categories]);
+    }
+
     /**
      * @param array<string, mixed> $row
-     * @return array{name: string, tour_count: int}
+     * @return array{destination_id: string, name: string, slug: string, tour_count: int}
      */
     private function presentDestination(array $row): array
     {
         return [
-            'name' => (string) $row['destination'],
+            'destination_id' => (string) $row['destination_id'],
+            'name' => (string) $row['name'],
+            'slug' => (string) $row['slug'],
+            'tour_count' => (int) $row['tour_count'],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @return array{category_id: string, name: string, slug: string, tour_count: int}
+     */
+    private function presentCategory(array $row): array
+    {
+        return [
+            'category_id' => (string) $row['category_id'],
+            'name' => (string) $row['name'],
+            'slug' => (string) $row['slug'],
             'tour_count' => (int) $row['tour_count'],
         ];
     }
@@ -97,7 +133,10 @@ final class TourListController extends Controller
             'title' => $row['title'],
             'excerpt' => self::excerpt((string) $row['description']),
             'url' => url('/tours/' . $tourId),
-            'destination' => $row['destination'],
+            'destination_id' => $row['destination_id'],
+            'destination_name' => $row['destination_name'],
+            'category_id' => $row['category_id'],
+            'category_name' => $row['category_name'],
             'provider_name' => $row['provider_name'],
             'duration_minutes' => (int) $row['duration_minutes'],
             'duration_text' => format_duration($row['duration_minutes']),

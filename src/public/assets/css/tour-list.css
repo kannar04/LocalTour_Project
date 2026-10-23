@@ -826,3 +826,26 @@
     color: var(--lt-muted-strong);
     font-weight: 700;
 }
+
+/* Thích / Bình luận / Chia sẻ / Lưu tour (sắp có): trên màn hình hẹp chỉ hiện icon. */
+.lt-tour-card__social {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px;
+}
+
+.lt-tour-card__social .lt-soon {
+    margin-left: 4px;
+}
+
+@media (max-width: 575.98px) {
+    .lt-tour-card__social .lt-action__label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+    }
+}

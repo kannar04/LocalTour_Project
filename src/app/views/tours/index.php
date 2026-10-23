@@ -2,13 +2,14 @@
 <?php
 /*
  * Bảng tin du lịch – khung trang danh sách tour (UIEx1, Nguyễn Tuấn Khôi).
- * Không in dữ liệu tour ở đây: tour-list.js tải /api/destinations và /api/tours bằng AJAX.
- * Biến: $title, $initialQuery (string), $initialDestination (string – tên điểm đến, '' = tất cả).
+ * Không in dữ liệu tour ở đây: tour-list.js tải /api/destinations, /api/categories và /api/tours bằng AJAX.
+ * Biến: $title, $initialQuery (string), $initialDestinationId, $initialCategoryId (UUID, '' = tất cả).
  */
 ?>
 <div class="container-xl lt-container lt-page" id="tour-list-page"
      data-initial-query="<?= e($initialQuery ?? '') ?>"
-     data-initial-destination="<?= e($initialDestination ?? '') ?>">
+     data-initial-destination-id="<?= e($initialDestinationId ?? '') ?>"
+     data-initial-category-id="<?= e($initialCategoryId ?? '') ?>">
     <div class="row">
         <div class="col-12 lt-col-sidebar">
 <?php $sidebarMode = 'column'; require __DIR__ . '/../partials/sidebar.php'; ?>
@@ -24,7 +25,15 @@
                 <div class="lt-filter lt-filter--select">
                     <span class="lt-icon lt-icon--pin lt-filter__icon" aria-hidden="true"></span>
                     <label class="lt-filter__label" for="filter-destination">Điểm đến:</label>
-                    <select class="lt-filter__select" id="filter-destination" name="destination">
+                    <select class="lt-filter__select" id="filter-destination" name="destination_id">
+                        <option value="">Tất cả</option>
+                    </select>
+                    <span class="lt-icon lt-icon--chevron-down lt-filter__chevron" aria-hidden="true"></span>
+                </div>
+                <div class="lt-filter lt-filter--select">
+                    <span class="lt-icon lt-icon--compass lt-filter__icon" aria-hidden="true"></span>
+                    <label class="lt-filter__label" for="filter-category">Loại hình:</label>
+                    <select class="lt-filter__select" id="filter-category" name="category_id">
                         <option value="">Tất cả</option>
                     </select>
                     <span class="lt-icon lt-icon--chevron-down lt-filter__chevron" aria-hidden="true"></span>
@@ -87,7 +96,7 @@
             <div class="lt-state" id="tour-empty" hidden>
                 <span class="lt-state__icon" aria-hidden="true"><span class="lt-icon lt-icon--compass"></span></span>
                 <h2 class="lt-state__title">Không có tour phù hợp</h2>
-                <p class="lt-state__text" id="tour-empty-text">Thử từ khóa khác hoặc chọn điểm đến khác nhé.</p>
+                <p class="lt-state__text" id="tour-empty-text">Thử từ khóa khác hoặc chọn điểm đến, loại hình khác nhé.</p>
                 <button type="button" class="lt-btn lt-btn--primary" id="tour-clear-filters">
                     <span class="lt-icon lt-icon--x" aria-hidden="true"></span>
                     Xóa bộ lọc
