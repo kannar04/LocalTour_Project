@@ -2,15 +2,11 @@
 -- LocalTour v0.1 - 01_schema.sql
 -- Mục đích  : Tạo lược đồ CSDL db_localtour: lược đồ GỘP giữa ERD (trang 01 "Lõi đặt
 --             tour" + trang 02 "Khám phá & vận hành") và bảng yêu cầu chức năng (FR
---             board), tổng 17 bảng. Mỗi bảng / cột thêm mới có ghi chú FR mà nó phục vụ.
+--             board), tổng 26 bảng. Mỗi bảng / cột thêm mới có ghi chú FR mà nó phục vụ.
 --
--- ĐÃ BỎ 7 bảng của ERD trang 02: notifications, tour_posts, post_comments,
---   post_interactions, favorite_tours, comparisons, comparison_tours.
---   * Bài đăng / thích / bình luận / lưu tour / thông báo đều cần tài khoản khách hàng;
---     FR board xếp tài khoản khách vào "Won't Have" và không có FR nào cho các chức năng này.
---   * FR-15 (so sánh tour) chỉ diễn ra trong phiên duyệt web; ghi chú trên ERD trang 02
---     nói bỏ 2 bảng so sánh trong trường hợp đó.
---   Vẫn giữ DROP TABLE IF EXISTS cho 7 bảng này để import đè lên bản cũ không lỗi.
+-- ĐÃ BỎ 3 bảng của ERD: reviews, post_comments, post_interactions.
+-- Các bảng thông báo, bài đăng tour, yêu thích, so sánh và các bảng danh mục/chi tiết
+-- tour của thiết kế trước đã được triển khai lại theo khóa UUID của lược đồ hiện tại.
 --
 -- Phụ trách : Nguyễn Minh Thức (NMT) - WBS 3.1.2
 -- Tương thích: MariaDB 10.4 (XAMPP) / MySQL 8; InnoDB; utf8mb4_unicode_ci.
@@ -23,8 +19,8 @@
 --             * Cột NULL = "chưa cập nhật": giao diện hiện "Chưa cập nhật", không tự đoán.
 --             * Khóa ngoại: ON DELETE RESTRICT ON UPDATE CASCADE (không xóa dây chuyền).
 --             * Ràng buộc giá trị (vd. rating 1-5) kiểm tra ở tầng ứng dụng, không dùng CHECK.
---             * Khách hàng KHÔNG có tài khoản (FR board): đơn đặt chỉ lưu thông tin liên hệ,
---               tra cứu đơn bằng mã đơn + email / số điện thoại.
+--             * Khách có thể có tài khoản cho tính năng xã hội; đặt tour vẫn không bắt buộc
+--               đăng nhập và vẫn tra cứu đơn bằng mã đơn + email / số điện thoại.
 -- Chạy lại  : Được. File xóa toàn bộ bảng (kể cả các bảng đã bỏ và bảng của thiết kế
 --             cũ) rồi tạo lại, nên MỌI DỮ LIỆU CŨ SẼ MẤT.
 -- Lưu ý     : File này không có CREATE DATABASE / USE. Chọn database
@@ -38,10 +34,9 @@
 SET @OLD_FOREIGN_KEY_CHECKS = @@FOREIGN_KEY_CHECKS;
 SET FOREIGN_KEY_CHECKS = 0;
 
--- Bảng của lược đồ hiện tại (17 bảng)
+-- Bảng của lược đồ hiện tại (26 bảng)
 DROP TABLE IF EXISTS payment_events;
 DROP TABLE IF EXISTS refunds;
-DROP TABLE IF EXISTS reviews;
 DROP TABLE IF EXISTS payments;
 DROP TABLE IF EXISTS passengers;
 DROP TABLE IF EXISTS booking_lines;
@@ -57,16 +52,19 @@ DROP TABLE IF EXISTS tours;
 DROP TABLE IF EXISTS providers;
 DROP TABLE IF EXISTS users;
 
--- 7 bảng đã bỏ khỏi ERD trang 02 (lý do ở đầu file)
+-- Các bảng chức năng được triển khai lại
 DROP TABLE IF EXISTS comparison_tours;
 DROP TABLE IF EXISTS comparisons;
-DROP TABLE IF EXISTS post_interactions;
-DROP TABLE IF EXISTS post_comments;
 DROP TABLE IF EXISTS tour_posts;
 DROP TABLE IF EXISTS favorite_tours;
 DROP TABLE IF EXISTS notifications;
 
--- Bảng của thiết kế cũ (trước ERD): xóa để không sót dữ liệu cũ
+-- Bảng đã bỏ khỏi ERD (lý do ở đầu file)
+DROP TABLE IF EXISTS reviews;
+DROP TABLE IF EXISTS post_interactions;
+DROP TABLE IF EXISTS post_comments;
+
+-- Các bảng được triển khai lại từ thiết kế trước
 DROP TABLE IF EXISTS tour_itinerary_items;
 DROP TABLE IF EXISTS tour_inclusions;
 DROP TABLE IF EXISTS tour_schedules;
@@ -79,10 +77,10 @@ SET FOREIGN_KEY_CHECKS = @OLD_FOREIGN_KEY_CHECKS;
 -- 2. TÀI KHOẢN NHÂN VIÊN & NHÀ CUNG CẤP
 -- ---------------------------------------------------------------------
 
--- NGƯỜI_DÙNG (FR-13, NFR-04): chỉ tài khoản của nhân viên và nhà cung cấp.
+-- NGƯỜI_DÙNG (FR-13, NFR-04): tài khoản khách, nhân viên và nhà cung cấp.
 -- role: admin = Quản trị viên, support = Nhân viên hỗ trợ khách hàng,
---       provider = tài khoản của nhà cung cấp (đơn vị tổ chức tour).
---       Không có vai trò khách hàng: khách đặt tour không cần tài khoản.
+--       provider = tài khoản của nhà cung cấp, customer = tài khoản khách hàng.
+--       Khách vẫn có thể đặt tour mà không cần tài khoản.
 -- password_hash NULL = chưa đặt mật khẩu (Sprint 3 chưa có đăng nhập).
 -- status = 'locked': tài khoản bị khóa; nếu là nhà cung cấp thì mọi tour bị ẩn (FR-01).
 CREATE TABLE users (
@@ -91,7 +89,7 @@ CREATE TABLE users (
     password_hash VARCHAR(255)  NULL,
     name          VARCHAR(100)  NOT NULL,
     phone         VARCHAR(20)   NULL,
-    role          ENUM('admin','support','provider') NOT NULL,
+    role          ENUM('admin','support','provider','customer') NOT NULL,
     status        ENUM('active','locked')            NOT NULL DEFAULT 'active',
     PRIMARY KEY (id),
     UNIQUE KEY uq_users_email (email)
@@ -114,7 +112,30 @@ CREATE TABLE providers (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
--- 3. TOUR & NỘI DUNG TOUR
+-- 3. DANH MỤC TOUR
+-- ---------------------------------------------------------------------
+
+CREATE TABLE destinations (
+    id         CHAR(36)      NOT NULL,
+    name       VARCHAR(100)  NOT NULL,
+    slug       VARCHAR(100)  NOT NULL,
+    sort_order INT           NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_destinations_name (name),
+    UNIQUE KEY uq_destinations_slug (slug)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE categories (
+    id   CHAR(36)      NOT NULL,
+    name VARCHAR(100)  NOT NULL,
+    slug VARCHAR(100)  NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_categories_name (name),
+    UNIQUE KEY uq_categories_slug (slug)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------
+-- 4. TOUR & NỘI DUNG TOUR
 -- ---------------------------------------------------------------------
 
 -- TOUR (FR-01 danh mục, FR-02 chi tiết, FR-06 tìm theo tên / điểm đến).
@@ -128,6 +149,8 @@ CREATE TABLE providers (
 CREATE TABLE tours (
     id                  CHAR(36)      NOT NULL,
     provider_id         CHAR(36)      NOT NULL,
+    destination_id      CHAR(36)      NULL,
+    category_id         CHAR(36)      NULL,
     title               VARCHAR(200)  NOT NULL,
     description         TEXT          NOT NULL,
     destination         VARCHAR(100)  NOT NULL,
@@ -152,8 +175,14 @@ CREATE TABLE tours (
     PRIMARY KEY (id),
     KEY idx_tours_status_destination (approval_status, destination),
     KEY idx_tours_provider (provider_id),
+    KEY idx_tours_destination_id (destination_id),
+    KEY idx_tours_category_id (category_id),
     CONSTRAINT fk_tours_provider FOREIGN KEY (provider_id)
-        REFERENCES providers (id) ON DELETE RESTRICT ON UPDATE CASCADE
+        REFERENCES providers (id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_tours_destination FOREIGN KEY (destination_id)
+        REFERENCES destinations (id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_tours_category FOREIGN KEY (category_id)
+        REFERENCES categories (id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ẢNH_TOUR (FR-01 ảnh bìa, FR-02 bộ ảnh): ảnh riêng của từng tour
@@ -206,8 +235,50 @@ CREATE TABLE tour_extras (
         REFERENCES tours (id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- LỊCH_TRÌNH_TOUR (tương thích thiết kế trước): các mục lịch trình có giờ bắt đầu tùy chọn.
+CREATE TABLE tour_itinerary_items (
+    id          CHAR(36)      NOT NULL,
+    tour_id     CHAR(36)      NOT NULL,
+    start_time  TIME          NULL,
+    description VARCHAR(255)  NOT NULL,
+    sort_order  INT           NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    KEY idx_tour_itinerary_items_tour_sort (tour_id, sort_order),
+    CONSTRAINT fk_tour_itinerary_items_tour FOREIGN KEY (tour_id)
+        REFERENCES tours (id) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- BAO_GỒM_TOUR: danh sách chi phí bao gồm/không bao gồm có thứ tự.
+CREATE TABLE tour_inclusions (
+    id          CHAR(36)      NOT NULL,
+    tour_id     CHAR(36)      NOT NULL,
+    item_text   VARCHAR(150)  NOT NULL,
+    is_included BOOLEAN       NOT NULL DEFAULT TRUE,
+    sort_order  INT           NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    KEY idx_tour_inclusions_tour_sort (tour_id, sort_order),
+    CONSTRAINT fk_tour_inclusions_tour FOREIGN KEY (tour_id)
+        REFERENCES tours (id) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- LỊCH_TOUR (tương thích thiết kế trước): lịch theo ngày và giờ bắt đầu.
+CREATE TABLE tour_schedules (
+    id             CHAR(36)  NOT NULL,
+    tour_id        CHAR(36)  NOT NULL,
+    departure_date DATE      NOT NULL,
+    start_time     TIME      NOT NULL,
+    seats_total    INT       NOT NULL,
+    seats_booked   INT       NOT NULL DEFAULT 0,
+    status         ENUM('open','full','cancelled') NOT NULL DEFAULT 'open',
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_tour_schedules_tour_date_time (tour_id, departure_date, start_time),
+    KEY idx_tour_schedules_status_date (status, departure_date),
+    CONSTRAINT fk_tour_schedules_tour FOREIGN KEY (tour_id)
+        REFERENCES tours (id) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ---------------------------------------------------------------------
--- 4. LỊCH KHỞI HÀNH, VÉ & CHÍNH SÁCH
+-- 5. LỊCH KHỞI HÀNH, VÉ & CHÍNH SÁCH
 -- ---------------------------------------------------------------------
 
 -- LỊCH_KHỞI_HÀNH (FR-14 ngày khởi hành và sức chứa, FR-08 chọn ngày khi đặt).
@@ -265,7 +336,7 @@ CREATE TABLE cancellation_policies (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
--- 5. ĐẶT CHỖ
+-- 6. ĐẶT CHỖ
 -- ---------------------------------------------------------------------
 
 -- ĐƠN_ĐẶT_TOUR (FR-08 yêu cầu đặt tour, FR-11 mã và trạng thái, FR-09 thông tin liên hệ).
@@ -329,7 +400,7 @@ CREATE TABLE passengers (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
--- 6. GIAO DỊCH
+-- 7. GIAO DỊCH
 -- ---------------------------------------------------------------------
 
 -- THANH_TOÁN (FR-17 thanh toán trực tuyến): method chỉ có 'vnpay' hoặc 'vietqr'
@@ -387,31 +458,83 @@ CREATE TABLE refunds (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
--- 7. ĐÁNH GIÁ
+-- 8. KHÁM PHÁ, YÊU THÍCH, SO SÁNH & THÔNG BÁO
 -- ---------------------------------------------------------------------
 
--- ĐÁNH_GIÁ (FR-16): mỗi đơn đặt được đánh giá tối đa một lần (booking_id UNIQUE),
--- nên người đánh giá đã được xác thực qua đơn; tên hiển thị = bookings.contact_name.
--- rating từ 1 đến 5. Chỉ đánh giá moderation_status = 'approved' mới được
--- hiển thị và tính vào điểm trung bình.
-CREATE TABLE reviews (
-    id                CHAR(36)  NOT NULL,
-    booking_id        CHAR(36)  NOT NULL,
-    tour_id           CHAR(36)  NOT NULL,
-    rating            SMALLINT  NOT NULL,
-    content           TEXT      NOT NULL,
-    moderation_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+CREATE TABLE tour_posts (
+    id             CHAR(36)  NOT NULL,
+    tour_id        CHAR(36)  NOT NULL,
+    author_user_id CHAR(36)  NOT NULL,
+    caption        TEXT      NOT NULL,
+    published_at   DATETIME  NULL,
+    status         ENUM('draft','published') NOT NULL DEFAULT 'draft',
     PRIMARY KEY (id),
-    UNIQUE KEY uq_reviews_booking (booking_id),
-    KEY idx_reviews_tour (tour_id),
-    CONSTRAINT fk_reviews_booking FOREIGN KEY (booking_id)
-        REFERENCES bookings (id) ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT fk_reviews_tour FOREIGN KEY (tour_id)
+    KEY idx_tour_posts_tour (tour_id),
+    KEY idx_tour_posts_author (author_user_id),
+    KEY idx_tour_posts_status_published (status, published_at),
+    CONSTRAINT fk_tour_posts_tour FOREIGN KEY (tour_id)
+        REFERENCES tours (id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_tour_posts_author FOREIGN KEY (author_user_id)
+        REFERENCES users (id) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE favorite_tours (
+    id         CHAR(36)  NOT NULL,
+    user_id    CHAR(36)  NOT NULL,
+    tour_id    CHAR(36)  NOT NULL,
+    created_at DATETIME  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_favorite_tours_user_tour (user_id, tour_id),
+    KEY idx_favorite_tours_tour (tour_id),
+    CONSTRAINT fk_favorite_tours_user FOREIGN KEY (user_id)
+        REFERENCES users (id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_favorite_tours_tour FOREIGN KEY (tour_id)
+        REFERENCES tours (id) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE notifications (
+    id                CHAR(36)      NOT NULL,
+    recipient_user_id CHAR(36)      NOT NULL,
+    type              VARCHAR(50)   NOT NULL,
+    payload_ref       VARCHAR(255)  NULL,
+    read_at           DATETIME      NULL,
+    created_at        DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_notifications_recipient_created (recipient_user_id, created_at),
+    KEY idx_notifications_recipient_read (recipient_user_id, read_at),
+    CONSTRAINT fk_notifications_recipient FOREIGN KEY (recipient_user_id)
+        REFERENCES users (id) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- user_id NULL cho phép so sánh trong phiên khách; session_key dùng cho phiên chưa đăng nhập.
+CREATE TABLE comparisons (
+    id          CHAR(36)      NOT NULL,
+    user_id     CHAR(36)      NULL,
+    session_key VARCHAR(100)  NULL,
+    created_at  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_comparisons_user (user_id),
+    KEY idx_comparisons_session (session_key),
+    CONSTRAINT fk_comparisons_user FOREIGN KEY (user_id)
+        REFERENCES users (id) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE comparison_tours (
+    id            CHAR(36)  NOT NULL,
+    comparison_id CHAR(36)  NOT NULL,
+    tour_id       CHAR(36)  NOT NULL,
+    sort_order    INT       NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_comparison_tours_comparison_tour (comparison_id, tour_id),
+    KEY idx_comparison_tours_tour (tour_id),
+    CONSTRAINT fk_comparison_tours_comparison FOREIGN KEY (comparison_id)
+        REFERENCES comparisons (id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_comparison_tours_tour FOREIGN KEY (tour_id)
         REFERENCES tours (id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
--- 8. NHẬT KÝ
+-- 9. NHẬT KÝ
 -- ---------------------------------------------------------------------
 
 -- NHẬT_KÝ_QUẢN_TRỊ (NFR-09 lịch sử xử lý): thao tác của nhân viên (vd. duyệt tour,
