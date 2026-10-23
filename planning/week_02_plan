@@ -1,0 +1,72 @@
+# SPRINT 2 — SPRINT PLANNING & COMPLETION REPORT
+
+**Thời gian:** 15/10/2026 – 22/10/2026  
+**Trạng thái báo cáo:** ✅ Done (theo yêu cầu cập nhật trạng thái; chưa đối chiếu minh chứng thực tế)  
+**Mục tiêu Sprint:** Hoàn thiện phân tích yêu cầu, xác định phạm vi MVP, xây dựng các tài liệu phân tích và thiết kế sơ bộ để sẵn sàng bước sang Sprint 3.
+
+## I. Sprint Planning
+
+### 1. Sprint Goal
+
+- Thống nhất kế hoạch Sprint 2 và phân công công việc.
+- Thu thập, phân tích và ưu tiên yêu cầu của dự án.
+- Xây dựng SRS phiên bản 0.1, Use Case Diagram và User Flow đặt tour.
+- Hoàn thiện wireframe màn hình chính, phác thảo ERD và cập nhật Risk Register.
+- Review, retrospective và chuẩn bị chuyển tiếp sang Sprint 3.
+
+### 2. Sprint Backlog và phân công
+
+| ID | Công việc | Phụ trách | Ưu tiên | Đầu ra | Trạng thái |
+|---|---|---|---|---|---|
+| SP2-01 | Lập kế hoạch Sprint và phân công | Phong | Must | Sprint Backlog | ✅ Done |
+| SP2-02 | Phỏng vấn với nhà cung cấp | Thành, Hải | Must | Interview Notes | ✅ Done |
+| SP2-03 | Lập yêu cầu chức năng | Hải | Must | SRS v0.1 | ✅ Done |
+| SP2-04 | Phân tích mức độ ưu tiên của các yêu cầu | Phong, Hải | Must | Product Backlog | ✅ Done |
+| SP2-05 | Xây dựng Use Case Diagram | Khôi, Hải | Must | Use Case Diagram | ✅ Done |
+| SP2-06 | Thiết kế User Flow đặt tour | Khôi | Must | User Flow | ✅ Done |
+| SP2-07 | Wireframe màn hình chính | Thức, Khôi | Should | Wireframes | ✅ Done |
+| SP2-08 | Xác định dữ liệu, ERD sơ bộ | Phong, Thức | Should | Draft ERD | ✅ Done |
+| SP2-09 | Cập nhật rủi ro và điểm trả yêu cầu | Thành, Phong | Must | Risk Register | ✅ Done |
+| SP2-10 | Review, Retrospective, báo cáo PCG | Phong, cả nhóm | Must | Sprint 2 Report | ✅ Done |
+
+### 3. Definition of Done (tiêu chí nghiệm thu)
+
+- [x] Kế hoạch và phân công Sprint được lập.
+- [x] Ghi chú phỏng vấn được tổng hợp.
+- [x] SRS v0.1 được chuẩn bị.
+- [x] Product Backlog được sắp xếp theo ưu tiên.
+- [x] Use Case Diagram và User Flow đặt tour được dựng.
+- [x] Wireframes màn hình chính được thiết kế.
+- [x] Draft ERD được phác thảo.
+- [x] Risk Register được cập nhật.
+- [x] Review, retrospective và báo cáo Sprint 2 được ghi nhận.
+
+> **Lưu ý xác minh:** Các dấu tích trên phản ánh trạng thái **Done theo yêu cầu lập báo cáo**, không phải kết quả kiểm chứng từ tài liệu, tệp thiết kế hoặc biên bản nghiệm thu. Cần đối chiếu từng đầu ra trước khi sử dụng làm bằng chứng hoàn thành chính thức.
+
+## II. Kế hoạch thực hiện 7 ngày
+
+| Ngày bắt đầu | Ngày kết thúc | Hoạt động | Kết quả | Trạng thái |
+|---|---|---|---|---|
+| 15/10/2026 | 15/10/2026 | Sprint Planning | Sprint Backlog | ✅ Done |
+| 16/10/2026 | 17/10/2026 | Phỏng vấn, đối chiếu các website hiện có | Dữ liệu, Interview Notes | ✅ Done |
+| 17/10/2026 | 17/10/2026 | Tổng hợp dữ liệu, xác minh giả định, viết SRS, ưu tiên MVP | Research Report, SRS v0.1 | ✅ Done |
+| 18/10/2026 | 19/10/2026 | Use Case, User Flow, xác định thực thể dữ liệu | Use Case, User Flow, Draft ERD | ✅ Done |
+| 19/10/2026 | 20/10/2026 | Wireframe ưu tiên, QA, rà soát rủi ro | Wireframes, QA Checklist | ✅ Done |
+| 21/10/2026 | 22/10/2026 | Sprint Review và Retrospective; chuẩn bị Sprint 3 | Sprint 2 Report | ✅ Done |
+
+## III. Tổng kết Sprint 2
+
+| Chỉ số | Kết quả ghi nhận trong bản kế hoạch |
+|---|---|
+| Tổng số đầu việc | 10 |
+| Must | 8 |
+| Should | 2 |
+| Đầu việc đánh dấu Done | 10/10 |
+| Tỷ lệ đánh dấu hoàn thành | 100% |
+| Công việc chuyển Sprint 3 | Chưa ghi nhận trong bảng nguồn |
+
+### Kết luận
+
+Theo trạng thái được yêu cầu cập nhật, Sprint 2 đã **đánh dấu hoàn thành toàn bộ 10 công việc** trong Sprint Backlog. Các đầu ra chính gồm Sprint Backlog, Interview Notes, SRS v0.1, Product Backlog, Use Case Diagram, User Flow, Wireframes, Draft ERD, Risk Register và Sprint 2 Report.
+
+**Định hướng Sprint 3:** sử dụng tài liệu đã lập ở Sprint 2 làm cơ sở triển khai các chức năng cốt lõi, đồng thời kiểm tra tính nhất quán giữa yêu cầu, luồng người dùng, dữ liệu và giao diện.
