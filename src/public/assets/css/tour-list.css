@@ -1,0 +1,851 @@
+/*
+ * LocalTour – tour-list.css (Nguyễn Tuấn Khôi)
+ * Bảng tin du lịch (UIEx1): cột bảng tin, bộ lọc, tab sắp xếp, thẻ tour, skeleton,
+ * trạng thái rỗng/lỗi và cột phải (so sánh – sắp có).
+ */
+
+/* ---------- Cột ---------- */
+
+.lt-col-feed {
+    min-width: 0;
+}
+
+.lt-col-feed:focus {
+    outline: none;
+}
+
+@media (min-width: 992px) {
+    .lt-col-aside {
+        flex: 0 0 var(--lt-col-aside);
+        max-width: var(--lt-col-aside);
+    }
+}
+
+.lt-aside-sticky {
+    position: sticky;
+    top: calc(var(--lt-sticky-top) + 24px);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* ---------- Đầu bảng tin ---------- */
+
+.lt-feed-head {
+    margin-bottom: 18px;
+}
+
+.lt-feed-head__title {
+    margin: 0 0 4px;
+    font-size: 1.75rem;
+    line-height: 1.25;
+}
+
+.lt-feed-head__subtitle {
+    color: var(--lt-muted-strong);
+    font-size: 0.9375rem;
+}
+
+@media (max-width: 575.98px) {
+    .lt-feed-head__title {
+        font-size: 1.5rem;
+    }
+}
+
+/* ---------- Bộ lọc ---------- */
+
+.lt-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.lt-filter {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 44px;
+    padding: 0 14px;
+    border: 1px solid var(--lt-border);
+    border-radius: var(--lt-radius);
+    background: var(--lt-surface);
+    color: var(--lt-text);
+    font-family: inherit;
+    font-size: 0.875rem;
+    line-height: 1.2;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.lt-filter__icon {
+    color: var(--lt-teal);
+}
+
+.lt-filter__label {
+    margin: 0;
+    color: var(--lt-muted-strong);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.lt-filter__value {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.lt-filter--select {
+    flex: 1 1 236px;
+    min-width: 0;
+    padding-right: 36px;
+}
+
+.lt-filter--select:hover {
+    border-color: var(--lt-border-strong);
+}
+
+.lt-filter--select:focus-within {
+    border-color: var(--lt-teal);
+    box-shadow: var(--lt-focus-ring);
+}
+
+.lt-filter__select {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--lt-text);
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.lt-filter__select:focus,
+.lt-filter__select:focus-visible {
+    outline: none;
+}
+
+/* Vùng bấm phủ cả ô lọc, gồm cả nhãn và icon. */
+.lt-filter__select::-ms-expand {
+    display: none;
+}
+
+.lt-filter__chevron {
+    position: absolute;
+    right: 12px;
+    color: var(--lt-muted);
+    pointer-events: none;
+}
+
+.lt-filter--soon {
+    flex: 0 0 auto;
+    background: #f7f8f9;
+    color: var(--lt-muted-strong);
+    cursor: not-allowed;
+}
+
+.lt-filter--soon .lt-filter__icon {
+    color: #9aa1ad;
+}
+
+.lt-filter--soon .lt-filter__value {
+    font-weight: 500;
+}
+
+@media (max-width: 575.98px) {
+    .lt-filter--select {
+        flex-basis: 100%;
+    }
+
+    .lt-filter--soon {
+        flex: 1 1 0;
+        justify-content: center;
+        min-width: 0;
+        padding: 0 10px;
+    }
+
+    .lt-filter--soon .lt-filter__label {
+        display: none;
+    }
+}
+
+/* ---------- Tab sắp xếp ---------- */
+
+/* Đường kẻ nằm trên dải tab (giãn hết hàng) nên vẫn đúng khi ô "Giá" xuống dòng ở màn hẹp. */
+.lt-sortbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 8px 16px;
+    margin-bottom: 14px;
+}
+
+.lt-tabs {
+    display: flex;
+    flex: 1 1 auto;
+    gap: 22px;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--lt-border-strong);
+    scrollbar-width: none;
+}
+
+.lt-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.lt-tab {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 0 11px;
+    border: 0;
+    background: none;
+    color: var(--lt-muted-strong);
+    font-family: inherit;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.lt-tab::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    border-radius: 3px 3px 0 0;
+    background: transparent;
+    transition: background-color 0.15s ease;
+}
+
+.lt-tab:hover {
+    color: var(--lt-text);
+}
+
+.lt-tab.is-active {
+    color: var(--lt-teal);
+}
+
+.lt-tab.is-active::after {
+    background: var(--lt-teal);
+}
+
+.lt-tab:focus-visible {
+    outline-offset: -2px;
+}
+
+.lt-sort-price {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    margin-left: auto;
+    font-size: 0.8125rem;
+}
+
+.lt-sort-price__label {
+    margin: 0;
+    color: var(--lt-muted-strong);
+    font-weight: 500;
+}
+
+.lt-sort-price__select {
+    height: 32px;
+    padding: 0 28px 0 10px;
+    border: 1px solid var(--lt-border);
+    border-radius: var(--lt-radius);
+    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") right 8px center / 14px no-repeat;
+    color: var(--lt-text);
+    font-family: inherit;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.lt-sort-price__select:focus {
+    border-color: var(--lt-teal);
+    outline: none;
+    box-shadow: var(--lt-focus-ring);
+}
+
+@media (max-width: 575.98px) {
+    .lt-tabs {
+        gap: 16px;
+    }
+
+    .lt-tab {
+        font-size: 0.875rem;
+    }
+
+    .lt-tabs {
+        width: 100%;
+    }
+
+    .lt-sort-price {
+        margin-bottom: 0;
+    }
+}
+
+/* ---------- Đếm kết quả ---------- */
+
+.lt-result-count {
+    min-height: 22px;
+    margin-bottom: 14px;
+    color: var(--lt-muted-strong);
+    font-size: 0.875rem;
+}
+
+.lt-result-count strong {
+    color: var(--lt-text);
+    font-weight: 700;
+}
+
+/* ---------- Thẻ tour ---------- */
+
+.lt-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.lt-tour-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 20px 0;
+    border: 1px solid var(--lt-border);
+    border-radius: var(--lt-radius-lg);
+    background: var(--lt-surface);
+    box-shadow: var(--lt-shadow-sm);
+    cursor: pointer;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.lt-tour-card:hover {
+    border-color: #d5dadf;
+    box-shadow: var(--lt-shadow-hover);
+}
+
+.lt-tour-card:focus-within {
+    border-color: var(--lt-teal);
+    box-shadow: var(--lt-focus-ring), var(--lt-shadow);
+}
+
+.lt-tour-card__head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.lt-tour-card__org {
+    min-width: 0;
+}
+
+.lt-tour-card__provider {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 6px;
+    color: var(--lt-text);
+    font-size: 0.875rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.lt-tour-card__role {
+    color: var(--lt-muted);
+    font-weight: 500;
+}
+
+.lt-tour-card__role::before {
+    content: "•";
+    margin-right: 6px;
+    color: #a3a9b3;
+}
+
+.lt-tour-card__sub {
+    color: var(--lt-muted);
+    font-size: 0.8125rem;
+    line-height: 1.4;
+}
+
+.lt-tour-card__title {
+    margin: 0 0 6px;
+    font-size: 1.3125rem;
+    line-height: 1.3;
+}
+
+.lt-tour-card__link {
+    color: var(--lt-text);
+    text-decoration: none;
+}
+
+.lt-tour-card__link:hover,
+.lt-tour-card:hover .lt-tour-card__link {
+    color: var(--lt-teal);
+    text-decoration: none;
+}
+
+/* Viền focus hiển thị trên cả thẻ (xem .lt-tour-card:focus-within). */
+.lt-tour-card__link:focus,
+.lt-tour-card__link:focus-visible {
+    outline: none;
+}
+
+.lt-tour-card__excerpt {
+    margin-bottom: 14px;
+    color: var(--lt-text-soft);
+    font-size: 0.9375rem;
+}
+
+.lt-tour-card__excerpt--missing {
+    color: var(--lt-muted);
+    font-size: 0.875rem;
+}
+
+.lt-tour-card__media {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 16 / 9;
+    margin-bottom: 14px;
+    border-radius: var(--lt-radius);
+    background: var(--lt-placeholder);
+}
+
+.lt-tour-card__media img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+}
+
+.lt-tour-card:hover .lt-tour-card__media img {
+    transform: scale(1.025);
+}
+
+.lt-tour-card__badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.94);
+    color: var(--lt-text);
+    font-size: 0.75rem;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(16, 24, 40, 0.12);
+}
+
+.lt-tour-card__badge .lt-icon {
+    color: var(--lt-teal);
+}
+
+.lt-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin: 0 0 14px;
+    padding: 0;
+    color: var(--lt-text-soft);
+    font-size: 0.8125rem;
+    list-style: none;
+}
+
+.lt-meta__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.lt-meta__item .lt-icon {
+    color: var(--lt-muted);
+}
+
+.lt-meta__item--rating .lt-icon {
+    color: var(--lt-star);
+}
+
+.lt-meta__item--rating strong {
+    color: var(--lt-text);
+}
+
+.lt-meta__text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lt-tour-card__buy {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 16px;
+}
+
+.lt-price {
+    color: var(--lt-muted-strong);
+    font-size: 0.875rem;
+}
+
+.lt-price__amount {
+    color: var(--lt-text);
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+/* Tour chưa có lịch còn đặt được nên chưa có giá. */
+.lt-price--none {
+    color: var(--lt-muted);
+    font-size: 0.9375rem;
+    font-weight: 600;
+}
+
+/* Nút "Xem chi tiết" và hàng "Thêm vào so sánh" nằm trên lớp phủ "stretched-link" của tiêu đề. */
+.lt-tour-card__cta {
+    position: relative;
+    z-index: 2;
+    min-width: 132px;
+}
+
+.lt-tour-card__actions {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px 12px;
+    margin: 0 -20px;
+    padding: 6px 12px;
+    border-top: 1px solid var(--lt-border);
+    cursor: default;
+}
+
+.lt-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 6px 8px;
+    border: 0;
+    border-radius: var(--lt-radius);
+    background: none;
+    color: var(--lt-muted-strong);
+    font-family: inherit;
+    font-size: 0.8125rem;
+    font-weight: 500;
+}
+
+.lt-action:disabled {
+    cursor: not-allowed;
+}
+
+.lt-action .lt-icon {
+    color: #9aa1ad;
+}
+
+.lt-action--compare {
+    color: #3d5e58;
+    font-weight: 600;
+}
+
+.lt-action--compare .lt-icon {
+    color: #6f9c94;
+}
+
+.lt-feed__end {
+    padding: 8px 0 4px;
+    color: var(--lt-muted-strong);
+    font-size: 0.8125rem;
+    text-align: center;
+}
+
+/* Xếp theo giá: dải phân cách trước nhóm tour chưa cập nhật giá (FR-06). */
+.lt-feed__divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 4px 0;
+    color: var(--lt-muted-strong);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.lt-feed__divider::before,
+.lt-feed__divider::after {
+    content: "";
+    flex: 1 1 24px;
+    height: 1px;
+    background: var(--lt-border-strong);
+}
+
+@media (max-width: 575.98px) {
+    .lt-tour-card {
+        padding: 16px 16px 0;
+    }
+
+    .lt-tour-card__title {
+        font-size: 1.1875rem;
+    }
+
+    .lt-tour-card__actions {
+        margin: 0 -16px;
+        padding: 4px 8px;
+    }
+
+    .lt-action {
+        padding: 6px 9px;
+    }
+
+    .lt-tour-card__cta {
+        flex: 1 1 auto;
+    }
+}
+
+/* ---------- Skeleton (đang tải) ---------- */
+
+.lt-state-loading {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.lt-skeleton-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+    border: 1px solid var(--lt-border);
+    border-radius: var(--lt-radius-lg);
+    background: var(--lt-surface);
+}
+
+.lt-skeleton-card__head,
+.lt-skeleton-card__foot {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.lt-skeleton-card__foot {
+    justify-content: space-between;
+}
+
+.lt-skeleton-card__lines {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.lt-skeleton {
+    display: block;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #eceef0 0%, #f6f7f8 40%, #eceef0 80%) 0 0 / 300% 100%;
+    animation: lt-shimmer 1.4s ease-in-out infinite;
+}
+
+.lt-skeleton--circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}
+
+.lt-skeleton--line {
+    height: 12px;
+}
+
+.lt-skeleton--thin {
+    height: 10px;
+}
+
+.lt-skeleton--title {
+    width: 64%;
+    height: 22px;
+}
+
+.lt-skeleton--media {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: var(--lt-radius);
+}
+
+.lt-skeleton--button {
+    width: 132px;
+    height: 42px;
+    border-radius: var(--lt-radius);
+}
+
+@keyframes lt-shimmer {
+    0% {
+        background-position: 100% 0;
+    }
+
+    100% {
+        background-position: 0 0;
+    }
+}
+
+/* ---------- Trạng thái rỗng / lỗi ---------- */
+
+.lt-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 24px;
+    border: 1px solid var(--lt-border);
+    border-radius: var(--lt-radius-lg);
+    background: var(--lt-surface);
+    text-align: center;
+}
+
+.lt-state__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    margin-bottom: 16px;
+    border-radius: 50%;
+    background: var(--lt-teal-50);
+    color: var(--lt-teal);
+    font-size: 30px;
+}
+
+.lt-state--error .lt-state__icon {
+    background: var(--lt-danger-bg);
+    color: var(--lt-danger);
+}
+
+.lt-state__title {
+    margin: 0 0 6px;
+    font-size: 1.1875rem;
+}
+
+.lt-state__text {
+    max-width: 420px;
+    margin-bottom: 20px;
+    color: var(--lt-muted);
+}
+
+/* ---------- Cột phải ---------- */
+
+.lt-panel {
+    padding: 18px;
+    border: 1px solid var(--lt-border);
+    border-radius: var(--lt-radius-lg);
+    background: var(--lt-surface);
+    box-shadow: var(--lt-shadow-sm);
+}
+
+.lt-panel__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.lt-panel__title {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.35;
+}
+
+.lt-compare .lt-panel__title {
+    color: var(--lt-teal);
+}
+
+.lt-panel__text {
+    margin-bottom: 14px;
+    color: var(--lt-muted);
+    font-size: 0.8125rem;
+}
+
+.lt-panel__note {
+    margin-top: 10px;
+    color: var(--lt-muted);
+    font-size: 0.75rem;
+}
+
+.lt-compare__slots {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0 0 14px;
+    padding: 0;
+    list-style: none;
+}
+
+.lt-compare__slot {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px dashed var(--lt-border-strong);
+    border-radius: var(--lt-radius);
+    background: var(--lt-surface-alt);
+    color: var(--lt-muted);
+    font-size: 0.75rem;
+}
+
+.lt-compare__num {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #e9ecef;
+    color: var(--lt-muted-strong);
+    font-weight: 700;
+}
+
+/* Thích / Bình luận / Chia sẻ / Lưu tour (sắp có): trên màn hình hẹp chỉ hiện icon. */
+.lt-tour-card__social {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px;
+}
+
+.lt-tour-card__social .lt-soon {
+    margin-left: 4px;
+}
+
+@media (max-width: 575.98px) {
+    .lt-tour-card__social .lt-action__label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+    }
+}
