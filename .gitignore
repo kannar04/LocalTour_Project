@@ -1,0 +1,10 @@
+# Thông tin kết nối thật và log chạy máy cá nhân
+src/.env
+src/storage/logs/*
+!src/storage/logs/.gitkeep
+
+# Hệ điều hành / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
