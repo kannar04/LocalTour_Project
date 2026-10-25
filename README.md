@@ -18,7 +18,7 @@ Theo quan sát ban đầu của nhóm, người muốn đặt tour phải tham k
 - **Nhóm mở rộng:** Gia đình và người trung niên có nhu cầu lựa chọn tour phù hợp; giả định này cần xác minh.
 - **Đơn vị tổ chức tour:** Cung cấp, quản lý thông tin tour và tiếp cận khách hàng.
 
-Nhóm dự kiến kiểm chứng vấn đề bằng khoảng 200 phản hồi khảo sát, 10 cuộc phỏng vấn và phân tích các website du lịch hiện có. Đây là mục tiêu thu thập bằng chứng, chưa phải kết quả đã đạt được. Xem [Problem Statement](docs/problem_statement.md).
+Nhóm dự kiến kiểm chứng vấn đề bằng khoảng 200 phản hồi khảo sát, 10 cuộc phỏng vấn và phân tích các website du lịch hiện có. Đây là mục tiêu thu thập bằng chứng, chưa phải kết quả đã đạt được. Xem [Problem Statement](docs/docs/problem_statement.md).
 
 ## Phạm vi MVP
 
@@ -38,7 +38,7 @@ Thông tin tour dự kiến gồm địa điểm, giá, thời lượng, lịch 
 - Đặt khách sạn hoặc phương tiện di chuyển.
 - Thị trường du lịch quốc tế, hệ thống tích điểm phức tạp và tích hợp quy mô lớn với nền tảng bên thứ ba.
 
-Phạm vi, ràng buộc, giả định và rủi ro được mô tả trong [Project Charter](docs/project_charter.md).
+Phạm vi, ràng buộc, giả định và rủi ro được mô tả trong [Project Charter](docs/docs/project_charter.md).
 
 ## Cấu trúc repository
 
@@ -57,10 +57,10 @@ LocalTour_Project/
 
 | Tài liệu | Nội dung |
 | --- | --- |
-| [Problem Statement](docs/problem_statement.md) | Lý do chọn đề tài, vấn đề, người dùng và kế hoạch kiểm chứng. |
-| [Project Charter](docs/project_charter.md) | Mục tiêu, phạm vi, sản phẩm bàn giao, rủi ro và tiêu chí thành công. |
-| [Stakeholder Register](docs/stakeholder_register.md) | Các bên liên quan, kỳ vọng, mức ảnh hưởng và cách phối hợp. |
-| [Team Charter](docs/team_charter.md) | Thành viên, vai trò và quy tắc làm việc nhóm. |
+| [Problem Statement](docs/docs/problem_statement.md) | Lý do chọn đề tài, vấn đề, người dùng và kế hoạch kiểm chứng. |
+| [Project Charter](docs/docs/project_charter.md) | Mục tiêu, phạm vi, sản phẩm bàn giao, rủi ro và tiêu chí thành công. |
+| [Stakeholder Register](docs/docs/stakeholder_register.md) | Các bên liên quan, kỳ vọng, mức ảnh hưởng và cách phối hợp. |
+| [Team Charter](docs/docs/team_charter.md) | Thành viên, vai trò và quy tắc làm việc nhóm. |
 | [Kế hoạch tuần 01](planning/week_01_plan.md) | Công việc, người phụ trách, hạn và trạng thái theo ảnh Trello. |
 | [Cấu trúc mã nguồn](src/README.md) | Nơi lưu từng phần trong dự án chung. |
 | [Hướng dẫn kiểm thử](tests/README.md) | Quy ước quản lý ca kiểm thử, kết quả và minh chứng. |
@@ -75,7 +75,7 @@ LocalTour_Project/
 | Nguyễn Minh Thức | Developer, UI/UX Designer |
 | Đỗ Sơn Thành | QA/Documentation, Business Analyst |
 
-Nhóm trao đổi qua Discord và Zalo, phân công công việc qua ClickUp và quản lý mã nguồn bằng GitHub. Lịch họp nội bộ là 10h30 Chủ nhật; họp với PCG lúc 17h15 thứ Năm. Quy tắc phối hợp và sử dụng AI được ghi trong [Team Charter](docs/team_charter.md).
+Nhóm trao đổi qua Discord và Zalo, phân công công việc qua ClickUp và quản lý mã nguồn bằng GitHub. Lịch họp nội bộ là 10h30 Chủ nhật; họp với PCG lúc 17h15 thứ Năm. Quy tắc phối hợp và sử dụng AI được ghi trong [Team Charter](docs/docs/team_charter.md).
 
 ## Kiểm thử và tiêu chí hoàn thành
 

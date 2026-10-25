@@ -6,7 +6,7 @@
 | WBS | 3.1.1 – Rà soát yêu cầu Tour List/Detail; chốt trường dữ liệu |
 | Người phụ trách | Lê Trung Phong |
 | Căn cứ | SRS v0.1, bảng FR/NFR tuần 2, wireframe UIEx1/UIEx2, ERD `docs/diagram/localtour-erd.drawio` và schema `src/database/01_schema.sql` |
-| Trạng thái | **Đã chốt.** Khớp schema 27 bảng. Cập nhật 23/10/2026: thêm tài khoản khách hàng (đăng ký, đăng nhập, đăng xuất) và chế độ khách. |
+| Trạng thái | **Đã chốt.** Khớp schema 27 bảng. Cập nhật 23/10/2026: thêm tài khoản khách hàng (đăng ký, đăng nhập, đăng xuất) và chế độ khách. Cập nhật 25/10/2026: thêm trường của trang quản trị (mục 7, theo CR1). |
 
 ## 1. Nguyên tắc đọc tài liệu
 
@@ -24,17 +24,17 @@ Khách hàng cần tài khoản để đặt tour:
 - `users.role = 'customer'` là tài khoản khách hàng, tự tạo ở trang Đăng ký. Trường và quy tắc ở mục 2.1.
 - `bookings.user_id` bắt buộc (khóa ngoại tới `users.id`): mỗi đơn thuộc đúng một tài khoản. Khách xem lại đơn của mình qua tài khoản.
 - `bookings.contact_name`, `contact_email`, `contact_phone` lưu người liên hệ của đơn (mặc định lấy từ tài khoản, có thể sửa khi đặt cho người khác); `passengers` lưu người tham gia.
-- Sau khi nhân viên xác nhận chỗ và chuyển booking sang `awaiting_payment`, giao dịch được tạo trong `payments` và liên kết bằng `payments.booking_id`.
-- VNPay trả sự kiện vào `payment_events`; VietQR chuyển sang `awaiting_reconciliation` để nhân viên đối chiếu; hoàn tiền nằm trong `refunds`.
+- Sau khi quản trị viên xác nhận chỗ và chuyển booking sang `awaiting_payment`, giao dịch được tạo trong `payments` và liên kết bằng `payments.booking_id`.
+- VNPay trả sự kiện vào `payment_events`; VietQR chuyển sang `awaiting_reconciliation` để quản trị viên đối chiếu; hoàn tiền nằm trong `refunds`.
 
-Sprint 3 làm đăng ký, đăng nhập, đăng xuất và chế độ khách. Đặt tour, thanh toán, Thích/Bình luận/Chia sẻ, Lưu tour và So sánh để Sprint sau.
+Sprint 3 làm đăng ký, đăng nhập, đăng xuất, chế độ khách và trang quản trị (mục 7). Đặt tour, thanh toán, Thích/Bình luận/Chia sẻ, Lưu tour và So sánh để Sprint sau.
 
 ```mermaid
 flowchart LR
     L[Khách đăng nhập tài khoản] --> A[Chọn tour và lịch]
     A --> B[Nhập liên hệ và hành khách]
     B --> C[bookings: pending, có user_id]
-    C --> D[Nhân viên xác nhận chỗ và tổng tiền]
+    C --> D[Quản trị viên xác nhận chỗ và tổng tiền]
     D --> E[bookings: awaiting_payment]
     E --> F[payments qua VNPay hoặc VietQR]
     F --> G{Kết quả đã xác minh?}
@@ -150,3 +150,57 @@ Bảng và cột không dùng vẫn giữ trong schema; không viết API đọc
 - Lọc theo ngày (`date`) và sắp xếp Mới nhất (`newest`) không làm trong Sprint 3.
 
 Tour List/Tour Detail của Sprint 3 làm theo các quyết định trên; phần “Sắp có” để Sprint sau.
+
+## 7. Trang quản trị (CR1)
+
+Chỉ tài khoản `admin` đang `active` dùng được; route xem [03 – Route và quy ước lỗi](03-route-va-quy-uoc-loi.md), mục 2.3. Form “Đăng nhập quản trị” dùng email và mật khẩu như A02, A04 nhưng chỉ nhận `users.role = 'admin'`. Trang quản trị đọc mọi tour và mọi yêu cầu, kể cả tour chưa công khai; procedure và quy tắc xem [02 – Lược đồ dữ liệu](02-luoc-do-du-lieu.md), mục 7.3.
+
+Nhãn trạng thái dùng chung:
+
+- Yêu cầu (`bookings.status`): `pending` “Chờ xác nhận”, `awaiting_payment` “Chờ thanh toán”, `confirmed` “Đã xác nhận”, `rejected` “Từ chối”, `cancelled` “Đã hủy”, `completed` “Đã hoàn thành”.
+- Tour (`tours.approval_status`): `draft` “Nháp”, `pending` “Chờ duyệt”, `approved` “Đã duyệt”, `rejected` “Bị từ chối”.
+- Thanh toán (`payments.status`): `pending` hoặc chưa có khoản nào “Chưa thanh toán”, `processing` “Đang xử lý”, `awaiting_reconciliation` “Chờ đối chiếu”, `paid` “Thành công”, `failed` “Thất bại”.
+
+Số tiền dạng `38.480.000đ`; thời điểm dạng `dd/mm/yyyy HH:MM`.
+
+### 7.1. Tổng quan (`/admin`, FR-19 → FR-23)
+
+| Mã | Trường | Cột procedure | Nguồn trong schema | Quy tắc |
+| --- | --- | --- | --- | --- |
+| Q01 | Tài khoản khách hàng | `customer_total`, `customer_active`, `customer_locked` (`NMT_sp_admin_summary`) | `users.role = 'customer'`, `users.status` | Số lớn là tổng, kể cả tài khoản bị khóa; dòng phụ “N đang hoạt động · N bị khóa”. |
+| Q02 | Tour | `tour_total`, `tour_pending`, `tour_approved`, `tour_rejected`, `tour_draft` | `tours.approval_status` | Dòng phụ “N chờ duyệt · N đã duyệt · N bị từ chối”; “nháp” chỉ hiện khi có. Có tour chờ duyệt thì có liên kết “Duyệt tour”. |
+| Q03 | Yêu cầu chờ xác nhận | `booking_pending`, `booking_total` | `bookings.status` | Dòng phụ “Trên tổng N yêu cầu đặt tour”; có yêu cầu chờ thì có liên kết “Xử lý yêu cầu”. |
+| Q04 | Yêu cầu theo trạng thái | `status`, `booking_count` (`NMT_sp_admin_booking_status_stats`) | `bookings.status` | Luôn đủ 6 dòng, kể cả trạng thái có 0 yêu cầu; nhãn trạng thái liên kết tới danh sách đã lọc. |
+| Q05 | Kỳ thống kê | `period`, `from`, `to` (tham số trang) | — | “Theo ngày” (`day`), “Theo tháng” (`month`, mặc định), “Theo năm” (`year`). Để trống ngày: 30 ngày gần nhất, 12 tháng gần nhất hoặc toàn bộ. |
+| Q06 | Số yêu cầu theo ngày tạo | `period_key`, `booking_count` (`NMT_sp_admin_booking_time_stats`) | `bookings.created_at` | Mọi trạng thái. Nhãn kỳ: “25/10/2026”, “Tháng 10/2026”, “Năm 2026”. Không có dòng → “Chưa có dữ liệu trong khoảng thời gian này.” |
+| Q07 | Doanh thu theo ngày thanh toán | `period_key`, `paid_count`, `gross_vnd`, `refund_vnd`, `net_vnd` (`NMT_sp_admin_revenue_stats`) | `payments.amount_vnd`, `paid_at` của khoản `paid`; `refunds.amount_vnd` của khoản `completed` | Cột Lượt thanh toán, Doanh thu gộp, Hoàn tiền (dấu −), Doanh thu thuần; dòng “Tổng” cộng các kỳ. |
+
+### 7.2. Duyệt tour (`/admin/tours`, FR-24)
+
+| Mã | Trường | Cột procedure | Nguồn trong schema | Quy tắc |
+| --- | --- | --- | --- | --- |
+| Q08 | Bộ lọc | `status` (tham số trang) | `tours.approval_status` | Tab “Chờ duyệt” (mặc định), “Đã duyệt”, “Bị từ chối”, “Tất cả”. |
+| Q09 | Dòng danh sách | `title`, `destination_name`, `category_name`, `provider_name`, `approval_status`, `is_public`, `schedule_count`, `last_action_at` (`LTP_sp_admin_tour_list`) | `tours`, `destinations`, `categories`, `providers`, `schedules`, `admin_logs` | Cột Tour (tên; điểm đến · loại hình), Đơn vị tổ chức, Trạng thái, Hiển thị (Có / Không), Lịch, Xử lý gần nhất (“Chưa có” khi `NULL`). Nút “Xem và duyệt” với tour chờ duyệt, “Xem” với tour khác. |
+| Q10 | Thông tin tour | `description`, `destination_name`, `category_name`, `duration_minutes`, `max_group_size`, `language_codes`, `pickup_mode`, `meeting_point`, `dropoff_point`, `transport`, `guide_info`, `provider_name`, `provider_phone`, `source_url`, `verified_at` (`LTP_sp_admin_tour_detail`) | `tours`, `providers.contact_phone` | Định dạng như trang chi tiết của khách; thiếu → “Chưa cập nhật”; `verified_at` là `NULL` → “Chưa xác minh”. |
+| Q11 | Nội dung đã nhập | `schedule_count`, `ticket_count`, `image_count`, `itinerary_count`, `inclusion_count`, `policy_count` | `schedules`, `ticket_types` (`active`), `tour_images`, `tour_itinerary_items`, `tour_inclusions`, `cancellation_policies` | Tour chờ duyệt thiếu lịch, vé, chính sách hủy hoặc ảnh → cảnh báo “Tour còn thiếu: …”. |
+| Q12 | Hiển thị cho khách | `is_public`, `provider_approval_status`, `provider_user_status` | Điều kiện công khai (02, mục 7.1) | “Đang hiển thị cho khách” kèm nút “Xem trang tour”, hoặc “Chưa hiển thị cho khách”. Nhà cung cấp chưa duyệt hoặc bị khóa → cảnh báo tour sẽ chưa hiển thị dù đã phê duyệt. |
+| Q13 | Form xử lý | `note` (form) → `LTP_sp_admin_tour_set_approval` | `tours.approval_status`, `admin_logs` | Chỉ hiện khi tour “Chờ duyệt”: nút “Phê duyệt tour”; ô “Lý do từ chối (bắt buộc)” tối đa 255 ký tự và nút “Từ chối tour”. |
+
+### 7.3. Yêu cầu đặt tour (`/admin/bookings`, FR-25)
+
+| Mã | Trường | Cột procedure | Nguồn trong schema | Quy tắc |
+| --- | --- | --- | --- | --- |
+| Q14 | Tìm kiếm và bộ lọc | `q`, `status` (tham số trang) | `bookings.code`, `contact_name`, `contact_email`, `contact_phone`, `bookings.status` | Từ khóa tối đa 100 ký tự; tab “Tất cả” và 6 trạng thái. Không có kết quả → “Không tìm thấy yêu cầu nào khớp với “…”.” hoặc “Không có yêu cầu nào ở trạng thái này.” |
+| Q15 | Dòng danh sách | `code`, `created_at`, `contact_name`, `contact_phone`, `tour_title`, `starts_at`, `total_vnd`, `people`, `payment_status`, `status`, `hold_expires_at` (`NTK_sp_admin_booking_list`) | `bookings`, `booking_lines`, `schedules`, `tours`, `payments` | Mới nhất trước, tối đa 200 dòng. Cột Mã (kèm thời điểm tạo), Khách liên hệ (kèm số điện thoại), Tour (kèm “Khởi hành …”), Tổng tiền (kèm “N khách”), Thanh toán, Trạng thái (kèm “Hạn thanh toán …” khi có). |
+| Q16 | Đầu trang chi tiết | `code`, `status`, `created_at`, `hold_expires_at` (`NTK_sp_admin_booking_detail`) | `bookings` | “Yêu cầu LT…”, nhãn trạng thái, “Tạo lúc …”, “Hạn thanh toán …” khi có. |
+| Q17 | Tour và lịch khởi hành | `tour_title`, `starts_at`, `ends_at`, `provider_name`, `provider_phone`, `policy_version` | `tours`, `schedules`, `providers`, `bookings.policy_version` | Dòng “Chính sách hủy: Phiên bản N”. |
+| Q18 | Vé | `ticket_name`, `quantity`, `unit_price_vnd`, `line_total_vnd` (`NTK_sp_admin_booking_line_list`); `people`, `total_vnd` | `booking_lines`, `ticket_types.name`, `bookings.total_vnd` | Bảng Loại vé, Số lượng, Đơn giá, Thành tiền; dòng “Tổng tiền”. |
+| Q19 | Khách hàng | `contact_name`, `contact_email`, `contact_phone`, `account_name`, `account_email`, `account_status` | `bookings.contact_*`, `users` của `bookings.user_id` | Tài khoản bị khóa ghi “(đang bị khóa)”. |
+| Q20 | Thanh toán | `payment_status`, `payment_method`, `payment_amount_vnd`, `provider_txn_id`, `paid_at`, `refund_completed_vnd` | Khoản `payments` tiêu biểu (ưu tiên `paid`, rồi `awaiting_reconciliation`, `processing`, `pending`, `failed`); `refunds` `completed` | Chưa có khoản nào → “Chưa có khoản thanh toán nào.”; `paid_at` là `NULL` → “Chưa có”; “Đã hoàn tiền” chỉ hiện khi lớn hơn 0. |
+| Q21 | Cập nhật trạng thái | `status`, `note` (form) → `NTK_sp_admin_booking_set_status` | `bookings.status`, `hold_expires_at`, `payments`, `admin_logs` | Chỉ hiện các trạng thái được chuyển tiếp (02, mục 7.3): “Xác nhận chỗ và giá”, “Xác nhận đã thanh toán”, “Tour đã diễn ra”, “Từ chối yêu cầu”, “Hủy yêu cầu”. Ô “Lý do / ghi chú” tối đa 255 ký tự, bắt buộc khi từ chối hoặc hủy. Trạng thái cuối → không có form. |
+
+### 7.4. Lịch sử xử lý (NFR-09)
+
+| Mã | Trường | Cột procedure | Nguồn trong schema | Quy tắc |
+| --- | --- | --- | --- | --- |
+| Q22 | Lịch sử xử lý | `created_at`, `actor_name`, `action`, `from_status`, `to_status`, `note` (`NTK_sp_admin_log_list`) | `admin_logs`, `users.name` của `actor_user_id` | Cũ trước. Chi tiết tour: bảng Thời điểm, Người xử lý, Thao tác (“Phê duyệt” / “Từ chối”: trạng thái cũ → mới), Lý do / ghi chú (“Không có” khi `NULL`). Chi tiết yêu cầu: trạng thái cũ → mới, thời điểm · người xử lý, ghi chú nếu có. Chưa có dòng nào → “Chưa có lần xử lý nào.” |

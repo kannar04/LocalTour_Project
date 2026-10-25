@@ -374,6 +374,8 @@ CREATE TABLE cancellation_policies (
 -- total_vnd = tổng line_total_vnd của các dòng đơn (không gồm tour_extras).
 -- policy_version: phiên bản chính sách hủy của tour tại thời điểm đặt.
 -- hold_expires_at: hạn giữ chỗ khi đơn đang chờ thanh toán (NULL = không giữ chỗ).
+-- created_at: thời điểm khách gửi yêu cầu (FR-22 thống kê theo thời gian, FR-25 sắp xếp
+--   danh sách yêu cầu ở trang quản trị).
 CREATE TABLE bookings (
     id              CHAR(36)      NOT NULL,
     user_id         CHAR(36)      NOT NULL,
@@ -387,10 +389,12 @@ CREATE TABLE bookings (
     total_vnd       BIGINT        NOT NULL,
     policy_version  INT           NOT NULL,
     hold_expires_at DATETIME      NULL,
+    created_at      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,   -- FR-22, FR-25
     PRIMARY KEY (id),
     UNIQUE KEY uq_bookings_code (code),
     KEY idx_bookings_user (user_id),
     KEY idx_bookings_schedule (schedule_id),
+    KEY idx_bookings_status_created (status, created_at),               -- FR-21, FR-22
     CONSTRAINT fk_bookings_user FOREIGN KEY (user_id)
         REFERENCES users (id) ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT fk_bookings_schedule FOREIGN KEY (schedule_id)
@@ -441,6 +445,8 @@ CREATE TABLE passengers (
 --         Luồng VietQR kết thúc ở 'awaiting_reconciliation' (chờ nhân viên đối chiếu)
 --         hoặc 'paid'.
 --         Không có trạng thái "đã hoàn tiền": tiền hoàn được ghi ở bảng refunds.
+-- paid_at: thời điểm ghi nhận thanh toán thành công (status chuyển sang 'paid'); NULL khi
+--         chưa thành công. FR-23 thống kê doanh thu theo ngày thanh toán.
 CREATE TABLE payments (
     id              CHAR(36)      NOT NULL,
     booking_id      CHAR(36)      NOT NULL,
@@ -450,8 +456,10 @@ CREATE TABLE payments (
     status          ENUM('pending','processing','awaiting_reconciliation','paid','failed')
                     NOT NULL DEFAULT 'pending',
     expires_at      DATETIME      NULL,
+    paid_at         DATETIME      NULL,                                 -- FR-23
     PRIMARY KEY (id),
     KEY idx_payments_booking (booking_id),
+    KEY idx_payments_status_paid (status, paid_at),                     -- FR-23
     CONSTRAINT fk_payments_booking FOREIGN KEY (booking_id)
         REFERENCES bookings (id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -592,19 +600,26 @@ CREATE TABLE comparison_tours (
 -- 10. NHẬT KÝ
 -- ---------------------------------------------------------------------
 
--- NHẬT_KÝ_QUẢN_TRỊ (NFR-09 lịch sử xử lý): thao tác của nhân viên (vd. duyệt tour,
--- đổi trạng thái đơn, khóa tài khoản). target_type + target_id: đối tượng bị tác
--- động (vd. 'tour' + UUID của tour); không có khóa ngoại vì đối tượng có thể nằm ở
--- nhiều bảng khác nhau. Sprint 3 để trống.
+-- NHẬT_KÝ_QUẢN_TRỊ (NFR-09 lịch sử xử lý): thao tác của quản trị viên (FR-24 duyệt /
+-- từ chối tour, FR-25 đổi trạng thái yêu cầu đặt tour). target_type + target_id: đối
+-- tượng bị tác động ('tour' hoặc 'booking' + UUID); không có khóa ngoại vì đối tượng có
+-- thể nằm ở nhiều bảng khác nhau.
+-- action: 'tour_approve', 'tour_reject', 'booking_status'.
+-- from_status / to_status: trạng thái trước và sau thao tác.
+-- note: lý do từ chối / hủy hoặc ghi chú xử lý (NULL = không có ghi chú).
 CREATE TABLE admin_logs (
     id            CHAR(36)     NOT NULL,
     actor_user_id CHAR(36)     NOT NULL,
     target_type   VARCHAR(50)  NOT NULL,
     target_id     VARCHAR(36)  NOT NULL,
     action        VARCHAR(50)  NOT NULL,
+    from_status   VARCHAR(30)  NULL,
+    to_status     VARCHAR(30)  NULL,
+    note          VARCHAR(255) NULL,
     created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_admin_logs_actor (actor_user_id),
+    KEY idx_admin_logs_target (target_type, target_id, created_at),
     CONSTRAINT fk_admin_logs_actor FOREIGN KEY (actor_user_id)
         REFERENCES users (id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

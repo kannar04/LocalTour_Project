@@ -6,8 +6,8 @@
 | WBS | 3.1.2 – Thiết kế lược đồ Tour, Provider, Schedule và script mẫu |
 | Người phụ trách | Nguyễn Minh Thức |
 | Thời gian theo kế hoạch | 22–23/10/2026 (1,5 giờ công) |
-| Căn cứ | ERD của nhóm `docs/diagram/localtour-erd.drawio` (26 bảng); bảng yêu cầu FR/NFR (Bài tập nhóm tuần 2); [01 – Danh mục trường dữ liệu](01-truong-du-lieu.md), mục 5 (nguồn của ba cặp bảng trùng chức năng). Nhóm chốt lược đồ 27 bảng: 26 bảng của ERD và bảng `reviews` được giữ lại vì trang danh sách và trang chi tiết có hiển thị đánh giá. Khách hàng có tài khoản và phải đăng nhập mới đặt được tour. |
-| Script | `src/database/01_schema.sql`, `src/database/02_seed.sql`, `src/database/03_procedures_LTP.sql`, `src/database/04_procedures_NMT.sql`, `src/database/05_procedures_NTK.sql`, `src/database/06_procedures_NTK_account.sql`; file gộp `src/database/db_localtour.sql` |
+| Căn cứ | ERD của nhóm `docs/diagram/localtour-erd.drawio` (26 bảng); bảng yêu cầu FR/NFR (Bài tập nhóm tuần 2); [01 – Danh mục trường dữ liệu](01-truong-du-lieu.md), mục 5 (nguồn của ba cặp bảng trùng chức năng). Nhóm chốt lược đồ 27 bảng: 26 bảng của ERD và bảng `reviews` được giữ lại vì trang danh sách và trang chi tiết có hiển thị đánh giá. Khách hàng có tài khoản và phải đăng nhập mới đặt được tour. Trang quản trị (FR-19 → FR-25, NFR-09) theo phiếu yêu cầu thay đổi CR1. |
+| Script | `src/database/01_schema.sql`, `src/database/02_seed.sql`, `src/database/03_procedures_LTP.sql`, `src/database/04_procedures_NMT.sql`, `src/database/05_procedures_NTK.sql`, `src/database/06_procedures_NTK_account.sql`, `src/database/07_procedures_NTK_admin.sql`; file gộp `src/database/db_localtour.sql` |
 | Tài liệu liên quan | [01 – Danh mục trường dữ liệu](01-truong-du-lieu.md), [03 – Route và quy ước lỗi](03-route-va-quy-uoc-loi.md), `src/database/README.md` |
 | Tiêu chí nghiệm thu | Schema SQL chạy không lỗi; khóa chính/khóa ngoại hợp lý; có dữ liệu tối thiểu 6 tour để kiểm thử. |
 
@@ -18,7 +18,7 @@
 - Engine InnoDB cho mọi bảng để dùng được khóa ngoại.
 - 27 bảng, chia thành 9 nhóm theo đúng các phần của `01_schema.sql` (bảng dưới đây).
 - Khách hàng có tài khoản (`users.role = 'customer'`). Khách chưa đăng nhập (chế độ khách) chỉ xem danh sách và chi tiết tour; muốn đặt tour phải đăng nhập, nên mỗi đơn đặt thuộc đúng một tài khoản (`bookings.user_id` bắt buộc). Chi tiết ở mục 7.2.
-- Sprint 3 đọc 14 bảng để hiển thị danh sách, chi tiết tour và để đăng nhập; chỉ ghi vào một bảng là `users` (đăng ký tài khoản). 13 bảng còn lại được tạo sẵn để Sprint sau không phải đổi lược đồ (mục 1.1).
+- Trang khách đọc 14 bảng để hiển thị danh sách, chi tiết tour và để đăng nhập; chỉ ghi vào `users` (đăng ký tài khoản). Trang quản trị (CR1, mục 7.3) đọc thêm `booking_lines`, `payments`, `refunds`, `admin_logs` và ghi vào `tours`, `bookings`, `payments`, `admin_logs`. 9 bảng còn lại được tạo sẵn để Sprint sau không phải đổi lược đồ (mục 1.1).
 - Ba cặp bảng trùng chức năng chỉ đọc một nguồn (mục 1.2).
 - Ứng dụng PHP không đọc bảng trực tiếp. Mọi truy xuất đi qua stored procedure có tên bắt đầu bằng tiền tố của người phụ trách: `LTP_sp_…`, `NMT_sp_…`, `NTK_sp_…` (mục 10; xem thêm [03 – Route và quy ước lỗi](03-route-va-quy-uoc-loi.md)).
 - `01_schema.sql` là bản gốc của lược đồ, mỗi bảng và mỗi cột thêm mới có ghi chú FR mà nó phục vụ. Thức vẽ lại ERD chính thức từ file này.
@@ -37,15 +37,17 @@
 
 ### 1.1. Ánh xạ thực thể → bảng SQL
 
-"Mọi procedure tour" là các procedure của file `03`, `04`, `05`: procedure nào cũng nối `tours`, `providers`, `users` để áp dụng điều kiện công khai (mục 7.1).
+"Mọi procedure tour" là các procedure của trang khách trong file `03`, `04`, `05` (không gồm `…_admin_…`): procedure nào cũng nối `tours`, `providers`, `users` để áp dụng điều kiện công khai (mục 7.1).
+
+Procedure của trang quản trị (`LTP_sp_admin_…`, `NMT_sp_admin_…`, `NTK_sp_admin_…`, mục 7.3) đọc mọi tour và mọi đơn, không áp dụng điều kiện công khai. Ngoài các bảng ghi ở cột cuối, chúng còn đếm lịch, vé, ảnh, lịch trình, dịch vụ và chính sách hủy của tour.
 
 | Nhóm | Thực thể | Bảng SQL | Dùng ở Sprint 3 | Procedure đọc |
 | --- | --- | --- | --- | --- |
-| Tài khoản & nhà cung cấp | NGƯỜI_DÙNG | `users` | Đọc và ghi: đăng ký, đăng nhập tài khoản khách hàng; tên người đánh giá; trạng thái tài khoản của nhà cung cấp. | `NTK_sp_customer_register` (ghi), `NTK_sp_user_find_by_email`, `NTK_sp_tour_review_list`; mọi procedure tour |
+| Tài khoản & nhà cung cấp | NGƯỜI_DÙNG | `users` | Đọc và ghi: đăng ký, đăng nhập tài khoản khách hàng; tên người đánh giá; trạng thái tài khoản của nhà cung cấp. Trang quản trị: đăng nhập quản trị viên, kiểm tra lại quyền người thao tác, đếm tài khoản khách hàng (FR-19), tên người xử lý. | `NTK_sp_customer_register` (ghi), `NTK_sp_user_find_by_email`, `NTK_sp_tour_review_list`; mọi procedure tour; `NMT_sp_admin_summary`, `NTK_sp_admin_log_list`, hai procedure ghi của trang quản trị |
 | Tài khoản & nhà cung cấp | NHÀ_CUNG_CẤP | `providers` | Đọc: tên hiển thị, trạng thái duyệt, ngày duyệt. | Mọi procedure tour |
 | Danh mục tour | ĐIỂM_ĐẾN | `destinations` | Đọc: bộ lọc điểm đến, thanh bên, breadcrumb, tên điểm đến của tour. | `LTP_sp_destination_list`, `LTP_sp_tour_list`, `NMT_sp_tour_detail` |
 | Danh mục tour | LOẠI_HÌNH | `categories` | Đọc: bộ lọc "Loại hình", breadcrumb, dòng "Loại hình" ở trang chi tiết. | `LTP_sp_category_list`, `LTP_sp_tour_list`, `NMT_sp_tour_detail` |
-| Tour & nội dung tour | TOUR | `tours` | Đọc, kể cả 7 cột thông tin thêm theo bảng FR. Không đọc `included_summary`, `excluded_summary` (để `NULL`, mục 1.2) và 3 cột NFR-07. | Mọi procedure tour |
+| Tour & nội dung tour | TOUR | `tours` | Đọc, kể cả 7 cột thông tin thêm theo bảng FR. Không đọc `included_summary`, `excluded_summary` (để `NULL`, mục 1.2); 3 cột NFR-07 chỉ trang quản trị đọc. Trang quản trị đọc mọi tour và ghi `approval_status` (FR-24). | Mọi procedure tour; `LTP_sp_admin_tour_list`, `LTP_sp_admin_tour_detail`, `LTP_sp_admin_tour_set_approval` (ghi), `NMT_sp_admin_summary` |
 | Tour & nội dung tour | ẢNH_TOUR | `tour_images` | Đọc: ảnh bìa và thư viện ảnh của chính tour. | `NMT_sp_tour_image_list`, `LTP_sp_tour_list` (ảnh bìa) |
 | Tour & nội dung tour | ĐIỂM_LỊCH_TRÌNH | `itinerary_stops` | Không dùng, để trống (mục 1.2). | – |
 | Tour & nội dung tour | PHỤ_THU / HOẠT_ĐỘNG_TÙY_CHỌN | `tour_extras` | Đọc: phụ thu và hoạt động tùy chọn, giá tách riêng. | `NTK_sp_tour_extra_list` |
@@ -55,21 +57,21 @@
 | Lịch, vé & chính sách | LỊCH_KHỞI_HÀNH | `schedules` | Đọc: lịch còn đặt được, số chỗ còn; ngày đi tour của đánh giá. | `NMT_sp_tour_schedule_list`, `NMT_sp_tour_ticket_list`, `LTP_sp_tour_list`, `NMT_sp_tour_detail`, `NTK_sp_tour_review_list` |
 | Lịch, vé & chính sách | VÉ_THEO_LỊCH | `ticket_types` | Đọc: giá theo loại vé của từng lịch. | `NMT_sp_tour_ticket_list`, `NMT_sp_tour_schedule_list`, `LTP_sp_tour_list`, `NMT_sp_tour_detail` |
 | Lịch, vé & chính sách | CHÍNH_SÁCH_HỦY | `cancellation_policies` | Đọc: phiên bản mới nhất. | `NTK_sp_tour_cancellation_policy` |
-| Đặt chỗ | ĐƠN_ĐẶT_TOUR | `bookings` | Đọc gián tiếp: tài khoản đặt đơn (tên người đánh giá) và lịch của đơn (ngày đi tour). Sprint 3 chưa tạo đơn. | `NTK_sp_tour_review_list` |
-| Đặt chỗ | DÒNG_ĐƠN | `booking_lines` | Tạo sẵn, dùng ở Sprint sau (đặt tour). | – |
+| Đặt chỗ | ĐƠN_ĐẶT_TOUR | `bookings` | Đọc gián tiếp: tài khoản đặt đơn (tên người đánh giá) và lịch của đơn (ngày đi tour). Sprint 3 chưa tạo đơn. Trang quản trị đọc mọi đơn và đổi `status`, `hold_expires_at` (FR-21, FR-22, FR-25). | `NTK_sp_tour_review_list`; `NMT_sp_admin_summary`, `NMT_sp_admin_booking_status_stats`, `NMT_sp_admin_booking_time_stats`, `NTK_sp_admin_booking_list`, `NTK_sp_admin_booking_detail`, `NTK_sp_admin_booking_set_status` (ghi) |
+| Đặt chỗ | DÒNG_ĐƠN | `booking_lines` | Đọc ở trang quản trị: vé và số khách của yêu cầu. Ghi khi có đặt tour (Sprint sau). | `NTK_sp_admin_booking_list`, `NTK_sp_admin_booking_detail`, `NTK_sp_admin_booking_line_list` |
 | Đặt chỗ | HÀNH_KHÁCH | `passengers` | Tạo sẵn, dùng ở Sprint sau (đặt tour). | – |
-| Giao dịch | THANH_TOÁN | `payments` | Tạo sẵn, dùng ở Sprint sau (thanh toán). | – |
+| Giao dịch | THANH_TOÁN | `payments` | Đọc ở trang quản trị: thanh toán của yêu cầu, doanh thu (FR-23). Ghi `paid` khi quản trị viên xác nhận khoản VietQR chờ đối chiếu. Khách thanh toán ở Sprint sau. | `NTK_sp_admin_booking_list`, `NTK_sp_admin_booking_detail`, `NMT_sp_admin_revenue_stats`, `NTK_sp_admin_booking_set_status` (ghi) |
 | Giao dịch | SỰ_KIỆN_THANH_TOÁN | `payment_events` | Tạo sẵn, dùng ở Sprint sau (thanh toán). | – |
-| Giao dịch | HOÀN_TIỀN | `refunds` | Tạo sẵn, dùng ở Sprint sau (hủy đơn, hoàn tiền). | – |
+| Giao dịch | HOÀN_TIỀN | `refunds` | Đọc ở trang quản trị: tiền đã hoàn của yêu cầu, trừ vào doanh thu (FR-23). Tạo yêu cầu hoàn tiền ở Sprint sau. | `NTK_sp_admin_booking_detail`, `NMT_sp_admin_revenue_stats` |
 | Đánh giá | ĐÁNH_GIÁ | `reviews` | Đọc: chỉ đánh giá đã duyệt; điểm trung bình và số đánh giá. | `NTK_sp_tour_review_list`, `LTP_sp_tour_list`, `NMT_sp_tour_detail` |
 | Khám phá & thông báo | BÀI_ĐĂNG_TOUR | `tour_posts` | Tạo sẵn, để trống. | – |
 | Khám phá & thông báo | TOUR_YÊU_THÍCH | `favorite_tours` | Tạo sẵn, để trống (nút "Lưu tour" hiện "Sắp có"). | – |
 | Khám phá & thông báo | THÔNG_BÁO | `notifications` | Tạo sẵn, để trống. | – |
 | Khám phá & thông báo | BỘ_SO_SÁNH | `comparisons` | Tạo sẵn, để trống (nút "So sánh" hiện "Sắp có"). | – |
 | Khám phá & thông báo | TOUR_TRONG_BỘ_SO_SÁNH | `comparison_tours` | Tạo sẵn, để trống. | – |
-| Nhật ký | NHẬT_KÝ_QUẢN_TRỊ | `admin_logs` | Tạo sẵn, để trống (NFR-09, dùng khi có trang quản trị). | – |
+| Nhật ký | NHẬT_KÝ_QUẢN_TRỊ | `admin_logs` | Đọc và ghi: lịch sử xử lý tour và yêu cầu đặt tour (NFR-09). | `NTK_sp_admin_log_list`, `LTP_sp_admin_tour_list` (lần xử lý gần nhất); `LTP_sp_admin_tour_set_approval`, `NTK_sp_admin_booking_set_status` (ghi) |
 
-`bookings` luôn có dữ liệu mẫu vì mỗi đánh giá phải gắn với một đơn đặt đã hoàn thành của một tài khoản khách hàng; số dòng của các bảng đặt chỗ và giao dịch xem phần đầu `02_seed.sql`. Tám bảng `itinerary_stops`, `tour_schedules`, `tour_posts`, `favorite_tours`, `notifications`, `comparisons`, `comparison_tours`, `admin_logs` để trống. Không màn hình nào của Sprint 3 hiển thị dữ liệu của các bảng tạo sẵn.
+`bookings` luôn có dữ liệu mẫu vì mỗi đánh giá phải gắn với một đơn đặt đã hoàn thành của một tài khoản khách hàng; số dòng của các bảng đặt chỗ và giao dịch xem phần đầu `02_seed.sql`. Bảy bảng `itinerary_stops`, `tour_schedules`, `tour_posts`, `favorite_tours`, `notifications`, `comparisons`, `comparison_tours` để trống; `admin_logs` có lịch sử xử lý mẫu (mục 8.3). Trang khách không hiển thị dữ liệu của các bảng tạo sẵn; trang quản trị hiển thị đơn, dòng vé, thanh toán, hoàn tiền và lịch sử xử lý.
 
 ### 1.2. Ba cặp bảng trùng chức năng
 
@@ -261,6 +263,7 @@ erDiagram
 - Quan hệ 1 – 0..1: mỗi tài khoản có tối đa một hồ sơ nhà cung cấp (`providers.user_id` duy nhất); mỗi đơn đặt có tối đa một đánh giá (`reviews.booking_id` duy nhất).
 - Ba khóa ngoại cho phép `NULL` (đầu `|o` ở phía bảng cha): `tours.destination_id`, `tours.category_id` (tour chưa gắn điểm đến / loại hình) và `comparisons.user_id` (bộ so sánh của phiên chưa đăng nhập). Mọi khóa ngoại khác là `NOT NULL`.
 - `bookings.user_id` bắt buộc: mỗi đơn thuộc một tài khoản khách hàng. `reviews` không có cột người dùng riêng; người đánh giá là chủ tài khoản của đơn (`reviews.booking_id` → `bookings.user_id` → `users`).
+- Các cột thêm cho trang quản trị (CR1) không phải khóa nên không có trên sơ đồ: `bookings.created_at`, `payments.paid_at`, `admin_logs.from_status`, `to_status`, `note` (mục 4.5, 4.6, 4.9). Ba chỉ mục đi kèm `idx_bookings_status_created`, `idx_payments_status_paid`, `idx_admin_logs_target` ghi ở mục 5. Không thêm khóa ngoại nào.
 
 ## 3. Quy ước kiểu dữ liệu
 
@@ -305,7 +308,7 @@ ERD chỉ ghi một phần giá trị (ví dụ `pending/confirmed/...`). Trạn
 
 Ghi chú:
 
-- `customer` là tài khoản khách hàng. Trang đăng ký chỉ tạo tài khoản `customer`, trang đăng nhập chỉ nhận tài khoản `customer`. Ba vai trò còn lại dành cho trang quản trị và trang nhà cung cấp sau này.
+- `customer` là tài khoản khách hàng. Trang đăng ký chỉ tạo tài khoản `customer`, trang đăng nhập chỉ nhận tài khoản `customer`. Trang quản trị chỉ nhận tài khoản `admin` (đăng nhập ở `/admin/login`, mục 7.3); `support` và `provider` dành cho các trang sau này.
 - `completed` không có trong bảng FR mà đến từ quy tắc trên ERD "đánh giá thuộc đơn đã hoàn thành": chỉ đơn `completed` mới có đánh giá.
 - `payments.method` chỉ có hai phương thức của FR-17 (VNPay, VietQR); không có trả sau.
 - `payments.status` không có `expired` hay `refunded`: tiền hoàn được ghi riêng ở bảng `refunds`, đơn quá hạn thanh toán chuyển sang `cancelled`.
@@ -322,7 +325,7 @@ Bảng Sprint 3 đọc được mô tả đủ từng cột. Bảng tạo sẵn 
 
 #### `users` – Người dùng (NGƯỜI_DÙNG)
 
-Tài khoản khách hàng, nhân viên và nhà cung cấp (FR-13, NFR-04). Sprint 3 chỉ tạo và đăng nhập tài khoản `customer` (mục 7.2).
+Tài khoản khách hàng, nhân viên và nhà cung cấp (FR-13, NFR-04). Sprint 3 chỉ tạo tài khoản `customer` (mục 7.2); đăng nhập được bằng tài khoản `customer` ở trang khách và tài khoản `admin` ở trang quản trị (mục 7.3).
 
 | Cột | Kiểu | Ràng buộc | Ý nghĩa |
 | --- | --- | --- | --- |
@@ -339,7 +342,7 @@ Tài khoản khách hàng, nhân viên và nhà cung cấp (FR-13, NFR-04). Spri
 | --- | --- | --- | --- |
 | `user_id` | CHAR(36) | FK → `users`, UNIQUE | Tài khoản sở hữu hồ sơ nhà cung cấp. |
 | `business_name` | VARCHAR(150) | NOT NULL | Tên hiển thị "Tổ chức bởi …"; có trong phạm vi tìm kiếm. |
-| `contact_phone` | VARCHAR(20) | NOT NULL | Số liên hệ. Chưa hiển thị ở Sprint 3. |
+| `contact_phone` | VARCHAR(20) | NOT NULL | Số liên hệ. Trang khách chưa hiển thị; trang quản trị hiện ở chi tiết tour và chi tiết yêu cầu. |
 | `approval_status` | ENUM | NOT NULL, DEFAULT 'pending' | Chỉ `approved` được công khai. |
 | `approved_at` | DATETIME | NULL | Thời điểm LocalTour duyệt nhà cung cấp; trang chi tiết hiện "Đối tác của LocalTour từ …". |
 
@@ -393,9 +396,9 @@ Nguồn của bộ lọc "Loại hình", ví dụ Ẩm thực, Đi bộ khám ph
 | `source_url` | VARCHAR(500) | NULL | NFR-07 nguồn tham khảo. |
 | `verified_at` | DATE | NULL | NFR-07 ngày xác minh gần nhất. |
 | `verification_status` | ENUM | NOT NULL, DEFAULT 'unverified' | NFR-07 trạng thái xác minh. Thiếu nguồn hoặc ngày thì để `unverified`, không gán ngày giả. |
-| `approval_status` | ENUM | NOT NULL, DEFAULT 'draft' | Chỉ `approved` được công khai. |
+| `approval_status` | ENUM | NOT NULL, DEFAULT 'draft' | Chỉ `approved` được công khai. Quản trị viên chuyển `pending` → `approved` hoặc `rejected` (FR-24, mục 7.3). |
 
-10 cột `transport`, `guide_info`, `dropoff_point`, `document_terms`, `meal_terms`, `voucher_terms`, `reschedule_terms`, `source_url`, `verified_at`, `verification_status` là phần thêm theo bảng FR. `NULL` = chưa cập nhật, giao diện hiện "Chưa cập nhật". 7 cột FR-02/05 được `NMT_sp_tour_detail` trả về; 3 cột NFR-07 chỉ dành cho trang quản trị sau này.
+10 cột `transport`, `guide_info`, `dropoff_point`, `document_terms`, `meal_terms`, `voucher_terms`, `reschedule_terms`, `source_url`, `verified_at`, `verification_status` là phần thêm theo bảng FR. `NULL` = chưa cập nhật, giao diện hiện "Chưa cập nhật". 7 cột FR-02/05 được `NMT_sp_tour_detail` trả về; 3 cột NFR-07 chỉ trang quản trị đọc (`LTP_sp_admin_tour_detail`, dòng "Nguồn tham khảo" và "Ngày xác minh").
 
 #### `tour_images` – Ảnh tour (ẢNH_TOUR)
 
@@ -492,7 +495,7 @@ Khoản phát sinh ngoài giá tour (FR-04 phụ thu / hoạt động tùy chọ
 
 #### `bookings` – Đơn đặt tour (ĐƠN_ĐẶT_TOUR)
 
-Mỗi đơn thuộc đúng một tài khoản khách hàng (`user_id`); khách chưa đăng nhập không đặt được tour. Sprint 3 chưa tạo đơn (nút "Đặt tour" hiện "Sắp có"); bảng chỉ được đọc để lấy tên người đánh giá và ngày đi tour.
+Mỗi đơn thuộc đúng một tài khoản khách hàng (`user_id`); khách chưa đăng nhập không đặt được tour. Sprint 3 chưa tạo đơn (nút "Đặt tour" hiện "Sắp có"); trang khách chỉ đọc bảng này để lấy tên người đánh giá và ngày đi tour. Trang quản trị đọc mọi đơn và đổi `status` (FR-25, mục 7.3).
 
 | Cột | Kiểu | Ràng buộc | Ý nghĩa |
 | --- | --- | --- | --- |
@@ -500,27 +503,30 @@ Mỗi đơn thuộc đúng một tài khoản khách hàng (`user_id`); khách c
 | `schedule_id` | CHAR(36) | FK → `schedules` | Lịch được đặt. |
 | `code` | VARCHAR(20) | NOT NULL, UNIQUE | Mã đơn đưa cho khách, ví dụ `LT123456`. |
 | `contact_name`, `contact_email`, `contact_phone` | VARCHAR(100), VARCHAR(150), VARCHAR(20) | NOT NULL | Người liên hệ của đơn, lưu lại lúc đặt: mặc định lấy từ tài khoản, khách có thể sửa khi đặt cho người khác. ERD ghi gộp `contact_name/email/phone`, khi tạo bảng tách thành ba cột. |
-| `status` | ENUM | NOT NULL, DEFAULT 'pending' | Trạng thái đơn. Chỉ đơn `completed` mới được đánh giá. |
+| `status` | ENUM | NOT NULL, DEFAULT 'pending' | Trạng thái đơn. Chỉ đơn `completed` mới được đánh giá. Quản trị viên đổi theo bảng chuyển trạng thái ở mục 7.3. |
 | `total_vnd` | BIGINT | NOT NULL | Tổng tiền vé (tổng `line_total_vnd`), không gồm `tour_extras`. |
 | `policy_version` | INT | NOT NULL | Phiên bản chính sách hủy tại thời điểm đặt. |
-| `hold_expires_at` | DATETIME | NULL | Hạn giữ chỗ khi đơn đang chờ thanh toán; `NULL` = không giữ chỗ. |
+| `hold_expires_at` | DATETIME | NULL | Hạn giữ chỗ khi đơn đang chờ thanh toán; `NULL` = không giữ chỗ. Quản trị viên chuyển sang `awaiting_payment` thì đặt bằng thời điểm xử lý + 24 giờ; chuyển sang trạng thái khác thì về `NULL`. |
+| `created_at` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Thời điểm khách gửi yêu cầu (CR1). Trang quản trị sắp danh sách yêu cầu mới nhất trước (FR-25) và thống kê số yêu cầu theo ngày tạo (FR-22). |
 
-#### Bảng dùng ở Sprint sau (đặt tour)
+Chỉ mục `idx_bookings_status_created (status, created_at)` phục vụ đếm yêu cầu theo trạng thái (FR-21) và theo thời gian (FR-22).
 
-| Bảng (ERD) | Cột sau `id` | Ghi chú |
-| --- | --- | --- |
-| `booking_lines` (DÒNG_ĐƠN) | `booking_id` → `bookings`; `ticket_type_id` → `ticket_types`; `quantity` INT; `unit_price_vnd` BIGINT; `line_total_vnd` BIGINT | Mỗi loại vé trong đơn một dòng. Giá được chụp lại lúc đặt; `line_total_vnd = quantity × unit_price_vnd`. |
-| `passengers` (HÀNH_KHÁCH) | `booking_id` → `bookings`; `full_name` VARCHAR(100); `age_group` ENUM; `special_request` TEXT NULL | Mỗi người tham gia tour một dòng (người đặt thường là khách đầu tiên). `special_request`: ăn chay, dị ứng… |
-
-### 4.6. Giao dịch (dùng ở Sprint sau)
-
-Ba bảng này chưa được procedure nào của Sprint 3 đọc, nên chỉ tóm tắt.
+#### Dòng đơn và hành khách
 
 | Bảng (ERD) | Cột sau `id` | Ghi chú |
 | --- | --- | --- |
-| `payments` (THANH_TOÁN) | `booking_id` → `bookings`; `method` ENUM; `provider_txn_id` VARCHAR(100) NULL; `amount_vnd` BIGINT; `status` ENUM, DEFAULT 'pending'; `expires_at` DATETIME NULL | Một đơn có thể có nhiều lần thanh toán (ví dụ lần đầu thất bại). `provider_txn_id` là mã giao dịch phía cổng thanh toán. Luồng VietQR dừng ở `awaiting_reconciliation` (chờ nhân viên đối chiếu) hoặc `paid`. |
+| `booking_lines` (DÒNG_ĐƠN) | `booking_id` → `bookings`; `ticket_type_id` → `ticket_types`; `quantity` INT; `unit_price_vnd` BIGINT; `line_total_vnd` BIGINT | Mỗi loại vé trong đơn một dòng. Giá được chụp lại lúc đặt; `line_total_vnd = quantity × unit_price_vnd`. Trang quản trị đọc để hiện vé và số khách của yêu cầu; ghi khi có đặt tour (Sprint sau). |
+| `passengers` (HÀNH_KHÁCH) | `booking_id` → `bookings`; `full_name` VARCHAR(100); `age_group` ENUM; `special_request` TEXT NULL | Mỗi người tham gia tour một dòng (người đặt thường là khách đầu tiên). `special_request`: ăn chay, dị ứng… Dùng ở Sprint sau (đặt tour). |
+
+### 4.6. Giao dịch
+
+Khách chưa thanh toán được ở Sprint 3 (Sprint sau). Trang quản trị đọc `payments`, `refunds` để hiện thanh toán của yêu cầu và tính doanh thu (FR-23); `payment_events` chưa procedure nào đọc. Ba bảng được tóm tắt dưới đây.
+
+| Bảng (ERD) | Cột sau `id` | Ghi chú |
+| --- | --- | --- |
+| `payments` (THANH_TOÁN) | `booking_id` → `bookings`; `method` ENUM; `provider_txn_id` VARCHAR(100) NULL; `amount_vnd` BIGINT; `status` ENUM, DEFAULT 'pending'; `expires_at` DATETIME NULL; `paid_at` DATETIME NULL; INDEX (`status`, `paid_at`) | Một đơn có thể có nhiều lần thanh toán (ví dụ lần đầu thất bại). `provider_txn_id` là mã giao dịch phía cổng thanh toán. Luồng VietQR dừng ở `awaiting_reconciliation` (chờ quản trị viên đối chiếu) hoặc `paid`. `paid_at` = thời điểm ghi nhận thanh toán thành công, `NULL` khi chưa thành công; doanh thu (FR-23) tính theo cột này. Quản trị viên xác nhận đã thanh toán cho khoản VietQR chờ đối chiếu thì khoản đó thành `paid`, `paid_at` = thời điểm xác nhận. |
 | `payment_events` (SỰ_KIỆN_THANH_TOÁN) | `payment_id` → `payments`; `provider_event_id` VARCHAR(100) UNIQUE; `result_code` VARCHAR(20); `verified` BOOLEAN, DEFAULT FALSE; `received_at` DATETIME | Thông báo cổng thanh toán gửi về. Mã sự kiện duy nhất để một thông báo không bị xử lý hai lần; `verified` = đã kiểm tra chữ ký. |
-| `refunds` (HOÀN_TIỀN) | `payment_id` → `payments`; `amount_vnd` BIGINT; `reason` VARCHAR(255); `status` ENUM, DEFAULT 'requested'; `requested_at` DATETIME | Yêu cầu hoàn tiền cho một khoản thanh toán. |
+| `refunds` (HOÀN_TIỀN) | `payment_id` → `payments`; `amount_vnd` BIGINT; `reason` VARCHAR(255); `status` ENUM, DEFAULT 'requested'; `requested_at` DATETIME | Yêu cầu hoàn tiền cho một khoản thanh toán. Doanh thu thuần trừ các khoản `completed`. |
 
 ### 4.7. Đánh giá
 
@@ -552,14 +558,18 @@ Các nút "Lưu tour" và "So sánh" trên giao diện hiện "Sắp có"; năm 
 
 #### `admin_logs` – Nhật ký quản trị (NHẬT_KÝ_QUẢN_TRỊ)
 
-Ai làm gì với đối tượng nào (NFR-09). Sprint 3 để trống.
+Ai làm gì với đối tượng nào (NFR-09). Trang quản trị ghi một dòng cho mỗi lần phê duyệt / từ chối tour và mỗi lần đổi trạng thái yêu cầu đặt tour, trong cùng transaction với thao tác đó; không có thao tác sửa hay xóa dòng nhật ký. Mục "Lịch sử xử lý" đọc lại qua `NTK_sp_admin_log_list`.
 
 | Cột | Kiểu | Ràng buộc | Ý nghĩa |
 | --- | --- | --- | --- |
-| `actor_user_id` | CHAR(36) | FK → `users` | Nhân viên thực hiện. |
-| `target_type`, `target_id` | VARCHAR(50), VARCHAR(36) | NOT NULL | Đối tượng bị tác động, ví dụ `tour` + UUID của tour. ERD ghi gộp `target_type/id`, khi tạo bảng tách thành hai cột. `target_id` không có khóa ngoại vì đối tượng có thể nằm ở nhiều bảng. |
-| `action` | VARCHAR(50) | NOT NULL | Thao tác, ví dụ duyệt tour, đổi trạng thái đơn, khóa tài khoản. |
+| `actor_user_id` | CHAR(36) | FK → `users` | Quản trị viên thực hiện. |
+| `target_type`, `target_id` | VARCHAR(50), VARCHAR(36) | NOT NULL | Đối tượng bị tác động, ví dụ `tour` + UUID của tour. ERD ghi gộp `target_type/id`, khi tạo bảng tách thành hai cột. `target_id` không có khóa ngoại vì đối tượng có thể nằm ở nhiều bảng. Sprint 3 dùng `tour` và `booking`. |
+| `action` | VARCHAR(50) | NOT NULL | Thao tác: `tour_approve`, `tour_reject` (FR-24), `booking_status` (FR-25). |
+| `from_status`, `to_status` | VARCHAR(30) | NULL | Trạng thái trước và sau thao tác (`tours.approval_status` hoặc `bookings.status`). |
+| `note` | VARCHAR(255) | NULL | Lý do từ chối / hủy hoặc ghi chú xử lý; `NULL` = không có. |
 | `created_at` | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Thời điểm thực hiện. |
+
+Chỉ mục `idx_admin_logs_target (target_type, target_id, created_at)` lấy lịch sử của một tour hoặc một yêu cầu theo thời gian, và lần xử lý gần nhất (`last_action_at`) ở danh sách duyệt tour.
 
 ## 5. Khóa, chỉ mục và lý do
 
@@ -571,17 +581,18 @@ Ai làm gì với đối tượng nào (NFR-09). Sprint 3 để trống.
 | Chỉ mục khóa ngoại | `idx_<bảng>_<cột>` trên mỗi cột khóa ngoại, ví dụ `idx_tours_destination_id`, `idx_tours_category_id`, `idx_bookings_user`; một số cột dùng chung khóa duy nhất hoặc chỉ mục ghép bắt đầu bằng cột đó | Phục vụ phép nối và kiểm tra khóa ngoại. Hai chỉ mục `idx_tours_destination_id`, `idx_tours_category_id` còn dùng cho bộ lọc điểm đến, loại hình và cho `tour_count`. |
 | `idx_tours_status_destination (approval_status, destination)` | Chỉ mục ghép | Lọc tour `approved` theo tên điểm đến dạng chữ. Bộ lọc của Sprint 3 dùng `destination_id`, nên chỉ mục này chủ yếu còn để tương thích. |
 | `idx_schedules_tour_starts (tour_id, starts_at)` | Chỉ mục ghép | Lấy lịch theo tour, sắp theo giờ bắt đầu; tìm lịch sắp tới gần nhất. |
+| `idx_bookings_status_created (status, created_at)`, `idx_payments_status_paid (status, paid_at)`, `idx_admin_logs_target (target_type, target_id, created_at)` | Chỉ mục ghép (CR1) | Trang quản trị: đếm yêu cầu theo trạng thái và theo ngày tạo (FR-21, FR-22); doanh thu theo ngày thanh toán của khoản `paid` (FR-23); lịch sử xử lý của một tour hoặc một yêu cầu (NFR-09). |
 | `idx_tour_images_tour_sort`, `idx_tour_itinerary_items_tour_sort`, `idx_tour_inclusions_tour_sort`, `idx_tour_extras_tour_sort` (đều là `(tour_id, sort_order)`), `idx_itinerary_stops_tour_order (tour_id, stop_order)` | Chỉ mục ghép | Lấy ảnh, lịch trình, dịch vụ, phụ thu / tùy chọn của một tour theo đúng thứ tự; tìm ảnh bìa. |
 | `idx_tour_schedules_status_date`, `idx_tour_posts_status_published`, `idx_notifications_recipient_created`, `idx_notifications_recipient_read`, `idx_comparisons_session` | Chỉ mục của bảng chưa dùng | Dành cho truy vấn của Sprint sau: lịch theo ngày, bài đăng mới nhất, thông báo chưa đọc, bộ so sánh theo phiên. |
 
 Quy ước viết script:
 
 - Không có mệnh đề `DEFINER`: import bằng tài khoản nào cũng được; procedure nhận tài khoản đã import làm definer.
-- Không dùng `AUTO_INCREMENT`: UUID của dữ liệu mẫu được ghi rõ trong script; procedure ghi dữ liệu tạo UUID mới bằng `UUID()` (Sprint 3 chỉ có `NTK_sp_customer_register`).
-- Không dùng ràng buộc `CHECK`: điều kiện như `rating` từ 1 đến 5, `remaining ≤ capacity` được bảo đảm trong dữ liệu mẫu, để script hoạt động giống nhau trên các phiên bản MySQL/MariaDB trong nhóm. Dữ liệu đăng ký được PHP kiểm tra trước khi gọi procedure (mục 7.2); các chức năng ghi của Sprint sau cũng kiểm tra như vậy.
+- Không dùng `AUTO_INCREMENT`: UUID của dữ liệu mẫu được ghi rõ trong script; procedure ghi dữ liệu tạo UUID mới bằng `UUID()` (tài khoản mới của `NTK_sp_customer_register` và dòng `admin_logs` của hai procedure ghi ở trang quản trị).
+- Không dùng ràng buộc `CHECK`: điều kiện như `rating` từ 1 đến 5, `remaining ≤ capacity` được bảo đảm trong dữ liệu mẫu, để script hoạt động giống nhau trên các phiên bản MySQL/MariaDB trong nhóm. Dữ liệu đăng ký được PHP kiểm tra trước khi gọi procedure (mục 7.2); các chức năng ghi của Sprint sau cũng kiểm tra như vậy. Ở trang quản trị, PHP kiểm tra độ dài lý do (tối đa 255 ký tự); quy tắc chuyển trạng thái nằm trong procedure (mục 7.3).
 - Không dùng `CREATE OR REPLACE`; dùng `DROP … IF EXISTS` để chạy lại nhiều lần. `01_schema.sql` xóa 27 bảng của lược đồ và 2 bảng đã bỏ (mục 1.3) rồi tạo lại. Trong lúc xóa, script tạm tắt `FOREIGN_KEY_CHECKS` rồi bật lại, nên thứ tự xóa không gây lỗi. Mọi dữ liệu cũ sẽ mất, kể cả tài khoản đã đăng ký. File không có `CREATE DATABASE`/`USE`; phải chọn database `db_localtour` trước khi chạy (file gộp đã có sẵn phần này).
 - Tham số chuỗi của procedure được so sánh với `COLLATE utf8mb4_unicode_ci`, tránh lỗi "Illegal mix of collations" khi kết nối dùng collation mặc định khác.
-- `NTK_sp_customer_register` là procedure duy nhất ghi dữ liệu (thêm một dòng `users`); các procedure còn lại chỉ đọc (`READS SQL DATA`).
+- Ba procedure ghi dữ liệu (`MODIFIES SQL DATA`): `NTK_sp_customer_register` (thêm một dòng `users`), `LTP_sp_admin_tour_set_approval` (đổi `tours.approval_status`, thêm `admin_logs`) và `NTK_sp_admin_booking_set_status` (đổi `bookings.status`, có thể ghi một khoản `payments` thành `paid`, thêm `admin_logs`). Hai procedure của trang quản trị đổi dữ liệu và ghi nhật ký trong cùng một transaction. Các procedure còn lại chỉ đọc (`READS SQL DATA`).
 - Procedure khai báo bằng `DELIMITER $$` để import được qua tab Import của phpMyAdmin.
 
 ## 6. Giá trị tính toán, không lưu trong bảng
@@ -602,6 +613,10 @@ Quy ước viết script:
 | `departure_text` (nơi khởi hành) | `hotel_pickup` → "Đón tại khách sạn"; có `meeting_point` → điểm hẹn; còn lại → "Chưa cập nhật". | PHP (`departure_text()`) | Lược đồ không có cột nơi khởi hành riêng (mục 12). |
 | Giờ lịch trình (`time_text`) | `tour_itinerary_items.start_time` dạng HH:MM; `NULL` thì không hiện giờ. | PHP | Database giữ kiểu `TIME`, định dạng ở tầng trình bày. |
 | Hai danh sách dịch vụ (`included`, `excluded`) | Chia các dòng `tour_inclusions` theo `is_included`, giữ thứ tự procedure trả về. | PHP, từ kết quả `NTK_sp_tour_inclusion_list` | Một bảng lưu cả hai nhóm. |
+| `is_public` (trang quản trị) | 1 khi tour thỏa điều kiện công khai ở mục 7.1, ngược lại 0. | `LTP_sp_admin_tour_list`, `LTP_sp_admin_tour_detail` | Phụ thuộc trạng thái duyệt của tour, nhà cung cấp và tài khoản. |
+| `people` | Tổng `booking_lines.quantity` của đơn. | `NTK_sp_admin_booking_list`, `NTK_sp_admin_booking_detail` | Số khách đã có ở dòng vé. |
+| Khoản thanh toán tiêu biểu (`payment_status`…) | Một khoản của đơn, ưu tiên `paid`, rồi `awaiting_reconciliation`, `processing`, `pending`, `failed`; `NULL` khi đơn chưa có khoản nào. | `NTK_sp_admin_booking_list`, `NTK_sp_admin_booking_detail` | Một đơn có thể có nhiều lần thanh toán. |
+| `gross_vnd`, `refund_vnd`, `net_vnd` | Tổng `amount_vnd` của khoản `paid` theo kỳ của `paid_at`; tiền hoàn `completed` tính vào kỳ của khoản gốc; `net_vnd = gross_vnd − refund_vnd`. | `NMT_sp_admin_revenue_stats` | Luôn khớp với `payments`, `refunds`. |
 
 ## 7. Quy tắc đọc và ghi dữ liệu
 
@@ -629,6 +644,30 @@ Phần việc này thuộc WBS 3.2.8 – Tài khoản khách hàng & chế độ
 - **Đặt tour**: mỗi đơn bắt buộc có `bookings.user_id` là tài khoản khách hàng đang đăng nhập. Sprint 3 chưa tạo đơn: khách đã đăng nhập thấy nút "Đặt tour" bị khóa kèm "Sắp có"; khách chưa đăng nhập thấy liên kết "Đăng nhập để đặt tour".
 - **Đánh giá**: `reviews.booking_id` duy nhất nên mỗi đơn có tối đa một đánh giá; người đánh giá là chủ tài khoản của đơn, tên hiển thị là `users.name`.
 
+### 7.3. Trang quản trị
+
+Phần việc này thuộc CR1 (FR-19 → FR-25, NFR-09). Route xem [03 – Route và quy ước lỗi](03-route-va-quy-uoc-loi.md), mục 2.3.
+
+- **Đăng nhập quản trị** (`/admin/login`, `NTK_sp_user_find_by_email`): PHP chỉ chấp nhận `role = 'admin'`, `status = 'active'`, `password_hash` khác `NULL` và `password_verify()` đúng; sai bất kỳ điều kiện nào đều báo "Email hoặc mật khẩu không đúng.". Tài khoản quản trị viên mẫu có `password_hash` là `NULL` nên không đăng nhập được; không có route hay procedure nào nâng quyền tài khoản.
+- **Phạm vi đọc**: quản trị viên xem mọi tour (kể cả `draft`, `pending`, `rejected` và tour của nhà cung cấp chưa duyệt hoặc bị khóa) và mọi yêu cầu đặt tour. Điều kiện công khai ở mục 7.1 không áp dụng cho procedure `…_admin_…`; trang khách vẫn chỉ gọi procedure tour.
+- **Kiểm tra quyền hai lớp**: PHP kiểm tra phiên là tài khoản `admin` trước khi gọi procedure (chưa đăng nhập → `/admin/login`, tài khoản khác → 403). Hai procedure ghi kiểm tra lại `p_actor_user_id` là `admin` đang `active` (quyền trong phiên có thể đã cũ); sai thì trả `forbidden` và không đổi gì.
+- **Duyệt tour** (FR-24, `LTP_sp_admin_tour_set_approval`): chỉ `pending` → `approved` hoặc `rejected`; từ chối bắt buộc lý do. Tour đã duyệt chỉ hiện cho khách khi nhà cung cấp cũng đạt điều kiện ở mục 7.1. `result`: `ok`, `forbidden`, `not_found`, `invalid_transition`, `note_required`.
+- **Chuyển trạng thái yêu cầu đặt tour** (FR-25, `NTK_sp_admin_booking_set_status`):
+
+| Trạng thái hiện tại | Chuyển sang | Điều kiện |
+| --- | --- | --- |
+| `pending` | `awaiting_payment` | Xác nhận chỗ và giá; `hold_expires_at` = thời điểm xử lý + 24 giờ. |
+| `pending` | `rejected`, `cancelled` | Bắt buộc lý do. |
+| `awaiting_payment` | `confirmed` | Có khoản thanh toán `paid`, hoặc khoản VietQR `awaiting_reconciliation` (khoản này được ghi `paid`, `paid_at` = thời điểm xác nhận). Không có → `needs_payment`. |
+| `awaiting_payment` | `cancelled` | Bắt buộc lý do. |
+| `confirmed` | `completed` | Chỉ sau giờ khởi hành của lịch (`schedules.starts_at`); trước đó → `not_departed`. |
+| `confirmed` | `cancelled` | Bắt buộc lý do. |
+| `rejected`, `cancelled`, `completed` | – | Trạng thái cuối, không đổi được nữa. |
+
+Chuyển sang trạng thái khác `awaiting_payment` thì `hold_expires_at` về `NULL`. Procedure không đổi `schedules.remaining` (giữ chỗ thuộc luồng đặt tour) và không đổi ngày hay số người (FR-12, phát triển sau). `result`: như duyệt tour, thêm `needs_payment`, `not_departed`.
+- **Nhật ký** (NFR-09): mỗi lần đổi thành công ghi một dòng `admin_logs` (người thao tác, thời điểm, trạng thái cũ, trạng thái mới, lý do) trong cùng transaction. Khi `result` khác `ok` thì không đổi dữ liệu và không ghi nhật ký.
+- **Thống kê** (FR-19 → FR-23, `NMT_sp_admin_…`): khách hàng là `users.role = 'customer'`, kể cả tài khoản bị khóa; số yêu cầu theo thời gian tính theo `bookings.created_at`, mọi trạng thái; doanh thu tính theo `payments.paid_at` của khoản `paid`, trừ tiền hoàn `refunds` `completed`. Kỳ thống kê `day`, `month`, `year`; `p_from`, `p_to` là `NULL` thì không giới hạn.
+
 ## 8. Dữ liệu mẫu (`02_seed.sql`)
 
 ### 8.1. UUID cố định
@@ -639,12 +678,13 @@ UUID được ghi rõ trong script, không sinh ngẫu nhiên, để dữ liệu
 
 | Nhóm | Nội dung |
 | --- | --- |
-| Tài khoản | Tài khoản nhân viên (`admin`, `support`), tài khoản của nhà cung cấp và tài khoản khách hàng mẫu (mỗi đơn đặt mẫu thuộc một tài khoản khách hàng, `users.name` trùng `contact_name` của đơn). Mọi tài khoản mẫu có `password_hash` là `NULL` nên không đăng nhập được; người kiểm thử tự tạo tài khoản ở `/register`. |
+| Tài khoản | Tài khoản nhân viên (`admin`, `support`), tài khoản của nhà cung cấp và tài khoản khách hàng mẫu (mỗi đơn đặt mẫu thuộc một tài khoản khách hàng, `users.name` trùng `contact_name` của đơn) và một tài khoản khách hàng bị khóa. Mọi tài khoản mẫu có `password_hash` là `NULL` nên không đăng nhập được; người kiểm thử tự tạo tài khoản ở `/register`. |
 | Danh mục | Các điểm đến và loại hình; tour gắn `destination_id`, `category_id`. Có điểm đến và loại hình chưa có tour công khai, có tour chưa có loại hình (mục 8.3). |
-| Tour và nội dung | Tour công khai (tối thiểu 6 theo tiêu chí nghiệm thu) cùng ảnh, lịch trình (`tour_itinerary_items`), dịch vụ (`tour_inclusions`), phụ thu / tùy chọn và chính sách hủy. |
+| Tour và nội dung | Tour công khai (tối thiểu 6 theo tiêu chí nghiệm thu) cùng ảnh, lịch trình (`tour_itinerary_items`), dịch vụ (`tour_inclusions`), phụ thu / tùy chọn và chính sách hủy. Có tour chờ duyệt và tour bị từ chối cho trang duyệt tour. |
 | Lịch và vé | Lịch sắp tới và lịch đã qua, tính theo ngày import (mục 8.4); vé người lớn và trẻ em theo từng lịch. |
-| Đơn đặt và đánh giá | Mỗi đánh giá gắn với một đơn `completed` của một tài khoản khách hàng mẫu. |
-| Để trống | `itinerary_stops`, `tour_schedules`, `tour_posts`, `favorite_tours`, `notifications`, `comparisons`, `comparison_tours`, `admin_logs`; hai cột `tours.included_summary`, `tours.excluded_summary` là `NULL`. |
+| Đơn đặt, thanh toán và đánh giá | Mỗi đánh giá gắn với một đơn `completed` của một tài khoản khách hàng mẫu. Đơn mẫu có đủ 6 trạng thái, có thanh toán VNPay, chuyển khoản VietQR chờ đối chiếu và một khoản hoàn tiền; mỗi đơn có `created_at`, mỗi khoản `paid` có `paid_at`. |
+| Lịch sử xử lý | `admin_logs` có lịch sử từ chối một tour và đổi trạng thái một số đơn (NFR-09). |
+| Để trống | `itinerary_stops`, `tour_schedules`, `tour_posts`, `favorite_tours`, `notifications`, `comparisons`, `comparison_tours`; hai cột `tours.included_summary`, `tours.excluded_summary` là `NULL`. |
 
 Số dòng của từng bảng xem phần đầu `02_seed.sql`.
 
@@ -661,7 +701,7 @@ Dữ liệu mẫu có sẵn các trường hợp dưới đây. Bản ghi cụ t
 | Tour chưa có loại hình (`category_id` là `NULL`) | Dòng "Loại hình" hiện "Chưa cập nhật"; tour không thuộc bộ lọc loại hình nào. |
 | Điểm đến hoặc loại hình chưa có tour công khai (không có tour, hoặc chỉ có tour chờ duyệt) | Không có trong `/api/destinations`, `/api/categories`, bộ lọc và thanh bên. |
 | `destinations.sort_order` khác thứ tự `id` | Danh sách điểm đến sắp theo `sort_order`, không theo `id`. |
-| NFR-07 chưa xác minh | Mọi tour: `source_url`, `verified_at` là `NULL`, `verification_status = 'unverified'`; không hiển thị ở Sprint 3. |
+| NFR-07 chưa xác minh | Mọi tour: `source_url`, `verified_at` là `NULL`, `verification_status = 'unverified'`; trang khách không hiển thị, trang quản trị hiện "Chưa cập nhật" và "Chưa xác minh". |
 | Lịch đã qua, lịch `full`, lịch `open` nhưng hết chỗ, lịch `cancelled` | Không xuất hiện trong lịch khởi hành, không được tính vào giá và lần khởi hành gần nhất. |
 | Lịch giá cao hơn | Có trong bảng lịch với giá riêng; giá "Từ" của tour vẫn là giá thấp nhất. |
 | Vé ngừng bán (`active = FALSE`) | Lịch đó không có dòng vé này. |
@@ -689,6 +729,23 @@ Căn cứ của thứ tự sắp xếp, dùng cho test case (thứ tự mong đ�
 
 Cùng hạng thì theo tên tour, rồi `id`. Thứ tự tên dùng collation `utf8mb4_unicode_ci` ("Ẩm thực…" đứng trước "Làng rau…"; `Đ` đứng sau `D`, trước `H`).
 
+Trường hợp cho trang quản trị (mục 20 của `02_seed.sql`; số liệu tính ngay sau khi import):
+
+| Bản ghi mẫu | Kết quả mong đợi |
+| --- | --- |
+| Khách hàng 131–139 (người đặt đơn 31–39); khách hàng 140 bị khóa, không có đơn | Tổng quan: 40 tài khoản khách hàng, 39 đang hoạt động, 1 bị khóa. |
+| Tour 10, 11 chờ duyệt; tour 12 bị từ chối | Tổng quan: 12 tour (2 chờ duyệt, 9 đã duyệt, 1 bị từ chối); tab "Chờ duyệt" có 2 tour. Trang khách vẫn có 9 tour. |
+| Tour 11 (Huế) có lịch 38–39, vé và giá | Phê duyệt → `/tours` có 10 tour, bộ lọc có Huế. |
+| Tour 12 (Hội An) không có lịch, thiếu các cột FR-02/05 | Đã bị từ chối nên không có form xử lý; "Lịch sử xử lý" có một dòng từ chối kèm lý do. |
+| Đơn 31–33 chờ xác nhận | Tab "Chờ xác nhận" có 3 yêu cầu; "Xác nhận chỗ và giá" → "Chờ thanh toán", hạn thanh toán 24 giờ. |
+| Đơn 34 chờ thanh toán, chưa có khoản thanh toán | "Xác nhận đã thanh toán" bị từ chối (`needs_payment`). |
+| Đơn 35 chờ thanh toán, chuyển khoản VietQR chờ đối chiếu | "Xác nhận đã thanh toán" được; khoản VietQR thành `paid`, có `paid_at`. |
+| Đơn 36 đã xác nhận (VNPay), lịch chưa khởi hành | "Tour đã diễn ra" bị từ chối (`not_departed`). |
+| Đơn 37 đã xác nhận, lịch đã khởi hành 3 ngày trước | "Tour đã diễn ra" → "Đã hoàn thành". |
+| Đơn 38 từ chối; đơn 30, 39 đã hủy; các đơn `completed` | Trạng thái cuối, không có form cập nhật. |
+| `admin_logs` 10 dòng: tour 12 và đơn 34–39 | Có "Lịch sử xử lý"; đơn 1–30 hiện "Chưa có lần xử lý nào." |
+| Doanh thu toàn bộ thời gian (`year`, để trống ngày) | 32 lượt thanh toán, 39.780.000đ − 1.300.000đ hoàn tiền = 38.480.000đ. |
+
 ### 8.4. Ngày tương đối theo `NOW()`
 
 Ngày giờ không viết cứng mà tính lúc import từ `NOW()`/`CURDATE()`: lịch sắp tới dùng `+ INTERVAL n DAY`, lịch đã qua dùng `- INTERVAL n DAY`. Nhờ vậy dữ liệu luôn có lịch tương lai ngay sau khi import.
@@ -698,6 +755,7 @@ Lưu ý: thời điểm được tính lúc import, không phải lúc xem trang
 - Test case mô tả kết quả theo quy tắc (lịch sau thời điểm hiện tại, còn chỗ, sắp theo giờ bắt đầu) thay vì ghi ngày cụ thể.
 - Import lại toàn bộ `db_localtour.sql` trước buổi kiểm thử (28/10) và buổi demo (29/10).
 - Import lại cũng xóa các tài khoản người kiểm thử đã đăng ký; đăng ký lại ở `/register` sau mỗi lần import.
+- Import lại đưa dữ liệu trang quản trị về ban đầu (tour 11 chờ duyệt, đơn 31–39 như mục 8.3, `admin_logs` 10 dòng). Tài khoản quản trị viên thử cũng bị xóa; tạo lại theo `src/README.md`, bước 7.
 
 ## 9. Dữ liệu minh họa
 
@@ -714,12 +772,13 @@ Lưu ý: thời điểm được tính lúc import, không phải lúc xem trang
 | --- | --- | --- | --- |
 | 1 | `01_schema.sql` | Thức | Xóa 27 bảng của lược đồ và 2 bảng đã bỏ; tạo lại 27 bảng, khóa, chỉ mục. |
 | 2 | `02_seed.sql` | Thức | Dữ liệu mẫu (mục 8). |
-| 3 | `03_procedures_LTP.sql` | Phong | `LTP_sp_tour_list`, `LTP_sp_destination_list`, `LTP_sp_category_list`. |
-| 4 | `04_procedures_NMT.sql` | Thức | `NMT_sp_tour_detail`, `NMT_sp_tour_schedule_list`, `NMT_sp_tour_ticket_list`, `NMT_sp_tour_image_list`. |
+| 3 | `03_procedures_LTP.sql` | Phong | `LTP_sp_tour_list`, `LTP_sp_destination_list`, `LTP_sp_category_list`; trang quản trị: `LTP_sp_admin_tour_list`, `LTP_sp_admin_tour_detail`, `LTP_sp_admin_tour_set_approval`. |
+| 4 | `04_procedures_NMT.sql` | Thức | `NMT_sp_tour_detail`, `NMT_sp_tour_schedule_list`, `NMT_sp_tour_ticket_list`, `NMT_sp_tour_image_list`; trang quản trị: `NMT_sp_admin_summary`, `NMT_sp_admin_booking_status_stats`, `NMT_sp_admin_booking_time_stats`, `NMT_sp_admin_revenue_stats`. |
 | 5 | `05_procedures_NTK.sql` | Khôi | `NTK_sp_tour_itinerary_list`, `NTK_sp_tour_inclusion_list`, `NTK_sp_tour_extra_list`, `NTK_sp_tour_cancellation_policy`, `NTK_sp_tour_review_list`. |
 | 6 | `06_procedures_NTK_account.sql` | Khôi | `NTK_sp_customer_register`, `NTK_sp_user_find_by_email` (tài khoản khách hàng). |
+| 7 | `07_procedures_NTK_admin.sql` | Khôi | `NTK_sp_admin_booking_list`, `NTK_sp_admin_booking_detail`, `NTK_sp_admin_booking_line_list`, `NTK_sp_admin_log_list`, `NTK_sp_admin_booking_set_status` (yêu cầu đặt tour và lịch sử xử lý của trang quản trị). |
 
-Tổng cộng 14 procedure. Tham số, cột trả về và thay đổi so với lược đồ 17 bảng trước đây:
+Tổng cộng 26 procedure: 14 cho trang khách và tài khoản, 12 cho trang quản trị. Tham số, cột trả về và thay đổi của 14 procedure trang khách so với lược đồ 17 bảng trước đây:
 
 - `LTP_sp_tour_list(p_keyword, p_destination_id, p_category_id, p_sort)`: `NULL` hoặc chuỗi rỗng = không lọc. Từ khóa tìm "có chứa" trong tên tour, mô tả, tên điểm đến, tên loại hình và tên nhà cung cấp; ký tự `%` và `_` được tìm đúng nghĩa đen (ký tự thoát là `!`). Lọc điểm đến và loại hình theo `id`. `p_sort`: `recommended` (mặc định), `upcoming`, `price_asc`, `price_desc`. Cột trả về: `tour_id`, `title`, `description`, `destination_id`, `destination_name`, `category_id`, `category_name`, `provider_name`, `duration_minutes`, `max_group_size`, `language_codes`, `pickup_mode`, `meeting_point`, `from_price_vnd`, `rating_avg`, `review_count`, `next_starts_at`, `cover_image_url`, `cover_alt_text`.
 - `LTP_sp_destination_list()` → `destination_id`, `name`, `slug`, `tour_count`; chỉ điểm đến có ít nhất 1 tour công khai; sắp theo `sort_order`, rồi `name`.
@@ -732,21 +791,36 @@ Tổng cộng 14 procedure. Tham số, cột trả về và thay đổi so với
 - `NTK_sp_user_find_by_email(p_email)` (mới) → 0 hoặc 1 dòng: `user_id`, `name`, `email`, `password_hash`, `role`, `status`.
 - Giữ nguyên: `NMT_sp_tour_schedule_list`, `NMT_sp_tour_ticket_list`, `NMT_sp_tour_image_list`, `NTK_sp_tour_extra_list`, `NTK_sp_tour_cancellation_policy`.
 
-Mọi procedure tour trả 0 dòng khi tour không công khai (mục 7.1). Mỗi file procedure dùng `DROP PROCEDURE IF EXISTS` trước khi tạo, nên chạy lại được nhiều lần.
+Procedure của trang quản trị (mới, CR1), chỉ gọi sau khi PHP kiểm tra tài khoản quản trị viên (mục 7.3):
 
-File gộp `src/database/db_localtour.sql` gồm phần đầu (dòng ghi chú "File sinh tự động từ src/database/01..06, không sửa tay.", rồi `CREATE DATABASE IF NOT EXISTS db_localtour CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; USE db_localtour; SET NAMES utf8mb4;`) và sáu file trên theo đúng thứ tự (`cat src/database/0[1-6]_*.sql`). File gộp được sinh lại mỗi khi sửa một trong sáu file, không sửa tay; cách import xem [src/README.md](../../src/README.md).
+- `LTP_sp_admin_tour_list(p_approval_status)`: `NULL` hoặc chuỗi rỗng = mọi trạng thái. Cột: `tour_id`, `title`, `provider_name`, `provider_approval_status`, `provider_user_status`, `destination_name`, `category_name`, `approval_status`, `is_public`, `schedule_count`, `last_action_at`; tour chờ duyệt trước, rồi tên tour.
+- `LTP_sp_admin_tour_detail(p_tour_id)` → 0 hoặc 1 dòng, mọi trạng thái duyệt: thông tin tour (kể cả 3 cột NFR-07), nhà cung cấp, `is_public` và số lượng nội dung đã nhập (`schedule_count`, `ticket_count`, `image_count`, `itinerary_count`, `inclusion_count`, `policy_count`).
+- `LTP_sp_admin_tour_set_approval(p_tour_id, p_new_status, p_actor_user_id, p_note)` → 1 dòng `result`, `approval_status` (mục 7.3).
+- `NMT_sp_admin_summary()` → 1 dòng: `customer_total`, `customer_active`, `customer_locked`, `tour_total`, `tour_draft`, `tour_pending`, `tour_approved`, `tour_rejected`, `tour_public`, `booking_total`, `booking_pending`.
+- `NMT_sp_admin_booking_status_stats()` → luôn 6 dòng `status`, `booking_count`, theo thứ tự của luồng xử lý.
+- `NMT_sp_admin_booking_time_stats(p_period, p_from, p_to)` → `period_key` (`YYYY-MM-DD`, `YYYY-MM` hoặc `YYYY`), `booking_count`; tính theo `bookings.created_at`.
+- `NMT_sp_admin_revenue_stats(p_period, p_from, p_to)` → `period_key`, `paid_count`, `gross_vnd`, `refund_vnd`, `net_vnd`; tính theo `payments.paid_at`.
+- `NTK_sp_admin_booking_list(p_status, p_keyword)` → tối đa 200 dòng, đơn mới tạo trước: `booking_id`, `code`, `status`, `created_at`, `contact_name`, `contact_email`, `contact_phone`, `tour_title`, `starts_at`, `people`, `total_vnd`, `payment_status`, `hold_expires_at`. Từ khóa tìm trong mã đơn, tên, email, số điện thoại liên hệ.
+- `NTK_sp_admin_booking_detail(p_booking_id)` → 0 hoặc 1 dòng: đơn, tài khoản đặt, tour, đơn vị tổ chức, lịch khởi hành, số khách, khoản thanh toán tiêu biểu và tiền đã hoàn.
+- `NTK_sp_admin_booking_line_list(p_booking_id)` → `ticket_name`, `quantity`, `unit_price_vnd`, `line_total_vnd`.
+- `NTK_sp_admin_log_list(p_target_type, p_target_id)` → `created_at`, `actor_name`, `action`, `from_status`, `to_status`, `note`; cũ trước.
+- `NTK_sp_admin_booking_set_status(p_booking_id, p_new_status, p_actor_user_id, p_note)` → 1 dòng `result`, `status` (mục 7.3).
+
+Mọi procedure tour trả 0 dòng khi tour không công khai (mục 7.1); procedure `…_admin_…` không áp dụng điều kiện này. Mỗi file procedure dùng `DROP PROCEDURE IF EXISTS` trước khi tạo, nên chạy lại được nhiều lần.
+
+File gộp `src/database/db_localtour.sql` gồm phần đầu (dòng ghi chú "File sinh tự động từ src/database/01..07, không sửa tay.", rồi `CREATE DATABASE IF NOT EXISTS db_localtour CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; USE db_localtour; SET NAMES utf8mb4;`) và bảy file trên theo đúng thứ tự (`cat src/database/0[1-7]_*.sql`). File gộp được sinh lại mỗi khi sửa một trong bảy file, không sửa tay; cách import xem [src/README.md](../../src/README.md).
 
 ## 11. Đối chiếu tiêu chí nghiệm thu 3.1.2
 
 | Tiêu chí | Căn cứ | Cách kiểm tra |
 | --- | --- | --- |
-| Schema SQL chạy không lỗi | `01_schema.sql` – `06_procedures_NTK_account.sql` | Import `db_localtour.sql` bằng phpMyAdmin trên XAMPP 8.2 (MariaDB 10.4) hai lần liên tiếp; cả hai lần không báo lỗi và có 27 bảng, 14 procedure. |
+| Schema SQL chạy không lỗi | `01_schema.sql` – `07_procedures_NTK_admin.sql` | Import `db_localtour.sql` bằng phpMyAdmin trên XAMPP 8.2 (MariaDB 10.4) hai lần liên tiếp; cả hai lần không báo lỗi và có 27 bảng, 26 procedure. |
 | Khóa chính/khóa ngoại hợp lý | Mục 2, 4 và 5 | Đối chiếu sơ đồ ở mục 2 với `01_schema.sql` và ERD do Thức vẽ lại; thử xóa một tour đang có lịch hoặc một tài khoản đã có đơn đặt: bị từ chối (RESTRICT). |
 | Có tối thiểu 6 tour để kiểm thử | Mục 8 | `/api/tours` trả `total` từ 6 trở lên (số chính xác xem phần đầu `02_seed.sql`); tour không công khai không xuất hiện. |
 
 ## 12. Đối chiếu với bảng FR
 
-Mã FR ở mục này theo bảng yêu cầu FR/NFR (Bài tập nhóm tuần 2), khác cách đánh số của SRS v0.1 dùng trong [01 – Danh mục trường dữ liệu](01-truong-du-lieu.md). Hệ quản trị vẫn là MySQL theo tài liệu kỹ thuật Sprint 3; dòng "SQL Server" trong bảng FR là mục tiêu môn học ban đầu.
+Mã FR ở mục này theo bảng yêu cầu FR/NFR (Bài tập nhóm tuần 2), khác cách đánh số của SRS v0.1 dùng trong [01 – Danh mục trường dữ liệu](01-truong-du-lieu.md). Hệ quản trị vẫn là MySQL theo tài liệu kỹ thuật Sprint 3; dòng "SQL Server" trong bảng FR là mục tiêu môn học ban đầu. FR-19 → FR-25 và NFR-09 là phần bổ sung theo CR1 (trang quản trị).
 
 | FR | Yêu cầu | Sprint 3 đáp ứng thế nào |
 | --- | --- | --- |
@@ -759,6 +833,14 @@ Mã FR ở mục này theo bảng yêu cầu FR/NFR (Bài tập nhóm tuần 2),
 | FR-10 | Hiển thị giá minh bạch | Giá ghi rõ đơn vị: "Từ 650.000đ / người lớn"; giá theo từng lịch và loại vé. Phụ thu / tùy chọn có giá và đơn vị riêng, không cộng vào giá tour. Không có giá → "Giá: Chưa cập nhật". "Tạm tính tiền vé" chỉ cộng giá vé, có ghi chú chưa gồm phụ thu và hoạt động tùy chọn. |
 | FR-16 | Xem đánh giá | Chỉ hiển thị đánh giá mẫu đã duyệt, gắn với đơn `completed`; tên người đánh giá là `users.name` của tài khoản đặt đơn. Không có → "Chưa có đánh giá". |
 | – | Tài khoản khách hàng (nhóm bổ sung, WBS 3.2.8 đề xuất) | Đăng ký, đăng nhập, đăng xuất bằng bảng `users` (`role = 'customer'`) qua hai procedure của `06_procedures_NTK_account.sql`. Chế độ khách chỉ xem tour; đặt tour cần đăng nhập (mục 7.2). |
+| FR-19 | Thống kê tài khoản khách hàng | Thẻ "Tài khoản khách hàng" ở `/admin`: `customer_total`, `customer_active`, `customer_locked` của `NMT_sp_admin_summary` (`users.role = 'customer'`, kể cả tài khoản bị khóa). |
+| FR-20 | Thống kê tour theo trạng thái duyệt | Thẻ "Tour": tổng số tour và số tour chờ duyệt, đã duyệt, bị từ chối (nháp chỉ hiện khi có), từ `NMT_sp_admin_summary`. |
+| FR-21 | Thống kê yêu cầu đặt tour theo trạng thái | Bảng "Yêu cầu đặt tour theo trạng thái" luôn đủ 6 trạng thái (`NMT_sp_admin_booking_status_stats`); mỗi dòng liên kết tới danh sách yêu cầu đã lọc. |
+| FR-22 | Thống kê yêu cầu đặt tour theo thời gian | Bảng "Số yêu cầu đặt tour theo ngày tạo" theo ngày, tháng hoặc năm trong khoảng ngày đã chọn, tính theo `bookings.created_at` (`NMT_sp_admin_booking_time_stats`). |
+| FR-23 | Thống kê doanh thu | Bảng "Doanh thu theo ngày thanh toán": lượt thanh toán, doanh thu gộp, hoàn tiền, doanh thu thuần; tính theo `payments.paid_at` của khoản `paid`, trừ `refunds` `completed` (`NMT_sp_admin_revenue_stats`). |
+| FR-24 | Phê duyệt / từ chối tour | `/admin/tours`: chỉ tour `pending` được phê duyệt hoặc từ chối; từ chối bắt buộc lý do (`LTP_sp_admin_tour_set_approval`). Tour đã duyệt hiện ở trang khách khi nhà cung cấp cũng đạt điều kiện (mục 7.1). |
+| FR-25 | Cập nhật trạng thái yêu cầu đặt tour | `/admin/bookings`: lọc theo trạng thái, tìm theo mã, tên, email, số điện thoại; chi tiết có vé, thanh toán và form đổi trạng thái theo bảng ở mục 7.3 (`NTK_sp_admin_booking_set_status`). |
+| NFR-09 | Lịch sử xử lý | Mỗi lần duyệt tour hoặc đổi trạng thái ghi một dòng `admin_logs` (người thao tác, thời điểm, trạng thái cũ, trạng thái mới, lý do); mục "Lịch sử xử lý" ở chi tiết tour và chi tiết yêu cầu đọc qua `NTK_sp_admin_log_list`. |
 
 Quy tắc chung (giả định nghiệp vụ số 3 của bảng FR): dữ liệu thiếu hiện "Chưa cập nhật", không suy diễn, không lấy từ tour khác. Hai trường hợp không dùng câu này: chưa có đánh giá ("Chưa có đánh giá") và không có lịch đặt được ("Chưa có lịch khởi hành sắp tới", đây là trạng thái chứ không phải dữ liệu thiếu).
 
@@ -770,5 +852,6 @@ Còn chưa lưu hoặc chưa làm:
 - FR-15 so sánh tour: bảng `comparisons`, `comparison_tours` có sẵn nhưng để trống; chưa có giao diện, nút "So sánh" hiện "Sắp có".
 - FR-16 gửi đánh giá: chưa có chức năng gửi. Người đánh giá đã được xác định qua đơn đặt của tài khoản (mục 7.2).
 - Đặt tour (FR-08), Lưu tour, Thích / Bình luận / Chia sẻ: các nút hiện "Sắp có". Thích / Bình luận / Chia sẻ chưa có bảng (mục 1.3).
+- FR-12 đổi ngày hoặc số người của yêu cầu: chưa làm; trang quản trị chỉ đổi trạng thái (mục 7.3).
 
 Khi bảng FR chốt các mục trên, nhóm cập nhật `01_schema.sql` trước, sau đó mới sửa procedure, giao diện và ERD.
