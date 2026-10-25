@@ -1,29 +1,41 @@
 <mxfile host="65bd71144e">
     <diagram id="core" name="01 Core &amp; Catalog">
-        <mxGraphModel dx="1276" dy="1336" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2100" pageHeight="1500" math="0" shadow="0">
+        <mxGraphModel dx="1704" dy="2408" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2100" pageHeight="1500" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
                 <mxCell id="core-admin_logs" data-kind="table" data-model-id="admin_logs" data-provenance="{&quot;path&quot;:&quot;D:\\dan\\LocalTour_Project\\src\\database\\01_schema.sql&quot;,&quot;importer&quot;:&quot;sql&quot;}" parent="1" style="swimlane;startSize=36;horizontal=1;rounded=0;html=1;whiteSpace=wrap;container=1;collapsible=1;fontStyle=1;fontSize=14;align=center;verticalAlign=middle;fillColor=#dae8fc;strokeColor=#6c8ebf;swimlaneFillColor=#ffffff;" value="admin_logs" vertex="1">
-                    <mxGeometry height="192" width="360" x="570" y="430" as="geometry"/>
+                    <mxGeometry height="296" width="500" x="570" y="1050" as="geometry"/>
                 </mxCell>
                 <mxCell id="core-admin_logs-field-0" parent="core-admin_logs" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#fff2cc;strokeColor=#6c8ebf;strokeWidth=0.5;fontSize=11;fontStyle=1;fontColor=#7f6000;pointerEvents=0;" value="PK id: CHAR(36)" vertex="1">
-                    <mxGeometry height="26" width="360" y="36" as="geometry"/>
+                    <mxGeometry height="26" width="500" y="36" as="geometry"/>
                 </mxCell>
                 <mxCell id="core-admin_logs-field-1" parent="core-admin_logs" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#e2f0d9;strokeColor=#6c8ebf;strokeWidth=0.5;fontSize=11;fontStyle=1;fontColor=#375623;pointerEvents=0;" value="FK actor_user_id: CHAR(36)" vertex="1">
-                    <mxGeometry height="26" width="360" y="62" as="geometry"/>
+                    <mxGeometry height="26" width="500" y="62" as="geometry"/>
                 </mxCell>
                 <mxCell id="core-admin_logs-field-2" parent="core-admin_logs" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#ffffff;strokeColor=#6c8ebf;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="target_type: VARCHAR(50)" vertex="1">
-                    <mxGeometry height="26" width="360" y="88" as="geometry"/>
+                    <mxGeometry height="26" width="500" y="88" as="geometry"/>
                 </mxCell>
                 <mxCell id="core-admin_logs-field-3" parent="core-admin_logs" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#f7f7f7;strokeColor=#6c8ebf;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="target_id: VARCHAR(36)" vertex="1">
-                    <mxGeometry height="26" width="360" y="114" as="geometry"/>
+                    <mxGeometry height="26" width="500" y="114" as="geometry"/>
                 </mxCell>
-                <mxCell id="core-admin_logs-field-4" parent="core-admin_logs" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#ffffff;strokeColor=#6c8ebf;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="action: VARCHAR(50)" vertex="1">
-                    <mxGeometry height="26" width="360" y="140" as="geometry"/>
+                <mxCell id="core-admin_logs-field-4" parent="core-admin_logs" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#ffffff;strokeColor=#6c8ebf;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="action: VARCHAR(50) {tour_approve, tour_reject, booking_status}" vertex="1">
+                    <mxGeometry height="26" width="500" y="140" as="geometry"/>
                 </mxCell>
-                <mxCell id="core-admin_logs-field-5" parent="core-admin_logs" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#f7f7f7;strokeColor=#6c8ebf;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="created_at: DATETIME" vertex="1">
-                    <mxGeometry height="26" width="360" y="166" as="geometry"/>
+                <mxCell id="core-admin_logs-field-from-status" parent="core-admin_logs" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#f7f7f7;strokeColor=#6c8ebf;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="from_status: VARCHAR(30) NULL" vertex="1">
+                    <mxGeometry height="26" width="500" y="166" as="geometry"/>
+                </mxCell>
+                <mxCell id="core-admin_logs-field-to-status" parent="core-admin_logs" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#ffffff;strokeColor=#6c8ebf;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="to_status: VARCHAR(30) NULL" vertex="1">
+                    <mxGeometry height="26" width="500" y="192" as="geometry"/>
+                </mxCell>
+                <mxCell id="core-admin_logs-field-note" parent="core-admin_logs" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#f7f7f7;strokeColor=#6c8ebf;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="note: VARCHAR(255) NULL" vertex="1">
+                    <mxGeometry height="26" width="500" y="218" as="geometry"/>
+                </mxCell>
+                <mxCell id="core-admin_logs-field-5" parent="core-admin_logs" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#ffffff;strokeColor=#6c8ebf;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="created_at: DATETIME" vertex="1">
+                    <mxGeometry height="26" width="500" y="244" as="geometry"/>
+                </mxCell>
+                <mxCell id="core-admin_logs-index-target" parent="core-admin_logs" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#d9eaf7;strokeColor=#6c8ebf;strokeWidth=0.5;fontSize=11;fontStyle=2;fontColor=#274e75;pointerEvents=0;" value="INDEX idx_admin_logs_target (target_type, target_id, created_at)" vertex="1">
+                    <mxGeometry height="26" width="500" y="270" as="geometry"/>
                 </mxCell>
                 <mxCell id="core-tours" data-kind="table" data-model-id="tours" data-provenance="{&quot;path&quot;:&quot;D:\\dan\\LocalTour_Project\\src\\database\\01_schema.sql&quot;,&quot;importer&quot;:&quot;sql&quot;}" parent="1" style="swimlane;startSize=36;horizontal=1;rounded=0;html=1;whiteSpace=wrap;container=1;collapsible=1;fontStyle=1;fontSize=14;align=center;verticalAlign=middle;fillColor=#d5e8d4;strokeColor=#82b366;swimlaneFillColor=#ffffff;" value="tours" vertex="1">
                     <mxGeometry height="686" width="470" x="1220" y="300" as="geometry"/>
@@ -205,7 +217,7 @@
         </mxGraphModel>
     </diagram>
     <diagram id="content" name="02 Tour Content &amp; Availability">
-        <mxGraphModel dx="1762" dy="1845" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2250" pageHeight="2300" math="0" shadow="0">
+        <mxGraphModel dx="2394" dy="1771" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2250" pageHeight="2300" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -524,12 +536,12 @@
         </mxGraphModel>
     </diagram>
     <diagram id="booking" name="03 Booking &amp; Payments">
-        <mxGraphModel dx="1276" dy="1336" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2700" pageHeight="1650" math="0" shadow="0">
+        <mxGraphModel dx="2544" dy="1881" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2700" pageHeight="1650" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
                 <mxCell id="booking-bookings" data-kind="table" data-model-id="bookings" data-provenance="{&quot;path&quot;:&quot;D:\\dan\\LocalTour_Project\\src\\database\\01_schema.sql&quot;,&quot;importer&quot;:&quot;sql&quot;}" parent="1" style="swimlane;startSize=36;horizontal=1;rounded=0;html=1;whiteSpace=wrap;container=1;collapsible=1;fontStyle=1;fontSize=14;align=center;verticalAlign=middle;fillColor=#e1d5e7;strokeColor=#9673a6;swimlaneFillColor=#ffffff;" value="bookings" vertex="1">
-                    <mxGeometry height="322" width="660" x="720" y="300" as="geometry"/>
+                    <mxGeometry height="374" width="660" x="720" y="300" as="geometry"/>
                 </mxCell>
                 <mxCell id="booking-bookings-field-0" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#fff2cc;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=1;fontColor=#7f6000;pointerEvents=0;" value="PK id: CHAR(36)" vertex="1">
                     <mxGeometry height="26" width="660" y="36" as="geometry"/>
@@ -560,6 +572,12 @@
                 </mxCell>
                 <mxCell id="booking-bookings-field-9" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#f7f7f7;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="hold_expires_at: DATETIME" vertex="1">
                     <mxGeometry height="26" width="660" y="296" as="geometry"/>
+                </mxCell>
+                <mxCell id="booking-bookings-field-created-at" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#ffffff;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="created_at: DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" vertex="1">
+                    <mxGeometry height="26" width="660" y="322" as="geometry"/>
+                </mxCell>
+                <mxCell id="booking-bookings-index-status-created" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#eadcf0;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=2;fontColor=#5b3c68;pointerEvents=0;" value="INDEX idx_bookings_status_created (status, created_at)" vertex="1">
+                    <mxGeometry height="26" width="660" y="348" as="geometry"/>
                 </mxCell>
                 <mxCell id="booking-bookings-field-user-id" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#e2f0d9;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=1;fontColor=#375623;pointerEvents=0;" value="FK user_id: CHAR(36)" vertex="1">
                     <mxGeometry height="26" width="660" y="62" as="geometry"/>
@@ -610,7 +628,7 @@
                     <mxGeometry height="26" width="360" y="192" as="geometry"/>
                 </mxCell>
                 <mxCell id="booking-payments" data-kind="table" data-model-id="payments" data-provenance="{&quot;path&quot;:&quot;D:\\dan\\LocalTour_Project\\src\\database\\01_schema.sql&quot;,&quot;importer&quot;:&quot;sql&quot;}" parent="1" style="swimlane;startSize=36;horizontal=1;rounded=0;html=1;whiteSpace=wrap;container=1;collapsible=1;fontStyle=1;fontSize=14;align=center;verticalAlign=middle;fillColor=#f8cecc;strokeColor=#b85450;swimlaneFillColor=#ffffff;" value="payments" vertex="1">
-                    <mxGeometry height="218" width="580" x="1420" y="760" as="geometry"/>
+                    <mxGeometry height="270" width="580" x="1420" y="760" as="geometry"/>
                 </mxCell>
                 <mxCell id="booking-payments-field-0" parent="booking-payments" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#fff2cc;strokeColor=#b85450;strokeWidth=0.5;fontSize=11;fontStyle=1;fontColor=#7f6000;pointerEvents=0;" value="PK id: CHAR(36)" vertex="1">
                     <mxGeometry height="26" width="580" y="36" as="geometry"/>
@@ -632,6 +650,12 @@
                 </mxCell>
                 <mxCell id="booking-payments-field-6" parent="booking-payments" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#ffffff;strokeColor=#b85450;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="expires_at: DATETIME" vertex="1">
                     <mxGeometry height="26" width="580" y="192" as="geometry"/>
+                </mxCell>
+                <mxCell id="booking-payments-field-paid-at" parent="booking-payments" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#f7f7f7;strokeColor=#b85450;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="paid_at: DATETIME NULL" vertex="1">
+                    <mxGeometry height="26" width="580" y="218" as="geometry"/>
+                </mxCell>
+                <mxCell id="booking-payments-index-status-paid" parent="booking-payments" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#fce4e3;strokeColor=#b85450;strokeWidth=0.5;fontSize=11;fontStyle=2;fontColor=#7f2825;pointerEvents=0;" value="INDEX idx_payments_status_paid (status, paid_at)" vertex="1">
+                    <mxGeometry height="26" width="580" y="244" as="geometry"/>
                 </mxCell>
                 <mxCell id="booking-schedules" data-kind="table" data-model-id="schedules" data-provenance="{&quot;path&quot;:&quot;D:\\dan\\LocalTour_Project\\src\\database\\01_schema.sql&quot;,&quot;importer&quot;:&quot;sql&quot;}" parent="1" style="swimlane;startSize=36;horizontal=1;rounded=0;html=1;whiteSpace=wrap;container=1;collapsible=1;fontStyle=1;fontSize=14;align=center;verticalAlign=middle;fillColor=#ffe6cc;strokeColor=#d79b00;swimlaneFillColor=#ffffff;" value="schedules" vertex="1">
                     <mxGeometry height="218" width="390" x="40" y="80" as="geometry"/>
@@ -845,7 +869,7 @@
                 <mxCell id="booking-reviews-field-5" parent="booking-reviews" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#f7f7f7;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="moderation_status: ENUM(&#39;pending&#39;,&#39;approved&#39;,&#39;rejected&#39;)" vertex="1">
                     <mxGeometry height="26" width="430" y="166" as="geometry"/>
                 </mxCell>
-                <mxCell id="booking-edge-reviews-booking" data-fk-column="booking_id" data-model-id="reviews--bookings" edge="1" parent="1" source="booking-reviews" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#64797A;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="booking-bookings-field-9" value="">
+                <mxCell id="booking-edge-reviews-booking" data-fk-column="booking_id" data-model-id="reviews--bookings" edge="1" parent="1" source="booking-reviews" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#64797A;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="booking-bookings-index-status-created" value="">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="booking-edge-reviews-tour" data-fk-column="tour_id" data-model-id="reviews--tours" edge="1" parent="1" source="booking-reviews-field-2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#64797A;startArrow=ERmany;startFill=0;endArrow=ERone;endFill=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="booking-tours-field-0" value="">
@@ -882,7 +906,7 @@
         </mxGraphModel>
     </diagram>
     <diagram id="engagement" name="04 Engagement &amp; Comparison">
-        <mxGraphModel dx="1805" dy="1890" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2400" pageHeight="1500" math="0" shadow="0">
+        <mxGraphModel dx="1809" dy="1338" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2400" pageHeight="1500" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
