@@ -1,4 +1,4 @@
--- File sinh tự động từ src/database/01..06, không sửa tay.
+-- File sinh tự động từ src/database/01..07, không sửa tay.
 CREATE DATABASE IF NOT EXISTS db_localtour CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE db_localtour;
 SET NAMES utf8mb4;
@@ -378,6 +378,8 @@ CREATE TABLE cancellation_policies (
 -- total_vnd = tổng line_total_vnd của các dòng đơn (không gồm tour_extras).
 -- policy_version: phiên bản chính sách hủy của tour tại thời điểm đặt.
 -- hold_expires_at: hạn giữ chỗ khi đơn đang chờ thanh toán (NULL = không giữ chỗ).
+-- created_at: thời điểm khách gửi yêu cầu (FR-22 thống kê theo thời gian, FR-25 sắp xếp
+--   danh sách yêu cầu ở trang quản trị).
 CREATE TABLE bookings (
     id              CHAR(36)      NOT NULL,
     user_id         CHAR(36)      NOT NULL,
@@ -391,10 +393,12 @@ CREATE TABLE bookings (
     total_vnd       BIGINT        NOT NULL,
     policy_version  INT           NOT NULL,
     hold_expires_at DATETIME      NULL,
+    created_at      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,   -- FR-22, FR-25
     PRIMARY KEY (id),
     UNIQUE KEY uq_bookings_code (code),
     KEY idx_bookings_user (user_id),
     KEY idx_bookings_schedule (schedule_id),
+    KEY idx_bookings_status_created (status, created_at),               -- FR-21, FR-22
     CONSTRAINT fk_bookings_user FOREIGN KEY (user_id)
         REFERENCES users (id) ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT fk_bookings_schedule FOREIGN KEY (schedule_id)
@@ -445,6 +449,8 @@ CREATE TABLE passengers (
 --         Luồng VietQR kết thúc ở 'awaiting_reconciliation' (chờ nhân viên đối chiếu)
 --         hoặc 'paid'.
 --         Không có trạng thái "đã hoàn tiền": tiền hoàn được ghi ở bảng refunds.
+-- paid_at: thời điểm ghi nhận thanh toán thành công (status chuyển sang 'paid'); NULL khi
+--         chưa thành công. FR-23 thống kê doanh thu theo ngày thanh toán.
 CREATE TABLE payments (
     id              CHAR(36)      NOT NULL,
     booking_id      CHAR(36)      NOT NULL,
@@ -454,8 +460,10 @@ CREATE TABLE payments (
     status          ENUM('pending','processing','awaiting_reconciliation','paid','failed')
                     NOT NULL DEFAULT 'pending',
     expires_at      DATETIME      NULL,
+    paid_at         DATETIME      NULL,                                 -- FR-23
     PRIMARY KEY (id),
     KEY idx_payments_booking (booking_id),
+    KEY idx_payments_status_paid (status, paid_at),                     -- FR-23
     CONSTRAINT fk_payments_booking FOREIGN KEY (booking_id)
         REFERENCES bookings (id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -596,28 +604,36 @@ CREATE TABLE comparison_tours (
 -- 10. NHẬT KÝ
 -- ---------------------------------------------------------------------
 
--- NHẬT_KÝ_QUẢN_TRỊ (NFR-09 lịch sử xử lý): thao tác của nhân viên (vd. duyệt tour,
--- đổi trạng thái đơn, khóa tài khoản). target_type + target_id: đối tượng bị tác
--- động (vd. 'tour' + UUID của tour); không có khóa ngoại vì đối tượng có thể nằm ở
--- nhiều bảng khác nhau. Sprint 3 để trống.
+-- NHẬT_KÝ_QUẢN_TRỊ (NFR-09 lịch sử xử lý): thao tác của quản trị viên (FR-24 duyệt /
+-- từ chối tour, FR-25 đổi trạng thái yêu cầu đặt tour). target_type + target_id: đối
+-- tượng bị tác động ('tour' hoặc 'booking' + UUID); không có khóa ngoại vì đối tượng có
+-- thể nằm ở nhiều bảng khác nhau.
+-- action: 'tour_approve', 'tour_reject', 'booking_status'.
+-- from_status / to_status: trạng thái trước và sau thao tác.
+-- note: lý do từ chối / hủy hoặc ghi chú xử lý (NULL = không có ghi chú).
 CREATE TABLE admin_logs (
     id            CHAR(36)     NOT NULL,
     actor_user_id CHAR(36)     NOT NULL,
     target_type   VARCHAR(50)  NOT NULL,
     target_id     VARCHAR(36)  NOT NULL,
     action        VARCHAR(50)  NOT NULL,
+    from_status   VARCHAR(30)  NULL,
+    to_status     VARCHAR(30)  NULL,
+    note          VARCHAR(255) NULL,
     created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_admin_logs_actor (actor_user_id),
+    KEY idx_admin_logs_target (target_type, target_id, created_at),
     CONSTRAINT fk_admin_logs_actor FOREIGN KEY (actor_user_id)
         REFERENCES users (id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 -- =====================================================================
 -- LocalTour v0.1 - 02_seed.sql
--- Mục đích  : Nạp dữ liệu mẫu để kiểm thử trang danh sách, trang chi tiết tour và
---             tài khoản khách hàng cho lược đồ gộp 27 bảng (01_schema.sql).
---             Các bảng chưa dùng để trống: itinerary_stops, tour_schedules, tour_posts,
---             favorite_tours, notifications, comparisons, comparison_tours, admin_logs.
+-- Mục đích  : Nạp dữ liệu mẫu để kiểm thử trang danh sách, trang chi tiết tour,
+--             tài khoản khách hàng và trang quản trị cho lược đồ gộp 27 bảng
+--             (01_schema.sql). Các bảng chưa dùng để trống: itinerary_stops,
+--             tour_schedules, tour_posts, favorite_tours, notifications, comparisons,
+--             comparison_tours.
 -- Phụ trách : Nguyễn Minh Thức (NMT) - WBS 3.2.2
 -- Dữ liệu   : TẤT CẢ dữ liệu (tài khoản, nhà cung cấp, tour, giá, lịch, đơn đặt,
 --             thanh toán, đánh giá) là dữ liệu MINH HỌA, không phải thông tin thật
@@ -640,21 +656,25 @@ CREATE TABLE admin_logs (
 --   payment_events 50000000 · refunds 60000000 · reviews 70000000
 --   tour_images 80000000 · tour_extras c1000000 · destinations c2000000
 --   categories c3000000 · tour_itinerary_items c4000000 · tour_inclusions c5000000
+--   admin_logs 90000000
 --   Tour N = c0000000-0000-4000-8000-00000000000N; tour 1 = "Hà Nội qua những món ăn phố cổ".
 -- Cách đánh số:
 --   users        : 1 = quản trị viên; 2 = nhân viên hỗ trợ khách hàng;
 --                  11-17 = tài khoản của nhà cung cấp 1-7;
---                  101-130 = tài khoản khách hàng: khách hàng 100 + N là người đặt đơn N
---                  (name = contact_name, email = contact_email của đơn).
+--                  101-139 = tài khoản khách hàng: khách hàng 100 + N là người đặt đơn N
+--                  (name = contact_name, email = contact_email của đơn);
+--                  140 = khách hàng bị khóa (không có đơn).
 --   destinations : 1 = Hà Nội, 2 = Đà Nẵng, 3 = Hội An, 4 = TP. Hồ Chí Minh,
---                  5 = Huế (chưa có tour).
+--                  5 = Huế (chỉ có tour 11 đang chờ duyệt).
 --   categories   : 1 = Ẩm thực, 2 = Văn hóa – lịch sử, 3 = Thiên nhiên, 4 = Về đêm,
 --                  5 = Trải nghiệm địa phương, 6 = Đạp xe.
---   schedules    : 1-37 = lịch của các tour; 101-128 = lịch đã đi của đơn có đánh giá
+--   schedules    : 1-37 = lịch của các tour; 38-39 = lịch của tour 11;
+--                  101-128 = lịch đã đi của đơn có đánh giá
 --                  (lịch 100 + N thuộc đơn N).
 --   ticket_types : số lịch x 10 + 1 = người lớn, + 2 = trẻ em (vd. lịch 3 -> 31, 32).
 --   bookings     : 1-28 = đơn có đánh giá đã duyệt (đơn N <-> đánh giá N);
---                  29 = đơn có đánh giá đang chờ duyệt; 30 = đơn đã hủy.
+--                  29 = đơn có đánh giá đang chờ duyệt; 30 = đơn đã hủy;
+--                  31-39 = đơn cho trang quản trị (mục 20).
 --   booking_lines, passengers: số đơn x 10 + thứ tự. payments: trùng số đơn.
 --   tour_images, tour_itinerary_items, tour_inclusions, tour_extras: đánh số theo thứ tự
 --                  chèn, cố ý lệch với thứ tự hiển thị để kiểm tra ORDER BY.
@@ -666,6 +686,8 @@ CREATE TABLE admin_logs (
 --     không có ảnh, lịch trình, dịch vụ (tour_inclusions) và loại hình -> giao diện hiện
 --     "Chưa cập nhật".
 --   * Tour 10 có ảnh, lịch trình và dịch vụ riêng: không bao giờ được trả về.
+--   * Tour 11 (Huế) 'pending' và tour 12 (Hội An) 'rejected' cũng không hiển thị.
+--     Quản trị viên phê duyệt tour 11 thì trang khách có 10 tour và Huế xuất hiện.
 --   * Tour 1: lịch đã qua 'completed' (lịch 1), lịch 'full' (lịch 2) và lịch giá cao hơn
 --     690.000đ (lịch 6). Có 1 đánh giá 'pending' 1 sao: không hiện, không tính điểm.
 --   * Tour 2: lịch 'open' nhưng remaining = 0 (lịch 7) -> bị lọc; vé trẻ em của lịch 8
@@ -680,7 +702,7 @@ CREATE TABLE admin_logs (
 --     bìa có id lớn hơn ảnh thứ 2. Tour 8: 3 ảnh chèn lệch thứ tự, 1 ảnh alt_text NULL.
 --   * Điểm đến (destinations): bộ lọc và thanh bên chỉ hiện điểm đến có tour hiển thị:
 --     Hà Nội 3 tour (1-3; tour 10 chờ duyệt không tính), Đà Nẵng 2, Hội An 2,
---     TP. Hồ Chí Minh 2. Huế không có tour -> bị ẩn. sort_order theo Bắc -> Nam
+--     TP. Hồ Chí Minh 2. Huế chỉ có tour 11 chờ duyệt -> bị ẩn. sort_order theo Bắc -> Nam
 --     (Hà Nội, Huế, Đà Nẵng, Hội An, TP. Hồ Chí Minh), khác thứ tự id.
 --   * Loại hình (categories): Ẩm thực 2 tour (1, 2), Văn hóa – lịch sử 2 (3, 6),
 --     Về đêm 2 (5, 8), Thiên nhiên 1 (4), Trải nghiệm địa phương 1 (7). Đạp xe chỉ có
@@ -704,20 +726,22 @@ CREATE TABLE admin_logs (
 --   * Giá "Từ" = vé người lớn rẻ nhất trong các lịch đặt được (nghìn đồng):
 --     tour 1: 650, tour 2: 720, tour 3: 900, tour 4: 550, tour 5: 480,
 --     tour 6: 590, tour 7: 750, tour 8: 850, tour 9: NULL.
---   * Tài khoản: mọi tài khoản mẫu (quản trị, hỗ trợ, nhà cung cấp, khách hàng 101-130)
+--   * Tài khoản: mọi tài khoản mẫu (quản trị, hỗ trợ, nhà cung cấp, khách hàng 101-140)
 --     có password_hash NULL -> đăng nhập luôn báo "Email hoặc mật khẩu không đúng.".
 --     Đăng ký bằng email đã có, kể cả khác chữ hoa / thường (vd. quoc.huy@localtour.test,
 --     Quoc.Huy@LocalTour.test) -> "Email này đã được dùng.".
 --   * Đánh giá: tên người đánh giá = users.name của chủ đơn (bookings.user_id), trùng
 --     contact_name của đơn.
+--   * Trang quản trị (FR-19 → FR-25): đơn 31-39 ở đủ 6 trạng thái, tour 11 chờ duyệt,
+--     tour 12 bị từ chối, khách hàng 140 bị khóa, 10 dòng lịch sử xử lý; xem mục 20.
 --
--- Số dòng: users 39, providers 7, destinations 5, categories 6, tours 10,
---          cancellation_policies 11, schedules 65, ticket_types 118, bookings 30,
---          booking_lines 35, passengers 60, payments 30, payment_events 30, refunds 1,
+-- Số dòng: users 49, providers 7, destinations 5, categories 6, tours 12,
+--          cancellation_policies 12, schedules 67, ticket_types 122, bookings 39,
+--          booking_lines 45, passengers 79, payments 33, payment_events 32, refunds 1,
 --          reviews 29, tour_images 12, tour_itinerary_items 43, tour_inclusions 45,
---          tour_extras 15. Để trống (0 dòng): itinerary_stops, tour_schedules,
---          tour_posts, favorite_tours, notifications, comparisons, comparison_tours,
---          admin_logs.
+--          tour_extras 15, admin_logs 10. Để trống (0 dòng): itinerary_stops,
+--          tour_schedules, tour_posts, favorite_tours, notifications, comparisons,
+--          comparison_tours.
 -- =====================================================================
 
 SET NAMES utf8mb4;
@@ -1969,12 +1993,206 @@ INSERT INTO tour_extras (id, tour_id, kind, name, price_vnd, price_unit, conditi
     50000, 'xe', NULL, 1),
 ('c1000000-0000-4000-8000-000000000015', 'c0000000-0000-4000-8000-000000000010', 'surcharge', 'Phụ thu đi riêng',
     300000, 'nhóm', NULL, 1);
+
+-- ---------------------------------------------------------------------
+-- 20. Dữ liệu cho trang quản trị (FR-19 → FR-25, theo CR1)
+--   a) Ngày tạo đơn và ngày thanh toán của đơn 1-30: paid_at = lúc nhận thông báo thanh toán
+--      thành công (payment_events.received_at); created_at = 2 ngày trước khi thanh toán.
+--   b) Khách hàng 131-139 (người đặt đơn 31-39) và khách hàng 140 bị khóa (FR-19).
+--   c) Tour 11 (Huế) đang chờ duyệt, có lịch và giá; tour 12 (Hội An) đã bị từ chối (FR-20, FR-24).
+--      Cả hai không hiển thị công khai: trang khách vẫn chỉ có 9 tour, 4 điểm đến, 5 loại hình.
+--   d) Đơn 31-39 ở đủ các trạng thái (FR-21, FR-25), trên các lịch còn trống chỗ
+--      (capacity - remaining đã đủ cho số khách của đơn, nên số chỗ còn lại trên trang khách
+--      không đổi):
+--        31, 32, 33 Chờ xác nhận | 34 Chờ thanh toán (chưa thanh toán)
+--        35 Chờ thanh toán + chuyển khoản VietQR Chờ đối chiếu
+--        36 Đã xác nhận (VNPay) | 37 Đã xác nhận, lịch đã khởi hành 3 ngày trước
+--        38 Từ chối | 39 Đã hủy (quá hạn thanh toán 24 giờ)
+--   e) admin_logs (NFR-09): lịch sử xử lý của tour 12 và đơn 34-39, người thao tác là tài
+--      khoản quản trị viên mẫu. Đơn 1-30 không có lịch sử (lịch sử bắt đầu từ CR1).
+-- ---------------------------------------------------------------------
+
+-- a) Ngày thanh toán và ngày tạo của đơn 1-30
+UPDATE payments p
+JOIN payment_events e ON e.payment_id = p.id
+SET p.paid_at = e.received_at
+WHERE p.status = 'paid';
+
+UPDATE bookings b
+JOIN payments p ON p.booking_id = b.id
+SET b.created_at = p.paid_at - INTERVAL 2 DAY;
+
+-- b) Khách hàng 131-140
+INSERT INTO users (id, email, password_hash, name, phone, role, status) VALUES
+('a0000000-0000-4000-8000-000000000131', 'viet.hung@localtour.test', NULL, 'Việt Hùng', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000132', 'my.duyen@localtour.test', NULL, 'Mỹ Duyên', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000133', 'duc.anh@localtour.test', NULL, 'Đức Anh', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000134', 'ngoc.tram@localtour.test', NULL, 'Ngọc Trâm', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000135', 'van.toan@localtour.test', NULL, 'Văn Toàn', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000136', 'dieu.linh@localtour.test', NULL, 'Diệu Linh', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000137', 'tien.dat@localtour.test', NULL, 'Tiến Đạt', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000138', 'tuyet.mai@localtour.test', NULL, 'Tuyết Mai', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000139', 'hong.nhung@localtour.test', NULL, 'Hồng Nhung', NULL, 'customer', 'active'),
+-- Tài khoản bị khóa: vẫn được tính vào tổng số khách hàng, hiển thị riêng ở mục "Bị khóa"
+('a0000000-0000-4000-8000-000000000140', 'kha.vy@localtour.test', NULL, 'Khả Vy', NULL, 'customer', 'locked');
+
+-- c) Tour 11 (chờ duyệt) và tour 12 (bị từ chối)
+INSERT INTO tours (id, provider_id, destination_id, category_id, title, description, destination,
+                   duration_minutes, max_group_size, language_codes, pickup_mode, meeting_point, included_summary,
+                   transport, guide_info, dropoff_point, excluded_summary,
+                   document_terms, meal_terms, voucher_terms, reschedule_terms,
+                   source_url, verified_at, verification_status, approval_status) VALUES
+('c0000000-0000-4000-8000-000000000011', 'b0000000-0000-4000-8000-000000000003',
+    'c2000000-0000-4000-8000-000000000005', 'c3000000-0000-4000-8000-000000000002',   -- Huế, Văn hóa – lịch sử
+    'Một buổi chiều trong Đại Nội Huế',
+    CONCAT_WS(CHAR(10),
+        'Dạo Đại Nội Huế buổi chiều cùng người dẫn địa phương, nghe chuyện cung đình và ngắm hoàng hôn trên sông Hương.',
+        '',
+        'Nhóm gặp nhau ở cổng Ngọ Môn, đi qua điện Thái Hòa, Tử Cấm Thành và vườn Cơ Hạ, kết thúc bằng tách trà cung đình bên bờ sông Hương.'),
+    'Huế', 180, 10, 'vi,en', 'meeting_point', 'Cổng Ngọ Môn, Đại Nội Huế',
+    NULL,   -- included_summary: không dùng
+    -- FR-02 phương tiện / hướng dẫn viên / điểm trả
+    'Đi bộ',
+    'Người dẫn địa phương nói tiếng Việt và tiếng Anh',
+    'Bến thuyền Tòa Khâm',
+    NULL,   -- excluded_summary: không dùng
+    -- FR-05 giấy tờ / ăn uống / voucher / đổi lịch
+    'Không yêu cầu giấy tờ tùy thân.',
+    'Gồm trà và bánh cung đình.',
+    'Xuất trình mã đặt chỗ tại cổng Ngọ Môn.',
+    'Đổi lịch miễn phí nếu báo trước ít nhất 24 giờ.',
+    NULL, NULL, 'unverified',   -- NFR-07: nguồn, ngày kiểm tra, trạng thái xác minh
+    'pending'),
+('c0000000-0000-4000-8000-000000000012', 'b0000000-0000-4000-8000-000000000005',
+    'c2000000-0000-4000-8000-000000000003', 'c3000000-0000-4000-8000-000000000005',   -- Hội An, Trải nghiệm địa phương
+    'Làm đèn lồng cùng nghệ nhân phố Hội',
+    'Tự tay làm một chiếc đèn lồng tre và lụa cùng nghệ nhân phố Hội.',
+    'Hội An', 120, 8, 'vi', 'meeting_point', 'Xưởng đèn lồng trên đường Nguyễn Thị Minh Khai, Hội An',
+    NULL,
+    NULL, NULL, NULL,
+    NULL,
+    NULL, NULL, NULL, NULL,
+    NULL, NULL, 'unverified',
+    'rejected');
+
+INSERT INTO cancellation_policies (id, tour_id, free_before_hours, refund_percent, terms, version) VALUES
+('f0000000-0000-4000-8000-000000000111', 'c0000000-0000-4000-8000-000000000011', 24, 0, 'Hủy miễn phí nếu báo trước giờ khởi hành ít nhất 24 giờ. Hủy sau mốc này không được hoàn tiền.', 1);
+
+-- Tour 11 (180 phút): lịch 38, 39
+INSERT INTO schedules (id, tour_id, starts_at, ends_at, capacity, remaining, status) VALUES
+('d0000000-0000-4000-8000-000000000038', 'c0000000-0000-4000-8000-000000000011',
+    TIMESTAMP(CURDATE() + INTERVAL 6 DAY, '14:00:00'), TIMESTAMP(CURDATE() + INTERVAL 6 DAY, '17:00:00'), 10, 10, 'open'),
+('d0000000-0000-4000-8000-000000000039', 'c0000000-0000-4000-8000-000000000011',
+    TIMESTAMP(CURDATE() + INTERVAL 13 DAY, '14:00:00'), TIMESTAMP(CURDATE() + INTERVAL 13 DAY, '17:00:00'), 10, 10, 'open');
+
+INSERT INTO ticket_types (id, schedule_id, name, min_age, max_age, price_vnd, active) VALUES
+('e0000000-0000-4000-8000-000000000381', 'd0000000-0000-4000-8000-000000000038', 'adult', 12, NULL, 520000, TRUE),
+('e0000000-0000-4000-8000-000000000382', 'd0000000-0000-4000-8000-000000000038', 'child', 4, 11, 360000, TRUE),
+('e0000000-0000-4000-8000-000000000391', 'd0000000-0000-4000-8000-000000000039', 'adult', 12, NULL, 520000, TRUE),
+('e0000000-0000-4000-8000-000000000392', 'd0000000-0000-4000-8000-000000000039', 'child', 4, 11, 360000, TRUE);
+
+-- d) Đơn 31-39
+INSERT INTO bookings (id, user_id, schedule_id, code, contact_name, contact_email, contact_phone,
+                      status, total_vnd, policy_version, hold_expires_at, created_at) VALUES
+-- Chờ xác nhận
+('10000000-0000-4000-8000-000000000031', 'a0000000-0000-4000-8000-000000000131', 'd0000000-0000-4000-8000-000000000003',
+    'LT518204', 'Việt Hùng', 'viet.hung@localtour.test', '0000000131', 'pending', 1300000, 1, NULL, NOW() - INTERVAL 2 HOUR),
+('10000000-0000-4000-8000-000000000032', 'a0000000-0000-4000-8000-000000000132', 'd0000000-0000-4000-8000-000000000018',
+    'LT527716', 'Mỹ Duyên', 'my.duyen@localtour.test', '0000000132', 'pending', 1300000, 1, NULL, NOW() - INTERVAL 26 HOUR),
+('10000000-0000-4000-8000-000000000033', 'a0000000-0000-4000-8000-000000000133', 'd0000000-0000-4000-8000-000000000022',
+    'LT533940', 'Đức Anh', 'duc.anh@localtour.test', '0000000133', 'pending', 590000, 1, NULL, NOW() - INTERVAL 50 HOUR),
+-- Chờ thanh toán: hạn 24 giờ tính từ lúc quản trị viên xác nhận chỗ (xem admin_logs)
+('10000000-0000-4000-8000-000000000034', 'a0000000-0000-4000-8000-000000000134', 'd0000000-0000-4000-8000-000000000014',
+    'LT541385', 'Ngọc Trâm', 'ngoc.tram@localtour.test', '0000000134', 'awaiting_payment', 1100000, 2, NOW() + INTERVAL 20 HOUR, NOW() - INTERVAL 30 HOUR),
+('10000000-0000-4000-8000-000000000035', 'a0000000-0000-4000-8000-000000000135', 'd0000000-0000-4000-8000-000000000016',
+    'LT556021', 'Văn Toàn', 'van.toan@localtour.test', '0000000135', 'awaiting_payment', 550000, 2, NOW() + INTERVAL 6 HOUR, NOW() - INTERVAL 40 HOUR),
+-- Đã xác nhận
+('10000000-0000-4000-8000-000000000036', 'a0000000-0000-4000-8000-000000000136', 'd0000000-0000-4000-8000-000000000010',
+    'LT562478', 'Diệu Linh', 'dieu.linh@localtour.test', '0000000136', 'confirmed', 1440000, 1, NULL, NOW() - INTERVAL 96 HOUR),
+('10000000-0000-4000-8000-000000000037', 'a0000000-0000-4000-8000-000000000137', 'd0000000-0000-4000-8000-000000000001',
+    'LT574913', 'Tiến Đạt', 'tien.dat@localtour.test', '0000000137', 'confirmed', 1300000, 1, NULL, NOW() - INTERVAL 216 HOUR),
+-- Từ chối
+('10000000-0000-4000-8000-000000000038', 'a0000000-0000-4000-8000-000000000138', 'd0000000-0000-4000-8000-000000000005',
+    'LT581356', 'Tuyết Mai', 'tuyet.mai@localtour.test', '0000000138', 'rejected', 2600000, 1, NULL, NOW() - INTERVAL 120 HOUR),
+-- Đã hủy
+('10000000-0000-4000-8000-000000000039', 'a0000000-0000-4000-8000-000000000139', 'd0000000-0000-4000-8000-000000000023',
+    'LT598742', 'Hồng Nhung', 'hong.nhung@localtour.test', '0000000139', 'cancelled', 1180000, 1, NULL, NOW() - INTERVAL 144 HOUR);
+
+INSERT INTO booking_lines (id, booking_id, ticket_type_id, quantity, unit_price_vnd, line_total_vnd) VALUES
+('20000000-0000-4000-8000-000000000311', '10000000-0000-4000-8000-000000000031', 'e0000000-0000-4000-8000-000000000031', 2, 650000, 1300000),
+('20000000-0000-4000-8000-000000000321', '10000000-0000-4000-8000-000000000032', 'e0000000-0000-4000-8000-000000000181', 2, 480000, 960000),
+('20000000-0000-4000-8000-000000000322', '10000000-0000-4000-8000-000000000032', 'e0000000-0000-4000-8000-000000000182', 1, 340000, 340000),
+('20000000-0000-4000-8000-000000000331', '10000000-0000-4000-8000-000000000033', 'e0000000-0000-4000-8000-000000000221', 1, 590000, 590000),
+('20000000-0000-4000-8000-000000000341', '10000000-0000-4000-8000-000000000034', 'e0000000-0000-4000-8000-000000000141', 2, 550000, 1100000),
+('20000000-0000-4000-8000-000000000351', '10000000-0000-4000-8000-000000000035', 'e0000000-0000-4000-8000-000000000161', 1, 550000, 550000),
+('20000000-0000-4000-8000-000000000361', '10000000-0000-4000-8000-000000000036', 'e0000000-0000-4000-8000-000000000101', 2, 720000, 1440000),
+('20000000-0000-4000-8000-000000000371', '10000000-0000-4000-8000-000000000037', 'e0000000-0000-4000-8000-000000000011', 2, 650000, 1300000),
+('20000000-0000-4000-8000-000000000381', '10000000-0000-4000-8000-000000000038', 'e0000000-0000-4000-8000-000000000051', 4, 650000, 2600000),
+('20000000-0000-4000-8000-000000000391', '10000000-0000-4000-8000-000000000039', 'e0000000-0000-4000-8000-000000000231', 2, 590000, 1180000);
+
+INSERT INTO passengers (id, booking_id, full_name, age_group, special_request) VALUES
+('30000000-0000-4000-8000-000000000311', '10000000-0000-4000-8000-000000000031', 'Việt Hùng', 'adult', NULL),
+('30000000-0000-4000-8000-000000000312', '10000000-0000-4000-8000-000000000031', 'Bảo Trân', 'adult', NULL),
+('30000000-0000-4000-8000-000000000321', '10000000-0000-4000-8000-000000000032', 'Mỹ Duyên', 'adult', 'Ăn chay.'),
+('30000000-0000-4000-8000-000000000322', '10000000-0000-4000-8000-000000000032', 'Minh Đức', 'adult', NULL),
+('30000000-0000-4000-8000-000000000323', '10000000-0000-4000-8000-000000000032', 'Phúc An', 'child', NULL),
+('30000000-0000-4000-8000-000000000331', '10000000-0000-4000-8000-000000000033', 'Đức Anh', 'adult', 'Dị ứng hải sản.'),
+('30000000-0000-4000-8000-000000000341', '10000000-0000-4000-8000-000000000034', 'Ngọc Trâm', 'adult', NULL),
+('30000000-0000-4000-8000-000000000342', '10000000-0000-4000-8000-000000000034', 'Hữu Tài', 'adult', NULL),
+('30000000-0000-4000-8000-000000000351', '10000000-0000-4000-8000-000000000035', 'Văn Toàn', 'adult', NULL),
+('30000000-0000-4000-8000-000000000361', '10000000-0000-4000-8000-000000000036', 'Diệu Linh', 'adult', NULL),
+('30000000-0000-4000-8000-000000000362', '10000000-0000-4000-8000-000000000036', 'Khánh Duy', 'adult', NULL),
+('30000000-0000-4000-8000-000000000371', '10000000-0000-4000-8000-000000000037', 'Tiến Đạt', 'adult', NULL),
+('30000000-0000-4000-8000-000000000372', '10000000-0000-4000-8000-000000000037', 'Thanh Thảo', 'adult', NULL),
+('30000000-0000-4000-8000-000000000381', '10000000-0000-4000-8000-000000000038', 'Tuyết Mai', 'adult', NULL),
+('30000000-0000-4000-8000-000000000382', '10000000-0000-4000-8000-000000000038', 'Quốc Bảo', 'adult', NULL),
+('30000000-0000-4000-8000-000000000383', '10000000-0000-4000-8000-000000000038', 'Lan Anh', 'adult', NULL),
+('30000000-0000-4000-8000-000000000384', '10000000-0000-4000-8000-000000000038', 'Đức Thịnh', 'adult', NULL),
+('30000000-0000-4000-8000-000000000391', '10000000-0000-4000-8000-000000000039', 'Hồng Nhung', 'adult', NULL),
+('30000000-0000-4000-8000-000000000392', '10000000-0000-4000-8000-000000000039', 'Thùy Trang', 'adult', NULL);
+
+-- Đơn 35: khách đã chuyển khoản VietQR, chờ quản trị viên đối chiếu (paid_at NULL).
+-- Đơn 36 (VNPay) và 37 (VietQR đã đối chiếu): thanh toán thành công.
+INSERT INTO payments (id, booking_id, method, provider_txn_id, amount_vnd, status, expires_at, paid_at) VALUES
+('40000000-0000-4000-8000-000000000035', '10000000-0000-4000-8000-000000000035', 'vietqr', 'VQR-DEMO-000016', 550000, 'awaiting_reconciliation', NOW() + INTERVAL 6 HOUR, NULL),
+('40000000-0000-4000-8000-000000000036', '10000000-0000-4000-8000-000000000036', 'vnpay', 'VNP-DEMO-000016', 1440000, 'paid', NULL, NOW() - INTERVAL 72 HOUR),
+('40000000-0000-4000-8000-000000000037', '10000000-0000-4000-8000-000000000037', 'vietqr', 'VQR-DEMO-000017', 1300000, 'paid', NULL, NOW() - INTERVAL 190 HOUR);
+
+INSERT INTO payment_events (id, payment_id, provider_event_id, result_code, verified, received_at) VALUES
+('50000000-0000-4000-8000-000000000036', '40000000-0000-4000-8000-000000000036', 'EVT-DEMO-000036', '00', TRUE, NOW() - INTERVAL 72 HOUR),
+('50000000-0000-4000-8000-000000000037', '40000000-0000-4000-8000-000000000037', 'EVT-DEMO-000037', '00', TRUE, NOW() - INTERVAL 190 HOUR);
+
+-- e) Lịch sử xử lý (NFR-09)
+INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at) VALUES
+('90000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'tour', 'c0000000-0000-4000-8000-000000000012',
+    'tour_reject', 'pending', 'rejected', 'Thiếu lịch khởi hành, giá vé và chính sách hủy; đã báo đơn vị tổ chức gửi lại đủ thông tin.', NOW() - INTERVAL 72 HOUR),
+('90000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000001', 'booking', '10000000-0000-4000-8000-000000000034',
+    'booking_status', 'pending', 'awaiting_payment', 'Đơn vị tổ chức xác nhận còn chỗ và giá.', NOW() - INTERVAL 4 HOUR),
+('90000000-0000-4000-8000-000000000003', 'a0000000-0000-4000-8000-000000000001', 'booking', '10000000-0000-4000-8000-000000000035',
+    'booking_status', 'pending', 'awaiting_payment', NULL, NOW() - INTERVAL 18 HOUR),
+('90000000-0000-4000-8000-000000000004', 'a0000000-0000-4000-8000-000000000001', 'booking', '10000000-0000-4000-8000-000000000036',
+    'booking_status', 'pending', 'awaiting_payment', NULL, NOW() - INTERVAL 90 HOUR),
+('90000000-0000-4000-8000-000000000005', 'a0000000-0000-4000-8000-000000000001', 'booking', '10000000-0000-4000-8000-000000000036',
+    'booking_status', 'awaiting_payment', 'confirmed', 'Thanh toán VNPay thành công.', NOW() - INTERVAL 71 HOUR),
+('90000000-0000-4000-8000-000000000006', 'a0000000-0000-4000-8000-000000000001', 'booking', '10000000-0000-4000-8000-000000000037',
+    'booking_status', 'pending', 'awaiting_payment', NULL, NOW() - INTERVAL 212 HOUR),
+('90000000-0000-4000-8000-000000000007', 'a0000000-0000-4000-8000-000000000001', 'booking', '10000000-0000-4000-8000-000000000037',
+    'booking_status', 'awaiting_payment', 'confirmed', 'Đã đối chiếu khoản chuyển khoản VietQR.', NOW() - INTERVAL 189 HOUR),
+('90000000-0000-4000-8000-000000000008', 'a0000000-0000-4000-8000-000000000001', 'booking', '10000000-0000-4000-8000-000000000038',
+    'booking_status', 'pending', 'rejected', 'Đơn vị tổ chức báo lịch này không còn đủ 4 chỗ; đã gợi ý khách chọn lịch khác.', NOW() - INTERVAL 117 HOUR),
+('90000000-0000-4000-8000-000000000009', 'a0000000-0000-4000-8000-000000000001', 'booking', '10000000-0000-4000-8000-000000000039',
+    'booking_status', 'pending', 'awaiting_payment', NULL, NOW() - INTERVAL 140 HOUR),
+('90000000-0000-4000-8000-000000000010', 'a0000000-0000-4000-8000-000000000001', 'booking', '10000000-0000-4000-8000-000000000039',
+    'booking_status', 'awaiting_payment', 'cancelled', 'Quá hạn thanh toán 24 giờ, khách không thanh toán.', NOW() - INTERVAL 112 HOUR);
 -- =====================================================================
 -- LocalTour v0.1 - 03_procedures_LTP.sql
--- Mục đích  : Stored procedures cho trang danh sách tour (Bảng tin du lịch).
+-- Mục đích  : Stored procedures cho trang danh sách tour (Bảng tin du lịch) và trang
+--             duyệt tour của quản trị viên (FR-24).
 -- Phụ trách : Lê Trung Phong (LTP) - WBS 3.2.3
--- Procedures: LTP_sp_tour_list, LTP_sp_destination_list, LTP_sp_category_list
--- Quy tắc   : Tour được hiển thị khi tours.approval_status = 'approved' VÀ
+-- Procedures: LTP_sp_tour_list, LTP_sp_destination_list, LTP_sp_category_list,
+--             LTP_sp_admin_tour_list, LTP_sp_admin_tour_detail,
+--             LTP_sp_admin_tour_set_approval
+-- Quy tắc   : Trang khách: tour được hiển thị khi tours.approval_status = 'approved' VÀ
 --             providers.approval_status = 'approved' VÀ tài khoản của nhà cung cấp
 --             (users.status) = 'active'. Tour khác -> không bao giờ trả về.
 --             Lịch đặt được: status = 'open', starts_at > NOW(), remaining > 0 và có
@@ -1985,7 +2203,8 @@ INSERT INTO tour_extras (id, tour_id, kind, name, price_vnd, price_unit, conditi
 --             tours.destination.
 --             Tham số chuỗi được so sánh với COLLATE utf8mb4_unicode_ci để không lỗi
 --             "Illegal mix of collations" khi database mặc định dùng collation khác.
---             Chỉ đọc dữ liệu (READS SQL DATA), không có DEFINER.
+--             Trang quản trị: xem mọi tour, quy tắc riêng ở phần "Trang quản trị" cuối file.
+--             Không có DEFINER.
 -- Chạy sau  : 01_schema.sql. Chạy lại được (DROP PROCEDURE IF EXISTS).
 -- =====================================================================
 
@@ -2189,20 +2408,223 @@ BEGIN
     ORDER BY c.name ASC;
 END$$
 DELIMITER ;
+
+-- =====================================================================
+-- Trang quản trị: duyệt tour (FR-24, NFR-09)
+--   Các procedure dưới đây KHÔNG lọc tour công khai: quản trị viên xem mọi tour.
+--   Chỉ trang quản trị gọi chúng (ứng dụng kiểm tra tài khoản quản trị viên trước).
+--   Chuyển trạng thái duyệt: pending -> approved, pending -> rejected (bắt buộc lý do).
+--   Tour bị từ chối không mở lại được; đơn vị tổ chức gửi lại thông tin thì quản trị
+--   viên nhập thành tour mới ở trạng thái 'pending'.
+-- =====================================================================
+
+-- ---------------------------------------------------------------------
+-- LTP_sp_admin_tour_list(p_approval_status)
+--   p_approval_status: NULL / '' = mọi trạng thái; ngược lại 'draft' | 'pending' |
+--                      'approved' | 'rejected'.
+--   Cột trả về: tour_id, title, provider_name, provider_approval_status,
+--     provider_user_status, destination_name, category_name, approval_status,
+--     is_public (1 = đang hiển thị cho khách), schedule_count (mọi lịch của tour),
+--     last_action_at (lần xử lý gần nhất trong admin_logs, NULL nếu chưa có).
+--   Sắp xếp: tour chờ duyệt trước, rồi title, rồi id.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS LTP_sp_admin_tour_list;
+
+DELIMITER $$
+CREATE PROCEDURE LTP_sp_admin_tour_list(
+    IN p_approval_status VARCHAR(20)
+)
+READS SQL DATA
+BEGIN
+    SELECT
+        t.id                AS tour_id,
+        t.title,
+        p.business_name     AS provider_name,
+        p.approval_status   AS provider_approval_status,
+        u.status            AS provider_user_status,
+        COALESCE(d.name, t.destination) AS destination_name,
+        c.name              AS category_name,
+        t.approval_status,
+        (t.approval_status = 'approved'
+         AND p.approval_status = 'approved'
+         AND u.status = 'active') AS is_public,
+        (SELECT COUNT(*)
+           FROM schedules s
+          WHERE s.tour_id = t.id) AS schedule_count,
+        (SELECT MAX(l.created_at)
+           FROM admin_logs l
+          WHERE l.target_type = 'tour'
+            AND l.target_id = t.id) AS last_action_at
+    FROM tours t
+    JOIN providers p ON p.id = t.provider_id
+    JOIN users     u ON u.id = p.user_id
+    LEFT JOIN destinations d ON d.id = t.destination_id
+    LEFT JOIN categories   c ON c.id = t.category_id
+    WHERE NULLIF(p_approval_status, '') IS NULL
+       OR t.approval_status = (p_approval_status COLLATE utf8mb4_unicode_ci)
+    ORDER BY (t.approval_status = 'pending') DESC, t.title ASC, t.id ASC;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- LTP_sp_admin_tour_detail(p_tour_id)
+--   0 hoặc 1 dòng, mọi trạng thái duyệt. Cột: tour_id, title, description,
+--   destination_name, category_name, duration_minutes, max_group_size, language_codes,
+--   pickup_mode, meeting_point, transport, guide_info, dropoff_point,
+--   source_url, verified_at, verification_status (NFR-07),
+--   provider_name, provider_phone, provider_approval_status, provider_user_status,
+--   approval_status, is_public,
+--   schedule_count, ticket_count (loại vé active), image_count, itinerary_count,
+--   inclusion_count, policy_count (số phiên bản chính sách hủy).
+--   Chỉ trả số lượng các phần con: trang quản trị dùng để xem tour đã đủ thông tin chưa.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS LTP_sp_admin_tour_detail;
+
+DELIMITER $$
+CREATE PROCEDURE LTP_sp_admin_tour_detail(
+    IN p_tour_id CHAR(36)
+)
+READS SQL DATA
+BEGIN
+    SELECT
+        t.id                AS tour_id,
+        t.title,
+        t.description,
+        COALESCE(d.name, t.destination) AS destination_name,
+        c.name              AS category_name,
+        t.duration_minutes,
+        t.max_group_size,
+        t.language_codes,
+        t.pickup_mode,
+        t.meeting_point,
+        t.transport,
+        t.guide_info,
+        t.dropoff_point,
+        t.source_url,
+        t.verified_at,
+        t.verification_status,
+        p.business_name     AS provider_name,
+        p.contact_phone     AS provider_phone,
+        p.approval_status   AS provider_approval_status,
+        u.status            AS provider_user_status,
+        t.approval_status,
+        (t.approval_status = 'approved'
+         AND p.approval_status = 'approved'
+         AND u.status = 'active') AS is_public,
+        (SELECT COUNT(*) FROM schedules s WHERE s.tour_id = t.id) AS schedule_count,
+        (SELECT COUNT(*)
+           FROM ticket_types tt
+           JOIN schedules s ON s.id = tt.schedule_id
+          WHERE s.tour_id = t.id
+            AND tt.active = TRUE) AS ticket_count,
+        (SELECT COUNT(*) FROM tour_images ti WHERE ti.tour_id = t.id) AS image_count,
+        (SELECT COUNT(*) FROM tour_itinerary_items ii WHERE ii.tour_id = t.id) AS itinerary_count,
+        (SELECT COUNT(*) FROM tour_inclusions tn WHERE tn.tour_id = t.id) AS inclusion_count,
+        (SELECT COUNT(*) FROM cancellation_policies cp WHERE cp.tour_id = t.id) AS policy_count
+    FROM tours t
+    JOIN providers p ON p.id = t.provider_id
+    JOIN users     u ON u.id = p.user_id
+    LEFT JOIN destinations d ON d.id = t.destination_id
+    LEFT JOIN categories   c ON c.id = t.category_id
+    WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci);
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- LTP_sp_admin_tour_set_approval(p_tour_id, p_new_status, p_actor_user_id, p_note)
+--   p_new_status: 'approved' (phê duyệt) | 'rejected' (từ chối, bắt buộc p_note).
+--   Đổi trạng thái và ghi admin_logs ('tour_approve' / 'tour_reject') trong cùng một
+--   transaction. p_note tối đa 255 ký tự (NULL / '' = không có).
+--   1 dòng: result, approval_status.
+--     result = 'ok'                 : đã đổi; approval_status = trạng thái mới.
+--              'forbidden'          : người thao tác không phải quản trị viên đang hoạt động.
+--              'not_found'          : không có tour này.
+--              'invalid_transition' : tour không ở trạng thái 'pending', hoặc p_new_status sai.
+--              'note_required'      : từ chối mà không có lý do.
+--     Khi không 'ok', approval_status = trạng thái hiện tại, không có gì thay đổi.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS LTP_sp_admin_tour_set_approval;
+
+DELIMITER $$
+CREATE PROCEDURE LTP_sp_admin_tour_set_approval(
+    IN p_tour_id       CHAR(36),
+    IN p_new_status    VARCHAR(20),
+    IN p_actor_user_id CHAR(36),
+    IN p_note          VARCHAR(255) CHARACTER SET utf8mb4
+)
+MODIFIES SQL DATA
+proc: BEGIN
+    DECLARE v_old  VARCHAR(20)  DEFAULT NULL;
+    DECLARE v_new  VARCHAR(20)  DEFAULT COALESCE(p_new_status, '');
+    DECLARE v_note VARCHAR(255) CHARACTER SET utf8mb4 DEFAULT NULLIF(TRIM(p_note), '');
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM users
+                    WHERE id = (p_actor_user_id COLLATE utf8mb4_unicode_ci)
+                      AND role = 'admin' AND status = 'active') THEN
+        SELECT 'forbidden' AS result, NULL AS approval_status;
+        LEAVE proc;
+    END IF;
+
+    START TRANSACTION;
+
+    SELECT approval_status
+      INTO v_old
+      FROM tours
+     WHERE id = (p_tour_id COLLATE utf8mb4_unicode_ci)
+       FOR UPDATE;
+
+    IF v_old IS NULL THEN
+        ROLLBACK;
+        SELECT 'not_found' AS result, NULL AS approval_status;
+        LEAVE proc;
+    END IF;
+
+    IF v_old <> 'pending' OR v_new NOT IN ('approved', 'rejected') THEN
+        ROLLBACK;
+        SELECT 'invalid_transition' AS result, v_old AS approval_status;
+        LEAVE proc;
+    END IF;
+
+    IF v_new = 'rejected' AND v_note IS NULL THEN
+        ROLLBACK;
+        SELECT 'note_required' AS result, v_old AS approval_status;
+        LEAVE proc;
+    END IF;
+
+    UPDATE tours
+       SET approval_status = v_new
+     WHERE id = (p_tour_id COLLATE utf8mb4_unicode_ci);
+
+    INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
+    VALUES (UUID(), p_actor_user_id, 'tour', p_tour_id,
+            IF(v_new = 'approved', 'tour_approve', 'tour_reject'), v_old, v_new, v_note, NOW());
+
+    COMMIT;
+    SELECT 'ok' AS result, v_new AS approval_status;
+END$$
+DELIMITER ;
 -- =====================================================================
 -- LocalTour v0.1 - 04_procedures_NMT.sql
 -- Mục đích  : Stored procedures cho trang chi tiết tour (thông tin chính kèm điểm đến,
 --             loại hình, phương tiện, điều kiện; lịch khởi hành đặt được, loại vé và
---             giá vé, bộ ảnh của tour).
+--             giá vé, bộ ảnh của tour) và trang thống kê của quản trị viên (FR-19 -> FR-23).
 -- Phụ trách : Nguyễn Minh Thức (NMT) - WBS 3.2.4
 -- Procedures: NMT_sp_tour_detail, NMT_sp_tour_schedule_list, NMT_sp_tour_ticket_list,
---             NMT_sp_tour_image_list
--- Quy tắc   : Chỉ trả dữ liệu của tour đang hiển thị: tours.approval_status = 'approved'
+--             NMT_sp_tour_image_list, NMT_sp_admin_summary,
+--             NMT_sp_admin_booking_status_stats, NMT_sp_admin_booking_time_stats,
+--             NMT_sp_admin_revenue_stats
+-- Quy tắc   : Trang chi tiết tour chỉ trả dữ liệu của tour đang hiển thị: tours.approval_status = 'approved'
 --             VÀ providers.approval_status = 'approved' VÀ users.status = 'active'
 --             (tài khoản của nhà cung cấp). Tour khác hoặc không tồn tại -> 0 dòng.
 --             Lịch đặt được: status = 'open', starts_at > NOW(), remaining > 0 và có
 --             ít nhất một loại vé active.
 --             p_tour_id là UUID dạng chữ, so sánh với COLLATE utf8mb4_unicode_ci.
+--             Thống kê: tính trên toàn hệ thống, quy tắc ở phần "Trang quản trị" cuối file.
 --             Chỉ đọc dữ liệu (READS SQL DATA), không có DEFINER.
 -- Chạy sau  : 01_schema.sql. Chạy lại được (DROP PROCEDURE IF EXISTS).
 -- =====================================================================
@@ -2402,6 +2824,172 @@ BEGIN
       AND p.approval_status = 'approved'
       AND u.status = 'active'
     ORDER BY ti.sort_order ASC, ti.id ASC;
+END$$
+DELIMITER ;
+
+-- =====================================================================
+-- Trang quản trị: thống kê (FR-19 -> FR-23)
+--   Các procedure dưới đây KHÔNG lọc tour công khai: số liệu tính trên toàn hệ thống.
+--   Chỉ trang quản trị gọi chúng (ứng dụng kiểm tra tài khoản quản trị viên trước).
+--   p_period: 'day' | 'month' | 'year'; giá trị khác = 'month'.
+--   p_from / p_to: khoảng ngày (tính cả hai đầu). NULL = không giới hạn đầu đó.
+--   Chỉ trả các kỳ có dữ liệu; kỳ trống do giao diện tự bỏ qua.
+-- =====================================================================
+
+-- ---------------------------------------------------------------------
+-- NMT_sp_admin_summary()
+--   1 dòng. Cột: customer_total, customer_active, customer_locked (FR-19, tài khoản
+--   role = 'customer'), tour_total, tour_draft, tour_pending, tour_approved,
+--   tour_rejected (FR-20), tour_public (đang hiển thị cho khách), booking_total,
+--   booking_pending (yêu cầu chờ xác nhận, cần quản trị viên xử lý).
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NMT_sp_admin_summary;
+
+DELIMITER $$
+CREATE PROCEDURE NMT_sp_admin_summary()
+READS SQL DATA
+BEGIN
+    SELECT
+        cu.customer_total,
+        cu.customer_active,
+        cu.customer_locked,
+        tr.tour_total,
+        tr.tour_draft,
+        tr.tour_pending,
+        tr.tour_approved,
+        tr.tour_rejected,
+        tr.tour_public,
+        bk.booking_total,
+        bk.booking_pending
+    FROM (SELECT COUNT(*)                      AS customer_total,
+                 COALESCE(SUM(status = 'active'), 0) AS customer_active,
+                 COALESCE(SUM(status = 'locked'), 0) AS customer_locked
+            FROM users
+           WHERE role = 'customer') cu
+    CROSS JOIN
+         (SELECT COUNT(*)                                     AS tour_total,
+                 COALESCE(SUM(t.approval_status = 'draft'), 0)    AS tour_draft,
+                 COALESCE(SUM(t.approval_status = 'pending'), 0)  AS tour_pending,
+                 COALESCE(SUM(t.approval_status = 'approved'), 0) AS tour_approved,
+                 COALESCE(SUM(t.approval_status = 'rejected'), 0) AS tour_rejected,
+                 COALESCE(SUM(t.approval_status = 'approved'
+                              AND p.approval_status = 'approved'
+                              AND u.status = 'active'), 0)        AS tour_public
+            FROM tours t
+            JOIN providers p ON p.id = t.provider_id
+            JOIN users     u ON u.id = p.user_id) tr
+    CROSS JOIN
+         (SELECT COUNT(*)                            AS booking_total,
+                 COALESCE(SUM(status = 'pending'), 0) AS booking_pending
+            FROM bookings) bk;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NMT_sp_admin_booking_status_stats()
+--   FR-21. Luôn 6 dòng, kể cả trạng thái chưa có yêu cầu nào.
+--   Cột: status, booking_count. Thứ tự theo luồng xử lý.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NMT_sp_admin_booking_status_stats;
+
+DELIMITER $$
+CREATE PROCEDURE NMT_sp_admin_booking_status_stats()
+READS SQL DATA
+BEGIN
+    SELECT
+        st.status,
+        COUNT(b.id) AS booking_count
+    FROM (SELECT 1 AS sort_order, 'pending' AS status
+          UNION ALL SELECT 2, 'awaiting_payment'
+          UNION ALL SELECT 3, 'confirmed'
+          UNION ALL SELECT 4, 'completed'
+          UNION ALL SELECT 5, 'rejected'
+          UNION ALL SELECT 6, 'cancelled') st
+    LEFT JOIN bookings b ON b.status = (st.status COLLATE utf8mb4_unicode_ci)
+    GROUP BY st.sort_order, st.status
+    ORDER BY st.sort_order;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NMT_sp_admin_booking_time_stats(p_period, p_from, p_to)
+--   FR-22. Số yêu cầu đặt tour theo ngày tạo (bookings.created_at), mọi trạng thái.
+--   Cột: period_key ('YYYY-MM-DD' | 'YYYY-MM' | 'YYYY'), booking_count.
+--   Sắp xếp period_key tăng dần.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NMT_sp_admin_booking_time_stats;
+
+DELIMITER $$
+CREATE PROCEDURE NMT_sp_admin_booking_time_stats(
+    IN p_period VARCHAR(10),
+    IN p_from   DATE,
+    IN p_to     DATE
+)
+READS SQL DATA
+BEGIN
+    DECLARE v_format VARCHAR(10) DEFAULT '%Y-%m';
+
+    IF p_period = 'day' THEN
+        SET v_format = '%Y-%m-%d';
+    ELSEIF p_period = 'year' THEN
+        SET v_format = '%Y';
+    END IF;
+
+    SELECT
+        DATE_FORMAT(b.created_at, v_format) AS period_key,
+        COUNT(*)                            AS booking_count
+    FROM bookings b
+    WHERE (p_from IS NULL OR b.created_at >= p_from)
+      AND (p_to IS NULL OR b.created_at < p_to + INTERVAL 1 DAY)
+    GROUP BY period_key
+    ORDER BY period_key;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NMT_sp_admin_revenue_stats(p_period, p_from, p_to)
+--   FR-23. Doanh thu theo ngày thanh toán (payments.paid_at) của khoản 'paid'.
+--   Cột: period_key, paid_count, gross_vnd (tổng tiền đã thanh toán), refund_vnd (tiền
+--   đã hoàn, refunds.status = 'completed', tính vào kỳ của khoản thanh toán gốc),
+--   net_vnd = gross_vnd - refund_vnd. Sắp xếp period_key tăng dần.
+--   Tiền hoàn được cộng trước theo từng khoản thanh toán để không bị nhân dòng.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NMT_sp_admin_revenue_stats;
+
+DELIMITER $$
+CREATE PROCEDURE NMT_sp_admin_revenue_stats(
+    IN p_period VARCHAR(10),
+    IN p_from   DATE,
+    IN p_to     DATE
+)
+READS SQL DATA
+BEGIN
+    DECLARE v_format VARCHAR(10) DEFAULT '%Y-%m';
+
+    IF p_period = 'day' THEN
+        SET v_format = '%Y-%m-%d';
+    ELSEIF p_period = 'year' THEN
+        SET v_format = '%Y';
+    END IF;
+
+    SELECT
+        DATE_FORMAT(p.paid_at, v_format)                AS period_key,
+        COUNT(*)                                        AS paid_count,
+        SUM(p.amount_vnd)                               AS gross_vnd,
+        COALESCE(SUM(r.refund_vnd), 0)                  AS refund_vnd,
+        SUM(p.amount_vnd) - COALESCE(SUM(r.refund_vnd), 0) AS net_vnd
+    FROM payments p
+    LEFT JOIN (SELECT payment_id, SUM(amount_vnd) AS refund_vnd
+                 FROM refunds
+                WHERE status = 'completed'
+                GROUP BY payment_id) r
+           ON r.payment_id = p.id
+    WHERE p.status = 'paid'
+      AND p.paid_at IS NOT NULL
+      AND (p_from IS NULL OR p.paid_at >= p_from)
+      AND (p_to IS NULL OR p.paid_at < p_to + INTERVAL 1 DAY)
+    GROUP BY period_key
+    ORDER BY period_key;
 END$$
 DELIMITER ;
 -- =====================================================================
@@ -2685,5 +3273,310 @@ BEGIN
     FROM users u
     WHERE u.email = (LOWER(TRIM(p_email)) COLLATE utf8mb4_unicode_ci)
     LIMIT 1;
+END$$
+DELIMITER ;
+-- =====================================================================
+-- LocalTour v0.1 - 07_procedures_NTK_admin.sql
+-- Mục đích  : Stored procedures cho trang quản trị yêu cầu đặt tour (FR-25) và lịch sử
+--             xử lý (NFR-09) dùng chung cho trang tour và trang yêu cầu đặt tour.
+-- Phụ trách : Nguyễn Tuấn Khôi (NTK)
+-- Procedures: NTK_sp_admin_booking_list, NTK_sp_admin_booking_detail,
+--             NTK_sp_admin_booking_line_list, NTK_sp_admin_log_list,
+--             NTK_sp_admin_booking_set_status
+-- Quy tắc   : Chỉ trang quản trị gọi các procedure này (ứng dụng kiểm tra tài khoản
+--             quản trị viên trước). Procedure ghi dữ liệu kiểm tra lại người thao tác là
+--             quản trị viên đang hoạt động, vì quyền trong session có thể đã cũ.
+--             Chuyển trạng thái yêu cầu đặt tour (quản trị viên):
+--               pending          -> awaiting_payment (xác nhận chỗ và giá; hạn thanh toán
+--                                   24 giờ), rejected (bắt buộc lý do), cancelled (bắt buộc lý do)
+--               awaiting_payment -> confirmed (cần thanh toán 'paid' hoặc chuyển khoản
+--                                   VietQR 'awaiting_reconciliation': khoản này được ghi
+--                                   'paid' = quản trị viên đã đối chiếu), cancelled (bắt buộc lý do)
+--               confirmed        -> completed (chỉ sau giờ khởi hành), cancelled (bắt buộc lý do)
+--               rejected, cancelled, completed: trạng thái cuối, không đổi được nữa.
+--             Đổi ngày hoặc số người không thuộc FR-25 (thuộc FR-12, phát triển sau).
+--             Không trừ / cộng schedules.remaining (giữ chỗ thuộc luồng đặt tour).
+--             Tham số chuỗi được so sánh với COLLATE utf8mb4_unicode_ci; không có DEFINER.
+-- Chạy sau  : 01_schema.sql. Chạy lại được (DROP PROCEDURE IF EXISTS).
+-- =====================================================================
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_admin_booking_list(p_status, p_keyword)
+--   p_status : NULL / '' = mọi trạng thái; ngược lại một giá trị của bookings.status.
+--   p_keyword: NULL / '' = không lọc; ngược lại tìm trong mã đơn, tên, email, số điện
+--              thoại liên hệ (không phân biệt hoa thường).
+--   Tối đa 200 dòng, đơn mới tạo trước. Cột: booking_id, code, status, created_at,
+--   contact_name, contact_email, contact_phone, tour_title, starts_at, people (tổng số vé),
+--   total_vnd, payment_status (khoản thanh toán tiêu biểu, NULL = chưa có), hold_expires_at.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_admin_booking_list;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_admin_booking_list(
+    IN p_status  VARCHAR(30),
+    IN p_keyword VARCHAR(100) CHARACTER SET utf8mb4
+)
+READS SQL DATA
+BEGIN
+    DECLARE v_keyword VARCHAR(100) CHARACTER SET utf8mb4 DEFAULT NULLIF(TRIM(p_keyword), '');
+
+    SELECT
+        b.id              AS booking_id,
+        b.code,
+        b.status,
+        b.created_at,
+        b.contact_name,
+        b.contact_email,
+        b.contact_phone,
+        t.title           AS tour_title,
+        s.starts_at,
+        (SELECT COALESCE(SUM(bl.quantity), 0)
+           FROM booking_lines bl
+          WHERE bl.booking_id = b.id) AS people,
+        b.total_vnd,
+        (SELECT p.status
+           FROM payments p
+          WHERE p.booking_id = b.id
+          ORDER BY FIELD(p.status, 'paid', 'awaiting_reconciliation', 'processing', 'pending', 'failed'), p.id
+          LIMIT 1)        AS payment_status,
+        b.hold_expires_at
+    FROM bookings b
+    JOIN schedules s ON s.id = b.schedule_id
+    JOIN tours t     ON t.id = s.tour_id
+    WHERE (NULLIF(p_status, '') IS NULL OR b.status = (p_status COLLATE utf8mb4_unicode_ci))
+      AND (v_keyword IS NULL
+           OR LOCATE(v_keyword COLLATE utf8mb4_unicode_ci,
+                     CONCAT_WS(' ', b.code, b.contact_name, b.contact_email, b.contact_phone)) > 0)
+    ORDER BY b.created_at DESC, b.code
+    LIMIT 200;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_admin_booking_detail(p_booking_id)
+--   0 hoặc 1 dòng: thông tin đơn, tài khoản đặt, tour, đơn vị tổ chức, lịch khởi hành,
+--   số khách, khoản thanh toán tiêu biểu (ưu tiên 'paid', rồi 'awaiting_reconciliation',
+--   'processing', 'pending', 'failed') và tổng tiền đã hoàn ('completed').
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_admin_booking_detail;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_admin_booking_detail(
+    IN p_booking_id CHAR(36)
+)
+READS SQL DATA
+BEGIN
+    SELECT
+        b.id                AS booking_id,
+        b.code,
+        b.status,
+        b.created_at,
+        b.hold_expires_at,
+        b.total_vnd,
+        b.policy_version,
+        b.contact_name,
+        b.contact_email,
+        b.contact_phone,
+        u.name              AS account_name,
+        u.email             AS account_email,
+        u.status            AS account_status,
+        t.id                AS tour_id,
+        t.title             AS tour_title,
+        pr.business_name    AS provider_name,
+        pr.contact_phone    AS provider_phone,
+        s.starts_at,
+        s.ends_at,
+        (SELECT COALESCE(SUM(bl.quantity), 0)
+           FROM booking_lines bl
+          WHERE bl.booking_id = b.id) AS people,
+        pay.method          AS payment_method,
+        pay.status          AS payment_status,
+        pay.amount_vnd      AS payment_amount_vnd,
+        pay.paid_at,
+        pay.provider_txn_id,
+        (SELECT COALESCE(SUM(r.amount_vnd), 0)
+           FROM refunds r
+           JOIN payments p2 ON p2.id = r.payment_id
+          WHERE p2.booking_id = b.id
+            AND r.status = 'completed') AS refund_completed_vnd
+    FROM bookings b
+    JOIN users u      ON u.id = b.user_id
+    JOIN schedules s  ON s.id = b.schedule_id
+    JOIN tours t      ON t.id = s.tour_id
+    JOIN providers pr ON pr.id = t.provider_id
+    LEFT JOIN payments pay ON pay.id = (
+        SELECT p.id
+          FROM payments p
+         WHERE p.booking_id = b.id
+         ORDER BY FIELD(p.status, 'paid', 'awaiting_reconciliation', 'processing', 'pending', 'failed'), p.id
+         LIMIT 1)
+    WHERE b.id = (p_booking_id COLLATE utf8mb4_unicode_ci);
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_admin_booking_line_list(p_booking_id)
+--   Các dòng vé của đơn. Cột: ticket_name, quantity, unit_price_vnd, line_total_vnd.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_admin_booking_line_list;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_admin_booking_line_list(
+    IN p_booking_id CHAR(36)
+)
+READS SQL DATA
+BEGIN
+    SELECT
+        tt.name           AS ticket_name,
+        bl.quantity,
+        bl.unit_price_vnd,
+        bl.line_total_vnd
+    FROM booking_lines bl
+    JOIN ticket_types tt ON tt.id = bl.ticket_type_id
+    WHERE bl.booking_id = (p_booking_id COLLATE utf8mb4_unicode_ci)
+    ORDER BY bl.id;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_admin_log_list(p_target_type, p_target_id)
+--   Lịch sử xử lý của một đối tượng ('tour' hoặc 'booking' + UUID), cũ trước.
+--   Cột: created_at, actor_name, action, from_status, to_status, note.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_admin_log_list;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_admin_log_list(
+    IN p_target_type VARCHAR(50),
+    IN p_target_id   CHAR(36)
+)
+READS SQL DATA
+BEGIN
+    SELECT
+        l.created_at,
+        u.name            AS actor_name,
+        l.action,
+        l.from_status,
+        l.to_status,
+        l.note
+    FROM admin_logs l
+    JOIN users u ON u.id = l.actor_user_id
+    WHERE l.target_type = (p_target_type COLLATE utf8mb4_unicode_ci)
+      AND l.target_id = (p_target_id COLLATE utf8mb4_unicode_ci)
+    ORDER BY l.created_at, l.id;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_admin_booking_set_status(p_booking_id, p_new_status, p_actor_user_id, p_note)
+--   Đổi trạng thái theo bảng chuyển trạng thái ở đầu file và ghi admin_logs trong cùng
+--   một transaction. p_note: lý do / ghi chú (NULL / '' = không có), tối đa 255 ký tự.
+--   1 dòng: result, status.
+--     result = 'ok'                 : đã đổi; status = trạng thái mới.
+--              'forbidden'          : người thao tác không phải quản trị viên đang hoạt động.
+--              'not_found'          : không có đơn này.
+--              'invalid_transition' : không được chuyển từ trạng thái hiện tại sang p_new_status.
+--              'note_required'      : từ chối / hủy mà không có lý do.
+--              'needs_payment'      : xác nhận khi chưa có thanh toán thành công / chờ đối chiếu.
+--              'not_departed'       : hoàn thành khi chưa tới giờ khởi hành.
+--     Khi không 'ok', status = trạng thái hiện tại (NULL nếu không có đơn), không có gì thay đổi.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_admin_booking_set_status;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_admin_booking_set_status(
+    IN p_booking_id    CHAR(36),
+    IN p_new_status    VARCHAR(30),
+    IN p_actor_user_id CHAR(36),
+    IN p_note          VARCHAR(255) CHARACTER SET utf8mb4
+)
+MODIFIES SQL DATA
+proc: BEGIN
+    DECLARE v_old        VARCHAR(30)  DEFAULT NULL;
+    DECLARE v_starts_at  DATETIME     DEFAULT NULL;
+    DECLARE v_payment_id CHAR(36)     DEFAULT NULL;
+    DECLARE v_payment_st VARCHAR(30)  DEFAULT NULL;
+    DECLARE v_new        VARCHAR(30)  DEFAULT COALESCE(p_new_status, '');
+    DECLARE v_note       VARCHAR(255) CHARACTER SET utf8mb4 DEFAULT NULLIF(TRIM(p_note), '');
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM users
+                    WHERE id = (p_actor_user_id COLLATE utf8mb4_unicode_ci)
+                      AND role = 'admin' AND status = 'active') THEN
+        SELECT 'forbidden' AS result, NULL AS status;
+        LEAVE proc;
+    END IF;
+
+    START TRANSACTION;
+
+    SELECT b.status, s.starts_at
+      INTO v_old, v_starts_at
+      FROM bookings b
+      JOIN schedules s ON s.id = b.schedule_id
+     WHERE b.id = (p_booking_id COLLATE utf8mb4_unicode_ci)
+       FOR UPDATE;
+
+    IF v_old IS NULL THEN
+        ROLLBACK;
+        SELECT 'not_found' AS result, NULL AS status;
+        LEAVE proc;
+    END IF;
+
+    IF NOT ((v_old = 'pending'          AND v_new IN ('awaiting_payment', 'rejected', 'cancelled'))
+         OR (v_old = 'awaiting_payment' AND v_new IN ('confirmed', 'cancelled'))
+         OR (v_old = 'confirmed'        AND v_new IN ('completed', 'cancelled'))) THEN
+        ROLLBACK;
+        SELECT 'invalid_transition' AS result, v_old AS status;
+        LEAVE proc;
+    END IF;
+
+    IF v_new IN ('rejected', 'cancelled') AND v_note IS NULL THEN
+        ROLLBACK;
+        SELECT 'note_required' AS result, v_old AS status;
+        LEAVE proc;
+    END IF;
+
+    IF v_new = 'completed' AND v_starts_at > NOW() THEN
+        ROLLBACK;
+        SELECT 'not_departed' AS result, v_old AS status;
+        LEAVE proc;
+    END IF;
+
+    IF v_new = 'confirmed' THEN
+        SELECT p.id, p.status
+          INTO v_payment_id, v_payment_st
+          FROM payments p
+         WHERE p.booking_id = (p_booking_id COLLATE utf8mb4_unicode_ci)
+           AND p.status IN ('paid', 'awaiting_reconciliation')
+         ORDER BY FIELD(p.status, 'paid', 'awaiting_reconciliation'), p.id
+         LIMIT 1
+           FOR UPDATE;
+
+        IF v_payment_id IS NULL THEN
+            ROLLBACK;
+            SELECT 'needs_payment' AS result, v_old AS status;
+            LEAVE proc;
+        END IF;
+
+        -- Quản trị viên xác nhận = đã đối chiếu khoản chuyển khoản VietQR.
+        IF v_payment_st = 'awaiting_reconciliation' THEN
+            UPDATE payments SET status = 'paid', paid_at = NOW() WHERE id = v_payment_id;
+        END IF;
+    END IF;
+
+    UPDATE bookings
+       SET status = v_new,
+           hold_expires_at = IF(v_new = 'awaiting_payment', NOW() + INTERVAL 24 HOUR, NULL)
+     WHERE id = (p_booking_id COLLATE utf8mb4_unicode_ci);
+
+    INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
+    VALUES (UUID(), p_actor_user_id, 'booking', p_booking_id, 'booking_status', v_old, v_new, v_note, NOW());
+
+    COMMIT;
+    SELECT 'ok' AS result, v_new AS status;
 END$$
 DELIMITER ;
