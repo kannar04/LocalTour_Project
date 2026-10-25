@@ -229,3 +229,58 @@ function format_time(?string $time): string
 
     return strlen($time) > 8 ? substr($time, 11, 5) : substr($time, 0, 5);
 }
+
+/** "2026-10-24 17:05:00" → "24/10/2026 17:05"; '' khi không có giá trị. */
+function format_datetime(?string $value): string
+{
+    if ($value === null || $value === '') {
+        return '';
+    }
+
+    return trim(format_date($value) . ' ' . format_time($value));
+}
+
+/** Trạng thái yêu cầu đặt tour (bookings.status) → nhãn tiếng Việt. */
+function booking_status_label(?string $status): string
+{
+    $labels = [
+        'pending' => 'Chờ xác nhận',
+        'awaiting_payment' => 'Chờ thanh toán',
+        'confirmed' => 'Đã xác nhận',
+        'rejected' => 'Từ chối',
+        'cancelled' => 'Đã hủy',
+        'completed' => 'Đã hoàn thành',
+    ];
+
+    return $labels[(string) $status] ?? (string) $status;
+}
+
+/** Trạng thái thanh toán (payments.status) → nhãn; null = chưa có khoản thanh toán nào. */
+function payment_status_label(?string $status): string
+{
+    $labels = [
+        'pending' => 'Chưa thanh toán',
+        'processing' => 'Đang xử lý',
+        'awaiting_reconciliation' => 'Chờ đối chiếu',
+        'paid' => 'Thành công',
+        'failed' => 'Thất bại',
+    ];
+
+    return $status === null ? 'Chưa thanh toán' : ($labels[$status] ?? $status);
+}
+
+/** Phương thức thanh toán (payments.method) → nhãn. */
+function payment_method_label(?string $method): string
+{
+    $labels = ['vnpay' => 'VNPay', 'vietqr' => 'VietQR (chuyển khoản)'];
+
+    return $labels[(string) $method] ?? (string) $method;
+}
+
+/** Trạng thái duyệt tour (tours.approval_status) → nhãn tiếng Việt. */
+function tour_status_label(?string $status): string
+{
+    $labels = ['draft' => 'Nháp', 'pending' => 'Chờ duyệt', 'approved' => 'Đã duyệt', 'rejected' => 'Bị từ chối'];
+
+    return $labels[(string) $status] ?? (string) $status;
+}

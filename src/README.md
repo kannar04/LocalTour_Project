@@ -1,6 +1,6 @@
 # LocalTour – Mã nguồn ứng dụng
 
-Thư mục `src/` chứa LocalTour Increment v0.1 của Sprint 3: trang danh sách tour, trang chi tiết tour và tài khoản khách hàng (đăng ký, đăng nhập, đăng xuất), đọc và ghi dữ liệu MySQL qua stored procedure. Toàn bộ dữ liệu tour, giá, tài khoản và đánh giá là dữ liệu minh họa.
+Thư mục `src/` chứa LocalTour Increment v0.1 của Sprint 3: trang danh sách tour, trang chi tiết tour, tài khoản khách hàng (đăng ký, đăng nhập, đăng xuất) và trang quản trị (duyệt tour, xử lý yêu cầu đặt tour, thống kê), đọc và ghi dữ liệu MySQL qua stored procedure. Toàn bộ dữ liệu tour, giá, tài khoản và đánh giá là dữ liệu minh họa.
 
 Tài liệu thiết kế đi kèm:
 
@@ -30,15 +30,24 @@ src/
 │   ├── controllers/
 │   │   ├── TourListController.php
 │   │   ├── TourDetailController.php
-│   │   └── AuthController.php    # Đăng ký, đăng nhập, đăng xuất
+│   │   ├── AuthController.php    # Đăng ký, đăng nhập, đăng xuất
+│   │   ├── AdminController.php   # Lớp cha trang quản trị: chặn khách và tài khoản không phải quản trị viên
+│   │   ├── AdminAuthController.php
+│   │   ├── AdminDashboardController.php
+│   │   ├── AdminTourController.php
+│   │   └── AdminBookingController.php
 │   ├── models/
 │   │   ├── TourListModel.php
 │   │   ├── TourDetailModel.php
 │   │   ├── TourContentModel.php
-│   │   └── UserModel.php         # Tài khoản khách hàng
+│   │   ├── UserModel.php         # Tài khoản khách hàng
+│   │   ├── AdminStatsModel.php
+│   │   ├── AdminTourModel.php
+│   │   └── AdminBookingModel.php
 │   └── views/
+│       ├── admin/                # login.php, dashboard.php, tours/, bookings/, partials/nav.php
 │       ├── auth/                 # login.php, register.php
-│       ├── errors/               # 404.php, 500.php
+│       ├── errors/               # 403.php, 404.php, 500.php
 │       ├── layouts/              # main.php
 │       ├── partials/             # header.php (nút tài khoản), sidebar.php, footer.php
 │       └── tours/                # index.php, show.php, not-found.php
@@ -53,14 +62,15 @@ src/
 │   ├── 04_procedures_NMT.sql
 │   ├── 05_procedures_NTK.sql
 │   ├── 06_procedures_NTK_account.sql
-│   ├── db_localtour.sql          # File gộp 01–06, sinh tự động
+│   ├── 07_procedures_NTK_admin.sql
+│   ├── db_localtour.sql          # File gộp 01–07, sinh tự động
 │   └── README.md
 ├── public/                       # Thư mục web duy nhất trình duyệt truy cập được
 │   ├── .htaccess                 # Chuyển mọi đường dẫn về index.php (Apache)
 │   ├── index.php                 # Front controller
 │   ├── router.php                # Router cho PHP built-in server
 │   └── assets/
-│       ├── css/                  # base.css, tour-list.css, tour-detail.css, auth.css
+│       ├── css/                  # base.css, tour-list.css, tour-detail.css, auth.css, admin.css
 │       ├── js/                   # app.js, tour-list.js, tour-detail.js
 │       └── img/                  # Ảnh SVG minh họa; bảng tour_images lưu đường dẫn tới các file này
 ├── routes/
@@ -86,6 +96,19 @@ Tiền tố tên procedure cho biết người phụ trách: `LTP_` – Lê Trun
 | GET | `/register` | `AuthController@showRegister` | `?next=` như trên. |
 | POST | `/register` | `AuthController@register` | `name`, `email`, `phone` (không bắt buộc), `password`, `password_confirm`, `next`, `_csrf`. |
 | POST | `/logout` | `AuthController@logout` | `_csrf`; xong chuyển về `/tours`. |
+| GET | `/admin/login` | `AdminAuthController@showLogin` | Đăng nhập quản trị; `?next=` chỉ nhận đường dẫn `/admin…`. |
+| POST | `/admin/login` | `AdminAuthController@login` | `email`, `password`, `next`, `_csrf`; chỉ tài khoản `admin` đang `active`. |
+| POST | `/admin/logout` | `AdminAuthController@logout` | `_csrf`; xong chuyển về `/admin/login`. |
+| GET | `/admin` | `AdminDashboardController@index` | Tổng quan và thống kê; tham số `period` (`day`, `month`, `year`), `from`, `to` (`YYYY-MM-DD`). |
+| GET | `/admin/tours` | `AdminTourController@index` | `status`: `pending` (mặc định), `approved`, `rejected`, `all`. |
+| GET | `/admin/tours/{id}` | `AdminTourController@show` | 404 nếu UUID sai hoặc không tìm thấy. |
+| POST | `/admin/tours/{id}/approve` | `AdminTourController@approve` | `_csrf`; 409 nếu tour không còn chờ duyệt. |
+| POST | `/admin/tours/{id}/reject` | `AdminTourController@reject` | `note` (bắt buộc, tối đa 255 ký tự), `_csrf`. |
+| GET | `/admin/bookings` | `AdminBookingController@index` | `status` (trống = tất cả), `q` (mã, tên, email, số điện thoại; tối đa 100 ký tự). |
+| GET | `/admin/bookings/{id}` | `AdminBookingController@show` | 404 nếu UUID sai hoặc không tìm thấy. |
+| POST | `/admin/bookings/{id}/status` | `AdminBookingController@updateStatus` | `status`, `note` (bắt buộc khi từ chối hoặc hủy), `_csrf`; 409 nếu không chuyển được trạng thái. |
+
+Mọi trang `/admin…` (trừ `/admin/login`): chưa đăng nhập thì chuyển tới `/admin/login`, đăng nhập bằng tài khoản không phải quản trị viên thì nhận trang 403.
 
 Đầu vào, đầu ra và mã lỗi chi tiết xem [03 – Route và quy ước lỗi](../docs/sprint3/03-route-va-quy-uoc-loi.md).
 
@@ -98,7 +121,7 @@ Tiền tố tên procedure cho biết người phụ trách: `LTP_` – Lê Trun
 | Thẻ đặt tour ở trang chi tiết | Liên kết "Đăng nhập để đặt tour" (quay lại đúng tour sau khi đăng nhập) và ghi chú "Bạn đang xem với tư cách khách. Đăng nhập để đặt tour." | Nút "Đặt tour" bị tắt, nhãn "Sắp có" |
 | Thích, Bình luận, Chia sẻ, Lưu tour, So sánh | Bị tắt, nhãn "Sắp có" | Bị tắt, nhãn "Sắp có" |
 
-Trang đăng nhập và đăng ký có liên kết "Tiếp tục với tư cách khách" về trang trong `next` (mặc định `/tours`). Đã đăng nhập mà mở `/login` hoặc `/register` thì cũng được chuyển về trang đó. Chỉ tài khoản `customer` đang `active` đăng nhập được ở đây.
+Trang đăng nhập và đăng ký có liên kết "Tiếp tục với tư cách khách" về trang trong `next` (mặc định `/tours`). Đã đăng nhập mà mở `/login` hoặc `/register` thì cũng được chuyển về trang đó. Chỉ tài khoản `customer` đang `active` đăng nhập được ở đây; quản trị viên đăng nhập ở `/admin/login` (Bước 7).
 
 ## Cài đặt trên máy mới
 
@@ -133,10 +156,10 @@ Chọn một trong hai cách.
 **Cách B – Import database trên máy mình.**
 
 1. Mở XAMPP Control Panel, bấm Start cho **MySQL**.
-2. Dùng file `src/database/db_localtour.sql` trong repo. File này được gộp từ `src/database/01_schema.sql` đến `06_procedures_NTK_account.sql`.
+2. Dùng file `src/database/db_localtour.sql` trong repo. File này được gộp từ `src/database/01_schema.sql` đến `07_procedures_NTK_admin.sql`.
 3. Mở `http://localhost/phpmyadmin`, chọn tab **Import**, chọn file `db_localtour.sql`, giữ **Character set of the file** là `utf-8`, bấm **Import** (hoặc **Go**). File tự tạo database `db_localtour` với `utf8mb4_unicode_ci`.
 
-Nếu không có file gộp: tạo database `db_localtour` với collation `utf8mb4_unicode_ci`, chọn database đó, rồi import lần lượt `01_schema.sql`, `02_seed.sql`, `03_procedures_LTP.sql`, `04_procedures_NMT.sql`, `05_procedures_NTK.sql`, `06_procedures_NTK_account.sql`.
+Nếu không có file gộp: tạo database `db_localtour` với collation `utf8mb4_unicode_ci`, chọn database đó, rồi import lần lượt `01_schema.sql`, `02_seed.sql`, `03_procedures_LTP.sql`, `04_procedures_NMT.sql`, `05_procedures_NTK.sql`, `06_procedures_NTK_account.sql`, `07_procedures_NTK_admin.sql`.
 
 Import lại bất cứ lúc nào để đưa dữ liệu về trạng thái ban đầu: `01_schema.sql` xóa và tạo lại 27 bảng, đồng thời xóa 2 bảng đã bỏ (`post_comments`, `post_interactions`). Tài khoản đã đăng ký thử cũng bị xóa. Ngày khởi hành mẫu được tính theo ngày import, vì vậy nên import lại trước mỗi buổi kiểm thử hoặc demo. Chi tiết xem [02 – Lược đồ dữ liệu](../docs/sprint3/02-luoc-do-du-lieu.md) và `src/database/README.md`.
 
@@ -188,7 +211,7 @@ Mở `http://127.0.0.1:8080`. Giữ cửa sổ dòng lệnh mở trong lúc dùn
 
 ```sql
 SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'db_localtour';                                  -- 27
-SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = 'db_localtour' AND ROUTINE_TYPE = 'PROCEDURE'; -- 14
+SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = 'db_localtour' AND ROUTINE_TYPE = 'PROCEDURE'; -- 26
 ```
 
 Ra số khác thì xem mục "Cách 1" của `src/database/README.md` để so tên bảng và procedure. Với Cách A, tài khoản ứng dụng chỉ có quyền gọi procedure nên bỏ qua bước này; các đường dẫn dưới đây đã đủ để kiểm tra.
@@ -219,6 +242,28 @@ Tài khoản trong dữ liệu mẫu có `password_hash = NULL` nên **không đ
 
 Không ghi email hay mật khẩu thử vào tài liệu, file commit hoặc nhóm chat chung. Import lại database sẽ xóa các tài khoản này.
 
+### Bước 7. Thử trang quản trị
+
+Trang quản trị chỉ dành cho tài khoản `admin` đang `active`, đăng nhập ở `/admin/login` (khác trang đăng nhập của khách). Tài khoản quản trị viên mẫu có `password_hash = NULL` nên không đăng nhập được, và ứng dụng không có chức năng tự nâng quyền. Để thử trên database của mình (Cách B):
+
+1. Đăng ký một tài khoản mới ở `/register` như Bước 6, rồi bấm "Đăng xuất".
+2. Trong phpMyAdmin, bấm `db_localtour`, mở tab **SQL** và chạy câu dưới đây (thay bằng email vừa đăng ký):
+
+   ```sql
+   UPDATE users SET role = 'admin' WHERE email = '<email vừa đăng ký>';
+   ```
+
+3. Mở `/admin/login`, đăng nhập bằng email và mật khẩu đó; ứng dụng chuyển tới trang "Tổng quan".
+
+| Đường dẫn | Kết quả mong đợi |
+| --- | --- |
+| `/admin` | 40 tài khoản khách hàng (39 đang hoạt động, 1 bị khóa), 12 tour (2 chờ duyệt, 9 đã duyệt, 1 bị từ chối), 3 yêu cầu chờ xác nhận trên tổng 39; bảng yêu cầu theo trạng thái, theo thời gian và doanh thu. |
+| `/admin/tours` | 2 tour chờ duyệt. Mở "Một buổi chiều trong Đại Nội Huế", bấm "Phê duyệt tour" → "Đã phê duyệt tour."; `/tours` giờ có 10 tour và bộ lọc có Huế. |
+| `/admin/bookings` | 39 yêu cầu, tab "Chờ xác nhận" có 3. Mở một yêu cầu chờ xác nhận, chọn "Xác nhận chỗ và giá" rồi bấm "Cập nhật trạng thái" → trạng thái "Chờ thanh toán", mục "Lịch sử xử lý" có thêm một dòng. |
+| `/admin` khi đăng nhập bằng tài khoản khách hàng | Trang 403 "Bạn không có quyền truy cập trang này." |
+
+Với Cách A, tài khoản ứng dụng chỉ có quyền gọi procedure nên không chạy được câu `UPDATE` ở bước 2. Không ghi email hay mật khẩu của tài khoản quản trị thử vào tài liệu, file commit hoặc nhóm chat chung. Import lại database sẽ xóa tài khoản này.
+
 ## Bảo mật
 
 - Mật khẩu chỉ được băm bằng `password_hash(PASSWORD_DEFAULT)` và kiểm tra bằng `password_verify()`; database chỉ lưu chuỗi băm. Không lưu, ghi log hay điền lại mật khẩu gốc vào form.
@@ -226,6 +271,7 @@ Không ghi email hay mật khẩu thử vào tài liệu, file commit hoặc nh�
 - Cookie phiên `httponly`, `SameSite=Lax`, `secure` khi chạy HTTPS; bật `session.use_strict_mode` và đổi session id sau khi đăng nhập. Session chỉ lưu `user_id`, `name`, `email`, `role`.
 - Mọi form POST có ô ẩn `_csrf` (`csrf_field()`); controller kiểm tra bằng `Auth::verifyCsrf()` trước khi xử lý. Đăng xuất chỉ bằng POST.
 - Tham số `next` chỉ nhận đường dẫn trong ứng dụng (`safe_next_path()`), không chuyển hướng ra trang ngoài.
+- Trang `/admin…` chỉ cho tài khoản `admin`; procedure ghi dữ liệu của trang quản trị kiểm tra lại người thao tác là quản trị viên đang hoạt động. Mọi lần phê duyệt tour và đổi trạng thái yêu cầu đặt tour được ghi vào `admin_logs` (người thao tác, thời điểm, trạng thái cũ, trạng thái mới, lý do). Không có route hay procedure nào nâng quyền tài khoản.
 - Không commit `.env`, mật khẩu, khóa bí mật, địa chỉ IP thật, file log hay tài khoản thử.
 
 ## Khuyến nghị cho máy host database chung (Phong)
@@ -257,10 +303,11 @@ GRANT EXECUTE ON db_localtour.* TO 'localtour_app'@'<tiền tố IP của VPN>.%
 | Dưới Apache, mọi trang (trừ trang chủ) đều 404 của Apache | `mod_rewrite` bị tắt hoặc `.htaccess` bị bỏ qua. | Trong `C:\xampp\apache\conf\httpd.conf`: bỏ dấu `#` trước `LoadModule rewrite_module modules/mod_rewrite.so`; trong khối `<Directory "C:/xampp/htdocs">` đặt `AllowOverride All`. Khởi động lại Apache. |
 | `http://localhost/LocalTour_Project/src/` báo 403 | Hành vi đúng: `src/.htaccess` chặn mọi thứ ngoài `public/`. | Mở `http://localhost/LocalTour_Project/src/public/`. |
 | Tiếng Việt hiển thị sai (`Ã¡`, `?`) | File SQL được import với bảng mã khác UTF-8, hoặc database tạo sai collation. | Import lại `db_localtour.sql`, chọn character set `utf-8`; database phải dùng `utf8mb4` và `utf8mb4_unicode_ci`. |
-| Trang lỗi 500, log có `PROCEDURE db_localtour.… does not exist` | Chưa import đủ các file procedure. | Import lại `db_localtour.sql`, hoặc import `03`, `04`, `05`, `06` theo thứ tự. |
-| Trang lỗi 500, log có `Unknown column` hoặc `Table 'db_localtour.…' doesn't exist` | Database vẫn là lược đồ cũ (trước lược đồ 27 bảng), hoặc file gộp được sinh từ bản cũ. | Sinh lại `db_localtour.sql` từ `01`–`06` mới nhất rồi import lại. |
+| Trang lỗi 500, log có `PROCEDURE db_localtour.… does not exist` | Chưa import đủ các file procedure. | Import lại `db_localtour.sql`, hoặc import `03`, `04`, `05`, `06`, `07` theo thứ tự. |
+| Trang lỗi 500, log có `Unknown column` hoặc `Table 'db_localtour.…' doesn't exist` | Database vẫn là lược đồ cũ (trước lược đồ 27 bảng), hoặc file gộp được sinh từ bản cũ. | Sinh lại `db_localtour.sql` từ `01`–`07` mới nhất rồi import lại. |
 | Mọi tour đều "Chưa có lịch khởi hành sắp tới" | Dữ liệu mẫu đã import từ lâu, các ngày khởi hành đã qua. | Import lại `db_localtour.sql`. |
 | Đăng nhập bằng tài khoản mẫu luôn báo "Email hoặc mật khẩu không đúng." | Hành vi đúng: tài khoản mẫu có `password_hash = NULL`. | Đăng ký tài khoản mới ở `/register` (Bước 6). |
+| Mở `/admin` bị chuyển tới "Đăng nhập quản trị" hoặc nhận trang 403 | Chưa đăng nhập quản trị, hoặc đang đăng nhập bằng tài khoản khách hàng (kể cả tài khoản vừa được đổi `role` mà chưa đăng nhập lại). | Đăng xuất, rồi đăng nhập ở `/admin/login` bằng tài khoản `admin` (Bước 7). |
 | Gửi form báo "Phiên làm việc đã hết hạn, vui lòng thử lại." | Mã CSRF không khớp: phiên đã hết hoặc bị xóa (đăng xuất ở tab khác, import lại, khởi động lại server), hoặc trình duyệt chặn cookie. | Tải lại trang rồi gửi lại form; kiểm tra trình duyệt cho phép cookie của trang. |
 | Built-in server: trang không có CSS hoặc mọi đường dẫn đều về trang lỗi | Chạy lệnh sai thư mục hoặc thiếu `public/router.php`. | Chạy đúng lệnh ở Bước 4 từ thư mục `src/`. |
 | Built-in server không khởi động, báo cổng đang được dùng | Cổng 8080 đã bị chương trình khác chiếm. | Đổi sang cổng khác, ví dụ `127.0.0.1:8081`. |
@@ -275,4 +322,4 @@ GRANT EXECUTE ON db_localtour.* TO 'localtour_app'@'<tiền tố IP của VPN>.%
 - Mọi form POST phải có `<?= csrf_field() ?>`; controller kiểm tra `Auth::verifyCsrf()` trước khi xử lý.
 - Thêm route trong `routes/web.php`, cập nhật [03 – Route và quy ước lỗi](../docs/sprint3/03-route-va-quy-uoc-loi.md) trong cùng lần thay đổi.
 - Không commit `.env`, mật khẩu, địa chỉ IP thật hay file log.
-- Sửa `src/database/01`–`06` thì sinh lại `src/database/db_localtour.sql` và commit cùng lúc (cách sinh xem [database/README.md](database/README.md)).
+- Sửa `src/database/01`–`07` thì sinh lại `src/database/db_localtour.sql` và commit cùng lúc (cách sinh xem [database/README.md](database/README.md)).
