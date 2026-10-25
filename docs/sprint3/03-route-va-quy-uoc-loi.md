@@ -5,20 +5,22 @@
 | Sprint | Sprint 3 – Technical Design, Coding & QA |
 | WBS | 3.1.3 – Chốt route/controller/model và quy ước lỗi |
 | Căn cứ | `src/database/01_schema.sql`, `src/README.md`, wireframe UIEx1–UIEx4 và [01 – Danh mục trường dữ liệu](01-truong-du-lieu.md) |
-| Trạng thái | **Đã chốt.** Cập nhật 23/10/2026: thêm route tài khoản khách hàng (đăng ký, đăng nhập, đăng xuất) và chế độ khách. |
+| Trạng thái | **Đã chốt.** Cập nhật 23/10/2026: thêm route tài khoản khách hàng (đăng ký, đăng nhập, đăng xuất) và chế độ khách. Cập nhật 25/10/2026: thêm route trang quản trị (mục 2.3) và quy ước lỗi của trang quản trị (mục 8.1) theo CR1. |
 
 ## 1. Phạm vi Sprint 3
 
-Sprint 3 làm các route ở mục 2: danh sách tour, chi tiết tour và tài khoản khách hàng. Cấu trúc router, controller, model xem `src/README.md`; danh sách stored procedure xem `src/database/README.md`.
+Sprint 3 làm các route ở mục 2: danh sách tour, chi tiết tour, tài khoản khách hàng và trang quản trị (CR1: FR-19 → FR-25, NFR-09). Cấu trúc router, controller, model xem `src/README.md`; danh sách stored procedure xem `src/database/README.md`.
 
 - **Chế độ khách** (chưa đăng nhập): xem danh sách và chi tiết tour, không đặt tour.
 - **Đã đăng nhập** (tài khoản `customer`): xem như chế độ khách, header hiện chữ cái đầu và tên tài khoản, kèm nút Đăng xuất. Nút “Đặt tour” vẫn bị tắt, nhãn “Sắp có”.
+- **Quản trị viên** (tài khoản `admin` đang `active`): đăng nhập ở `/admin/login`; xem tổng quan và thống kê, duyệt tour, xử lý yêu cầu đặt tour (mục 2.3). Tài khoản khác mở trang quản trị nhận trang 403.
 
 Chưa làm trong Sprint 3:
 
 - Đặt tour, tra cứu đơn, thanh toán và callback VNPay (route B1–B5 ở mục 6 là hợp đồng cho Sprint sau).
 - Thích, bình luận, chia sẻ, Lưu tour, So sánh (nút bị tắt, nhãn “Sắp có”).
 - Sắp xếp `newest` và lọc theo ngày `date`.
+- Ở trang quản trị: thêm / sửa tour, khóa tài khoản, đổi ngày hoặc số người của yêu cầu (FR-12).
 
 ## 2. Route
 
@@ -46,6 +48,24 @@ R3 và R4 chỉ trả điểm đến/loại hình đang có ít nhất một tou
 | A5 | POST | `/logout` | `_csrf` | Xóa phiên, 303 về `/tours`. Sai `_csrf` → không xóa phiên, vẫn 303 về `/tours`. |
 
 A1–A5 trả HTML hoặc chuyển hướng, không trả JSON. Form đăng nhập / đăng ký thiếu hoặc sai `_csrf` → form hiện lại, 403 `Phiên làm việc đã hết hạn, vui lòng thử lại.` Quy tắc chi tiết ở mục 7.1 và 7.2.
+
+### 2.3. Trang quản trị
+
+| # | Phương thức | Đường dẫn | Đầu vào | Đầu ra |
+| --- | --- | --- | --- | --- |
+| Q1 | GET | `/admin/login` | `next` (không bắt buộc) | HTML form “Đăng nhập quản trị”. Đã đăng nhập quản trị → chuyển về `next` hoặc `/admin`. |
+| Q2 | POST | `/admin/login` | `email`, `password`, `next`, `_csrf` | Đúng → 303 về `next` hoặc `/admin`. Bỏ trống → form hiện lại, 422 `Vui lòng nhập email và mật khẩu.` Sai, hoặc tài khoản không phải `admin` đang `active` → form hiện lại, 401 `Email hoặc mật khẩu không đúng.` |
+| Q3 | POST | `/admin/logout` | `_csrf` | Xóa phiên, 303 về `/admin/login`. Sai `_csrf` → không xóa phiên, vẫn 303 về `/admin/login`. |
+| Q4 | GET | `/admin` | `period`: `day`, `month` (mặc định), `year`; `from`, `to` dạng `YYYY-MM-DD` | HTML “Tổng quan”: thẻ số liệu, yêu cầu theo trạng thái, theo ngày tạo và doanh thu theo ngày thanh toán. `period` lạ → `month`; ngày trống hoặc sai → khoảng mặc định (30 ngày, 12 tháng hoặc toàn bộ); `from` sau `to` thì đổi chỗ. |
+| Q5 | GET | `/admin/tours` | `status`: `pending` (mặc định), `approved`, `rejected`, `all` | HTML danh sách tour, tour chờ duyệt trước. Giá trị lạ → `pending`. |
+| Q6 | GET | `/admin/tours/{uuid}` | UUID tour | HTML chi tiết tour ở mọi trạng thái duyệt, kèm lịch sử xử lý; 404 khi UUID sai hoặc không tìm thấy. |
+| Q7 | POST | `/admin/tours/{uuid}/approve` | `_csrf` | Đúng → 303 về Q6 với `?msg=approved` (“Đã phê duyệt tour.”). |
+| Q8 | POST | `/admin/tours/{uuid}/reject` | `note` (bắt buộc, tối đa 255 ký tự), `_csrf` | Đúng → 303 về Q6 với `?msg=rejected` (“Đã từ chối tour và lưu lý do.”). |
+| Q9 | GET | `/admin/bookings` | `status` (trống = tất cả, hoặc một giá trị của `bookings.status`), `q` (mã, tên, email hoặc số điện thoại; tối đa 100 ký tự) | HTML danh sách yêu cầu đặt tour, mới nhất trước, tối đa 200 dòng. `status` lạ → tất cả; `q` dài hơn bị cắt còn 100 ký tự. |
+| Q10 | GET | `/admin/bookings/{uuid}` | UUID yêu cầu | HTML chi tiết yêu cầu: tour, vé, khách hàng, thanh toán, form cập nhật trạng thái và lịch sử xử lý; 404 khi UUID sai hoặc không tìm thấy. |
+| Q11 | POST | `/admin/bookings/{uuid}/status` | `status`, `note` (bắt buộc khi từ chối hoặc hủy, tối đa 255 ký tự), `_csrf` | Đúng → 303 về Q10 với `?msg=status` (“Đã cập nhật trạng thái yêu cầu.”). |
+
+Q4–Q11: chưa đăng nhập → 303 tới `/admin/login` (với GET kèm `?next=` là trang đang mở); đã đăng nhập nhưng không phải tài khoản `admin` → trang 403 `Bạn không có quyền truy cập trang này.` Q1–Q11 trả HTML hoặc chuyển hướng, không trả JSON, và gửi `Cache-Control: no-store`. `next` của Q1, Q2 chỉ nhận trang `/admin` hoặc `/admin/…` (trừ `/admin/login`); sai → `/admin`. Đăng nhập quản trị thay phiên đang có, kể cả phiên của tài khoản khách hàng. Lỗi của Q2, Q7, Q8, Q11 ở mục 8.1; quy tắc chuyển trạng thái ở [02 – Lược đồ dữ liệu](02-luoc-do-du-lieu.md), mục 7.3.
 
 ## 3. Tham số danh sách
 
@@ -194,10 +214,10 @@ B1–B5 chưa làm trong Sprint 3. B1, B2, B3, B5 cần đăng nhập tài kho�
 3. Tổng số lượng `booking_lines` phải bằng số hành khách cần khai báo.
 4. Giá dòng đơn chụp vào `unit_price_vnd`; `line_total_vnd = quantity × unit_price_vnd`; tổng lưu ở `bookings.total_vnd`.
 5. Booking mới là `pending`, chưa đồng nghĩa có chỗ hoặc đã thanh toán.
-6. Nhân viên xác nhận chỗ và tổng tiền rồi chuyển sang `awaiting_payment`, đặt `hold_expires_at`.
+6. Quản trị viên xác nhận chỗ và tổng tiền rồi chuyển sang `awaiting_payment`, đặt `hold_expires_at` = thời điểm xác nhận + 24 giờ (đã làm ở Q11, mục 2.3).
 7. Chỉ booking `awaiting_payment` còn hạn mới được tạo payment.
 8. VNPay chỉ thành `paid` sau khi chữ ký, mã booking, số tiền và tính duy nhất sự kiện đều hợp lệ.
-9. VietQR chỉ thành `paid` sau khi nhân viên đối chiếu; trước đó là `awaiting_reconciliation`.
+9. VietQR chỉ thành `paid` sau khi quản trị viên đối chiếu (chọn “Xác nhận đã thanh toán” ở Q11, `paid_at` = thời điểm xác nhận); trước đó là `awaiting_reconciliation`.
 10. Payment liên kết qua `booking_id`; tài khoản của đơn đã có ở `bookings.user_id` nên payment không cần thêm cột tài khoản.
 11. “Đặt chỗ của tôi” lấy đơn theo `bookings.user_id` của tài khoản đang đăng nhập.
 
@@ -206,6 +226,7 @@ B1–B5 chưa làm trong Sprint 3. B1, B2, B3, B5 cần đăng nhập tài kho�
 | Chức năng | Nguồn | Quy tắc |
 | --- | --- | --- |
 | Tài khoản khách | `users.role = 'customer'` | Bắt buộc khi đặt tour. Sprint 3 có đăng ký, đăng nhập, đăng xuất (mục 2.2). |
+| Trang quản trị | `users.role = 'admin'`, `admin_logs` | Chỉ tài khoản `admin` đang `active`, đăng nhập riêng ở `/admin/login` (mục 2.3). Mọi lần duyệt tour và đổi trạng thái yêu cầu ghi một dòng `admin_logs`. Không có route nâng quyền tài khoản. |
 | Lưu tour | `favorite_tours` | Cần `user_id`; cặp user–tour là duy nhất. Sprint 3: nút bị tắt, nhãn “Sắp có”. |
 | So sánh | `comparisons`, `comparison_tours` | Có thể dùng `user_id` hoặc `session_key`; tối đa 3 tour ở service. Sprint 3: nút bị tắt, nhãn “Sắp có”. |
 | Thông báo | `notifications` | Chỉ gửi cho tài khoản có `recipient_user_id`. Sprint 3 chưa dùng. |
@@ -225,6 +246,7 @@ B1–B5 chưa làm trong Sprint 3. B1, B2, B3, B5 cần đăng nhập tài kho�
 - Session lưu `user_id`, `name`, `email`, `role`; không lưu mật khẩu.
 - Mỗi phiên có một mã CSRF; mọi form POST gửi kèm trường `_csrf`. Form đăng nhập / đăng ký thiếu hoặc sai → 403 `Phiên làm việc đã hết hạn, vui lòng thử lại.`
 - Đăng xuất chỉ bằng POST có `_csrf` đúng; xóa phiên rồi về `/tours`. Sai `_csrf` → không xóa phiên, vẫn về `/tours`.
+- Form của trang quản trị (đăng nhập quản trị, phê duyệt, từ chối, cập nhật trạng thái) cũng kiểm tra `_csrf`: thiếu hoặc sai → form hiện lại, 403 `Phiên làm việc đã hết hạn, vui lòng thử lại.`, không đổi dữ liệu.
 
 ## 8. Quy ước lỗi
 
@@ -242,6 +264,29 @@ B1–B5 chưa làm trong Sprint 3. B1, B2, B3, B5 cần đăng nhập tài kho�
 | 503 | Không kết nối được database/cổng thanh toán | `Dịch vụ tạm thời không khả dụng. Vui lòng thử lại sau.` |
 | 500 | Lỗi máy chủ khác | `Hệ thống đang gặp sự cố. Vui lòng thử lại sau.` |
 
+### 8.1. Trang quản trị
+
+Trang quản trị trả HTML. Lỗi của form hiện ngay trên trang (giữ lại lựa chọn và lý do đã nhập), kèm mã HTTP dưới đây. Lỗi không đổi dữ liệu và không ghi `admin_logs`.
+
+| HTTP | Khi dùng | Thông báo |
+| --- | --- | --- |
+| 303 | Thao tác thành công (Q2, Q3, Q7, Q8, Q11); chưa đăng nhập mà mở trang quản trị | Chuyển tới `next`, trang chi tiết kèm `?msg=`, hoặc `/admin/login`. |
+| 401 | Đăng nhập quản trị sai email / mật khẩu, tài khoản không phải `admin`, bị khóa hoặc chưa có mật khẩu | `Email hoặc mật khẩu không đúng.` |
+| 403 | Đã đăng nhập nhưng không phải tài khoản `admin`, hoặc procedure ghi trả `forbidden` (quyền đã bị thu hồi) | Trang 403 `Bạn không có quyền truy cập trang này.` |
+| 403 | Form thiếu hoặc sai `_csrf` | `Phiên làm việc đã hết hạn, vui lòng thử lại.` |
+| 404 | UUID tour / yêu cầu sai định dạng hoặc không tìm thấy | Trang 404 `Không tìm thấy trang`. |
+| 409 | Tour không còn ở `pending` khi phê duyệt / từ chối | `Tour không còn ở trạng thái Chờ duyệt nên không xử lý được nữa.` |
+| 409 | Chuyển trạng thái yêu cầu không hợp lệ (`invalid_transition`) | `Không chuyển được sang trạng thái này từ trạng thái hiện tại.` |
+| 409 | Xác nhận đã thanh toán khi chưa có khoản `paid` hoặc khoản VietQR `awaiting_reconciliation` (`needs_payment`) | `Yêu cầu chưa có thanh toán thành công hoặc khoản chuyển khoản VietQR chờ đối chiếu, chưa xác nhận được.` |
+| 409 | Đánh dấu hoàn thành khi chưa tới giờ khởi hành (`not_departed`) | `Tour chưa tới giờ khởi hành, chưa đánh dấu hoàn thành được.` |
+| 422 | Bỏ trống email hoặc mật khẩu khi đăng nhập quản trị | `Vui lòng nhập email và mật khẩu.` |
+| 422 | Từ chối tour không có lý do (`note_required`) | `Vui lòng nhập lý do từ chối.` |
+| 422 | Từ chối hoặc hủy yêu cầu không có lý do (`note_required`) | `Từ chối hoặc hủy yêu cầu cần nhập lý do.` |
+| 422 | Không chọn trạng thái mới | `Vui lòng chọn trạng thái mới.` |
+| 422 | Lý do dài hơn 255 ký tự | `Lý do tối đa 255 ký tự.` |
+
+Khi gặp 409, trang tải lại trạng thái mới nhất của tour hoặc yêu cầu (có thể vừa được người khác xử lý). Lý do chỉ có khoảng trắng được coi là không có lý do.
+
 ## 9. Các quyết định đã chốt
 
 1. Lịch trình: `tour_itinerary_items` (có `start_time`); `itinerary_stops` để trống, không dùng.
@@ -252,3 +297,4 @@ B1–B5 chưa làm trong Sprint 3. B1, B2, B3, B5 cần đăng nhập tài kho�
 6. Thích/bình luận/chia sẻ: không bổ sung schema; nút hiện “Sắp có”.
 7. Điểm đến và loại hình lấy từ bảng `destinations`, `categories`, lọc theo id.
 8. Không làm trong Sprint 3: `newest`, `date`, Lưu tour, So sánh, đặt tour và thanh toán.
+9. Trang quản trị (CR1) làm trong Sprint 3: đăng nhập riêng ở `/admin/login`, chỉ tài khoản `admin`; quyền kiểm tra ở PHP và kiểm tra lại trong hai procedure ghi; mọi lần duyệt tour và đổi trạng thái yêu cầu ghi `admin_logs`.
