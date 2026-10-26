@@ -521,8 +521,12 @@
 
         $sidebarList.on('click', '.lt-dest-link', function (event) {
             event.preventDefault();
+            // Làm đúng như link: chỉ lọc theo điểm đến (số tour trên link đếm theo điểm đến).
+            window.clearTimeout(searchTimer);
+            state.q = '';
+            state.categoryId = '';
             state.destinationId = LT.normaliseId($(this).attr('data-destination-id'));
-            syncDestinationControls();
+            syncControls();
             refresh();
             if ($sidebar.hasClass('show') && window.innerWidth < 992) {
                 $sidebar.collapse('hide');
