@@ -75,7 +75,7 @@ Tài khoản trong dữ liệu mẫu có `password_hash = NULL` nên không đă
 | L03 | Mô tả ngắn | `excerpt` | Đoạn đầu `tours.description` | Cắt ở tầng trình bày; không lưu thêm cột tóm tắt. |
 | L04 | Nhà tổ chức | `provider_name` | `providers.business_name` qua `tours.provider_id` | Tour công khai chỉ lấy nhà cung cấp `approved` có tài khoản `active`. |
 | L05 | Điểm đến | `destination_id`, `destination_name` | `tours.destination_id → destinations.id`; `tours.destination` là dữ liệu chữ tương thích | Ưu tiên `destinations.name`; khi `destination_id IS NULL` mới dùng `tours.destination`. |
-| L06 | Loại hình | `category_id`, `category_name` | `tours.category_id → categories.id` | `NULL` hiện “Chưa cập nhật”. |
+| L06 | Loại hình | `category_id`, `category_name` | `tours.category_id → categories.id` | `NULL` thì thẻ tour bỏ phần loại hình (dòng dưới tên nhà tổ chức chỉ ghi điểm đến); trang chi tiết hiện “Chưa cập nhật”. |
 | L07 | Thời điểm bài đăng | — | `tour_posts.published_at` | Không làm trong Sprint 3: `tour_posts` để trống, API không trả `published_at`. |
 | L08 | Ảnh bìa | `cover_image_url`, `cover_caption` | `tour_images.url`, `alt_text`; ảnh có `sort_order` nhỏ nhất | Không có ảnh hiện “Chưa cập nhật ảnh”. `alt_text` trống thì chú thích là tên tour. |
 | L09 | Thời lượng | `duration_minutes`, `duration_text` | `tours.duration_minutes` | Hiển thị theo giờ và phút. |

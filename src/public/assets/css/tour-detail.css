@@ -268,7 +268,7 @@
     z-index: 20;
     border-bottom: 1px solid var(--lt-border);
     border-radius: var(--lt-radius-lg) var(--lt-radius-lg) 0 0;
-    background: rgba(255, 255, 255, 0.97);
+    background: var(--lt-surface);
 }
 
 .lt-anchor-tabs__list {
@@ -880,7 +880,10 @@
     .lt-detail-aside {
         position: sticky;
         top: calc(var(--lt-sticky-top) + 20px);
+        max-height: calc(100vh - var(--lt-sticky-top) - 40px);
         margin-top: 0;
+        overflow-y: auto;
+        scrollbar-width: thin;
     }
 }
 

@@ -30,10 +30,7 @@ $destination = trim((string) $tour['destination_name']);
 $destinationId = $tour['destination_id'] === null ? null : (string) $tour['destination_id'];
 $destinationUrl = $destinationId === null ? null : url('/tours?destination_id=' . rawurlencode($destinationId));
 $categoryName = trim((string) ($tour['category_name'] ?? ''));
-$categoryUrl = $tour['category_id'] === null ? null : url('/tours?' . http_build_query(array_filter([
-    'destination_id' => $destinationId,
-    'category_id' => (string) $tour['category_id'],
-])));
+$categoryUrl = $tour['category_id'] === null ? null : url('/tours?category_id=' . rawurlencode((string) $tour['category_id']));
 $ratingText = format_rating($tour['rating_avg']);
 $reviewCount = (int) $tour['review_count'];
 $priceText = $tour['from_price_vnd'] === null ? null : format_vnd((int) $tour['from_price_vnd']);

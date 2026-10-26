@@ -261,7 +261,7 @@ B1–B5 chưa làm trong Sprint 3. B1, B2, B3, B5 cần đăng nhập tài kho�
 | 404 | Tour, booking hoặc payment không tồn tại | `Không tìm thấy dữ liệu yêu cầu.` |
 | 409 | Hết chỗ, sai trạng thái, hết hạn, sự kiện trùng hoặc email đăng ký đã dùng | Thông báo theo xung đột cụ thể, ví dụ `Email này đã được dùng.` |
 | 422 | Dữ liệu đúng cú pháp nhưng không đạt quy tắc nghiệp vụ (kể cả form đăng ký) | Thông báo tại từng trường. |
-| 503 | Không kết nối được database/cổng thanh toán | `Dịch vụ tạm thời không khả dụng. Vui lòng thử lại sau.` |
+| 503 | Không kết nối được database (cổng thanh toán: Sprint sau) | `Không thể kết nối cơ sở dữ liệu. Vui lòng thử lại sau.` |
 | 500 | Lỗi máy chủ khác | `Hệ thống đang gặp sự cố. Vui lòng thử lại sau.` |
 
 ### 8.1. Trang quản trị

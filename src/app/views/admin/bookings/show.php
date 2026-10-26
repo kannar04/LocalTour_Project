@@ -126,7 +126,7 @@ $refund = (int) $booking['refund_completed_vnd'];
                             </fieldset>
                             <label class="lt-admin-label" for="status-note">Lý do / ghi chú</label>
                             <textarea class="lt-admin-input" id="status-note" name="note" rows="3" maxlength="255"><?= e($note) ?></textarea>
-                            <p class="lt-admin-hint">Bắt buộc khi từ chối hoặc hủy. Xác nhận đã thanh toán cần khoản VNPay thành công hoặc khoản chuyển khoản VietQR đã đối chiếu.</p>
+                            <p class="lt-admin-hint">Bắt buộc khi từ chối hoặc hủy. Xác nhận đã thanh toán cần khoản VNPay thành công hoặc khoản chuyển khoản VietQR đang chờ đối chiếu (thao tác này ghi nhận khoản VietQR là đã thanh toán).</p>
                             <button class="lt-btn lt-btn--primary lt-btn--block" type="submit">Cập nhật trạng thái</button>
                         </form>
 <?php endif; ?>

@@ -157,7 +157,7 @@ final class AuthController extends Controller
         }
 
         // Số điện thoại không bắt buộc: 8–20 ký tự gồm chữ số và khoảng trắng, có thể bắt đầu bằng +.
-        if ($old['phone'] !== '' && !preg_match('/^\+?[0-9 ]{8,19}$/', $old['phone'])) {
+        if ($old['phone'] !== '' && !preg_match('/^(?=.{8,20}$)\+?[0-9 ]+$/', $old['phone'])) {
             $errors['phone'] = 'Số điện thoại không hợp lệ.';
         }
 
