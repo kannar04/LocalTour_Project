@@ -4,8 +4,8 @@
 --             xử lý (NFR-09) dùng chung cho trang tour và trang yêu cầu đặt tour.
 -- Phụ trách : Nguyễn Tuấn Khôi (NTK)
 -- Procedures: NTK_sp_admin_booking_list, NTK_sp_admin_booking_detail,
---             NTK_sp_admin_booking_line_list, NTK_sp_admin_log_list,
---             NTK_sp_admin_booking_set_status
+--             NTK_sp_admin_booking_line_list, NTK_sp_admin_booking_passenger_list,
+--             NTK_sp_admin_log_list, NTK_sp_admin_booking_set_status
 -- Quy tắc   : Chỉ trang quản trị gọi các procedure này (ứng dụng kiểm tra tài khoản
 --             quản trị viên trước). Procedure ghi dữ liệu kiểm tra lại người thao tác là
 --             quản trị viên đang hoạt động, vì quyền trong session có thể đã cũ.
@@ -18,9 +18,15 @@
 --               confirmed        -> completed (chỉ sau giờ khởi hành), cancelled (bắt buộc lý do)
 --               rejected, cancelled, completed: trạng thái cuối, không đổi được nữa.
 --             Đổi ngày hoặc số người không thuộc FR-25 (thuộc FR-12, phát triển sau).
---             Không trừ / cộng schedules.remaining (giữ chỗ thuộc luồng đặt tour).
+--             Giữ chỗ (M4): đơn 'pending' chưa giữ chỗ. Xác nhận chỗ (pending ->
+--             awaiting_payment) trừ schedules.remaining theo số khách của đơn, lịch về 0 chỗ
+--             thì chuyển 'full'. Hủy đơn đang giữ chỗ (awaiting_payment / confirmed ->
+--             cancelled) cộng lại số chỗ (không vượt capacity), lịch 'full' mở lại 'open'.
+--             Từ chối / hủy đơn 'pending' và hoàn thành đơn không đổi số chỗ.
 --             Tham số chuỗi được so sánh với COLLATE utf8mb4_unicode_ci; không có DEFINER.
 -- Chạy sau  : 01_schema.sql. Chạy lại được (DROP PROCEDURE IF EXISTS).
+--             NTK_sp_admin_booking_passenger_list đọc cột passengers.sort_order của file 08,
+--             nên cần import đủ 01 -> 11 trước khi mở trang quản trị.
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
@@ -77,8 +83,8 @@ DELIMITER ;
 
 -- ---------------------------------------------------------------------
 -- NTK_sp_admin_booking_detail(p_booking_id)
---   0 hoặc 1 dòng: thông tin đơn, tài khoản đặt, tour, đơn vị tổ chức, lịch khởi hành,
---   số khách, khoản thanh toán tiêu biểu (ưu tiên 'paid', rồi 'awaiting_reconciliation',
+--   0 hoặc 1 dòng: thông tin đơn, tài khoản đặt, tour, đơn vị tổ chức, lịch khởi hành
+--   (kèm schedule_capacity, schedule_remaining, schedule_status), số khách, khoản thanh toán tiêu biểu (ưu tiên 'paid', rồi 'awaiting_reconciliation',
 --   'processing', 'pending', 'failed') và tổng tiền đã hoàn ('completed').
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NTK_sp_admin_booking_detail;
@@ -109,6 +115,9 @@ BEGIN
         pr.contact_phone    AS provider_phone,
         s.starts_at,
         s.ends_at,
+        s.capacity          AS schedule_capacity,
+        s.remaining         AS schedule_remaining,
+        s.status            AS schedule_status,
         (SELECT COALESCE(SUM(bl.quantity), 0)
            FROM booking_lines bl
           WHERE bl.booking_id = b.id) AS people,
@@ -162,6 +171,30 @@ END$$
 DELIMITER ;
 
 -- ---------------------------------------------------------------------
+-- NTK_sp_admin_booking_passenger_list(p_booking_id)
+--   Danh sách khách của đơn theo thứ tự nhập trên form (passengers.sort_order, cột của
+--   file 08). Cột: full_name, age_group (adult / child / infant),
+--   special_request (NULL = không có).
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_admin_booking_passenger_list;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_admin_booking_passenger_list(
+    IN p_booking_id CHAR(36)
+)
+READS SQL DATA
+BEGIN
+    SELECT
+        p.full_name,
+        p.age_group,
+        p.special_request
+    FROM passengers p
+    WHERE p.booking_id = (p_booking_id COLLATE utf8mb4_unicode_ci)
+    ORDER BY p.sort_order, p.id;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
 -- NTK_sp_admin_log_list(p_target_type, p_target_id)
 --   Lịch sử xử lý của một đối tượng ('tour' hoặc 'booking' + UUID), cũ trước.
 --   Cột: created_at, actor_name, action, from_status, to_status, note.
@@ -202,6 +235,8 @@ DELIMITER ;
 --              'note_required'      : từ chối / hủy mà không có lý do.
 --              'needs_payment'      : xác nhận khi chưa có thanh toán thành công / chờ đối chiếu.
 --              'not_departed'       : hoàn thành khi chưa tới giờ khởi hành.
+--              'schedule_closed'    : xác nhận chỗ khi lịch đã hủy, đã hoàn thành hoặc đã khởi hành.
+--              'no_seats'           : xác nhận chỗ khi lịch không còn đủ chỗ cho số khách của đơn.
 --     Khi không 'ok', status = trạng thái hiện tại (NULL nếu không có đơn), không có gì thay đổi.
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NTK_sp_admin_booking_set_status;
@@ -217,6 +252,10 @@ MODIFIES SQL DATA
 proc: BEGIN
     DECLARE v_old        VARCHAR(30)  DEFAULT NULL;
     DECLARE v_starts_at  DATETIME     DEFAULT NULL;
+    DECLARE v_schedule   CHAR(36)     DEFAULT NULL;
+    DECLARE v_sched_st   VARCHAR(30)  DEFAULT NULL;
+    DECLARE v_remaining  INT          DEFAULT NULL;
+    DECLARE v_people     INT          DEFAULT 0;
     DECLARE v_payment_id CHAR(36)     DEFAULT NULL;
     DECLARE v_payment_st VARCHAR(30)  DEFAULT NULL;
     DECLARE v_new        VARCHAR(30)  DEFAULT COALESCE(p_new_status, '');
@@ -236,8 +275,9 @@ proc: BEGIN
 
     START TRANSACTION;
 
-    SELECT b.status, s.starts_at
-      INTO v_old, v_starts_at
+    -- Khóa cả đơn và lịch: số chỗ chỉ đổi trong transaction này.
+    SELECT b.status, b.schedule_id, s.starts_at, s.status, s.remaining
+      INTO v_old, v_schedule, v_starts_at, v_sched_st, v_remaining
       FROM bookings b
       JOIN schedules s ON s.id = b.schedule_id
      WHERE b.id = (p_booking_id COLLATE utf8mb4_unicode_ci)
@@ -267,6 +307,39 @@ proc: BEGIN
         ROLLBACK;
         SELECT 'not_departed' AS result, v_old AS status;
         LEAVE proc;
+    END IF;
+
+    SELECT COALESCE(SUM(bl.quantity), 0) INTO v_people
+      FROM booking_lines bl
+     WHERE bl.booking_id = (p_booking_id COLLATE utf8mb4_unicode_ci);
+
+    -- Xác nhận chỗ: lịch phải còn nhận khách và còn đủ chỗ, rồi giữ chỗ.
+    IF v_new = 'awaiting_payment' THEN
+        IF v_sched_st NOT IN ('open', 'full') OR v_starts_at <= NOW() THEN
+            ROLLBACK;
+            SELECT 'schedule_closed' AS result, v_old AS status;
+            LEAVE proc;
+        END IF;
+
+        IF v_remaining < v_people THEN
+            ROLLBACK;
+            SELECT 'no_seats' AS result, v_old AS status;
+            LEAVE proc;
+        END IF;
+
+        -- SET chạy từ trái sang phải: status so với remaining đã trừ.
+        UPDATE schedules
+           SET remaining = remaining - v_people,
+               status = IF(remaining = 0 AND status = 'open', 'full', status)
+         WHERE id = (v_schedule COLLATE utf8mb4_unicode_ci);
+    END IF;
+
+    -- Hủy đơn đang giữ chỗ: trả lại chỗ.
+    IF v_new = 'cancelled' AND v_old IN ('awaiting_payment', 'confirmed') THEN
+        UPDATE schedules
+           SET remaining = LEAST(capacity, remaining + v_people),
+               status = IF(status = 'full' AND remaining > 0, 'open', status)
+         WHERE id = (v_schedule COLLATE utf8mb4_unicode_ci);
     END IF;
 
     IF v_new = 'confirmed' THEN

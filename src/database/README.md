@@ -1,8 +1,8 @@
 # Database LocalTour (`db_localtour`)
 
-Phụ trách: **Nguyễn Minh Thức (NMT)** · WBS 3.2.2 · Sprint 3 (v0.1)
+Phụ trách: **Nguyễn Minh Thức (NMT)** · WBS 3.2.2 · Sprint 3 (v0.1), Sprint 4 (v0.2, M4 – đặt tour)
 
-Thư mục này chứa toàn bộ script tạo database cho trang danh sách tour, trang chi tiết tour, tài khoản khách hàng và trang quản trị: bảng, khóa ngoại, chỉ mục, dữ liệu mẫu và stored procedure. Lược đồ gồm **27 bảng** (danh sách ở mục "Các file", lý do giữ / bỏ bảng ghi ở đầu `01_schema.sql`). Khách hàng có tài khoản (`users.role = 'customer'`): chưa đăng nhập (chế độ khách) chỉ xem tour; muốn đặt tour phải đăng nhập, mỗi đơn đặt thuộc một tài khoản (`bookings.user_id`). Mọi khóa chính là `id CHAR(36)` chứa UUID. Mọi script chạy được trên **MariaDB 10.4 (XAMPP)** và **MySQL 8**, bảng mã `utf8mb4` / `utf8mb4_unicode_ci`. Mô tả chi tiết từng bảng xem [02 – Lược đồ dữ liệu](../../docs/sprint3/02-luoc-do-du-lieu.md).
+Thư mục này chứa toàn bộ script tạo database cho trang danh sách tour, trang chi tiết tour, tài khoản khách hàng, trang quản trị và luồng đặt tour (M4): bảng, khóa ngoại, chỉ mục, dữ liệu mẫu và stored procedure. Lược đồ gồm **27 bảng** (danh sách ở mục "Các file", lý do giữ / bỏ bảng ghi ở đầu `01_schema.sql`). Khách hàng có tài khoản (`users.role = 'customer'`): chưa đăng nhập (chế độ khách) chỉ xem tour; muốn đặt tour phải đăng nhập, mỗi đơn đặt thuộc một tài khoản (`bookings.user_id`). Mọi khóa chính là `id CHAR(36)` chứa UUID. Mọi script chạy được trên **MariaDB 10.4 (XAMPP)** và **MySQL 8**, bảng mã `utf8mb4` / `utf8mb4_unicode_ci`. Mô tả chi tiết từng bảng xem [02 – Lược đồ dữ liệu](../../docs/sprint3/02-luoc-do-du-lieu.md).
 
 > Toàn bộ dữ liệu trong `02_seed.sql` (tài khoản, nhà cung cấp, tour, giá, phụ thu, lịch, đơn đặt, thanh toán, đánh giá) là **dữ liệu minh họa**, không phải thông tin thật. Email dùng `@localtour.test`, số điện thoại là số giả dạng `0000000xxx`, mã giao dịch có chữ `DEMO`. Mọi tài khoản mẫu có `password_hash = NULL` nên **không đăng nhập được**.
 
@@ -16,32 +16,36 @@ Thư mục này chứa toàn bộ script tạo database cho trang danh sách tou
 | `04_procedures_NMT.sql` | Procedure cho trang chi tiết: thông tin tour (kể cả điểm đến, loại hình, phương tiện, hướng dẫn viên, điểm trả, giấy tờ, ăn uống, voucher, đổi lịch), lịch khởi hành, vé, ảnh. Thống kê của trang quản trị: tổng quan, yêu cầu theo trạng thái, yêu cầu theo thời gian, doanh thu. | Thức | 3.2.4, CR1 |
 | `05_procedures_NTK.sql` | Procedure cho nội dung trang chi tiết: lịch trình, dịch vụ bao gồm / không bao gồm, phụ thu / hoạt động tùy chọn, đánh giá, chính sách hủy. | Khôi | 3.2.6 |
 | `06_procedures_NTK_account.sql` | Procedure cho tài khoản khách hàng: đăng ký, tìm tài khoản theo email khi đăng nhập. | Khôi | 3.2.8 |
-| `07_procedures_NTK_admin.sql` | Procedure cho trang yêu cầu đặt tour của quản trị viên: danh sách, chi tiết, dòng vé, cập nhật trạng thái, lịch sử xử lý. | Khôi | CR1 |
-| `db_localtour.sql` | File gộp `01`–`07` để import một lần (mục dưới). | — | — |
+| `07_procedures_NTK_admin.sql` | Procedure cho trang yêu cầu đặt tour của quản trị viên: danh sách, chi tiết, dòng vé, danh sách khách, cập nhật trạng thái (xác nhận chỗ thì giữ chỗ, hủy thì trả chỗ), lịch sử xử lý. | Khôi | CR1, M4 |
+| `08_migration_booking_NMT.sql` | Bổ sung cấu trúc Booking (M4): cột `bookings.request_token` + khóa `UNIQUE (user_id, request_token)` chống tạo trùng đơn, khóa `UNIQUE (booking_id, ticket_type_id)` cho `booking_lines`, cột `passengers.sort_order` (thứ tự khách trên form); dữ liệu kiểm thử lịch 40 (tour 6, còn 1 chỗ). Không xóa bảng, không mất dữ liệu. | Thức | M4 mục 3 |
+| `09_procedures_NMT_booking.sql` | Kiểm tra lịch và số chỗ trước khi đặt: tình trạng lịch, loại vé đang bán của lịch. | Thức | M4 mục 5 |
+| `10_procedures_LTP_booking.sql` | Lưu yêu cầu đặt tour: tạo đơn `pending` kèm dòng vé, danh sách khách và mã đơn `LTxxxxxx` trong một transaction. | Phong | M4 mục 6 |
+| `11_procedures_NTK_booking.sql` | Trang "Đơn của tôi": danh sách đơn, chi tiết, dòng vé, danh sách khách của tài khoản đang đăng nhập. | Khôi | M4 mục 7, 8 |
+| `db_localtour.sql` | File gộp `01`–`11` để import một lần (mục dưới). | — | — |
 
-**Thứ tự import:** `01` → `02` → `03` → `04` → `05` → `06` → `07`.
+**Thứ tự import:** `01` → `02` → `03` → `04` → `05` → `06` → `07` → `08` → `09` → `10` → `11`. File `08` thêm cột mà `07`, `10` và `11` dùng, nên luôn import đủ cả 11 file.
 
-**Chạy lại được:** `01_schema.sql` xóa rồi tạo lại mọi bảng, kể cả 2 bảng đã bỏ (`post_comments`, `post_interactions`), nên database dùng chung không còn bảng thừa. Các file procedure dùng `DROP PROCEDURE IF EXISTS`, kể cả cho procedure cũ đã bỏ. Import lại sẽ **xóa hết dữ liệu cũ** trong `db_localtour`, kể cả tài khoản đã đăng ký thử, rồi nạp lại dữ liệu mẫu. Không ảnh hưởng database khác.
+**Chạy lại được:** `01_schema.sql` xóa rồi tạo lại mọi bảng, kể cả 2 bảng đã bỏ (`post_comments`, `post_interactions`), nên database dùng chung không còn bảng thừa. Các file procedure dùng `DROP PROCEDURE IF EXISTS`, kể cả cho procedure cũ đã bỏ. `08_migration_booking_NMT.sql` bỏ qua cột / khóa đã có và không chèn lại lịch 40, nên chạy lại cũng được. Import lại sẽ **xóa hết dữ liệu cũ** trong `db_localtour`, kể cả tài khoản đã đăng ký thử, rồi nạp lại dữ liệu mẫu. Không ảnh hưởng database khác.
 
 ## File gộp `db_localtour.sql`
 
 Để import một lần bằng phpMyAdmin, nhóm dùng **một file gộp** `src/database/db_localtour.sql`. File này:
 
-- **được sinh tự động** từ 7 file trên, theo đúng thứ tự, có thêm 4 dòng đầu:
+- **được sinh tự động** từ 11 file trên, theo đúng thứ tự, có thêm 4 dòng đầu:
   ```sql
-  -- File sinh tự động từ src/database/01..07, không sửa tay.
+  -- File sinh tự động từ src/database/01..11, không sửa tay.
   CREATE DATABASE IF NOT EXISTS db_localtour CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   USE db_localtour;
   SET NAMES utf8mb4;
   ```
-- **có trong Git**, để cả nhóm dùng cùng một bản. Muốn sửa dữ liệu hay procedure thì sửa file `01`–`07`, sinh lại file gộp rồi commit cùng lúc; không sửa tay file gộp.
+- **có trong Git**, để cả nhóm dùng cùng một bản. Muốn sửa dữ liệu hay procedure thì sửa file `01`–`11`, sinh lại file gộp rồi commit cùng lúc; không sửa tay file gộp.
 
 Tự sinh file gộp (Git Bash, đứng ở thư mục gốc repo):
 
 ```bash
-{ printf '%s\n' '-- File sinh tự động từ src/database/01..07, không sửa tay.' \
+{ printf '%s\n' '-- File sinh tự động từ src/database/01..11, không sửa tay.' \
     'CREATE DATABASE IF NOT EXISTS db_localtour CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;' \
-    'USE db_localtour;' 'SET NAMES utf8mb4;'; cat src/database/0[1-7]_*.sql; } > src/database/db_localtour.sql
+    'USE db_localtour;' 'SET NAMES utf8mb4;'; cat src/database/[0-9][0-9]_*.sql; } > src/database/db_localtour.sql
 ```
 
 ## Cách 1: Import bằng phpMyAdmin
@@ -56,12 +60,12 @@ Tự sinh file gộp (Git Bash, đứng ở thư mục gốc repo):
    SELECT COUNT(*) AS so_bang FROM information_schema.TABLES
     WHERE TABLE_SCHEMA = 'db_localtour';                                       -- 27
    SELECT COUNT(*) AS so_procedure FROM information_schema.ROUTINES
-    WHERE ROUTINE_SCHEMA = 'db_localtour' AND ROUTINE_TYPE = 'PROCEDURE';      -- 26
+    WHERE ROUTINE_SCHEMA = 'db_localtour' AND ROUTINE_TYPE = 'PROCEDURE';      -- 34
    CALL LTP_sp_tour_list(NULL, NULL, NULL, NULL);                              -- 9 dòng, tour 3 đứng đầu
    CALL NTK_sp_tour_extra_list('c0000000-0000-4000-8000-000000000001');        -- 2 dòng, dòng đầu kind = surcharge
    ```
 
-   Đúng cả 4 kết quả là import thành công. Số bảng khác 27: tab **Structure** liệt kê tên bảng để so với danh sách ở mục "Các file". Số procedure khác 26: tab **Routines** phải có đúng 26 tên ở mục "Stored procedure và người phụ trách". Lỗi `PROCEDURE … does not exist` nghĩa là file `03`–`07` chưa được import: sinh lại file gộp rồi import lại.
+   Đúng cả 4 kết quả là import thành công. Số bảng khác 27: tab **Structure** liệt kê tên bảng để so với danh sách ở mục "Các file". Số procedure khác 34: tab **Routines** phải có đúng 34 tên ở mục "Stored procedure và người phụ trách". Lỗi `PROCEDURE … does not exist` hoặc `Unknown column 'request_token'` / `'sort_order'` nghĩa là file `03`–`11` chưa được import: sinh lại file gộp rồi import lại.
 
 ## Cách 2: Import bằng mysql CLI
 
@@ -83,7 +87,7 @@ Từng file, không cần file gộp (Git Bash, đứng trong `src/database`):
 
 ```bash
 mysql -uroot --default-character-set=utf8mb4 -e "CREATE DATABASE IF NOT EXISTS db_localtour CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
-for f in 01_schema.sql 02_seed.sql 03_procedures_LTP.sql 04_procedures_NMT.sql 05_procedures_NTK.sql 06_procedures_NTK_account.sql 07_procedures_NTK_admin.sql; do
+for f in 01_schema.sql 02_seed.sql 03_procedures_LTP.sql 04_procedures_NMT.sql 05_procedures_NTK.sql 06_procedures_NTK_account.sql 07_procedures_NTK_admin.sql 08_migration_booking_NMT.sql 09_procedures_NMT_booking.sql 10_procedures_LTP_booking.sql 11_procedures_NTK_booking.sql; do
   mysql -uroot --default-character-set=utf8mb4 db_localtour < "$f" || break
 done
 ```
@@ -94,7 +98,7 @@ Sau đó kiểm tra như bước 5 của Cách 1.
 
 ## Stored procedure và người phụ trách
 
-PHP chỉ gọi dữ liệu qua `Core\Database::call()` (câu `CALL` có tham số), không viết `SELECT` / `INSERT` / `UPDATE` / `DELETE` trong PHP. Tên procedure bắt đầu bằng tiền tố của người phụ trách. Tổng cộng **26 procedure**.
+PHP chỉ gọi dữ liệu qua `Core\Database::call()` (câu `CALL` có tham số), không viết `SELECT` / `INSERT` / `UPDATE` / `DELETE` trong PHP. Tên procedure bắt đầu bằng tiền tố của người phụ trách. Tổng cộng **34 procedure**.
 
 | Tiền tố | Người phụ trách | File | Procedure |
 |---|---|---|---|
@@ -102,9 +106,12 @@ PHP chỉ gọi dữ liệu qua `Core\Database::call()` (câu `CALL` có tham s�
 | `NMT_` | Nguyễn Minh Thức | `04_procedures_NMT.sql` | `NMT_sp_tour_detail(p_tour_id)`, `NMT_sp_tour_schedule_list(p_tour_id)`, `NMT_sp_tour_ticket_list(p_tour_id)`, `NMT_sp_tour_image_list(p_tour_id)`, `NMT_sp_admin_summary()`, `NMT_sp_admin_booking_status_stats()`, `NMT_sp_admin_booking_time_stats(p_period, p_from, p_to)`, `NMT_sp_admin_revenue_stats(p_period, p_from, p_to)` |
 | `NTK_` | Nguyễn Tuấn Khôi | `05_procedures_NTK.sql` | `NTK_sp_tour_itinerary_list(p_tour_id)`, `NTK_sp_tour_inclusion_list(p_tour_id)`, `NTK_sp_tour_extra_list(p_tour_id)`, `NTK_sp_tour_review_list(p_tour_id, p_limit)`, `NTK_sp_tour_cancellation_policy(p_tour_id)` |
 | `NTK_` | Nguyễn Tuấn Khôi | `06_procedures_NTK_account.sql` | `NTK_sp_customer_register(p_name, p_email, p_phone, p_password_hash)`, `NTK_sp_user_find_by_email(p_email)` |
-| `NTK_` | Nguyễn Tuấn Khôi | `07_procedures_NTK_admin.sql` | `NTK_sp_admin_booking_list(p_status, p_keyword)`, `NTK_sp_admin_booking_detail(p_booking_id)`, `NTK_sp_admin_booking_line_list(p_booking_id)`, `NTK_sp_admin_log_list(p_target_type, p_target_id)`, `NTK_sp_admin_booking_set_status(p_booking_id, p_new_status, p_actor_user_id, p_note)` |
+| `NTK_` | Nguyễn Tuấn Khôi | `07_procedures_NTK_admin.sql` | `NTK_sp_admin_booking_list(p_status, p_keyword)`, `NTK_sp_admin_booking_detail(p_booking_id)`, `NTK_sp_admin_booking_line_list(p_booking_id)`, `NTK_sp_admin_booking_passenger_list(p_booking_id)`, `NTK_sp_admin_log_list(p_target_type, p_target_id)`, `NTK_sp_admin_booking_set_status(p_booking_id, p_new_status, p_actor_user_id, p_note)` |
+| `NMT_` | Nguyễn Minh Thức | `09_procedures_NMT_booking.sql` | `NMT_sp_schedule_availability(p_schedule_id)`, `NMT_sp_schedule_ticket_list(p_schedule_id)` |
+| `LTP_` | Lê Trung Phong | `10_procedures_LTP_booking.sql` | `LTP_sp_booking_create(p_user_id, p_schedule_id, p_request_token, p_contact_name, p_contact_email, p_contact_phone, p_passengers, p_special_request, p_expected_total)` |
+| `NTK_` | Nguyễn Tuấn Khôi | `11_procedures_NTK_booking.sql` | `NTK_sp_customer_booking_list(p_user_id)`, `NTK_sp_customer_booking_detail(p_user_id, p_code)`, `NTK_sp_customer_booking_line_list(p_user_id, p_code)`, `NTK_sp_customer_booking_passenger_list(p_user_id, p_code)` |
 
-`p_tour_id`, `p_destination_id`, `p_category_id` là UUID dạng chữ (`CHAR(36)`); `p_keyword` là `VARCHAR(100)`; `p_sort` là `VARCHAR(20)`; `p_name` `VARCHAR(100)`, `p_email` `VARCHAR(150)`, `p_phone` `VARCHAR(20)`, `p_password_hash` `VARCHAR(255)`. Trang quản trị: `p_booking_id`, `p_target_id`, `p_actor_user_id` là UUID; `p_approval_status` `VARCHAR(20)`, `p_status` `VARCHAR(30)`, `p_new_status` `VARCHAR(20)` (tour) hoặc `VARCHAR(30)` (yêu cầu đặt tour), `p_note` `VARCHAR(255)`, `p_period` `VARCHAR(10)`, `p_from` / `p_to` `DATE`. Hai procedure cũ `NMT_sp_tour_itinerary_list`, `NTK_sp_tour_image_list` đã bỏ (chú ý tiền tố: ảnh là `NMT_`, lịch trình là `NTK_`).
+`p_tour_id`, `p_destination_id`, `p_category_id` là UUID dạng chữ (`CHAR(36)`); `p_keyword` là `VARCHAR(100)`; `p_sort` là `VARCHAR(20)`; `p_name` `VARCHAR(100)`, `p_email` `VARCHAR(150)`, `p_phone` `VARCHAR(20)`, `p_password_hash` `VARCHAR(255)`. Trang quản trị: `p_booking_id`, `p_target_id`, `p_actor_user_id` là UUID; `p_approval_status` `VARCHAR(20)`, `p_status` `VARCHAR(30)`, `p_new_status` `VARCHAR(20)` (tour) hoặc `VARCHAR(30)` (yêu cầu đặt tour), `p_note` `VARCHAR(255)`, `p_period` `VARCHAR(10)`, `p_from` / `p_to` `DATE`. Đặt tour (M4): `p_user_id`, `p_schedule_id` là UUID; `p_request_token` `VARCHAR(64)`; `p_contact_name` `VARCHAR(100)`, `p_contact_email` `VARCHAR(150)`, `p_contact_phone` `VARCHAR(20)`; `p_passengers`, `p_special_request` `TEXT`; `p_expected_total` `BIGINT`; `p_code` `VARCHAR(20)`. Hai procedure cũ `NMT_sp_tour_itinerary_list`, `NTK_sp_tour_image_list` đã bỏ (chú ý tiền tố: ảnh là `NMT_`, lịch trình là `NTK_`).
 
 Quy tắc chung:
 
@@ -126,9 +133,14 @@ Quy tắc chung:
 - `NTK_sp_user_find_by_email`: 0 hoặc 1 dòng `user_id`, `name`, `email`, `password_hash`, `role`, `status`. PHP tự kiểm tra `role = 'customer'`, `status = 'active'` và `password_verify` trước khi cho đăng nhập.
 - **Trang quản trị** (`LTP_sp_admin_…`, `NMT_sp_admin_…`, `NTK_sp_admin_…`): xem mọi tour và mọi yêu cầu đặt tour, kể cả tour chờ duyệt hoặc bị từ chối. PHP chỉ gọi sau khi kiểm tra tài khoản đăng nhập là quản trị viên đang hoạt động; hai procedure ghi dữ liệu kiểm tra lại `p_actor_user_id` và trả `forbidden` nếu không phải.
 - `LTP_sp_admin_tour_set_approval`: chỉ `pending` → `approved` hoặc `rejected`; từ chối bắt buộc lý do. Trả 1 dòng `result` (`ok`, `forbidden`, `not_found`, `invalid_transition`, `note_required`) và `approval_status`; ghi `admin_logs` (`tour_approve` / `tour_reject`).
-- `NTK_sp_admin_booking_set_status`: `pending` → `awaiting_payment` / `rejected` / `cancelled`; `awaiting_payment` → `confirmed` / `cancelled`; `confirmed` → `completed` / `cancelled`. Từ chối và hủy bắt buộc lý do. Xác nhận đã thanh toán cần khoản thanh toán `paid` hoặc chuyển khoản VietQR `awaiting_reconciliation` (được ghi thành `paid`); hoàn thành chỉ sau giờ khởi hành; chờ thanh toán có hạn 24 giờ (`hold_expires_at`). Trả 1 dòng `result` (thêm `needs_payment`, `not_departed`); ghi `admin_logs` (`booking_status`) gồm trạng thái cũ, trạng thái mới và lý do.
+- `NTK_sp_admin_booking_set_status`: `pending` → `awaiting_payment` / `rejected` / `cancelled`; `awaiting_payment` → `confirmed` / `cancelled`; `confirmed` → `completed` / `cancelled`. Từ chối và hủy bắt buộc lý do. Xác nhận đã thanh toán cần khoản thanh toán `paid` hoặc chuyển khoản VietQR `awaiting_reconciliation` (được ghi thành `paid`); hoàn thành chỉ sau giờ khởi hành; chờ thanh toán có hạn 24 giờ (`hold_expires_at`). Trả 1 dòng `result` (thêm `needs_payment`, `not_departed`, `schedule_closed`, `no_seats`); ghi `admin_logs` (`booking_status`) gồm trạng thái cũ, trạng thái mới và lý do.
+- **Giữ chỗ (M4):** đơn mới `pending` chưa trừ `schedules.remaining`. Quản trị viên xác nhận chỗ (`pending` → `awaiting_payment`) mới trừ số khách của đơn; lịch đã hủy / đã qua → `schedule_closed`, không đủ chỗ → `no_seats`, không đổi gì; `remaining` về 0 thì lịch thành `full`. Hủy đơn đang giữ chỗ (`awaiting_payment` / `confirmed` → `cancelled`) cộng lại chỗ (không vượt `capacity`) và mở lại lịch `full`. Tự hủy khi quá hạn 24 giờ thuộc M5.
+- `NMT_sp_schedule_availability`: 0 hoặc 1 dòng `schedule_id`, `tour_id`, `starts_at`, `ends_at`, `capacity`, `remaining`, `status`, `max_group_size`, `active_ticket_count`, `bookable` (1 = lịch đặt được, cùng điều kiện "Lịch đặt được" ở trên). Lịch của tour không công khai hoặc không tồn tại → 0 dòng.
+- `NMT_sp_schedule_ticket_list`: loại vé `active` của một lịch, cột `ticket_type_id`, `name`, `min_age`, `max_age`, `price_vnd`; vé đắt trước (người lớn trước trẻ em).
+- `LTP_sp_booking_create`: `p_passengers` là mảng JSON `[{"ticket_type_id": "…", "full_name": "…"}]` theo thứ tự trên form. Trong một transaction: kiểm tra tài khoản khách hàng đang hoạt động, lịch đặt được (khóa dòng lịch `FOR UPDATE`), số khách ≤ `max_group_size` và ≤ `remaining`, mỗi khách một loại vé đang bán của lịch, tổng tiền tính lại bằng `p_expected_total`; rồi tạo đơn `pending`, `booking_lines` (giá chụp vào `unit_price_vnd`), `passengers` (giữ thứ tự trên form ở `sort_order`; yêu cầu đặc biệt lưu ở khách đầu tiên) và mã `LT` + 6 chữ số. Trả 1 dòng `result` (`ok`, `duplicate`, `forbidden`, `invalid`, `schedule_unavailable`, `group_limit`, `no_seats`, `tickets_changed`, `price_changed`, `retry`), `booking_code`, `total_vnd`, `remaining`, `max_group_size`. Cùng tài khoản gửi lại cùng `p_request_token` → `duplicate` với mã đơn cũ, không tạo đơn thứ hai. Khác `ok` thì không ghi gì.
+- `NTK_sp_customer_booking_…`: chỉ trả đơn của `p_user_id` (lấy từ phiên đăng nhập); mã của đơn người khác hoặc không có → 0 dòng. Danh sách tối đa 100 đơn, mới đặt trước; chi tiết trả thêm chính sách hủy đúng phiên bản lúc đặt (`policy_version`), trạng thái thanh toán và lý do của lần xử lý gần nhất (`status_note`).
 - Thống kê (`NMT_sp_admin_…`): khách hàng là `users.role = 'customer'` (kể cả tài khoản bị khóa); yêu cầu theo thời gian tính theo `bookings.created_at`; doanh thu tính theo `payments.paid_at` của khoản `paid`, trừ tiền hoàn `refunds` `completed`. `p_period` là `day`, `month` hoặc `year`; `p_from`, `p_to` NULL là không giới hạn.
-- Không procedure nào có `DEFINER`. Chỉ `NTK_sp_customer_register`, `LTP_sp_admin_tour_set_approval` và `NTK_sp_admin_booking_set_status` ghi dữ liệu (`MODIFIES SQL DATA`); các procedure khác chỉ đọc (`READS SQL DATA`).
+- Không procedure nào có `DEFINER`. Chỉ `NTK_sp_customer_register`, `LTP_sp_admin_tour_set_approval`, `NTK_sp_admin_booking_set_status` và `LTP_sp_booking_create` ghi dữ liệu (`MODIFIES SQL DATA`); các procedure khác chỉ đọc (`READS SQL DATA`).
 
 ## Dữ liệu mẫu và ca kiểm thử
 
@@ -175,6 +187,7 @@ Ca kiểm thử có sẵn:
 - **Bảng để trống:** `itinerary_stops`, `tour_schedules`, `tour_posts`, `favorite_tours`, `notifications`, `comparisons`, `comparison_tours` có 0 dòng; `tours.included_summary`, `excluded_summary` là `NULL`.
 - **NFR-07:** mọi tour có `source_url`, `verified_at` là `NULL` và `verification_status = 'unverified'` (dữ liệu minh họa, không gán nguồn hay ngày giả).
 - **Trang quản trị** (mục 20 của `02_seed.sql`): tổng quan có 40 khách hàng (39 hoạt động, 1 bị khóa), 12 tour (2 chờ duyệt, 9 đã duyệt, 1 bị từ chối), 39 yêu cầu (3 chờ xác nhận). Yêu cầu theo trạng thái: chờ xác nhận 3 (đơn 31–33), chờ thanh toán 2 (đơn 34, 35 – đơn 35 có chuyển khoản VietQR chờ đối chiếu), đã xác nhận 2 (đơn 36, 37 – lịch của đơn 37 đã khởi hành), đã hoàn thành 29, từ chối 1 (đơn 38), đã hủy 2 (đơn 30, 39). Doanh thu toàn bộ: 32 lượt thanh toán, 39.780.000đ trừ 1.300.000đ hoàn tiền = 38.480.000đ. `admin_logs` có 10 dòng (tour 12 và đơn 34–39); đơn 1–30 chưa có lịch sử. Phê duyệt tour 11 thì trang khách có 10 tour và Huế xuất hiện.
+- **Đặt tour (M4):** lịch 40 (tour 6, file `08`) sức chứa 10, còn 1 chỗ: đặt 1 khách được, đặt 2 khách bị báo "chỉ còn 1 chỗ". Lịch 7 (tour 2) `open` nhưng `remaining = 0` → không đặt được. Tour 1 nhóm tối đa 8 khách; lịch 3 còn 6 chỗ, vé người lớn 650.000đ, trẻ em 460.000đ (2 người lớn + 1 trẻ em = 1.760.000đ). Số chỗ còn lại (`remaining`) trong dữ liệu mẫu là số minh họa, không tính lại từ các đơn có sẵn: lịch 3, 18, 22 đã trừ sẵn chỗ của đơn chờ xác nhận 31–33, nên xác nhận các đơn này sẽ trừ thêm lần nữa. Kiểm thử giữ chỗ nên dùng đơn mới đặt qua trang `/tours/{id}/book`.
 - **UUID không tồn tại:** ví dụ `c0000000-0000-4000-8000-000000009999`, phải trả về 0 dòng ở mọi procedure về tour.
 
 Thứ tự mong đợi của 9 tour ngay sau khi import: `recommended` 3, 1, 6, 2, 7, 4, 8, 5, 9 · `upcoming` 4, 6, 8, 5, 1, 7, 2, 3, 9 · `price_asc` 5, 4, 6, 1, 2, 7, 8, 3, 9 · `price_desc` 3, 8, 7, 2, 1, 6, 4, 5, 9. Căn cứ xem [02 – Lược đồ dữ liệu](../../docs/sprint3/02-luoc-do-du-lieu.md), mục 8.3.
@@ -215,6 +228,10 @@ CALL NMT_sp_admin_revenue_stats('year', NULL, NULL);                      -- t�
 CALL NTK_sp_admin_booking_list(NULL, NULL);                               -- 39 dòng, đơn mới nhất trước
 CALL NTK_sp_admin_booking_list('pending', NULL);                          -- 3 dòng (đơn 31, 32, 33)
 CALL NTK_sp_admin_log_list('tour', 'c0000000-0000-4000-8000-000000000012'); -- 1 dòng: từ chối, có lý do
+CALL NMT_sp_schedule_availability('d0000000-0000-4000-8000-000000000040'); -- 1 dòng: remaining 1, max_group_size 10, bookable 1
+CALL NMT_sp_schedule_availability('d0000000-0000-4000-8000-000000000007'); -- 1 dòng: remaining 0, bookable 0
+CALL NMT_sp_schedule_ticket_list('d0000000-0000-4000-8000-000000000003'); -- 2 vé: adult 650000, child 460000
+CALL NTK_sp_customer_booking_list('a0000000-0000-4000-8000-000000000131'); -- 1 đơn: đơn 31, pending
 ```
 
-Không thử `NTK_sp_customer_register` bằng câu lệnh tay: procedure cần chuỗi băm do PHP tạo. Thử đăng ký qua trang `/register` của ứng dụng. Phê duyệt tour và cập nhật trạng thái yêu cầu nên thử qua trang `/admin` (cách tạo tài khoản quản trị viên để thử xem [src/README.md](../README.md), bước 7).
+Không thử `NTK_sp_customer_register` bằng câu lệnh tay: procedure cần chuỗi băm do PHP tạo. `LTP_sp_booking_create` cũng nên thử qua trang đặt tour (cần tài khoản khách hàng đăng nhập được và mã `request_token` của form). Thử đăng ký qua trang `/register` của ứng dụng. Phê duyệt tour và cập nhật trạng thái yêu cầu nên thử qua trang `/admin` (cách tạo tài khoản quản trị viên để thử xem [src/README.md](../README.md), bước 7).

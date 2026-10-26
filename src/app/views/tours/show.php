@@ -10,8 +10,9 @@
  *       $reviews (tối đa 5, mới nhất trước), $policy (null hoặc chính sách hủy mới nhất),
  *       $gallery (ảnh của chính tour: [{url, caption}], có thể rỗng), $title.
  * Dữ liệu thiếu hiển thị "Chưa cập nhật" (FR-01..05), không lấy từ tour khác và không tự suy diễn.
- * Chế độ khách: thẻ đặt tour hiện nút "Đăng nhập để đặt tour" (quay lại trang này sau khi đăng nhập).
- * Đã đăng nhập: nút "Đặt tour" (sắp có). Thích / Bình luận / Chia sẻ / Lưu tour / So sánh: sắp có.
+ * Thẻ đặt tour là form GET tới /tours/{id}/book (trang "Hoàn tất thông tin đặt tour") kèm lịch và số khách đã chọn.
+ * Chế độ khách: nút "Đăng nhập để đặt tour" (đăng nhập xong vào thẳng trang đặt tour với lựa chọn hiện tại).
+ * Tài khoản khách hàng: nút "Đặt tour". Thích / Bình luận / Chia sẻ / Lưu tour / So sánh: sắp có.
  */
 $missing = or_missing(null);
 
@@ -24,7 +25,9 @@ $linesOrMissing = static function (?string $text) use ($missing): array {
 $listUrl = url('/tours');
 $tourPath = '/tours/' . $tour['tour_id'];
 $isGuest = current_user() === null;
-$loginUrl = url('/login') . '?next=' . rawurlencode($tourPath);
+$isCustomer = (current_user()['role'] ?? '') === 'customer';
+$bookPath = $tourPath . '/book';
+$loginUrl = url('/login') . '?next=' . rawurlencode($bookPath);
 // Điểm đến / loại hình: link lọc bảng tin theo ID; tour chưa gán ID thì chỉ hiện tên (hoặc "Chưa cập nhật").
 $destination = trim((string) $tour['destination_name']);
 $destinationId = $tour['destination_id'] === null ? null : (string) $tour['destination_id'];
@@ -495,7 +498,7 @@ $sections = [
                     </p>
                     <p class="lt-booking__note">Giá minh họa · VND</p>
 
-                    <form class="lt-booking__form" id="booking-form" action="#" novalidate>
+                    <form class="lt-booking__form" id="booking-form" action="<?= e(url($bookPath)) ?>" method="get" novalidate>
                         <div class="lt-field">
                             <label class="lt-field__label" for="booking-schedule">Ngày tham gia</label>
 <?php if ($hasSchedules): ?>
@@ -562,14 +565,20 @@ $sections = [
                                 <span class="lt-icon lt-icon--info" aria-hidden="true"></span>
                                 Bạn đang xem với tư cách khách. Đăng nhập để đặt tour.
                             </p>
-                            <a class="lt-btn lt-btn--primary lt-btn--block" href="<?= e($loginUrl) ?>">
+                            <a class="lt-btn lt-btn--primary lt-btn--block js-login-to-book" href="<?= e($loginUrl) ?>"
+                               data-login-url="<?= e(url('/login')) ?>" data-book-path="<?= e($bookPath) ?>">
                                 <span class="lt-icon lt-icon--log-in" aria-hidden="true"></span>
                                 Đăng nhập để đặt tour
                             </a>
-<?php else: ?>
-                            <button type="button" class="lt-btn lt-btn--primary lt-btn--block" disabled title="Sắp có">
-                                Đặt tour <span class="lt-soon">Sắp có</span>
+<?php elseif ($isCustomer): ?>
+                            <button type="submit" class="lt-btn lt-btn--primary lt-btn--block"<?= $hasSchedules ? '' : ' disabled' ?>>
+                                Đặt tour
                             </button>
+<?php else: ?>
+                            <p class="lt-booking__alert">
+                                <span class="lt-icon lt-icon--info" aria-hidden="true"></span>
+                                Tài khoản quản trị không đặt tour được. Đăng nhập bằng tài khoản khách hàng để đặt tour.
+                            </p>
 <?php endif; ?>
                             <button type="button" class="lt-btn lt-btn--soft lt-btn--block" disabled title="Sắp có">
                                 <span class="lt-icon lt-icon--columns" aria-hidden="true"></span>

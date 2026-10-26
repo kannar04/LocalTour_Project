@@ -184,6 +184,22 @@ function age_range_text(int|string|null $min, int|string|null $max): string
 }
 
 /**
+ * Một loại vé (dòng có ticket_type_id, name, min_age, max_age, price_vnd) → dữ liệu cho JS chọn số khách.
+ *
+ * @param array<string, mixed> $ticket
+ * @return array{id: string, label: string, ages: string, price: int}
+ */
+function ticket_option(array $ticket): array
+{
+    return [
+        'id' => (string) $ticket['ticket_type_id'],
+        'label' => ticket_label((string) $ticket['name']),
+        'ages' => age_range_text($ticket['min_age'], $ticket['max_age']),
+        'price' => (int) $ticket['price_vnd'],
+    ];
+}
+
+/**
  * Tách văn bản thành các đoạn (ngăn bởi dòng trống); mỗi đoạn vẫn có thể chứa xuống dòng đơn.
  *
  * @return list<string>
@@ -228,6 +244,40 @@ function format_time(?string $time): string
     }
 
     return strlen($time) > 8 ? substr($time, 11, 5) : substr($time, 0, 5);
+}
+
+/** Giờ của một lịch khởi hành: "17:00 – 21:00"; thêm ngày kết thúc nếu tour qua ngày hôm sau. */
+function schedule_time_text(?string $startsAt, ?string $endsAt): string
+{
+    $start = (string) $startsAt;
+    $end = (string) $endsAt;
+    $text = format_time($start) . ' – ' . format_time($end);
+    if ($end !== '' && substr($end, 0, 10) !== substr($start, 0, 10)) {
+        $text .= ' (' . format_date($end) . ')';
+    }
+
+    return $text;
+}
+
+/**
+ * Chính sách hủy → các câu hiển thị (giống thẻ giá ở trang chi tiết tour).
+ * $freeBeforeHours null = không có mốc hủy miễn phí.
+ *
+ * @return list<string>
+ */
+function cancellation_policy_lines(int|string|null $freeBeforeHours, int|string|null $refundPercent): array
+{
+    $refundPercent = (int) $refundPercent;
+    if ($freeBeforeHours === null || $freeBeforeHours === '') {
+        return [$refundPercent > 0 ? 'Hủy tour được hoàn ' . $refundPercent . '% tiền tour.' : 'Tour không hoàn tiền khi hủy.'];
+    }
+
+    $freeBeforeHours = (int) $freeBeforeHours;
+
+    return [
+        $freeBeforeHours > 0 ? 'Hủy miễn phí trước giờ khởi hành ' . $freeBeforeHours . ' giờ.' : 'Hủy miễn phí đến giờ khởi hành.',
+        $refundPercent > 0 ? 'Sau thời điểm này hoàn ' . $refundPercent . '% tiền tour.' : 'Sau thời điểm này không hoàn tiền.',
+    ];
 }
 
 /** "2026-10-24 17:05:00" → "24/10/2026 17:05"; '' khi không có giá trị. */

@@ -2,7 +2,9 @@
  * LocalTour – tour-detail.js (Nguyễn Tuấn Khôi)
  * Trang chi tiết tour: lịch khởi hành quyết định giờ và các loại vé (người lớn, trẻ em...). Mỗi loại vé có
  * ô chọn số lượng; tổng số khách từ 1 đến min(nhóm tối đa, chỗ còn lại), tạm tính cập nhật trực tiếp.
- * Tab neo cuộn mượt + đánh dấu mục đang xem. Đặt tour chưa có ở Sprint 3 nên form không bao giờ gửi đi.
+ * Tab neo cuộn mượt + đánh dấu mục đang xem.
+ * "Đặt tour" gửi form GET tới /tours/{id}/book kèm schedule_id và tickets[<mã vé>]; ở chế độ khách, link
+ * "Đăng nhập để đặt tour" được cập nhật để đăng nhập xong vào thẳng trang đặt tour với lựa chọn hiện tại.
  * Dữ liệu vé đọc từ <script type="application/json" id="booking-data"> và chỉ đưa vào DOM bằng .text() / .attr().
  */
 (function (window, document, $) {
@@ -52,10 +54,24 @@
         var $hint = $('#booking-guests-hint');
         var $formula = $('#booking-total .js-total-formula');
         var $amount = $('#booking-total .js-total-amount');
+        var $loginLink = $('.js-login-to-book');
 
         $form.on('submit', function (event) {
-            event.preventDefault(); // Chưa có đặt tour ở Sprint 3.
+            // Không có lịch thì không có gì để đặt.
+            if ($schedule.prop('disabled')) {
+                event.preventDefault();
+            }
         });
+
+        /** Link đăng nhập (chế độ khách): next = trang đặt tour kèm lịch và số khách đang chọn. */
+        function updateLoginLink() {
+            if (!$loginLink.length) {
+                return;
+            }
+            var query = $form.serialize();
+            var next = String($loginLink.attr('data-book-path')) + (query ? '?' + query : '');
+            $loginLink.attr('href', String($loginLink.attr('data-login-url')) + '?next=' + encodeURIComponent(next));
+        }
 
         var data = readBookingData();
         var maxGroup = Math.max(1, toInt(data && data.maxGroup));
@@ -142,6 +158,7 @@
                 $formula.text(parts.join(' + '));
                 $amount.text(LT.formatVnd(amount));
             }
+            updateLoginLink();
         }
 
         /** Đổi số vé của một loại; commit = ghi giá trị đã kẹp vào ô nhập và giữ tổng ít nhất 1 khách. */

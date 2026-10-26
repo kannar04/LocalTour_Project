@@ -1,0 +1,746 @@
+/*
+ * LocalTour – booking.css (Nguyễn Tuấn Khôi)
+ * Đặt tour (M4): trang "Hoàn tất thông tin đặt tour", "Đơn của tôi" và chi tiết đơn.
+ * Nạp sau tour-detail.css: dùng lại breadcrumb, ô nhập (lt-field, lt-input), hàng vé (lt-ticket, lt-stepper)
+ * và thẻ giá (lt-booking).
+ */
+
+/* ---------- Tiêu đề trang + các bước ---------- */
+
+.lt-book-head {
+    margin-bottom: 20px;
+}
+
+.lt-book-head__title {
+    margin: 0;
+    font-size: 1.625rem;
+    line-height: 1.25;
+}
+
+.lt-book-head__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+}
+
+.lt-book-head__lead {
+    margin-top: 6px;
+    color: var(--lt-muted-strong);
+    font-size: 0.875rem;
+}
+
+.lt-book-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+    color: var(--lt-muted-strong);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.lt-book-back:hover {
+    color: var(--lt-teal);
+    text-decoration: underline;
+}
+
+.lt-steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    margin: 16px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.lt-steps__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--lt-muted);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.lt-steps__num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border: 1px solid var(--lt-border-strong);
+    border-radius: 50%;
+    background: var(--lt-surface);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.lt-steps__item.is-current {
+    color: var(--lt-text);
+    font-weight: 600;
+}
+
+.lt-steps__item.is-current .lt-steps__num {
+    border-color: var(--lt-teal);
+    background: var(--lt-teal);
+    color: #fff;
+}
+
+.lt-steps__item.is-done {
+    color: var(--lt-teal);
+}
+
+.lt-steps__item.is-done .lt-steps__num {
+    border-color: var(--lt-teal-100);
+    background: var(--lt-teal-50);
+    color: var(--lt-teal);
+}
+
+/* ---------- Thẻ nội dung + ô nhập ---------- */
+
+.lt-book-card {
+    margin-bottom: 16px;
+    padding: 22px 24px;
+    border: 1px solid var(--lt-border);
+    border-radius: var(--lt-radius-lg);
+    background: var(--lt-surface);
+    box-shadow: var(--lt-shadow-sm);
+}
+
+.lt-book-card:focus {
+    outline: none;
+}
+
+.lt-book-card__title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 6px;
+    font-size: 1.125rem;
+    line-height: 1.35;
+}
+
+.lt-book-card__num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--lt-teal-50);
+    color: var(--lt-teal);
+    font-size: 0.8125rem;
+}
+
+.lt-book-card__lead {
+    margin-bottom: 16px;
+    color: var(--lt-muted-strong);
+    font-size: 0.875rem;
+}
+
+.lt-book-card__title + .lt-book-grid,
+.lt-book-card__title + .lt-booking__alert {
+    margin-top: 14px;
+}
+
+.lt-book-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0 16px;
+}
+
+@media (min-width: 768px) {
+    .lt-book-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.lt-field__optional {
+    color: var(--lt-muted);
+    font-weight: 400;
+}
+
+.lt-field__error {
+    margin-top: 6px;
+    color: var(--lt-danger);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.lt-input.is-invalid {
+    border-color: var(--lt-danger);
+    background: #fff;
+}
+
+.lt-input.is-invalid:focus {
+    box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.2);
+}
+
+.lt-textarea {
+    height: auto;
+    min-height: 88px;
+    padding: 10px 12px;
+    line-height: 1.5;
+    resize: vertical;
+}
+
+.lt-field__count {
+    text-align: right;
+}
+
+.lt-book-meeting {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px;
+    border-radius: var(--lt-radius);
+    background: var(--lt-surface-alt);
+    color: var(--lt-text-soft);
+    font-size: 0.875rem;
+}
+
+.lt-book-meeting > .lt-icon {
+    margin-top: 2px;
+    color: var(--lt-teal);
+}
+
+.lt-book-meeting__label {
+    color: var(--lt-text);
+    font-weight: 600;
+}
+
+/* Danh sách khách: một ô họ tên cho mỗi khách, nhãn loại vé bên cạnh số thứ tự. */
+.lt-passengers {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0 0 16px;
+    padding: 0;
+    list-style: none;
+}
+
+.lt-passenger__head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.lt-passenger__label {
+    margin: 0;
+    color: var(--lt-text);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.lt-passenger__type {
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--lt-teal-50);
+    color: var(--lt-teal);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.lt-book-terms {
+    margin: 10px 0 14px;
+    padding-left: 18px;
+    color: var(--lt-text-soft);
+    font-size: 0.875rem;
+}
+
+.lt-book-terms li + li {
+    margin-top: 4px;
+}
+
+.lt-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.lt-check__input {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    accent-color: var(--lt-teal);
+    cursor: pointer;
+}
+
+.lt-check__label {
+    margin: 0;
+    color: var(--lt-text);
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.lt-book-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.lt-book-card .lt-book-actions {
+    margin: 18px 0 0;
+}
+
+@media (max-width: 575.98px) {
+    .lt-book-card {
+        padding: 18px 16px;
+    }
+
+    .lt-book-actions .lt-btn {
+        flex: 1 1 100%;
+    }
+}
+
+/* Lỗi chung (hết phiên, lịch hết chỗ, giá đổi...) phía trên form. */
+.lt-book-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    border-radius: var(--lt-radius);
+    background: var(--lt-danger-bg);
+    color: var(--lt-danger);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.lt-book-alert:focus {
+    outline: none;
+}
+
+.lt-book-alert[hidden] {
+    display: none;
+}
+
+.lt-book-alert .lt-icon {
+    margin-top: 2px;
+}
+
+.lt-book-notice {
+    margin: 0 0 16px;
+}
+
+/* ---------- Xem lại & tóm tắt ---------- */
+
+.lt-book-summary {
+    margin: 0;
+}
+
+.lt-book-summary > div {
+    display: grid;
+    grid-template-columns: minmax(120px, 34%) 1fr;
+    gap: 4px 16px;
+    padding: 10px 0;
+    border-top: 1px solid var(--lt-border);
+    font-size: 0.875rem;
+}
+
+.lt-book-summary > div:first-child {
+    border-top: 0;
+}
+
+.lt-book-summary dt {
+    color: var(--lt-muted-strong);
+    font-weight: 500;
+}
+
+.lt-book-summary dd {
+    margin: 0;
+    color: var(--lt-text);
+    overflow-wrap: anywhere;
+}
+
+.lt-book-summary__list {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.lt-book-summary__total dd {
+    font-size: 1.125rem;
+    font-weight: 700;
+}
+
+@media (max-width: 575.98px) {
+    .lt-book-summary > div {
+        grid-template-columns: 1fr;
+    }
+}
+
+.lt-book-review .lt-booking__alert {
+    margin-top: 16px;
+}
+
+/* Thẻ "Tour bạn đã chọn" / "Tiền vé" bên phải (dính khi cuộn trên desktop, giống thẻ giá). */
+.lt-book-aside__title {
+    margin: 0 0 14px;
+    font-size: 1.0625rem;
+}
+
+.lt-book-tour {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.lt-book-tour__media {
+    flex-shrink: 0;
+    width: 88px;
+    height: 66px;
+    overflow: hidden;
+    border-radius: var(--lt-radius);
+    background: var(--lt-placeholder);
+}
+
+.lt-book-tour__media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.lt-book-tour__body {
+    min-width: 0;
+}
+
+.lt-book-tour__title {
+    color: var(--lt-text);
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.lt-book-tour__meta {
+    margin-top: 2px;
+    color: var(--lt-muted-strong);
+    font-size: 0.8125rem;
+}
+
+.lt-book-facts {
+    margin: 0;
+    padding: 10px 0 0;
+    border-top: 1px solid var(--lt-border);
+}
+
+.lt-book-facts > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 3px 0;
+    font-size: 0.875rem;
+}
+
+.lt-book-facts dt {
+    color: var(--lt-muted-strong);
+    font-weight: 500;
+}
+
+.lt-book-facts dd {
+    margin: 0;
+    color: var(--lt-text);
+    font-weight: 600;
+    text-align: right;
+}
+
+.lt-book-lines {
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.lt-book-lines li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 3px 0;
+    color: var(--lt-text-soft);
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.lt-book-lines__unit {
+    color: var(--lt-muted);
+    font-size: 0.8125rem;
+}
+
+.lt-book-aside .lt-booking__total {
+    margin: 12px 0 6px;
+}
+
+/* ---------- Trạng thái đơn ---------- */
+
+.lt-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: #eef0f2;
+    color: var(--lt-muted-strong);
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.lt-status--pending {
+    background: var(--lt-highlight);
+    color: var(--lt-highlight-text);
+}
+
+.lt-status--awaiting_payment {
+    background: #e6effb;
+    color: #1d4f91;
+}
+
+.lt-status--confirmed {
+    background: var(--lt-teal-50);
+    color: var(--lt-teal-700);
+}
+
+.lt-status--rejected,
+.lt-status--cancelled {
+    background: var(--lt-danger-bg);
+    color: var(--lt-danger);
+}
+
+.lt-book-state {
+    border-left: 4px solid var(--lt-border-strong);
+}
+
+.lt-book-state--pending {
+    border-left-color: var(--lt-star);
+}
+
+.lt-book-state--awaiting_payment {
+    border-left-color: #1d4f91;
+}
+
+.lt-book-state--confirmed,
+.lt-book-state--completed {
+    border-left-color: var(--lt-teal);
+}
+
+.lt-book-state--rejected,
+.lt-book-state--cancelled {
+    border-left-color: var(--lt-danger);
+}
+
+.lt-book-state p {
+    color: var(--lt-text-soft);
+    font-size: 0.9375rem;
+}
+
+.lt-book-state__reason,
+.lt-book-state__pay {
+    margin-top: 10px;
+}
+
+.lt-book-success {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding: 14px 16px;
+    border: 1px solid var(--lt-teal-100);
+    border-radius: var(--lt-radius-lg);
+    background: var(--lt-teal-50);
+    color: var(--lt-teal-800);
+    font-size: 0.9375rem;
+}
+
+.lt-book-success > .lt-icon {
+    width: 22px;
+    height: 22px;
+    margin-top: 1px;
+    color: var(--lt-teal);
+}
+
+.lt-book-success__title {
+    font-weight: 700;
+}
+
+.lt-book-guests {
+    margin: 10px 0 0;
+    padding-left: 20px;
+}
+
+.lt-book-guests li {
+    padding: 4px 0;
+}
+
+.lt-book-guests__name {
+    color: var(--lt-text);
+    font-weight: 500;
+}
+
+.lt-book-guests__type {
+    margin-left: 8px;
+    color: var(--lt-muted-strong);
+    font-size: 0.8125rem;
+}
+
+.lt-book-request-text {
+    margin-top: 12px;
+    color: var(--lt-text-soft);
+    font-size: 0.875rem;
+    overflow-wrap: anywhere;
+}
+
+/* ---------- Đơn của tôi ---------- */
+
+.lt-orders {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.lt-order {
+    display: flex;
+    gap: 16px;
+    padding: 14px;
+    border: 1px solid var(--lt-border);
+    border-radius: var(--lt-radius-lg);
+    background: var(--lt-surface);
+    box-shadow: var(--lt-shadow-sm);
+    color: inherit;
+    text-decoration: none;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.lt-order:hover,
+.lt-order:focus-visible {
+    border-color: var(--lt-teal-100);
+    box-shadow: var(--lt-shadow-hover);
+    color: inherit;
+    text-decoration: none;
+}
+
+.lt-order__media {
+    flex-shrink: 0;
+    width: 132px;
+    height: 100px;
+    overflow: hidden;
+    border-radius: var(--lt-radius);
+    background: var(--lt-placeholder);
+}
+
+.lt-order__media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.lt-order__body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.lt-order__top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px 12px;
+}
+
+.lt-order__code {
+    color: var(--lt-muted-strong);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.lt-order__title {
+    color: var(--lt-text);
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.lt-order__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    color: var(--lt-muted-strong);
+    font-size: 0.8125rem;
+}
+
+.lt-order__meta .lt-icon {
+    margin-right: 4px;
+}
+
+.lt-order__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 4px 12px;
+    margin-top: auto;
+    color: var(--lt-muted);
+    font-size: 0.75rem;
+}
+
+.lt-order__total {
+    color: var(--lt-text);
+    font-size: 1rem;
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 575.98px) {
+    .lt-order {
+        flex-direction: column;
+    }
+
+    .lt-order__media {
+        width: 100%;
+        height: 140px;
+    }
+}
+
+.lt-book-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 36px 24px;
+    text-align: center;
+}
+
+.lt-book-empty .lt-book-actions {
+    justify-content: center;
+}
+
+.lt-booking-message__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    margin-bottom: 14px;
+    border-radius: 50%;
+    background: var(--lt-teal-50);
+    color: var(--lt-teal);
+}
+
+.lt-booking-message__icon .lt-icon {
+    width: 28px;
+    height: 28px;
+}
+
+.lt-booking-message__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+}

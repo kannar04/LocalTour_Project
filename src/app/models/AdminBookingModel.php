@@ -9,7 +9,8 @@ use Core\Database;
 /**
  * Quản lý yêu cầu đặt tour (FR-25) và lịch sử xử lý (NFR-09) của quản trị viên (Nguyễn Tuấn Khôi).
  * Procedure: NTK_sp_admin_booking_list, NTK_sp_admin_booking_detail, NTK_sp_admin_booking_line_list,
- * NTK_sp_admin_booking_set_status, NTK_sp_admin_log_list.
+ * NTK_sp_admin_booking_passenger_list, NTK_sp_admin_booking_set_status, NTK_sp_admin_log_list.
+ * Xác nhận chỗ (pending → awaiting_payment) giữ chỗ của lịch; hủy đơn đang giữ chỗ trả lại chỗ.
  */
 final class AdminBookingModel
 {
@@ -59,8 +60,18 @@ final class AdminBookingModel
     }
 
     /**
+     * Danh sách khách của yêu cầu theo thứ tự nhập (full_name, age_group, special_request).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function passengers(string $bookingId): array
+    {
+        return Database::call('NTK_sp_admin_booking_passenger_list', [$bookingId]);
+    }
+
+    /**
      * Đổi trạng thái và ghi lịch sử. Trả về result của procedure: ok, forbidden, not_found,
-     * invalid_transition, note_required, needs_payment, not_departed.
+     * invalid_transition, note_required, needs_payment, not_departed, no_seats, schedule_closed.
      */
     public function setStatus(string $bookingId, string $newStatus, string $actorUserId, string $note): string
     {

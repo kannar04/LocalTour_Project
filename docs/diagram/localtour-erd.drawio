@@ -541,7 +541,7 @@
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
                 <mxCell id="booking-bookings" data-kind="table" data-model-id="bookings" data-provenance="{&quot;path&quot;:&quot;D:\\dan\\LocalTour_Project\\src\\database\\01_schema.sql&quot;,&quot;importer&quot;:&quot;sql&quot;}" parent="1" style="swimlane;startSize=36;horizontal=1;rounded=0;html=1;whiteSpace=wrap;container=1;collapsible=1;fontStyle=1;fontSize=14;align=center;verticalAlign=middle;fillColor=#e1d5e7;strokeColor=#9673a6;swimlaneFillColor=#ffffff;" value="bookings" vertex="1">
-                    <mxGeometry height="374" width="660" x="720" y="300" as="geometry"/>
+                    <mxGeometry height="426" width="660" x="720" y="300" as="geometry"/>
                 </mxCell>
                 <mxCell id="booking-bookings-field-0" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#fff2cc;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=1;fontColor=#7f6000;pointerEvents=0;" value="PK id: CHAR(36)" vertex="1">
                     <mxGeometry height="26" width="660" y="36" as="geometry"/>
@@ -552,38 +552,44 @@
                 <mxCell id="booking-bookings-field-2" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#ffffff;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="code: VARCHAR(20)" vertex="1">
                     <mxGeometry height="26" width="660" y="114" as="geometry"/>
                 </mxCell>
-                <mxCell id="booking-bookings-field-3" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#f7f7f7;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="contact_name: VARCHAR(100)" vertex="1">
+                <mxCell id="booking-bookings-field-request-token" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#f7f7f7;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="request_token: VARCHAR(64)" vertex="1">
                     <mxGeometry height="26" width="660" y="140" as="geometry"/>
                 </mxCell>
-                <mxCell id="booking-bookings-field-4" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#ffffff;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="contact_email: VARCHAR(150)" vertex="1">
+                <mxCell id="booking-bookings-field-3" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#ffffff;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="contact_name: VARCHAR(100)" vertex="1">
                     <mxGeometry height="26" width="660" y="166" as="geometry"/>
                 </mxCell>
-                <mxCell id="booking-bookings-field-5" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#f7f7f7;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="contact_phone: VARCHAR(20)" vertex="1">
+                <mxCell id="booking-bookings-field-4" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#f7f7f7;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="contact_email: VARCHAR(150)" vertex="1">
                     <mxGeometry height="26" width="660" y="192" as="geometry"/>
                 </mxCell>
-                <mxCell id="booking-bookings-field-6" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#ffffff;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="status: ENUM(&#39;pending&#39;,&#39;awaiting_payment&#39;,&#39;confirmed&#39;,&#39;rejected&#39;,&#39;cancelled&#39;,&#39;completed&#39;)" vertex="1">
+                <mxCell id="booking-bookings-field-5" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#ffffff;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="contact_phone: VARCHAR(20)" vertex="1">
                     <mxGeometry height="26" width="660" y="218" as="geometry"/>
                 </mxCell>
-                <mxCell id="booking-bookings-field-7" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#f7f7f7;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="total_vnd: BIGINT" vertex="1">
+                <mxCell id="booking-bookings-field-6" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#f7f7f7;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="status: ENUM(&#39;pending&#39;,&#39;awaiting_payment&#39;,&#39;confirmed&#39;,&#39;rejected&#39;,&#39;cancelled&#39;,&#39;completed&#39;)" vertex="1">
                     <mxGeometry height="26" width="660" y="244" as="geometry"/>
                 </mxCell>
-                <mxCell id="booking-bookings-field-8" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#ffffff;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="policy_version: INT" vertex="1">
+                <mxCell id="booking-bookings-field-7" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#ffffff;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="total_vnd: BIGINT" vertex="1">
                     <mxGeometry height="26" width="660" y="270" as="geometry"/>
                 </mxCell>
-                <mxCell id="booking-bookings-field-9" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#f7f7f7;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="hold_expires_at: DATETIME" vertex="1">
+                <mxCell id="booking-bookings-field-8" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#f7f7f7;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="policy_version: INT" vertex="1">
                     <mxGeometry height="26" width="660" y="296" as="geometry"/>
                 </mxCell>
-                <mxCell id="booking-bookings-field-created-at" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#ffffff;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="created_at: DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" vertex="1">
+                <mxCell id="booking-bookings-field-9" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#ffffff;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="hold_expires_at: DATETIME" vertex="1">
                     <mxGeometry height="26" width="660" y="322" as="geometry"/>
                 </mxCell>
-                <mxCell id="booking-bookings-index-status-created" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#eadcf0;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=2;fontColor=#5b3c68;pointerEvents=0;" value="INDEX idx_bookings_status_created (status, created_at)" vertex="1">
+                <mxCell id="booking-bookings-field-created-at" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#f7f7f7;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="created_at: DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP" vertex="1">
                     <mxGeometry height="26" width="660" y="348" as="geometry"/>
+                </mxCell>
+                <mxCell id="booking-bookings-index-status-created" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#eadcf0;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=2;fontColor=#5b3c68;pointerEvents=0;" value="INDEX idx_bookings_status_created (status, created_at)" vertex="1">
+                    <mxGeometry height="26" width="660" y="374" as="geometry"/>
+                </mxCell>
+                <mxCell id="booking-bookings-unique-user-request" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#eadcf0;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=2;fontColor=#5b3c68;pointerEvents=0;" value="UNIQUE uq_bookings_user_request (user_id, request_token)" vertex="1">
+                    <mxGeometry height="26" width="660" y="400" as="geometry"/>
                 </mxCell>
                 <mxCell id="booking-bookings-field-user-id" parent="booking-bookings" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#e2f0d9;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=1;fontColor=#375623;pointerEvents=0;" value="FK user_id: CHAR(36)" vertex="1">
                     <mxGeometry height="26" width="660" y="62" as="geometry"/>
                 </mxCell>
                 <mxCell id="booking-booking_lines" data-kind="table" data-model-id="booking_lines" data-provenance="{&quot;path&quot;:&quot;D:\\dan\\LocalTour_Project\\src\\database\\01_schema.sql&quot;,&quot;importer&quot;:&quot;sql&quot;}" parent="1" style="swimlane;startSize=36;horizontal=1;rounded=0;html=1;whiteSpace=wrap;container=1;collapsible=1;fontStyle=1;fontSize=14;align=center;verticalAlign=middle;fillColor=#e1d5e7;strokeColor=#9673a6;swimlaneFillColor=#ffffff;" value="booking_lines" vertex="1">
-                    <mxGeometry height="192" width="360" x="1420" y="40" as="geometry"/>
+                    <mxGeometry height="218" width="360" x="1420" y="40" as="geometry"/>
                 </mxCell>
                 <mxCell id="booking-booking_lines-field-0" parent="booking-booking_lines" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#fff2cc;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=1;fontColor=#7f6000;pointerEvents=0;" value="PK id: CHAR(36)" vertex="1">
                     <mxGeometry height="26" width="360" y="36" as="geometry"/>
@@ -602,6 +608,9 @@
                 </mxCell>
                 <mxCell id="booking-booking_lines-field-5" parent="booking-booking_lines" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#f7f7f7;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="line_total_vnd: BIGINT" vertex="1">
                     <mxGeometry height="26" width="360" y="166" as="geometry"/>
+                </mxCell>
+                <mxCell id="booking-booking_lines-unique-ticket" parent="booking-booking_lines" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#eadcf0;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=2;fontColor=#5b3c68;pointerEvents=0;" value="UNIQUE uq_booking_lines_ticket (booking_id, ticket_type_id)" vertex="1">
+                    <mxGeometry height="26" width="360" y="192" as="geometry"/>
                 </mxCell>
                 <mxCell id="booking-ticket_types" data-kind="table" data-model-id="ticket_types" data-provenance="{&quot;path&quot;:&quot;D:\\dan\\LocalTour_Project\\src\\database\\01_schema.sql&quot;,&quot;importer&quot;:&quot;sql&quot;}" parent="1" style="swimlane;startSize=36;horizontal=1;rounded=0;html=1;whiteSpace=wrap;container=1;collapsible=1;fontStyle=1;fontSize=14;align=center;verticalAlign=middle;fillColor=#ffe6cc;strokeColor=#d79b00;swimlaneFillColor=#ffffff;" value="ticket_types" vertex="1">
                     <mxGeometry height="218" width="360" x="40" y="450" as="geometry"/>
@@ -703,7 +712,7 @@
                     <mxGeometry height="26" width="360" y="166" as="geometry"/>
                 </mxCell>
                 <mxCell id="booking-passengers" data-kind="table" data-model-id="passengers" data-provenance="{&quot;path&quot;:&quot;D:\\dan\\LocalTour_Project\\src\\database\\01_schema.sql&quot;,&quot;importer&quot;:&quot;sql&quot;}" parent="1" style="swimlane;startSize=36;horizontal=1;rounded=0;html=1;whiteSpace=wrap;container=1;collapsible=1;fontStyle=1;fontSize=14;align=center;verticalAlign=middle;fillColor=#e1d5e7;strokeColor=#9673a6;swimlaneFillColor=#ffffff;" value="passengers" vertex="1">
-                    <mxGeometry height="166" width="360" x="1420" y="390" as="geometry"/>
+                    <mxGeometry height="192" width="360" x="1420" y="390" as="geometry"/>
                 </mxCell>
                 <mxCell id="booking-passengers-field-0" parent="booking-passengers" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#fff2cc;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=1;fontColor=#7f6000;pointerEvents=0;" value="PK id: CHAR(36)" vertex="1">
                     <mxGeometry height="26" width="360" y="36" as="geometry"/>
@@ -719,6 +728,9 @@
                 </mxCell>
                 <mxCell id="booking-passengers-field-4" parent="booking-passengers" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#ffffff;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="special_request: TEXT" vertex="1">
                     <mxGeometry height="26" width="360" y="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="booking-passengers-field-sort-order" parent="booking-passengers" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=8;whiteSpace=wrap;overflow=hidden;fillColor=#f7f7f7;strokeColor=#9673a6;strokeWidth=0.5;fontSize=11;fontStyle=0;fontColor=#333333;pointerEvents=0;" value="sort_order: INT NOT NULL DEFAULT 0" vertex="1">
+                    <mxGeometry height="26" width="360" y="166" as="geometry"/>
                 </mxCell>
                 <mxCell id="booking-refunds" data-kind="table" data-model-id="refunds" data-provenance="{&quot;path&quot;:&quot;D:\\dan\\LocalTour_Project\\src\\database\\01_schema.sql&quot;,&quot;importer&quot;:&quot;sql&quot;}" parent="1" style="swimlane;startSize=36;horizontal=1;rounded=0;html=1;whiteSpace=wrap;container=1;collapsible=1;fontStyle=1;fontSize=14;align=center;verticalAlign=middle;fillColor=#f8cecc;strokeColor=#b85450;swimlaneFillColor=#ffffff;" value="refunds" vertex="1">
                     <mxGeometry height="192" width="450" x="2080" y="1000" as="geometry"/>

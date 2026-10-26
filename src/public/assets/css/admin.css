@@ -151,6 +151,26 @@
     text-align: center;
 }
 
+.lt-guest-list {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 0.875rem;
+}
+
+.lt-guest-list li + li {
+    margin-top: 4px;
+}
+
+.lt-guest-list__type {
+    color: var(--lt-muted-strong);
+}
+
+.lt-guest-list__note {
+    margin: 2px 0 0;
+    color: var(--lt-muted-strong);
+    font-size: 0.8125rem;
+}
+
 .lt-table {
     font-size: 0.875rem;
 }

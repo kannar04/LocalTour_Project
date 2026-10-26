@@ -7,6 +7,9 @@ use App\Controllers\AdminBookingController;
 use App\Controllers\AdminDashboardController;
 use App\Controllers\AdminTourController;
 use App\Controllers\AuthController;
+use App\Controllers\BookingController;
+use App\Controllers\CustomerBookingController;
+use App\Controllers\ScheduleController;
 use App\Controllers\TourDetailController;
 use App\Controllers\TourListController;
 use Core\Router;
@@ -23,6 +26,15 @@ $router->get('/api/categories', [TourListController::class, 'apiCategories']);
 // Chi tiết tour theo ID (WBS 3.2.4)
 $router->get('/tours/{id}', [TourDetailController::class, 'show']);
 $router->get('/api/tours/{id}', [TourDetailController::class, 'apiShow']);
+
+// Đặt tour (M4): trang hoàn tất thông tin, kiểm tra chỗ trống của lịch, lưu yêu cầu đặt tour.
+$router->get('/tours/{id}/book', [BookingController::class, 'create']);
+$router->get('/api/schedules/{id}/availability', [ScheduleController::class, 'apiAvailability']);
+$router->post('/api/bookings', [BookingController::class, 'store']);
+
+// Đơn của tôi (M4): yêu cầu đặt tour đã gửi của tài khoản đang đăng nhập.
+$router->get('/bookings', [CustomerBookingController::class, 'index']);
+$router->get('/bookings/{code}', [CustomerBookingController::class, 'show']);
 
 // Tài khoản khách hàng: đăng ký, đăng nhập, đăng xuất (WBS 3.2.8). Chưa đăng nhập = chế độ khách.
 $router->get('/login', [AuthController::class, 'showLogin']);

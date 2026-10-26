@@ -1,12 +1,13 @@
 # LocalTour – Mã nguồn ứng dụng
 
-Thư mục `src/` chứa LocalTour Increment v0.1 của Sprint 3: trang danh sách tour, trang chi tiết tour, tài khoản khách hàng (đăng ký, đăng nhập, đăng xuất) và trang quản trị (duyệt tour, xử lý yêu cầu đặt tour, thống kê), đọc và ghi dữ liệu MySQL qua stored procedure. Toàn bộ dữ liệu tour, giá, tài khoản và đánh giá là dữ liệu minh họa.
+Thư mục `src/` chứa LocalTour Increment v0.2: trang danh sách tour, trang chi tiết tour, tài khoản khách hàng (đăng ký, đăng nhập, đăng xuất), trang quản trị (duyệt tour, xử lý yêu cầu đặt tour, thống kê) của Sprint 3 và luồng đặt tour MVP của Sprint 4 (M4: chọn lịch và số khách, nhập danh sách khách, gửi yêu cầu đặt tour, trang "Đơn của tôi"), đọc và ghi dữ liệu MySQL qua stored procedure. Toàn bộ dữ liệu tour, giá, tài khoản và đánh giá là dữ liệu minh họa.
 
 Tài liệu thiết kế đi kèm:
 
 - [01 – Danh mục trường dữ liệu](../docs/sprint3/01-truong-du-lieu.md)
 - [02 – Lược đồ dữ liệu](../docs/sprint3/02-luoc-do-du-lieu.md)
 - [03 – Route và quy ước lỗi](../docs/sprint3/03-route-va-quy-uoc-loi.md)
+- Sprint 4: [01 – Rà soát M3 và tồn đọng](../docs/sprint4/01-ra-soat-m3-va-ton-dong.md), [02 – Yêu cầu và luồng đặt tour](../docs/sprint4/02-yeu-cau-va-luong-dat-tour.md), [03 – Cấu trúc dữ liệu Booking](../docs/sprint4/03-cau-truc-du-lieu-booking.md)
 
 ## Công nghệ
 
@@ -35,7 +36,10 @@ src/
 │   │   ├── AdminAuthController.php
 │   │   ├── AdminDashboardController.php
 │   │   ├── AdminTourController.php
-│   │   └── AdminBookingController.php
+│   │   ├── AdminBookingController.php
+│   │   ├── ScheduleController.php        # Kiểm tra lịch và số chỗ (API)
+│   │   ├── BookingController.php         # Trang đặt tour, lưu yêu cầu đặt tour
+│   │   └── CustomerBookingController.php # Đơn của tôi
 │   ├── models/
 │   │   ├── TourListModel.php
 │   │   ├── TourDetailModel.php
@@ -43,13 +47,17 @@ src/
 │   │   ├── UserModel.php         # Tài khoản khách hàng
 │   │   ├── AdminStatsModel.php
 │   │   ├── AdminTourModel.php
-│   │   └── AdminBookingModel.php
+│   │   ├── AdminBookingModel.php
+│   │   ├── BookingAvailabilityModel.php
+│   │   ├── BookingModel.php
+│   │   └── CustomerBookingModel.php
 │   └── views/
 │       ├── admin/                # login.php, dashboard.php, tours/, bookings/, partials/nav.php
 │       ├── auth/                 # login.php, register.php
+│       ├── bookings/             # create.php (đặt tour), index.php, show.php (đơn của tôi), message.php
 │       ├── errors/               # 403.php, 404.php, 500.php
 │       ├── layouts/              # main.php
-│       ├── partials/             # header.php (nút tài khoản), sidebar.php, footer.php
+│       ├── partials/             # header.php (nút tài khoản, Đơn của tôi), sidebar.php, footer.php
 │       └── tours/                # index.php, show.php, not-found.php
 ├── config/                       # app.php, database.php (đọc giá trị từ .env)
 ├── core/                         # bootstrap.php, Router.php, Controller.php, Database.php,
@@ -63,15 +71,19 @@ src/
 │   ├── 05_procedures_NTK.sql
 │   ├── 06_procedures_NTK_account.sql
 │   ├── 07_procedures_NTK_admin.sql
-│   ├── db_localtour.sql          # File gộp 01–07, sinh tự động
+│   ├── 08_migration_booking_NMT.sql
+│   ├── 09_procedures_NMT_booking.sql
+│   ├── 10_procedures_LTP_booking.sql
+│   ├── 11_procedures_NTK_booking.sql
+│   ├── db_localtour.sql          # File gộp 01–11, sinh tự động
 │   └── README.md
 ├── public/                       # Thư mục web duy nhất trình duyệt truy cập được
 │   ├── .htaccess                 # Chuyển mọi đường dẫn về index.php (Apache)
 │   ├── index.php                 # Front controller
 │   ├── router.php                # Router cho PHP built-in server
 │   └── assets/
-│       ├── css/                  # base.css, tour-list.css, tour-detail.css, auth.css, admin.css
-│       ├── js/                   # app.js, tour-list.js, tour-detail.js
+│       ├── css/                  # base.css, tour-list.css, tour-detail.css, auth.css, admin.css, booking.css
+│       ├── js/                   # app.js, tour-list.js, tour-detail.js, booking.js
 │       └── img/                  # Ảnh SVG minh họa; bảng tour_images lưu đường dẫn tới các file này
 ├── routes/
 │   └── web.php                   # Khai báo route
@@ -106,22 +118,28 @@ Tiền tố tên procedure cho biết người phụ trách: `LTP_` – Lê Trun
 | POST | `/admin/tours/{id}/reject` | `AdminTourController@reject` | `note` (bắt buộc, tối đa 255 ký tự), `_csrf`. |
 | GET | `/admin/bookings` | `AdminBookingController@index` | `status` (trống = tất cả), `q` (mã, tên, email, số điện thoại; tối đa 100 ký tự). |
 | GET | `/admin/bookings/{id}` | `AdminBookingController@show` | 404 nếu UUID sai hoặc không tìm thấy. |
-| POST | `/admin/bookings/{id}/status` | `AdminBookingController@updateStatus` | `status`, `note` (bắt buộc khi từ chối hoặc hủy), `_csrf`; 409 nếu không chuyển được trạng thái. |
+| POST | `/admin/bookings/{id}/status` | `AdminBookingController@updateStatus` | `status`, `note` (bắt buộc khi từ chối hoặc hủy), `_csrf`; 409 nếu không chuyển được trạng thái hoặc lịch không còn đủ chỗ. |
+| GET | `/tours/{id}/book` | `BookingController@create` | Trang "Hoàn tất thông tin đặt tour"; `schedule_id`, `tickets[<mã vé>]` (lịch và số khách chọn ở trang chi tiết). Chưa đăng nhập → `/login?next=…`; tài khoản không phải khách hàng → 403. |
+| GET | `/api/schedules/{id}/availability` | `ScheduleController@apiAvailability` | `people` (1–50). JSON `{ remaining, max_group_size, bookable, enough, tickets, … }`; 400 UUID sai, 404 không tìm thấy, 422 `people` sai. |
+| POST | `/api/bookings` | `BookingController@store` | Form đặt tour + `_csrf`, `request_token`; 201 đã tạo đơn, 200 gửi trùng, 401, 403, 409 (lịch, chỗ hoặc giá đã đổi), 422 (lỗi theo từng ô). |
+| GET | `/bookings` | `CustomerBookingController@index` | "Đơn của tôi" của tài khoản đang đăng nhập. |
+| GET | `/bookings/{code}` | `CustomerBookingController@show` | Chi tiết đơn (`LTxxxxxx`); 404 khi mã sai hoặc đơn của tài khoản khác; `?new=1` hiện thông báo vừa gửi. |
 
 Mọi trang `/admin…` (trừ `/admin/login`): chưa đăng nhập thì chuyển tới `/admin/login`, đăng nhập bằng tài khoản không phải quản trị viên thì nhận trang 403.
 
-Đầu vào, đầu ra và mã lỗi chi tiết xem [03 – Route và quy ước lỗi](../docs/sprint3/03-route-va-quy-uoc-loi.md).
+Đầu vào, đầu ra và mã lỗi chi tiết xem [03 – Route và quy ước lỗi](../docs/sprint3/03-route-va-quy-uoc-loi.md); các route đặt tour xem [02 – Yêu cầu và luồng đặt tour](../docs/sprint4/02-yeu-cau-va-luong-dat-tour.md).
 
 ## Chế độ khách và tài khoản
 
 | | Chế độ khách (chưa đăng nhập) | Đã đăng nhập |
 | --- | --- | --- |
 | Xem danh sách, chi tiết tour | Có | Có |
-| Header | Liên kết "Đăng nhập" và nút "Đăng ký" | Chữ cái đầu, tên tài khoản và nút "Đăng xuất" |
-| Thẻ đặt tour ở trang chi tiết | Liên kết "Đăng nhập để đặt tour" (quay lại đúng tour sau khi đăng nhập) và ghi chú "Bạn đang xem với tư cách khách. Đăng nhập để đặt tour." | Nút "Đặt tour" bị tắt, nhãn "Sắp có" |
+| Header | Liên kết "Đăng nhập" và nút "Đăng ký" | "Đơn của tôi", chữ cái đầu, tên tài khoản và nút "Đăng xuất" |
+| Thẻ đặt tour ở trang chi tiết | Liên kết "Đăng nhập để đặt tour" (đăng nhập xong vào thẳng trang đặt tour với lịch và số khách đã chọn) và ghi chú "Bạn đang xem với tư cách khách. Đăng nhập để đặt tour." | Nút "Đặt tour" mở trang "Hoàn tất thông tin đặt tour" |
+| Đặt tour, "Đơn của tôi" | Chuyển tới trang đăng nhập | Có |
 | Thích, Bình luận, Chia sẻ, Lưu tour, So sánh | Bị tắt, nhãn "Sắp có" | Bị tắt, nhãn "Sắp có" |
 
-Trang đăng nhập và đăng ký có liên kết "Tiếp tục với tư cách khách" về trang trong `next` (mặc định `/tours`). Đã đăng nhập mà mở `/login` hoặc `/register` thì cũng được chuyển về trang đó. Chỉ tài khoản `customer` đang `active` đăng nhập được ở đây; quản trị viên đăng nhập ở `/admin/login` (Bước 7).
+Trang đăng nhập và đăng ký có liên kết "Tiếp tục với tư cách khách" về trang trong `next` (mặc định `/tours`). Đã đăng nhập mà mở `/login` hoặc `/register` thì cũng được chuyển về trang đó. Chỉ tài khoản `customer` đang `active` đăng nhập được ở đây và đặt được tour; quản trị viên đăng nhập ở `/admin/login` (Bước 7), mở trang đặt tour thì nhận thông báo "Tài khoản này không đặt tour được".
 
 ## Cài đặt trên máy mới
 
@@ -156,10 +174,10 @@ Chọn một trong hai cách.
 **Cách B – Import database trên máy mình.**
 
 1. Mở XAMPP Control Panel, bấm Start cho **MySQL**.
-2. Dùng file `src/database/db_localtour.sql` trong repo. File này được gộp từ `src/database/01_schema.sql` đến `07_procedures_NTK_admin.sql`.
+2. Dùng file `src/database/db_localtour.sql` trong repo. File này được gộp từ `src/database/01_schema.sql` đến `11_procedures_NTK_booking.sql`.
 3. Mở `http://localhost/phpmyadmin`, chọn tab **Import**, chọn file `db_localtour.sql`, giữ **Character set of the file** là `utf-8`, bấm **Import** (hoặc **Go**). File tự tạo database `db_localtour` với `utf8mb4_unicode_ci`.
 
-Nếu không có file gộp: tạo database `db_localtour` với collation `utf8mb4_unicode_ci`, chọn database đó, rồi import lần lượt `01_schema.sql`, `02_seed.sql`, `03_procedures_LTP.sql`, `04_procedures_NMT.sql`, `05_procedures_NTK.sql`, `06_procedures_NTK_account.sql`, `07_procedures_NTK_admin.sql`.
+Nếu không có file gộp: tạo database `db_localtour` với collation `utf8mb4_unicode_ci`, chọn database đó, rồi import lần lượt `01_schema.sql`, `02_seed.sql`, `03_procedures_LTP.sql`, `04_procedures_NMT.sql`, `05_procedures_NTK.sql`, `06_procedures_NTK_account.sql`, `07_procedures_NTK_admin.sql`, `08_migration_booking_NMT.sql`, `09_procedures_NMT_booking.sql`, `10_procedures_LTP_booking.sql`, `11_procedures_NTK_booking.sql`.
 
 Import lại bất cứ lúc nào để đưa dữ liệu về trạng thái ban đầu: `01_schema.sql` xóa và tạo lại 27 bảng, đồng thời xóa 2 bảng đã bỏ (`post_comments`, `post_interactions`). Tài khoản đã đăng ký thử cũng bị xóa. Ngày khởi hành mẫu được tính theo ngày import, vì vậy nên import lại trước mỗi buổi kiểm thử hoặc demo. Chi tiết xem [02 – Lược đồ dữ liệu](../docs/sprint3/02-luoc-do-du-lieu.md) và `src/database/README.md`.
 
@@ -211,7 +229,7 @@ Mở `http://127.0.0.1:8080`. Giữ cửa sổ dòng lệnh mở trong lúc dùn
 
 ```sql
 SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'db_localtour';                                  -- 27
-SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = 'db_localtour' AND ROUTINE_TYPE = 'PROCEDURE'; -- 26
+SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = 'db_localtour' AND ROUTINE_TYPE = 'PROCEDURE'; -- 34
 ```
 
 Ra số khác thì xem mục "Cách 1" của `src/database/README.md` để so tên bảng và procedure. Với Cách A, tài khoản ứng dụng chỉ có quyền gọi procedure nên bỏ qua bước này; các đường dẫn dưới đây đã đủ để kiểm tra.
@@ -259,10 +277,27 @@ Trang quản trị chỉ dành cho tài khoản `admin` đang `active`, đăng n
 | --- | --- |
 | `/admin` | 40 tài khoản khách hàng (39 đang hoạt động, 1 bị khóa), 12 tour (2 chờ duyệt, 9 đã duyệt, 1 bị từ chối), 3 yêu cầu chờ xác nhận trên tổng 39; bảng yêu cầu theo trạng thái, theo thời gian và doanh thu. |
 | `/admin/tours` | 2 tour chờ duyệt. Mở "Một buổi chiều trong Đại Nội Huế", bấm "Phê duyệt tour" → "Đã phê duyệt tour."; `/tours` giờ có 10 tour và bộ lọc có Huế. |
-| `/admin/bookings` | 39 yêu cầu, tab "Chờ xác nhận" có 3. Mở một yêu cầu chờ xác nhận, chọn "Xác nhận chỗ và giá" rồi bấm "Cập nhật trạng thái" → trạng thái "Chờ thanh toán", mục "Lịch sử xử lý" có thêm một dòng. |
+| `/admin/bookings` | 39 yêu cầu, tab "Chờ xác nhận" có 3. Mở yêu cầu `LT518204`, chọn "Xác nhận chỗ và giá" rồi bấm "Cập nhật trạng thái" → trạng thái "Chờ thanh toán", mục "Lịch sử xử lý" có thêm một dòng, "Chỗ của lịch" giảm 2. Yêu cầu `LT527716` cần 3 chỗ nhưng lịch chỉ còn 2 → báo "Lịch khởi hành không còn đủ chỗ…", trạng thái không đổi. |
 | `/admin` khi đăng nhập bằng tài khoản khách hàng | Trang 403 "Bạn không có quyền truy cập trang này." |
 
 Với Cách A, tài khoản ứng dụng chỉ có quyền gọi procedure nên không chạy được câu `UPDATE` ở bước 2. Không ghi email hay mật khẩu của tài khoản quản trị thử vào tài liệu, file commit hoặc nhóm chat chung. Import lại database sẽ xóa tài khoản này.
+
+### Bước 8. Thử đặt tour
+
+Dùng tài khoản khách hàng tự tạo ở Bước 6 (tài khoản quản trị viên không đặt tour được).
+
+1. Mở `/tours/c0000000-0000-4000-8000-000000000001`, chọn ngày còn 6 chỗ, đặt 2 người lớn và 1 trẻ em (tạm tính 1.760.000đ), bấm "Đặt tour".
+2. Trang "Hoàn tất thông tin đặt tour" giữ đúng lịch và số khách vừa chọn, thông tin liên hệ điền sẵn từ tài khoản, có 3 ô họ tên khách. Nhập số điện thoại, họ tên 3 khách, tích ô đồng ý điều kiện rồi bấm "Xem lại & xác nhận".
+3. Bước xem lại hiện đủ ngày, giờ, danh sách khách và tổng tiền. Bấm "Gửi yêu cầu đặt tour" → trang đơn `LTxxxxxx` với thông báo "Đã gửi yêu cầu đặt tour", trạng thái "Chờ xác nhận". Đơn có trong "Đơn của tôi" ở header.
+
+| Thử thêm | Kết quả mong đợi |
+| --- | --- |
+| Bấm "Xem lại & xác nhận" khi để trống họ tên khách và chưa tích điều kiện | Báo lỗi ngay dưới từng ô, con trỏ nhảy tới ô lỗi đầu tiên; không gửi gì lên máy chủ. |
+| Tour "Hội An: phố cổ, đèn lồng và hoa đăng", lịch chỉ còn 1 chỗ, đặt 2 khách | Nút "+" dừng ở 1 khách, gợi ý "lịch này còn 1 chỗ". |
+| Đặt xong, mở lại `/bookings/<mã đơn>` bằng tài khoản khác | Trang "Không tìm thấy đơn" (404). |
+| Quản trị viên xác nhận chỗ cho đơn vừa đặt (Bước 7) | Khách thấy "Chờ thanh toán" và hạn giữ chỗ; lịch giảm đúng số khách. Quản trị viên hủy đơn kèm lý do → khách thấy "Đã hủy" và lý do, lịch được trả lại chỗ. |
+
+Bước thanh toán (VNPay, VietQR) thuộc M5: trang đơn chỉ ghi "Sắp có".
 
 ## Bảo mật
 
@@ -272,6 +307,7 @@ Với Cách A, tài khoản ứng dụng chỉ có quyền gọi procedure nên 
 - Mọi form POST có ô ẩn `_csrf` (`csrf_field()`); controller kiểm tra bằng `Auth::verifyCsrf()` trước khi xử lý. Đăng xuất chỉ bằng POST.
 - Tham số `next` chỉ nhận đường dẫn trong ứng dụng (`safe_next_path()`), không chuyển hướng ra trang ngoài.
 - Trang `/admin…` chỉ cho tài khoản `admin`; procedure ghi dữ liệu của trang quản trị kiểm tra lại người thao tác là quản trị viên đang hoạt động. Mọi lần phê duyệt tour và đổi trạng thái yêu cầu đặt tour được ghi vào `admin_logs` (người thao tác, thời điểm, trạng thái cũ, trạng thái mới, lý do). Không có route hay procedure nào nâng quyền tài khoản.
+- Đặt tour: `user_id` của đơn lấy từ phiên đăng nhập, không nhận từ form. Giá và tổng tiền được tính lại trong `LTP_sp_booking_create` từ giá vé đang bán; số tiền gửi lên chỉ để phát hiện giá đã đổi. Mỗi lần mở form có một `request_token`; gửi lại cùng mã (bấm hai lần, mạng lỗi) không tạo đơn thứ hai. Trang "Đơn của tôi" chỉ trả đơn của chính tài khoản và không cho trình duyệt lưu đệm (`Cache-Control: no-store`).
 - Không commit `.env`, mật khẩu, khóa bí mật, địa chỉ IP thật, file log hay tài khoản thử.
 
 ## Khuyến nghị cho máy host database chung (Phong)
@@ -303,8 +339,9 @@ GRANT EXECUTE ON db_localtour.* TO 'localtour_app'@'<tiền tố IP của VPN>.%
 | Dưới Apache, mọi trang (trừ trang chủ) đều 404 của Apache | `mod_rewrite` bị tắt hoặc `.htaccess` bị bỏ qua. | Trong `C:\xampp\apache\conf\httpd.conf`: bỏ dấu `#` trước `LoadModule rewrite_module modules/mod_rewrite.so`; trong khối `<Directory "C:/xampp/htdocs">` đặt `AllowOverride All`. Khởi động lại Apache. |
 | `http://localhost/LocalTour_Project/src/` báo 403 | Hành vi đúng: `src/.htaccess` chặn mọi thứ ngoài `public/`. | Mở `http://localhost/LocalTour_Project/src/public/`. |
 | Tiếng Việt hiển thị sai (`Ã¡`, `?`) | File SQL được import với bảng mã khác UTF-8, hoặc database tạo sai collation. | Import lại `db_localtour.sql`, chọn character set `utf-8`; database phải dùng `utf8mb4` và `utf8mb4_unicode_ci`. |
-| Trang lỗi 500, log có `PROCEDURE db_localtour.… does not exist` | Chưa import đủ các file procedure. | Import lại `db_localtour.sql`, hoặc import `03`, `04`, `05`, `06`, `07` theo thứ tự. |
-| Trang lỗi 500, log có `Unknown column` hoặc `Table 'db_localtour.…' doesn't exist` | Database vẫn là lược đồ cũ (trước lược đồ 27 bảng), hoặc file gộp được sinh từ bản cũ. | Sinh lại `db_localtour.sql` từ `01`–`07` mới nhất rồi import lại. |
+| Trang lỗi 500, log có `PROCEDURE db_localtour.… does not exist` | Chưa import đủ các file procedure. | Import lại `db_localtour.sql`, hoặc import `03` đến `11` theo thứ tự. |
+| Trang lỗi 500, log có `Unknown column` (ví dụ `request_token`) hoặc `Table 'db_localtour.…' doesn't exist` | Database vẫn là lược đồ cũ (chưa chạy `08_migration_booking_NMT.sql`, hoặc trước lược đồ 27 bảng), hoặc file gộp được sinh từ bản cũ. | Sinh lại `db_localtour.sql` từ `01`–`11` mới nhất rồi import lại. |
+| Gửi yêu cầu đặt tour báo "Giá vé vừa thay đổi" hoặc "Lịch này chỉ còn X chỗ" | Hành vi đúng: giá hoặc số chỗ đã đổi từ lúc mở trang (quản trị viên vừa xác nhận chỗ cho đơn khác, hoặc giá vé được sửa). | Xem lại tổng tiền / số khách mới trên form rồi bấm "Xem lại & xác nhận" lần nữa. |
 | Mọi tour đều "Chưa có lịch khởi hành sắp tới" | Dữ liệu mẫu đã import từ lâu, các ngày khởi hành đã qua. | Import lại `db_localtour.sql`. |
 | Đăng nhập bằng tài khoản mẫu luôn báo "Email hoặc mật khẩu không đúng." | Hành vi đúng: tài khoản mẫu có `password_hash = NULL`. | Đăng ký tài khoản mới ở `/register` (Bước 6). |
 | Mở `/admin` bị chuyển tới "Đăng nhập quản trị" hoặc nhận trang 403 | Chưa đăng nhập quản trị, hoặc đang đăng nhập bằng tài khoản khách hàng (kể cả tài khoản vừa được đổi `role` mà chưa đăng nhập lại). | Đăng xuất, rồi đăng nhập ở `/admin/login` bằng tài khoản `admin` (Bước 7). |
@@ -322,4 +359,4 @@ GRANT EXECUTE ON db_localtour.* TO 'localtour_app'@'<tiền tố IP của VPN>.%
 - Mọi form POST phải có `<?= csrf_field() ?>`; controller kiểm tra `Auth::verifyCsrf()` trước khi xử lý.
 - Thêm route trong `routes/web.php`, cập nhật [03 – Route và quy ước lỗi](../docs/sprint3/03-route-va-quy-uoc-loi.md) trong cùng lần thay đổi.
 - Không commit `.env`, mật khẩu, địa chỉ IP thật hay file log.
-- Sửa `src/database/01`–`07` thì sinh lại `src/database/db_localtour.sql` và commit cùng lúc (cách sinh xem [database/README.md](database/README.md)).
+- Sửa `src/database/01`–`11` thì sinh lại `src/database/db_localtour.sql` và commit cùng lúc (cách sinh xem [database/README.md](database/README.md)).

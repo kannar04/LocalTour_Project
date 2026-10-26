@@ -23,6 +23,8 @@ final class AdminBookingController extends AdminController
         'needs_payment' => 'Yêu cầu chưa có thanh toán thành công hoặc khoản chuyển khoản VietQR chờ đối chiếu, chưa xác nhận được.',
         'not_departed' => 'Tour chưa tới giờ khởi hành, chưa đánh dấu hoàn thành được.',
         'invalid_transition' => 'Không chuyển được sang trạng thái này từ trạng thái hiện tại.',
+        'no_seats' => 'Lịch khởi hành không còn đủ chỗ cho yêu cầu này, chưa xác nhận được. Hãy từ chối kèm lý do (vd. đề nghị khách chọn ngày khác).',
+        'schedule_closed' => 'Lịch khởi hành đã đóng hoặc đã tới giờ khởi hành, chưa xác nhận chỗ được.',
     ];
 
     private AdminBookingModel $bookings;
@@ -110,6 +112,7 @@ final class AdminBookingController extends AdminController
             'adminNav' => 'bookings',
             'booking' => $booking,
             'lines' => $this->bookings->lines($bookingId),
+            'passengers' => $this->bookings->passengers($bookingId),
             'history' => $this->bookings->history('booking', $bookingId),
             'nextStatuses' => AdminBookingModel::NEXT_STATUSES[$booking['status']] ?? [],
             'success' => $success,

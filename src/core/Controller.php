@@ -78,6 +78,31 @@ class Controller
         return $trim ? trim($value) : $value;
     }
 
+    /**
+     * Trường form POST dạng mảng (vd. passengers[0][full_name]); thiếu hoặc không phải mảng → [].
+     * Giá trị bên trong chưa được kiểm tra: controller tự kiểm tra từng phần tử.
+     *
+     * @return array<int|string, mixed>
+     */
+    protected function inputArray(string $key): array
+    {
+        $value = $_POST[$key] ?? [];
+
+        return is_array($value) ? $value : [];
+    }
+
+    /**
+     * Tham số query string dạng mảng (vd. ?tickets[<mã vé>]=2); thiếu hoặc không phải mảng → [].
+     *
+     * @return array<int|string, mixed>
+     */
+    protected function queryArray(string $key): array
+    {
+        $value = $_GET[$key] ?? [];
+
+        return is_array($value) ? $value : [];
+    }
+
     /** Trả về UUID (chữ thường) nếu chuỗi đúng dạng 8-4-4-4-12 ký tự hex, ngược lại null (1, abc, UUID thiếu ký tự...). */
     protected static function parseUuid(string $value): ?string
     {

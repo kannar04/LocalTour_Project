@@ -4,13 +4,15 @@
  * Thanh bên (Nguyễn Tuấn Khôi).
  * $sidebarMode = 'column' (mặc định, trang danh sách): cột trái trên desktop, panel thu gọn trên mobile;
  *                'mobile' (trang chi tiết / không tìm thấy): chỉ là panel thu gọn dưới 992px.
- * Mục: Bảng tin và "So sánh tour" (FR-15, sắp có).
+ * Mục: Bảng tin, "Đơn của tôi" (chỉ tài khoản khách hàng) và "So sánh tour" (FR-15, sắp có).
  * Danh sách #sidebar-destinations được JS điền từ /api/destinations
  * (tour-list.js ở chế độ 'column', app.js tải khi mở panel ở chế độ 'mobile').
  */
 $sidebarMode = $sidebarMode ?? 'column';
 $isColumn = $sidebarMode === 'column';
 $isFeedActive = ($activeNav ?? 'feed') === 'feed';
+$isBookingsActive = ($activeNav ?? 'feed') === 'bookings';
+$isCustomer = (current_user()['role'] ?? '') === 'customer';
 $comingSoonItems = [
     ['icon' => 'columns', 'label' => 'So sánh tour'],
 ];
@@ -32,6 +34,14 @@ $comingSoonItems = [
                     <span class="lt-nav__label">Bảng tin</span>
                 </a>
             </li>
+<?php if ($isCustomer): ?>
+            <li>
+                <a class="lt-nav__link<?= $isBookingsActive ? ' is-active' : '' ?>" href="<?= e(url('/bookings')) ?>"<?= $isBookingsActive ? ' aria-current="page"' : '' ?>>
+                    <span class="lt-icon lt-icon--clipboard" aria-hidden="true"></span>
+                    <span class="lt-nav__label">Đơn của tôi</span>
+                </a>
+            </li>
+<?php endif; ?>
 <?php foreach ($comingSoonItems as $item): ?>
             <li>
                 <button type="button" class="lt-nav__link" disabled title="Sắp có">

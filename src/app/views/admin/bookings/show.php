@@ -2,19 +2,24 @@
 <?php
 /*
  * Chi tiết yêu cầu đặt tour và form cập nhật trạng thái (FR-25, Nguyễn Tuấn Khôi).
- * Biến: $booking (NTK_sp_admin_booking_detail), $lines (dòng vé), $history (lịch sử, NFR-09),
+ * Biến: $booking (NTK_sp_admin_booking_detail, gồm số chỗ của lịch), $lines (dòng vé), $passengers (danh sách khách),
+ *       $history (lịch sử, NFR-09),
  *       $nextStatuses (trạng thái được chọn tiếp, [] = trạng thái cuối), $success / $error ('' = không có),
  *       $newStatus, $note (giữ lại lựa chọn khi có lỗi).
  * Đổi ngày hoặc số người không làm ở đây (FR-12, phát triển sau).
  */
 $actionLabels = [
-    'awaiting_payment' => 'Xác nhận chỗ và giá (chuyển “Chờ thanh toán”, hạn 24 giờ)',
+    'awaiting_payment' => 'Xác nhận chỗ và giá (giữ chỗ, chuyển “Chờ thanh toán”, hạn 24 giờ)',
     'confirmed' => 'Xác nhận đã thanh toán (chuyển “Đã xác nhận”)',
     'completed' => 'Tour đã diễn ra (chuyển “Đã hoàn thành”)',
     'rejected' => 'Từ chối yêu cầu',
     'cancelled' => 'Hủy yêu cầu',
 ];
 $refund = (int) $booking['refund_completed_vnd'];
+$scheduleLabels = ['open' => 'đang mở', 'full' => 'hết chỗ', 'cancelled' => 'đã hủy', 'completed' => 'đã diễn ra'];
+$scheduleState = $scheduleLabels[(string) $booking['schedule_status']] ?? (string) $booking['schedule_status'];
+// Đơn đang giữ chỗ của lịch: đã xác nhận chỗ, chưa hủy và chưa hoàn thành.
+$holdsSeats = in_array($booking['status'], ['awaiting_payment', 'confirmed'], true);
 ?>
 <div class="container-xl lt-container lt-page">
     <div class="row">
@@ -51,6 +56,7 @@ $refund = (int) $booking['refund_completed_vnd'];
                         <dl class="lt-fields">
                             <dt>Tour</dt><dd><?= e($booking['tour_title']) ?></dd>
                             <dt>Khởi hành</dt><dd><?= e(format_datetime($booking['starts_at'])) ?> – <?= e(format_time($booking['ends_at'])) ?> <?= format_date($booking['ends_at']) !== format_date($booking['starts_at']) ? e(format_date($booking['ends_at'])) : '' ?></dd>
+                            <dt>Chỗ của lịch</dt><dd>Còn <?= e((int) $booking['schedule_remaining']) ?>/<?= e((int) $booking['schedule_capacity']) ?> chỗ · lịch <?= e($scheduleState) ?><?= $holdsSeats ? ' · đơn này đang giữ ' . e((int) $booking['people']) . ' chỗ' : '' ?></dd>
                             <dt>Đơn vị tổ chức</dt><dd><?= e($booking['provider_name']) ?> · <?= e($booking['provider_phone']) ?></dd>
                             <dt>Chính sách hủy</dt><dd>Phiên bản <?= e($booking['policy_version']) ?></dd>
                         </dl>
@@ -76,6 +82,22 @@ $refund = (int) $booking['refund_completed_vnd'];
                                 </tfoot>
                             </table>
                         </div>
+
+                        <h3 class="lt-panel__subtitle">Danh sách khách</h3>
+<?php if ($passengers === []): ?>
+                        <p class="lt-empty">Yêu cầu chưa có danh sách khách.</p>
+<?php else: ?>
+                        <ol class="lt-guest-list">
+<?php foreach ($passengers as $passenger): ?>
+                            <li>
+                                <?= e($passenger['full_name']) ?> <span class="lt-guest-list__type">· <?= e(ticket_label((string) $passenger['age_group'])) ?></span>
+<?php if ($passenger['special_request'] !== null && trim((string) $passenger['special_request']) !== ''): ?>
+                                <p class="lt-guest-list__note">Yêu cầu đặc biệt: <?= e($passenger['special_request']) ?></p>
+<?php endif; ?>
+                            </li>
+<?php endforeach; ?>
+                        </ol>
+<?php endif; ?>
                     </section>
 
                     <section class="lt-panel" aria-labelledby="booking-contact-title">
@@ -126,6 +148,11 @@ $refund = (int) $booking['refund_completed_vnd'];
                             </fieldset>
                             <label class="lt-admin-label" for="status-note">Lý do / ghi chú</label>
                             <textarea class="lt-admin-input" id="status-note" name="note" rows="3" maxlength="255"><?= e($note) ?></textarea>
+<?php if ($booking['status'] === 'pending'): ?>
+                            <p class="lt-admin-hint">Xác nhận chỗ sẽ giữ <?= e((int) $booking['people']) ?> chỗ của lịch (lịch còn <?= e((int) $booking['schedule_remaining']) ?> chỗ). Từ chối hoặc hủy yêu cầu chờ xác nhận không đổi số chỗ.</p>
+<?php elseif ($holdsSeats): ?>
+                            <p class="lt-admin-hint">Hủy đơn này sẽ trả lại <?= e((int) $booking['people']) ?> chỗ cho lịch.</p>
+<?php endif; ?>
                             <p class="lt-admin-hint">Bắt buộc khi từ chối hoặc hủy. Xác nhận đã thanh toán cần khoản VNPay thành công hoặc khoản chuyển khoản VietQR đang chờ đối chiếu (thao tác này ghi nhận khoản VietQR là đã thanh toán).</p>
                             <button class="lt-btn lt-btn--primary lt-btn--block" type="submit">Cập nhật trạng thái</button>
                         </form>
