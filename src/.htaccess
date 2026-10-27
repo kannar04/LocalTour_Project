@@ -1,0 +1,3 @@
+# Khi repo nằm trong htdocs của XAMPP: chặn truy cập trực tiếp mọi thứ ngoài public/
+# (.env, app/, core/, config/, database/, storage/...). public/.htaccess mở lại quyền cho public/.
+Require all denied

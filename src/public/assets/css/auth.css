@@ -1,0 +1,161 @@
+/*
+ * LocalTour – auth.css (Nguyễn Tuấn Khôi)
+ * Trang đăng nhập và đăng ký tài khoản khách hàng: thẻ form ở giữa trang.
+ * Dùng màu, nút (.lt-btn) và icon của base.css.
+ */
+
+.lt-auth {
+    display: flex;
+    flex: 1 0 auto;
+    flex-direction: column;
+}
+
+.lt-auth__card {
+    width: 100%;
+    max-width: 440px;
+    margin: 8px auto 0;
+    padding: 32px 28px;
+    border: 1px solid var(--lt-border);
+    border-radius: var(--lt-radius-lg);
+    background: var(--lt-surface);
+    box-shadow: var(--lt-shadow);
+}
+
+@media (max-width: 575.98px) {
+    .lt-auth__card {
+        margin-top: 0;
+        padding: 24px 18px;
+    }
+}
+
+.lt-auth__title {
+    margin: 0 0 6px;
+    font-size: 1.5rem;
+}
+
+.lt-auth__lead {
+    margin-bottom: 22px;
+    color: var(--lt-muted);
+    font-size: 0.875rem;
+}
+
+.lt-auth__alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 18px;
+    padding: 12px 14px;
+    border-radius: var(--lt-radius);
+    background: var(--lt-danger-bg);
+    color: var(--lt-danger);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.lt-auth__alert .lt-icon {
+    margin-top: 2px;
+}
+
+.lt-auth__field {
+    margin-bottom: 16px;
+}
+
+.lt-auth__label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--lt-text);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.lt-auth__input {
+    display: block;
+    width: 100%;
+    height: 44px;
+    padding: 0 12px;
+    border: 1px solid var(--lt-border-strong);
+    border-radius: var(--lt-radius);
+    background: var(--lt-surface);
+    color: var(--lt-text);
+    font-family: inherit;
+    font-size: 0.9375rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.lt-auth__input:hover {
+    border-color: #b5bbc4;
+}
+
+.lt-auth__input:focus {
+    border-color: var(--lt-teal);
+    outline: none;
+    box-shadow: var(--lt-focus-ring);
+}
+
+.lt-auth__input.is-invalid {
+    border-color: var(--lt-danger);
+}
+
+.lt-auth__input.is-invalid:focus {
+    box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.2);
+}
+
+.lt-auth__hint,
+.lt-auth__error {
+    margin-top: 6px;
+    font-size: 0.75rem;
+}
+
+.lt-auth__hint {
+    color: var(--lt-muted);
+}
+
+.lt-auth__error {
+    color: var(--lt-danger);
+    font-weight: 500;
+}
+
+.lt-auth__form .lt-btn--block {
+    margin-top: 8px;
+}
+
+.lt-auth__switch {
+    margin-top: 18px;
+    color: var(--lt-text-soft);
+    font-size: 0.875rem;
+    text-align: center;
+}
+
+.lt-auth__switch a {
+    font-weight: 600;
+}
+
+.lt-auth__guest {
+    margin-top: 20px;
+}
+
+.lt-auth__divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    color: var(--lt-muted);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.lt-auth__divider::before,
+.lt-auth__divider::after {
+    content: "";
+    flex: 1 1 auto;
+    height: 1px;
+    background: var(--lt-border);
+}
+
+.lt-auth__note {
+    margin-top: 10px;
+    color: var(--lt-muted);
+    font-size: 0.75rem;
+    text-align: center;
+}

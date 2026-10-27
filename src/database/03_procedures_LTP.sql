@@ -1,9 +1,12 @@
 -- =====================================================================
 -- LocalTour v0.1 - 03_procedures_LTP.sql
--- Mục đích  : Stored procedures cho trang danh sách tour (Bảng tin du lịch).
+-- Mục đích  : Stored procedures cho trang danh sách tour (Bảng tin du lịch) và trang
+--             duyệt tour của quản trị viên (FR-24).
 -- Phụ trách : Lê Trung Phong (LTP) - WBS 3.2.3
--- Procedures: LTP_sp_tour_list, LTP_sp_destination_list, LTP_sp_category_list
--- Quy tắc   : Tour được hiển thị khi tours.approval_status = 'approved' VÀ
+-- Procedures: LTP_sp_tour_list, LTP_sp_destination_list, LTP_sp_category_list,
+--             LTP_sp_admin_tour_list, LTP_sp_admin_tour_detail,
+--             LTP_sp_admin_tour_set_approval
+-- Quy tắc   : Trang khách: tour được hiển thị khi tours.approval_status = 'approved' VÀ
 --             providers.approval_status = 'approved' VÀ tài khoản của nhà cung cấp
 --             (users.status) = 'active'. Tour khác -> không bao giờ trả về.
 --             Lịch đặt được: status = 'open', starts_at > NOW(), remaining > 0 và có
@@ -14,7 +17,8 @@
 --             tours.destination.
 --             Tham số chuỗi được so sánh với COLLATE utf8mb4_unicode_ci để không lỗi
 --             "Illegal mix of collations" khi database mặc định dùng collation khác.
---             Chỉ đọc dữ liệu (READS SQL DATA), không có DEFINER.
+--             Trang quản trị: xem mọi tour, quy tắc riêng ở phần "Trang quản trị" cuối file.
+--             Không có DEFINER.
 -- Chạy sau  : 01_schema.sql. Chạy lại được (DROP PROCEDURE IF EXISTS).
 -- =====================================================================
 
@@ -216,5 +220,205 @@ BEGIN
       AND u.status = 'active'
     GROUP BY c.id, c.name, c.slug
     ORDER BY c.name ASC;
+END$$
+DELIMITER ;
+
+-- =====================================================================
+-- Trang quản trị: duyệt tour (FR-24, NFR-09)
+--   Các procedure dưới đây KHÔNG lọc tour công khai: quản trị viên xem mọi tour.
+--   Chỉ trang quản trị gọi chúng (ứng dụng kiểm tra tài khoản quản trị viên trước).
+--   Chuyển trạng thái duyệt: pending -> approved, pending -> rejected (bắt buộc lý do).
+--   Tour bị từ chối không mở lại được; đơn vị tổ chức gửi lại thông tin thì quản trị
+--   viên nhập thành tour mới ở trạng thái 'pending'.
+-- =====================================================================
+
+-- ---------------------------------------------------------------------
+-- LTP_sp_admin_tour_list(p_approval_status)
+--   p_approval_status: NULL / '' = mọi trạng thái; ngược lại 'draft' | 'pending' |
+--                      'approved' | 'rejected'.
+--   Cột trả về: tour_id, title, provider_name, provider_approval_status,
+--     provider_user_status, destination_name, category_name, approval_status,
+--     is_public (1 = đang hiển thị cho khách), schedule_count (mọi lịch của tour),
+--     last_action_at (lần xử lý gần nhất trong admin_logs, NULL nếu chưa có).
+--   Sắp xếp: tour chờ duyệt trước, rồi title, rồi id.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS LTP_sp_admin_tour_list;
+
+DELIMITER $$
+CREATE PROCEDURE LTP_sp_admin_tour_list(
+    IN p_approval_status VARCHAR(20)
+)
+READS SQL DATA
+BEGIN
+    SELECT
+        t.id                AS tour_id,
+        t.title,
+        p.business_name     AS provider_name,
+        p.approval_status   AS provider_approval_status,
+        u.status            AS provider_user_status,
+        COALESCE(d.name, t.destination) AS destination_name,
+        c.name              AS category_name,
+        t.approval_status,
+        (t.approval_status = 'approved'
+         AND p.approval_status = 'approved'
+         AND u.status = 'active') AS is_public,
+        (SELECT COUNT(*)
+           FROM schedules s
+          WHERE s.tour_id = t.id) AS schedule_count,
+        (SELECT MAX(l.created_at)
+           FROM admin_logs l
+          WHERE l.target_type = 'tour'
+            AND l.target_id = t.id) AS last_action_at
+    FROM tours t
+    JOIN providers p ON p.id = t.provider_id
+    JOIN users     u ON u.id = p.user_id
+    LEFT JOIN destinations d ON d.id = t.destination_id
+    LEFT JOIN categories   c ON c.id = t.category_id
+    WHERE NULLIF(p_approval_status, '') IS NULL
+       OR t.approval_status = (p_approval_status COLLATE utf8mb4_unicode_ci)
+    ORDER BY (t.approval_status = 'pending') DESC, t.title ASC, t.id ASC;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- LTP_sp_admin_tour_detail(p_tour_id)
+--   0 hoặc 1 dòng, mọi trạng thái duyệt. Cột: tour_id, title, description,
+--   destination_name, category_name, duration_minutes, max_group_size, language_codes,
+--   pickup_mode, meeting_point, transport, guide_info, dropoff_point,
+--   source_url, verified_at, verification_status (NFR-07),
+--   provider_name, provider_phone, provider_approval_status, provider_user_status,
+--   approval_status, is_public,
+--   schedule_count, ticket_count (loại vé active), image_count, itinerary_count,
+--   inclusion_count, policy_count (số phiên bản chính sách hủy).
+--   Chỉ trả số lượng các phần con: trang quản trị dùng để xem tour đã đủ thông tin chưa.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS LTP_sp_admin_tour_detail;
+
+DELIMITER $$
+CREATE PROCEDURE LTP_sp_admin_tour_detail(
+    IN p_tour_id CHAR(36)
+)
+READS SQL DATA
+BEGIN
+    SELECT
+        t.id                AS tour_id,
+        t.title,
+        t.description,
+        COALESCE(d.name, t.destination) AS destination_name,
+        c.name              AS category_name,
+        t.duration_minutes,
+        t.max_group_size,
+        t.language_codes,
+        t.pickup_mode,
+        t.meeting_point,
+        t.transport,
+        t.guide_info,
+        t.dropoff_point,
+        t.source_url,
+        t.verified_at,
+        t.verification_status,
+        p.business_name     AS provider_name,
+        p.contact_phone     AS provider_phone,
+        p.approval_status   AS provider_approval_status,
+        u.status            AS provider_user_status,
+        t.approval_status,
+        (t.approval_status = 'approved'
+         AND p.approval_status = 'approved'
+         AND u.status = 'active') AS is_public,
+        (SELECT COUNT(*) FROM schedules s WHERE s.tour_id = t.id) AS schedule_count,
+        (SELECT COUNT(*)
+           FROM ticket_types tt
+           JOIN schedules s ON s.id = tt.schedule_id
+          WHERE s.tour_id = t.id
+            AND tt.active = TRUE) AS ticket_count,
+        (SELECT COUNT(*) FROM tour_images ti WHERE ti.tour_id = t.id) AS image_count,
+        (SELECT COUNT(*) FROM tour_itinerary_items ii WHERE ii.tour_id = t.id) AS itinerary_count,
+        (SELECT COUNT(*) FROM tour_inclusions tn WHERE tn.tour_id = t.id) AS inclusion_count,
+        (SELECT COUNT(*) FROM cancellation_policies cp WHERE cp.tour_id = t.id) AS policy_count
+    FROM tours t
+    JOIN providers p ON p.id = t.provider_id
+    JOIN users     u ON u.id = p.user_id
+    LEFT JOIN destinations d ON d.id = t.destination_id
+    LEFT JOIN categories   c ON c.id = t.category_id
+    WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci);
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- LTP_sp_admin_tour_set_approval(p_tour_id, p_new_status, p_actor_user_id, p_note)
+--   p_new_status: 'approved' (phê duyệt) | 'rejected' (từ chối, bắt buộc p_note).
+--   Đổi trạng thái và ghi admin_logs ('tour_approve' / 'tour_reject') trong cùng một
+--   transaction. p_note tối đa 255 ký tự (NULL / '' = không có).
+--   1 dòng: result, approval_status.
+--     result = 'ok'                 : đã đổi; approval_status = trạng thái mới.
+--              'forbidden'          : người thao tác không phải quản trị viên đang hoạt động.
+--              'not_found'          : không có tour này.
+--              'invalid_transition' : tour không ở trạng thái 'pending', hoặc p_new_status sai.
+--              'note_required'      : từ chối mà không có lý do.
+--     Khi không 'ok', approval_status = trạng thái hiện tại, không có gì thay đổi.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS LTP_sp_admin_tour_set_approval;
+
+DELIMITER $$
+CREATE PROCEDURE LTP_sp_admin_tour_set_approval(
+    IN p_tour_id       CHAR(36),
+    IN p_new_status    VARCHAR(20),
+    IN p_actor_user_id CHAR(36),
+    IN p_note          VARCHAR(255) CHARACTER SET utf8mb4
+)
+MODIFIES SQL DATA
+proc: BEGIN
+    DECLARE v_old  VARCHAR(20)  DEFAULT NULL;
+    DECLARE v_new  VARCHAR(20)  DEFAULT COALESCE(p_new_status, '');
+    DECLARE v_note VARCHAR(255) CHARACTER SET utf8mb4 DEFAULT NULLIF(TRIM(p_note), '');
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM users
+                    WHERE id = (p_actor_user_id COLLATE utf8mb4_unicode_ci)
+                      AND role = 'admin' AND status = 'active') THEN
+        SELECT 'forbidden' AS result, NULL AS approval_status;
+        LEAVE proc;
+    END IF;
+
+    START TRANSACTION;
+
+    SELECT approval_status
+      INTO v_old
+      FROM tours
+     WHERE id = (p_tour_id COLLATE utf8mb4_unicode_ci)
+       FOR UPDATE;
+
+    IF v_old IS NULL THEN
+        ROLLBACK;
+        SELECT 'not_found' AS result, NULL AS approval_status;
+        LEAVE proc;
+    END IF;
+
+    IF v_old <> 'pending' OR v_new NOT IN ('approved', 'rejected') THEN
+        ROLLBACK;
+        SELECT 'invalid_transition' AS result, v_old AS approval_status;
+        LEAVE proc;
+    END IF;
+
+    IF v_new = 'rejected' AND v_note IS NULL THEN
+        ROLLBACK;
+        SELECT 'note_required' AS result, v_old AS approval_status;
+        LEAVE proc;
+    END IF;
+
+    UPDATE tours
+       SET approval_status = v_new
+     WHERE id = (p_tour_id COLLATE utf8mb4_unicode_ci);
+
+    INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
+    VALUES (UUID(), p_actor_user_id, 'tour', p_tour_id,
+            IF(v_new = 'approved', 'tour_approve', 'tour_reject'), v_old, v_new, v_note, NOW());
+
+    COMMIT;
+    SELECT 'ok' AS result, v_new AS approval_status;
 END$$
 DELIMITER ;
