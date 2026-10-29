@@ -138,6 +138,11 @@
             event.preventDefault();
         });
 
+        // Nút "In" (voucher): mở hộp thoại in của trình duyệt.
+        $(document).on('click', '.js-print', function () {
+            window.print();
+        });
+
         var $sidebar = $('#lt-sidebar');
         if (!$sidebar.length) {
             $('.js-menu-toggle').addClass('d-none');

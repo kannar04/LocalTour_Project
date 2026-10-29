@@ -327,6 +327,44 @@ function payment_method_label(?string $method): string
     return $labels[(string) $method] ?? (string) $method;
 }
 
+/**
+ * Một dòng lịch sử đơn (LTP_sp_booking_history, LTP_sp_customer_booking_history) → tiêu đề tiếng Việt.
+ * Đổi trạng thái hiện "A → B"; thao tác khác hiện tên thao tác.
+ *
+ * @param array<string, mixed> $event
+ */
+function booking_history_title(array $event): string
+{
+    $labels = [
+        'created' => 'Gửi yêu cầu đặt tour',
+        'booking_total' => 'Chốt tổng giá',
+        'transfer_submitted' => 'Báo đã chuyển khoản VietQR',
+        'payment_confirm' => 'Đối chiếu: đã nhận tiền chuyển khoản',
+        'payment_reject' => 'Đối chiếu: chuyển khoản không khớp',
+        'vnpay_paid' => 'Thanh toán VNPay thành công',
+        'vnpay_failed' => 'Thanh toán VNPay không thành công',
+        'hold_expired' => 'Quá hạn thanh toán, đơn tự hủy',
+        'voucher_issued' => 'Cấp voucher',
+        'refund_requested' => 'Tạo yêu cầu hoàn tiền',
+    ];
+    $action = (string) ($event['action'] ?? '');
+    $from = $event['from_status'] ?? null;
+    $to = $event['to_status'] ?? null;
+    if ($action === 'booking_status' && $to !== null) {
+        return ($from !== null ? booking_status_label((string) $from) . ' → ' : '') . booking_status_label((string) $to);
+    }
+
+    return $labels[$action] ?? $action;
+}
+
+/** Người thực hiện một dòng lịch sử đơn (booking_events.actor hoặc 'admin') → nhãn. */
+function booking_history_actor(?string $actor): string
+{
+    $labels = ['customer' => 'Khách hàng', 'system' => 'Hệ thống', 'vnpay' => 'VNPay', 'admin' => 'LocalTour'];
+
+    return $labels[(string) $actor] ?? (string) $actor;
+}
+
 /** Trạng thái duyệt tour (tours.approval_status) → nhãn tiếng Việt. */
 function tour_status_label(?string $status): string
 {

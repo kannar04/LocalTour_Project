@@ -9,6 +9,7 @@ $adminItems = [
     ['key' => 'dashboard', 'href' => '/admin', 'icon' => 'home', 'label' => 'Tổng quan'],
     ['key' => 'tours', 'href' => '/admin/tours', 'icon' => 'verified', 'label' => 'Duyệt tour'],
     ['key' => 'bookings', 'href' => '/admin/bookings', 'icon' => 'calendar', 'label' => 'Yêu cầu đặt tour'],
+    ['key' => 'payments', 'href' => '/admin/payments', 'icon' => 'clipboard', 'label' => 'Đối chiếu thanh toán'],
 ];
 ?>
 <nav id="lt-sidebar" class="collapse lt-sidebar d-lg-block lt-sidebar--column" aria-label="Điều hướng trang quản trị">

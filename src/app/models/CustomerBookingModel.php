@@ -7,10 +7,10 @@ namespace App\Models;
 use Core\Database;
 
 /**
- * "Đơn của tôi" của khách hàng (M4 – Nguyễn Tuấn Khôi): danh sách đơn, chi tiết, dòng vé và danh sách khách.
- * Mọi procedure nhận user_id từ session và chỉ trả đơn của chính tài khoản đó.
+ * "Đơn của tôi" của khách hàng (M4 – Nguyễn Tuấn Khôi): danh sách đơn, chi tiết, dòng vé, phụ thu / tùy chọn
+ * và danh sách khách. Mọi procedure nhận user_id từ session và chỉ trả đơn của chính tài khoản đó.
  * Procedure: NTK_sp_customer_booking_list, NTK_sp_customer_booking_detail, NTK_sp_customer_booking_line_list,
- * NTK_sp_customer_booking_passenger_list.
+ * NTK_sp_customer_booking_extra_list, NTK_sp_customer_booking_passenger_list.
  */
 final class CustomerBookingModel
 {
@@ -45,6 +45,16 @@ final class CustomerBookingModel
     public function lines(string $userId, string $code): array
     {
         return Database::call('NTK_sp_customer_booking_line_list', [$userId, $code]);
+    }
+
+    /**
+     * Phụ thu / hoạt động tùy chọn đã chọn khi đặt, phụ thu trước.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function extras(string $userId, string $code): array
+    {
+        return Database::call('NTK_sp_customer_booking_extra_list', [$userId, $code]);
     }
 
     /**

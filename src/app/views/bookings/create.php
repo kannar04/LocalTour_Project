@@ -3,13 +3,15 @@
 /*
  * Hoàn tất thông tin đặt tour (M4 mục 4, Nguyễn Tuấn Khôi) – theo wireframe 4.
  * Biến: $tour (NMT_sp_tour_detail), $schedules (lịch còn đặt được), $tickets (vé đang bán của các lịch đó),
+ *       $extras (phụ thu / hoạt động tùy chọn của tour, dạng extra_option() trong BookingController),
  *       $policy (null hoặc chính sách hủy mới nhất), $coverUrl (ảnh bìa hoặc null),
  *       $selectedScheduleId, $selectedTickets ([mã vé => số khách] chọn ở trang chi tiết),
  *       $scheduleNotice (lịch đã chọn không còn nhận khách), $contact (name, email, phone),
  *       $requestToken (mã một lần mở form), $loginUrl (đăng nhập lại khi hết phiên), $title.
  * Hai bước trong cùng trang: điền thông tin → "Xem lại & xác nhận" → "Gửi yêu cầu đặt tour".
  * booking.js dựng hàng vé, danh sách khách, tạm tính và gửi POST /api/bookings; trang cần JavaScript.
- * Chưa thu tiền ở bước này: đơn mới là "Chờ xác nhận", thanh toán làm sau khi LocalTour xác nhận chỗ.
+ * Sprint 4 (4.3.2.3): khách chọn phụ thu / hoạt động tùy chọn; tổng tiền = tiền vé + các khoản đã chọn.
+ * Chưa thu tiền ở bước này: đơn mới là "Chờ xác nhận", thanh toán làm sau khi LocalTour xác nhận chỗ và chốt tổng giá.
  */
 $missing = or_missing(null);
 $tourUrl = url('/tours/' . $tour['tour_id']);
@@ -156,6 +158,32 @@ $contactFields = [
                             <p class="lt-field__error" data-error-for="passengers" hidden></p>
                         </fieldset>
 
+<?php if ($extras !== []): ?>
+                        <fieldset class="lt-field lt-extras" aria-describedby="book-extras-hint">
+                            <legend class="lt-field__label">Phụ thu và hoạt động tùy chọn <span class="lt-field__optional">(không bắt buộc)</span></legend>
+                            <ul class="lt-extras__list">
+<?php foreach ($extras as $extra): ?>
+<?php $extraInputId = 'book-extra-' . $extra['id']; ?>
+                                <li class="lt-extras__item<?= $extra['price'] === null ? ' is-disabled' : '' ?>">
+                                    <input class="lt-check__input js-extra" type="checkbox" id="<?= e($extraInputId) ?>" name="extras[]" value="<?= e($extra['id']) ?>"
+                                           data-price="<?= e((int) $extra['price']) ?>" data-per-person="<?= $extra['perPerson'] ? '1' : '0' ?>" data-name="<?= e($extra['name']) ?>"<?= $extra['price'] === null ? ' disabled' : '' ?>>
+                                    <label class="lt-extras__label" for="<?= e($extraInputId) ?>">
+                                        <span class="lt-extras__name">
+                                            <span class="lt-extras__kind"><?= $extra['kind'] === 'surcharge' ? 'Phụ thu' : 'Tùy chọn' ?></span>
+                                            <?= e($extra['name']) ?>
+                                        </span>
+                                        <span class="lt-extras__price"><?= e($extra['priceText']) ?></span>
+<?php if ($extra['conditions'] !== ''): ?>
+                                        <span class="lt-extras__note"><?= e($extra['conditions']) ?></span>
+<?php endif; ?>
+                                    </label>
+                                </li>
+<?php endforeach; ?>
+                            </ul>
+                            <p class="lt-field__hint" id="book-extras-hint">Khoản tính theo người nhân với số khách; các khoản khác tính một lần cho cả nhóm. Khoản chưa có giá sẽ được LocalTour báo khi xác nhận chỗ.</p>
+                        </fieldset>
+<?php endif; ?>
+
                         <div class="lt-book-meeting">
                             <span class="lt-icon lt-icon--pin" aria-hidden="true"></span>
                             <div>
@@ -185,7 +213,7 @@ $contactFields = [
                         <h2 class="lt-book-card__title" id="book-terms-title"><span class="lt-book-card__num">4</span>Điều kiện đặt tour</h2>
                         <ul class="lt-book-terms">
                             <li>Yêu cầu được gửi tới LocalTour ở trạng thái <strong>Chờ xác nhận</strong>, chưa giữ chỗ và chưa thu tiền.</li>
-                            <li>Khi LocalTour xác nhận còn chỗ, đơn chuyển sang <strong>Chờ thanh toán</strong> và bạn nhận hướng dẫn thanh toán.</li>
+                            <li>Khi LocalTour xác nhận còn chỗ và chốt tổng giá, đơn chuyển sang <strong>Chờ thanh toán</strong>: bạn thanh toán bằng VNPay hoặc VietQR trong 24 giờ, quá hạn đơn tự hủy.</li>
 <?php foreach ($policyLines as $policyLine): ?>
                             <li><?= e($policyLine) ?></li>
 <?php endforeach; ?>
@@ -222,11 +250,14 @@ $contactFields = [
                         <div><dt>Người liên hệ</dt><dd class="js-review-contact"></dd></div>
                         <div><dt>Danh sách khách</dt><dd><ol class="lt-book-summary__list js-review-passengers"></ol></dd></div>
                         <div><dt>Yêu cầu đặc biệt</dt><dd class="js-review-request"></dd></div>
-                        <div class="lt-book-summary__total"><dt>Tổng tiền vé</dt><dd class="js-review-total"></dd></div>
+<?php if ($extras !== []): ?>
+                        <div><dt>Phụ thu / tùy chọn</dt><dd class="js-review-extras"></dd></div>
+<?php endif; ?>
+                        <div class="lt-book-summary__total"><dt>Tổng tiền</dt><dd class="js-review-total"></dd></div>
                     </dl>
                     <p class="lt-booking__alert">
                         <span class="lt-icon lt-icon--info" aria-hidden="true"></span>
-                        Chưa thu tiền ở bước này. Sau khi gửi, đơn ở trạng thái "Chờ xác nhận"; LocalTour kiểm tra chỗ rồi gửi hướng dẫn thanh toán.
+                        Chưa thu tiền ở bước này. Sau khi gửi, đơn ở trạng thái "Chờ xác nhận"; LocalTour kiểm tra chỗ, chốt tổng giá rồi mở thanh toán VNPay / VietQR trong "Đơn của tôi".
                     </p>
                     <div class="lt-book-actions">
                         <button type="button" class="lt-btn lt-btn--outline" id="book-edit-btn">
@@ -264,16 +295,16 @@ $contactFields = [
                         <div><dt>Số khách</dt><dd class="js-sum-people">—</dd></div>
                     </dl>
 
-                    <ul class="lt-book-lines" id="book-sum-lines" aria-label="Tiền vé theo loại khách"></ul>
+                    <ul class="lt-book-lines" id="book-sum-lines" aria-label="Tiền vé và các khoản đã chọn"></ul>
 
                     <div class="lt-booking__total" aria-live="polite" aria-atomic="true">
                         <div class="lt-booking__total-main">
-                            <span class="lt-booking__total-label">Tổng tiền vé</span>
-                            <span class="lt-booking__total-formula">Giá minh họa · VND</span>
+                            <span class="lt-booking__total-label">Tổng tiền</span>
+                            <span class="lt-booking__total-formula">Vé + phụ thu / tùy chọn · VND</span>
                         </div>
                         <strong class="lt-booking__total-value" id="book-sum-total">—</strong>
                     </div>
-                    <p class="lt-field__hint">Chưa thu tiền ở bước này. Chưa gồm phụ thu và hoạt động tùy chọn.</p>
+                    <p class="lt-field__hint">Chưa thu tiền ở bước này. LocalTour chốt tổng giá khi xác nhận chỗ, rồi bạn thanh toán trong 24 giờ.</p>
 
                     <div class="lt-booking__policy">
                         <span class="lt-icon lt-icon--shield" aria-hidden="true"></span>

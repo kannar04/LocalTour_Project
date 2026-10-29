@@ -557,7 +557,7 @@ $sections = [
                             </div>
                             <strong class="lt-booking__total-value js-total-amount">—</strong>
                         </div>
-                        <p class="lt-field__hint">Chưa gồm phụ thu và hoạt động tùy chọn.</p>
+                        <p class="lt-field__hint">Chưa gồm phụ thu và hoạt động tùy chọn (chọn ở bước đặt tour).</p>
 
                         <div class="lt-booking__actions">
 <?php if ($isGuest): ?>

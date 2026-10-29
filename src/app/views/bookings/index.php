@@ -2,7 +2,7 @@
 <?php
 /*
  * Đơn của tôi (M4, Nguyễn Tuấn Khôi): các yêu cầu đặt tour của tài khoản đang đăng nhập, mới đặt trước.
- * Biến: $bookings (NTK_sp_customer_booking_list), $title.
+ * Biến: $bookings (NTK_sp_customer_booking_list), $notice (kết quả thanh toán không gắn được với đơn, '' = không có), $title.
  */
 ?>
 <?php $sidebarMode = 'mobile'; require __DIR__ . '/../partials/sidebar.php'; ?>
@@ -20,6 +20,13 @@
             <h1 class="lt-book-head__title">Đơn của tôi</h1>
             <p class="lt-book-head__lead">Các yêu cầu đặt tour bạn đã gửi và trạng thái xử lý, mới nhất trước.</p>
         </div>
+
+<?php if ($notice !== ''): ?>
+        <div class="lt-book-alert" role="alert">
+            <span class="lt-icon lt-icon--alert" aria-hidden="true"></span>
+            <span><?= e($notice) ?></span>
+        </div>
+<?php endif; ?>
 
 <?php if ($bookings === []): ?>
         <section class="lt-book-card lt-book-empty" aria-labelledby="orders-empty-title">
@@ -61,7 +68,11 @@
                             <span><span class="lt-icon lt-icon--pin" aria-hidden="true"></span><?= e(or_missing((string) $booking['destination_name'])) ?></span>
                         </span>
                         <span class="lt-order__foot">
+<?php if ($booking['status'] === 'awaiting_payment' && $booking['hold_expires_at'] !== null): ?>
+                            <span class="lt-order__due">Thanh toán trước <?= e(format_datetime((string) $booking['hold_expires_at'])) ?></span>
+<?php else: ?>
                             <span>Đặt lúc <?= e(format_datetime((string) $booking['created_at'])) ?></span>
+<?php endif; ?>
                             <strong class="lt-order__total"><?= e(format_vnd($booking['total_vnd'])) ?></strong>
                         </span>
                     </span>

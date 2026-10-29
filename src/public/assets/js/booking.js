@@ -3,6 +3,7 @@
  * Trang "Hoàn tất thông tin đặt tour" (M4 mục 4, 7):
  *   - chọn lịch và số khách theo loại vé (giống thẻ giá ở trang chi tiết), tổng từ 1 đến min(nhóm tối đa, chỗ còn lại);
  *   - mỗi khách một ô họ tên, họ tên đã gõ được giữ lại khi đổi số khách hoặc đổi lịch;
+ *   - Sprint 4 (4.3.2.3): phụ thu / hoạt động tùy chọn cộng vào tổng tiền (theo người thì nhân số khách);
  *   - "Xem lại & xác nhận": kiểm tra ở trình duyệt rồi hỏi chỗ trống (GET /api/schedules/{id}/availability);
  *   - "Gửi yêu cầu đặt tour": POST /api/bookings, thành công thì chuyển tới trang đơn.
  * Lỗi từ server (401, 403, 409, 422) hiện ngay trên form và giữ nguyên thông tin đã nhập.
@@ -68,6 +69,7 @@
         var $request = $('#book-special-request');
         var $requestCount = $('#book-special-request-count');
         var $expected = $('#book-expected-total');
+        var $extras = $form.find('.js-extra');
         var $alert = $('#book-alert');
         var $stepEdit = $('#book-step-edit');
         var $stepReview = $('#book-step-review');
@@ -106,10 +108,23 @@
             return Math.min(Math.max(toInt(value), 0), limit);
         }
 
+        /** Phụ thu / tùy chọn đang chọn; khoản tính theo người nhân với số khách (giống LTP_sp_booking_create). */
+        function selectedExtras() {
+            var guests = totalGuests(null);
+            return $extras.filter(':checked:not(:disabled)').map(function () {
+                var $box = $(this);
+                var quantity = $box.attr('data-per-person') === '1' ? guests : 1;
+                return { name: String($box.attr('data-name')), quantity: quantity, amount: quantity * toInt($box.attr('data-price')) };
+            }).get();
+        }
+
         function totalAmount() {
             var amount = 0;
             $.each(rows, function (index, row) {
                 amount += row.qty * row.price;
+            });
+            $.each(selectedExtras(), function (index, extra) {
+                amount += extra.amount;
             });
             return amount;
         }
@@ -132,6 +147,12 @@
                         $('<span>').text(LT.formatVnd(row.qty * row.price))
                     ));
                 }
+            });
+            $.each(selectedExtras(), function (index, extra) {
+                $lines.append($('<li>').append(
+                    $('<span>').text((extra.quantity > 1 ? extra.quantity + ' × ' : '') + extra.name + ' '),
+                    $('<span>').text(LT.formatVnd(extra.amount))
+                ));
             });
 
             $hint.text('Tối đa ' + max + ' khách' + (remaining > 0 && remaining < maxGroup ? ' · lịch này còn ' + remaining + ' chỗ' : ' mỗi nhóm'));
@@ -454,6 +475,10 @@
                     .map(function (value) { return String(value).trim(); }).join(' · ')
             );
             $stepReview.find('.js-review-request').text(request !== '' ? request : 'Không có');
+            var extras = selectedExtras();
+            $stepReview.find('.js-review-extras').text(extras.length ? $.map(extras, function (extra) {
+                return (extra.quantity > 1 ? extra.quantity + ' × ' : '') + extra.name + ' (' + LT.formatVnd(extra.amount) + ')';
+            }).join(' · ') : 'Không chọn');
             $stepReview.find('.js-review-total').text(LT.formatVnd(totalAmount()));
 
             hideAlert();
@@ -571,11 +596,26 @@
             }
         }
 
+        function reloadLink() {
+            return $('<a>').attr('href', window.location.href).text('Tải lại trang');
+        }
+
         /** 409: lịch, số chỗ hoặc giá đã đổi từ lúc mở trang. Cập nhật lại form theo dữ liệu mới. */
         function handleConflict(info, message) {
             var schedule = currentSchedule();
+            if (info.reason === 'extras_changed') {
+                showAlert(message + ' ', reloadLink());
+                $alert.trigger('focus');
+                return;
+            }
             if ((info.reason === 'price_changed' || info.reason === 'tickets_changed') && $.isArray(info.tickets)) {
                 replaceTickets(info.tickets);
+                // Giá vé mới đã cập nhật mà tổng vẫn lệch: giá phụ thu / tùy chọn đổi, cần tải lại trang.
+                if (info.reason === 'price_changed' && info.total_vnd !== undefined && totalAmount() !== toInt(info.total_vnd)) {
+                    showAlert(message + ' ', reloadLink());
+                    $alert.trigger('focus');
+                    return;
+                }
                 showErrors(info.reason === 'tickets_changed' ? { passengers: message } : {}, message);
                 return;
             }
@@ -601,6 +641,10 @@
 
         $request.on('input', function () {
             $requestCount.text(String($request.val()).length + '/' + REQUEST_MAX + ' ký tự');
+        });
+
+        $extras.on('change', function () {
+            render();
         });
 
         // Sửa một ô đang báo lỗi thì bỏ đánh dấu lỗi của ô đó.

@@ -9,8 +9,10 @@ use Core\Database;
 /**
  * Quản lý yêu cầu đặt tour (FR-25) và lịch sử xử lý (NFR-09) của quản trị viên (Nguyễn Tuấn Khôi).
  * Procedure: NTK_sp_admin_booking_list, NTK_sp_admin_booking_detail, NTK_sp_admin_booking_line_list,
- * NTK_sp_admin_booking_passenger_list, NTK_sp_admin_booking_set_status, NTK_sp_admin_log_list.
- * Xác nhận chỗ (pending → awaiting_payment) giữ chỗ của lịch; hủy đơn đang giữ chỗ trả lại chỗ.
+ * NTK_sp_admin_booking_extra_list, NTK_sp_admin_booking_passenger_list, NTK_sp_admin_booking_payment_list,
+ * NTK_sp_admin_booking_set_status, NTK_sp_admin_log_list.
+ * Xác nhận chỗ (pending → awaiting_payment) giữ chỗ của lịch và chốt tổng giá (Sprint 4, 4.4.3.2);
+ * hủy đơn đang giữ chỗ trả lại chỗ.
  */
 final class AdminBookingModel
 {
@@ -25,6 +27,9 @@ final class AdminBookingModel
     public const NOTE_REQUIRED = ['rejected', 'cancelled'];
 
     public const NOTE_MAX_LENGTH = 255;
+
+    /** Tổng giá chốt tối đa (VND), chặn số nhập nhầm. */
+    public const TOTAL_MAX = 1000000000;
 
     /**
      * Yêu cầu đặt tour theo trạng thái ('' = tất cả) và từ khóa (mã, tên, email, số điện thoại), mới nhất trước.
@@ -60,6 +65,26 @@ final class AdminBookingModel
     }
 
     /**
+     * Phụ thu / hoạt động tùy chọn khách chọn khi đặt.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function extras(string $bookingId): array
+    {
+        return Database::call('NTK_sp_admin_booking_extra_list', [$bookingId]);
+    }
+
+    /**
+     * Mọi khoản thanh toán của yêu cầu, mới trước.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function payments(string $bookingId): array
+    {
+        return Database::call('NTK_sp_admin_booking_payment_list', [$bookingId]);
+    }
+
+    /**
      * Danh sách khách của yêu cầu theo thứ tự nhập (full_name, age_group, special_request).
      *
      * @return list<array<string, mixed>>
@@ -70,12 +95,19 @@ final class AdminBookingModel
     }
 
     /**
-     * Đổi trạng thái và ghi lịch sử. Trả về result của procedure: ok, forbidden, not_found,
-     * invalid_transition, note_required, needs_payment, not_departed, no_seats, schedule_closed.
+     * Đổi trạng thái và ghi lịch sử. $totalVnd: tổng giá chốt khi xác nhận chỗ (null = giữ nguyên).
+     * Trả về result của procedure: ok, forbidden, not_found, invalid_transition, note_required, needs_payment,
+     * not_departed, no_seats, schedule_closed, invalid_total, total_note_required.
      */
-    public function setStatus(string $bookingId, string $newStatus, string $actorUserId, string $note): string
+    public function setStatus(string $bookingId, string $newStatus, string $actorUserId, string $note, ?int $totalVnd = null): string
     {
-        $rows = Database::call('NTK_sp_admin_booking_set_status', [$bookingId, $newStatus, $actorUserId, $note === '' ? null : $note]);
+        $rows = Database::call('NTK_sp_admin_booking_set_status', [
+            $bookingId,
+            $newStatus,
+            $actorUserId,
+            $note === '' ? null : $note,
+            $totalVnd,
+        ]);
 
         return (string) ($rows[0]['result'] ?? 'not_found');
     }

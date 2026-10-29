@@ -744,3 +744,318 @@
     justify-content: center;
     gap: 10px;
 }
+
+/* ---------- Phụ thu và hoạt động tùy chọn (Sprint 4) ---------- */
+
+.lt-extras__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.lt-extras__item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
+    border-top: 1px solid var(--lt-border);
+}
+
+.lt-extras__item:first-child {
+    border-top: 0;
+}
+
+.lt-extras__item.is-disabled {
+    opacity: 0.65;
+}
+
+.lt-extras__item.is-disabled .lt-check__input,
+.lt-extras__item.is-disabled .lt-extras__label {
+    cursor: not-allowed;
+}
+
+.lt-extras__label {
+    display: flex;
+    flex: 1;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 2px 12px;
+    margin: 0;
+    color: var(--lt-text);
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.lt-extras__kind {
+    margin-right: 6px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--lt-surface-alt);
+    color: var(--lt-muted-strong);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.lt-extras__price {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.lt-extras__note {
+    flex-basis: 100%;
+    color: var(--lt-muted);
+    font-size: 0.8125rem;
+}
+
+/* ---------- Thanh toán, lịch sử đơn (Sprint 4) ---------- */
+
+.lt-order__due {
+    color: #1d4f91;
+    font-weight: 600;
+}
+
+.lt-book-state__action {
+    margin-top: 12px;
+}
+
+.lt-status--completed {
+    background: var(--lt-teal-50);
+    color: var(--lt-teal-700);
+}
+
+.lt-book-payments {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.lt-book-payments li {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-top: 1px solid var(--lt-border);
+    font-size: 0.875rem;
+}
+
+.lt-book-payments li:first-child {
+    border-top: 0;
+}
+
+.lt-pay-status {
+    flex-shrink: 0;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: #eef0f2;
+    color: var(--lt-muted-strong);
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.lt-pay-status--awaiting_reconciliation,
+.lt-pay-status--processing {
+    background: var(--lt-highlight);
+    color: var(--lt-highlight-text);
+}
+
+.lt-pay-status--paid {
+    background: var(--lt-teal-50);
+    color: var(--lt-teal-700);
+}
+
+.lt-pay-status--failed {
+    background: var(--lt-danger-bg);
+    color: var(--lt-danger);
+}
+
+.lt-book-history {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.lt-book-history li {
+    position: relative;
+    padding: 0 0 14px 20px;
+    border-left: 2px solid var(--lt-border);
+    margin-left: 5px;
+}
+
+.lt-book-history li:last-child {
+    padding-bottom: 0;
+    border-left-color: transparent;
+}
+
+.lt-book-history li::before {
+    content: "";
+    position: absolute;
+    top: 4px;
+    left: -7px;
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--lt-teal);
+    border-radius: 50%;
+    background: var(--lt-surface);
+}
+
+.lt-book-history p {
+    margin: 0;
+}
+
+.lt-book-history__title {
+    color: var(--lt-text);
+    font-size: 0.9375rem;
+    font-weight: 600;
+}
+
+.lt-book-history__meta {
+    color: var(--lt-muted);
+    font-size: 0.8125rem;
+}
+
+.lt-book-history__note {
+    margin-top: 4px !important;
+    color: var(--lt-text-soft);
+    font-size: 0.875rem;
+    overflow-wrap: anywhere;
+}
+
+.lt-pay-methods {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.lt-pay-method {
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    border: 1px solid var(--lt-border-strong);
+    border-radius: var(--lt-radius-lg);
+    background: var(--lt-surface);
+}
+
+.lt-pay-method__title {
+    margin: 0 0 6px;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.lt-pay-method__text {
+    flex: 1;
+    margin: 0 0 14px;
+    color: var(--lt-text-soft);
+    font-size: 0.875rem;
+}
+
+.lt-transfer__qr {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.lt-transfer__qr img {
+    width: 280px;
+    max-width: 100%;
+    height: auto;
+    border: 1px solid var(--lt-border);
+    border-radius: var(--lt-radius-lg);
+    background: #fff;
+}
+
+.lt-transfer__ref {
+    font-family: SFMono-Regular, Menlo, Consolas, monospace;
+    letter-spacing: 0.04em;
+}
+
+.lt-transfer__steps {
+    margin: 14px 0 8px;
+    padding-left: 20px;
+    color: var(--lt-text-soft);
+    font-size: 0.875rem;
+}
+
+/* ---------- Voucher (Sprint 4) ---------- */
+
+.lt-voucher {
+    max-width: 760px;
+    margin: 0 auto 24px;
+    padding: 24px;
+    border: 2px dashed var(--lt-teal);
+    border-radius: var(--lt-radius-lg);
+    background: var(--lt-surface);
+}
+
+.lt-voucher__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--lt-border);
+}
+
+.lt-voucher__brand {
+    margin: 0;
+    color: var(--lt-teal-700);
+    font-weight: 700;
+}
+
+.lt-voucher__title {
+    margin: 0;
+    font-size: 1.375rem;
+    font-weight: 700;
+}
+
+.lt-voucher__code {
+    text-align: right;
+}
+
+.lt-voucher__code span {
+    display: block;
+    color: var(--lt-muted);
+    font-size: 0.8125rem;
+}
+
+.lt-voucher__code strong {
+    font-family: SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 1.5rem;
+    letter-spacing: 0.06em;
+}
+
+.lt-voucher__section {
+    margin: 18px 0 6px;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.lt-voucher__foot {
+    margin-top: 18px;
+    padding-top: 12px;
+    border-top: 1px solid var(--lt-border);
+    color: var(--lt-text-soft);
+    font-size: 0.875rem;
+}
+
+.lt-voucher__foot p {
+    margin: 0 0 4px;
+}
+
+@media print {
+    .lt-header,
+    .lt-footer,
+    .lt-skip-link,
+    .lt-no-print {
+        display: none !important;
+    }
+
+    .lt-voucher {
+        margin: 0;
+        border-color: #000;
+    }
+}

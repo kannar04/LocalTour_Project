@@ -532,3 +532,48 @@ textarea.lt-admin-input {
     margin-top: 4px;
     color: var(--lt-text-soft);
 }
+
+/* ---------- Thanh toán của yêu cầu, đối chiếu VietQR (Sprint 4) ---------- */
+
+.lt-pay-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.lt-pay-item {
+    padding: 12px 0;
+    border-top: 1px solid var(--lt-border);
+}
+
+.lt-pay-item:first-child {
+    border-top: 0;
+    padding-top: 0;
+}
+
+.lt-pay-item.is-waiting {
+    margin: 0 -12px;
+    padding: 12px;
+    border-radius: var(--lt-radius);
+    background: var(--lt-highlight);
+}
+
+.lt-pay-item__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.lt-pay-item__form {
+    margin-top: 12px;
+}
+
+.lt-pay-item__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}

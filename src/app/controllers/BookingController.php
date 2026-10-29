@@ -16,12 +16,15 @@ use Core\Router;
 /**
  * Đặt tour (M4 mục 6, 8 – Lê Trung Phong): trang "Hoàn tất thông tin đặt tour" và API lưu yêu cầu đặt tour.
  * Chỉ tài khoản khách hàng đặt được; chế độ khách được chuyển tới đăng nhập rồi quay lại đúng trang.
- * Đơn mới ở trạng thái 'pending' (Chờ xác nhận), chưa giữ chỗ và chưa thu tiền (thanh toán thuộc M5).
+ * Đơn mới ở trạng thái 'pending' (Chờ xác nhận), chưa giữ chỗ và chưa thu tiền. Sprint 4: khách chọn phụ thu / hoạt động
+ * tùy chọn (4.3.2.3); API kiểm tra lại và lưu cùng đơn (4.3.3.1, 4.3.3.2). Thanh toán mở sau khi quản trị viên xác nhận chỗ.
  */
 final class BookingController extends Controller
 {
     private const CSRF_FAILED = 'Phiên làm việc đã hết hạn, vui lòng tải lại trang và thử lại.';
     private const PHONE_PATTERN = '/^(?=.{8,20}$)\+?[0-9 ]+$/';
+    /** Đơn vị tính theo đầu người của phụ thu / tùy chọn (giống LTP_sp_booking_create). */
+    private const PER_PERSON_UNITS = ['người', 'khách'];
 
     private TourDetailModel $details;
     private TourContentModel $content;
@@ -75,6 +78,7 @@ final class BookingController extends Controller
             'tour' => $tour,
             'schedules' => $schedules,
             'tickets' => $this->details->tickets($tourId),
+            'extras' => array_map([self::class, 'extraOption'], $this->content->extras($tourId)),
             'policy' => $this->content->cancellationPolicy($tourId),
             'coverUrl' => isset($gallery[0]) ? image_src((string) $gallery[0]['url']) : null,
             'selectedScheduleId' => $selectedScheduleId,
@@ -91,7 +95,8 @@ final class BookingController extends Controller
 
     /**
      * POST /api/bookings – schedule_id, request_token, contact_name, contact_email, contact_phone,
-     * passengers[i][ticket_type_id], passengers[i][full_name], special_request, expected_total, terms, _csrf.
+     * passengers[i][ticket_type_id], passengers[i][full_name], extras[] (mã phụ thu / tùy chọn), special_request,
+     * expected_total (tiền vé + các khoản đã chọn), terms, _csrf.
      */
     public function store(): void
     {
@@ -118,7 +123,8 @@ final class BookingController extends Controller
             $form['contact'],
             $form['passengers'],
             $form['special_request'],
-            $form['expected_total']
+            $form['expected_total'],
+            $form['extras']
         );
         $result = (string) $row['result'];
         $code = (string) ($row['booking_code'] ?? '');
@@ -148,9 +154,10 @@ final class BookingController extends Controller
             'tickets_changed' => $this->conflict($result, 'Loại vé của lịch này vừa thay đổi. Vui lòng chọn lại số khách.', [
                 'tickets' => $this->ticketOptions($form['schedule_id']),
             ]),
+            'extras_changed' => $this->conflict($result, 'Phụ thu hoặc hoạt động tùy chọn của tour vừa thay đổi. Vui lòng tải lại trang để chọn lại.'),
             'price_changed' => $this->conflict(
                 $result,
-                'Giá vé vừa thay đổi, tổng tiền mới là ' . format_vnd((int) $row['total_vnd']) . '. Vui lòng xem lại trước khi gửi.',
+                'Giá vừa thay đổi, tổng tiền mới là ' . format_vnd((int) $row['total_vnd']) . '. Vui lòng xem lại trước khi gửi.',
                 ['total_vnd' => (int) $row['total_vnd'], 'tickets' => $this->ticketOptions($form['schedule_id'])]
             ),
             default => $this->conflict('retry', 'Chưa gửi được yêu cầu, vui lòng bấm gửi lại.'),
@@ -224,6 +231,21 @@ final class BookingController extends Controller
             }
         }
 
+        // Phụ thu / tùy chọn: chỉ nhận mã đúng dạng, không trùng; database kiểm tra thuộc tour và đã có giá.
+        $extraIds = [];
+        $extraEntries = $this->inputArray('extras');
+        if (count($extraEntries) > BookingModel::EXTRAS_MAX) {
+            $errors['form'] = 'Trang đặt tour đã cũ, vui lòng tải lại trang.';
+        }
+        foreach ($extraEntries as $entry) {
+            $extraId = is_string($entry) ? self::parseUuid($entry) : null;
+            if ($extraId === null) {
+                $errors['form'] = 'Trang đặt tour đã cũ, vui lòng tải lại trang.';
+                continue;
+            }
+            $extraIds[$extraId] = true;
+        }
+
         $specialRequest = $this->input('special_request');
         if (mb_strlen($specialRequest) > BookingModel::SPECIAL_REQUEST_MAX_LENGTH) {
             $errors['special_request'] = 'Yêu cầu đặc biệt tối đa ' . BookingModel::SPECIAL_REQUEST_MAX_LENGTH . ' ký tự.';
@@ -240,6 +262,7 @@ final class BookingController extends Controller
             'passengers' => $passengers,
             'special_request' => $specialRequest,
             'expected_total' => (int) $expectedTotal,
+            'extras' => array_keys($extraIds),
         ], $errors];
     }
 
@@ -272,6 +295,29 @@ final class BookingController extends Controller
     private function ticketOptions(string $scheduleId): array
     {
         return array_map('ticket_option', $this->availability->tickets($scheduleId));
+    }
+
+    /**
+     * Một khoản phụ thu / tùy chọn cho trang đặt tour. Đơn vị 'người' / 'khách' tính theo số khách (giống
+     * LTP_sp_booking_create); khoản chưa có giá hiện nhưng không chọn được.
+     *
+     * @param array<string, mixed> $extra Dòng của NTK_sp_tour_extra_list.
+     * @return array{id: string, kind: string, name: string, price: ?int, perPerson: bool, priceText: string, conditions: string}
+     */
+    private static function extraOption(array $extra): array
+    {
+        $unit = trim((string) ($extra['price_unit'] ?? ''));
+        $price = $extra['price_vnd'] === null ? null : (int) $extra['price_vnd'];
+
+        return [
+            'id' => (string) $extra['extra_id'],
+            'kind' => (string) $extra['kind'],
+            'name' => (string) $extra['name'],
+            'price' => $price,
+            'perPerson' => in_array(mb_strtolower($unit), self::PER_PERSON_UNITS, true),
+            'priceText' => $price === null ? 'Giá cập nhật khi xác nhận chỗ' : format_vnd($price) . ($unit !== '' ? ' / ' . $unit : ' / nhóm'),
+            'conditions' => trim((string) ($extra['conditions'] ?? '')),
+        ];
     }
 
     /** 409: lịch, số chỗ hoặc giá đã đổi từ lúc khách mở trang; reason cho JS biết cần cập nhật gì. */

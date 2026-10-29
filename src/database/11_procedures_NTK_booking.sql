@@ -1,17 +1,20 @@
 -- =====================================================================
 -- LocalTour v0.2 - 11_procedures_NTK_booking.sql
 -- Mục đích  : Trang "Đơn của tôi" của khách hàng (M4): danh sách đơn, chi tiết một đơn
---             (trạng thái, lý do từ chối / hủy), dòng vé và danh sách khách.
--- Phụ trách : Nguyễn Tuấn Khôi (NTK) - M4 mục 7, 8
+--             (trạng thái, lý do từ chối / hủy, hạn thanh toán, voucher), dòng vé, phụ thu /
+--             tùy chọn đã chọn và danh sách khách.
+-- Phụ trách : Nguyễn Tuấn Khôi (NTK) - M4 mục 7, 8; Sprint 4: 4.2.3.1, 4.2.3.2
 -- Procedures: NTK_sp_customer_booking_list, NTK_sp_customer_booking_detail,
---             NTK_sp_customer_booking_line_list, NTK_sp_customer_booking_passenger_list
+--             NTK_sp_customer_booking_line_list, NTK_sp_customer_booking_extra_list,
+--             NTK_sp_customer_booking_passenger_list
 -- Quy tắc   : Mọi procedure nhận p_user_id (lấy từ session) và chỉ trả đơn của chính tài
 --             khoản đó: đơn của người khác hoặc mã không có -> 0 dòng (trang hiện "Không
 --             tìm thấy đơn", không lộ đơn của người khác).
 --             Đơn vẫn hiện khi tour đã bị ẩn sau lúc đặt; cột tour_public cho biết còn mở
 --             được trang chi tiết tour hay không.
 --             Tham số chuỗi được so sánh với COLLATE utf8mb4_unicode_ci; không có DEFINER.
--- Chạy sau  : 01_schema.sql, 08_migration_booking_NMT.sql. Chạy lại được (DROP PROCEDURE IF EXISTS).
+-- Chạy sau  : 01_schema.sql, 08_migration_booking_NMT.sql, 12_migration_sprint4_NMT.sql.
+--             Chạy lại được (DROP PROCEDURE IF EXISTS).
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
@@ -71,8 +74,13 @@ DELIMITER ;
 --   policy_free_before_hours, policy_refund_percent (chính sách hủy đúng phiên bản lúc đặt;
 --   NULL = tour chưa có chính sách),
 --   payment_status (khoản thanh toán tiêu biểu, NULL = chưa có),
---   status_note, status_changed_at (ghi chú và thời điểm của lần quản trị viên chuyển đơn
---   sang trạng thái hiện tại; NULL khi đơn còn 'pending' hoặc không có ghi chú).
+--   tickets_vnd (tiền vé), extras_vnd (phụ thu / tùy chọn đã chọn); total_vnd là tổng giá
+--   quản trị viên đã chốt, có thể khác tickets_vnd + extras_vnd,
+--   hold_expired (1 = đã quá hạn thanh toán, đơn sắp bị tự hủy),
+--   voucher_code, voucher_issued_at (NULL = chưa cấp voucher),
+--   status_note, status_changed_at (ghi chú và thời điểm của lần gần nhất đơn chuyển sang
+--   trạng thái hiện tại, do quản trị viên (admin_logs) hoặc hệ thống / VNPay (booking_events);
+--   NULL khi đơn còn 'pending' hoặc không có ghi chú).
 --   Trang chỉ hiện status_note cho đơn bị từ chối / bị hủy (lý do).
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NTK_sp_customer_booking_detail;
@@ -90,7 +98,16 @@ BEGIN
         b.status,
         b.created_at,
         b.hold_expires_at,
+        (b.hold_expires_at IS NOT NULL AND b.hold_expires_at <= NOW()) AS hold_expired,
         b.total_vnd,
+        (SELECT COALESCE(SUM(bl.line_total_vnd), 0)
+           FROM booking_lines bl
+          WHERE bl.booking_id = b.id) AS tickets_vnd,
+        (SELECT COALESCE(SUM(bx.line_total_vnd), 0)
+           FROM booking_extras bx
+          WHERE bx.booking_id = b.id) AS extras_vnd,
+        b.voucher_code,
+        b.voucher_issued_at,
         b.policy_version,
         b.contact_name,
         b.contact_email,
@@ -121,8 +138,10 @@ BEGIN
           WHERE p.booking_id = b.id
           ORDER BY FIELD(p.status, 'paid', 'awaiting_reconciliation', 'processing', 'pending', 'failed'), p.id
           LIMIT 1)          AS payment_status,
-        lg.note             AS status_note,
-        lg.created_at       AS status_changed_at
+        IF(ev.created_at IS NOT NULL AND (lg.created_at IS NULL OR ev.created_at > lg.created_at),
+           ev.note, lg.note)             AS status_note,
+        IF(ev.created_at IS NOT NULL AND (lg.created_at IS NULL OR ev.created_at > lg.created_at),
+           ev.created_at, lg.created_at) AS status_changed_at
     FROM bookings b
     JOIN schedules s  ON s.id = b.schedule_id
     JOIN tours t      ON t.id = s.tour_id
@@ -137,6 +156,13 @@ BEGIN
            AND l.target_id = b.id
            AND l.to_status = b.status
          ORDER BY l.created_at DESC, l.id DESC
+         LIMIT 1)
+    LEFT JOIN booking_events ev ON ev.id = (
+        SELECT e.id
+          FROM booking_events e
+         WHERE e.booking_id = b.id
+           AND e.to_status = b.status
+         ORDER BY e.created_at DESC, e.id DESC
          LIMIT 1)
     WHERE b.user_id = (p_user_id COLLATE utf8mb4_unicode_ci)
       AND b.code = (UPPER(TRIM(p_code)) COLLATE utf8mb4_unicode_ci);
@@ -168,6 +194,35 @@ BEGIN
     WHERE b.user_id = (p_user_id COLLATE utf8mb4_unicode_ci)
       AND b.code = (UPPER(TRIM(p_code)) COLLATE utf8mb4_unicode_ci)
     ORDER BY bl.unit_price_vnd DESC, tt.name, bl.id;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_customer_booking_extra_list(p_user_id, p_code)
+--   Phụ thu / hoạt động tùy chọn khách đã chọn (chỉ đơn của tài khoản này).
+--   Cột: kind, name, price_unit, quantity, unit_price_vnd, line_total_vnd. Phụ thu trước.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_customer_booking_extra_list;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_customer_booking_extra_list(
+    IN p_user_id CHAR(36),
+    IN p_code    VARCHAR(20)
+)
+READS SQL DATA
+BEGIN
+    SELECT
+        bx.kind,
+        bx.name,
+        bx.price_unit,
+        bx.quantity,
+        bx.unit_price_vnd,
+        bx.line_total_vnd
+    FROM booking_extras bx
+    JOIN bookings b ON b.id = bx.booking_id
+    WHERE b.user_id = (p_user_id COLLATE utf8mb4_unicode_ci)
+      AND b.code = (UPPER(TRIM(p_code)) COLLATE utf8mb4_unicode_ci)
+    ORDER BY bx.kind = 'surcharge' DESC, bx.sort_order, bx.id;
 END$$
 DELIMITER ;
 

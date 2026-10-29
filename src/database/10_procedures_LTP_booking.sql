@@ -1,8 +1,9 @@
 -- =====================================================================
 -- LocalTour v0.2 - 10_procedures_LTP_booking.sql
--- Mục đích  : Lưu yêu cầu đặt tour (M4 mục 6): tạo đơn 'pending' (Chờ xác nhận) kèm dòng vé
---             và danh sách khách trong một transaction, sinh mã đơn LTxxxxxx.
--- Phụ trách : Lê Trung Phong (LTP) - M4 mục 6
+-- Mục đích  : Lưu yêu cầu đặt tour (M4 mục 6): tạo đơn 'pending' (Chờ xác nhận) kèm dòng vé,
+--             phụ thu / hoạt động tùy chọn và danh sách khách trong một transaction, sinh mã
+--             đơn LTxxxxxx và ghi lịch sử "tạo đơn".
+-- Phụ trách : Lê Trung Phong (LTP) - M4 mục 6; Sprint 4: 4.3.3.1, 4.3.3.2
 -- Procedures: LTP_sp_booking_create
 -- Quy tắc   : * Chỉ tài khoản khách hàng đang hoạt động đặt được (user_id lấy từ session).
 --             * Lịch phải đặt được: tour đang hiển thị, lịch 'open', chưa khởi hành.
@@ -12,7 +13,13 @@
 --             * Số khách <= tours.max_group_size và <= schedules.remaining (khóa dòng lịch
 --               FOR UPDATE khi kiểm tra). Đơn mới KHÔNG trừ remaining: quản trị viên xác nhận
 --               chỗ (pending -> awaiting_payment, file 07) mới giữ chỗ.
---             * Giá vé chụp lại vào unit_price_vnd. Tổng tiền tính lại ở database; khác với
+--             * Phụ thu / hoạt động tùy chọn (Sprint 4, 4.3.2.3): khách chọn các khoản của
+--               tour (tour_extras) đã có giá. Đơn vị 'người' / 'khách' -> số lượng = số khách;
+--               đơn vị khác ('nhóm', 'xe', 'thuyền', không ghi) -> 1. Tên, loại, đơn vị và giá
+--               chụp lại vào booking_extras (file 12). Quản trị viên chốt lại tổng giá khi xác
+--               nhận chỗ nếu cần (vd. phụ thu ngày lễ, 07_procedures_NTK_admin.sql).
+--             * Giá vé chụp lại vào unit_price_vnd. Tổng tiền = tiền vé + phụ thu / tùy chọn,
+--               tính lại ở database; khác với
 --               số tiền khách đã xem (p_expected_total) thì không tạo đơn, trả 'price_changed'
 --               kèm tổng mới để khách xác nhận lại.
 --             * policy_version = phiên bản chính sách hủy mới nhất của tour lúc đặt
@@ -20,21 +27,27 @@
 --             * Chống tạo trùng: cùng tài khoản + cùng request_token (một lần mở form) chỉ
 --               tạo một đơn; gửi lại trả 'duplicate' kèm mã đơn đã tạo.
 --             * Yêu cầu đặc biệt (ăn chay, dị ứng...) lưu ở khách đầu tiên trong danh sách.
---             * Không gọi cổng thanh toán, không thu tiền ở bước này (thanh toán thuộc M5).
+--             * Lịch sử (4.3.3.2, FR-11): ghi booking_events 'created' (actor = khách).
+--             * Không gọi cổng thanh toán, không thu tiền ở bước này: khách thanh toán sau khi
+--               quản trị viên xác nhận chỗ và giá (14_procedures_NMT_payment.sql).
 --             Tham số chuỗi được so sánh với COLLATE utf8mb4_unicode_ci; không có DEFINER.
 -- Tương thích: MariaDB 10.4 (XAMPP) / MySQL 8: đọc JSON bằng JSON_EXTRACT theo chỉ số
 --             (MariaDB 10.4 chưa có JSON_TABLE).
--- Chạy sau  : 01_schema.sql, 08_migration_booking_NMT.sql. Chạy lại được (DROP PROCEDURE IF EXISTS).
+-- Chạy sau  : 01_schema.sql, 08_migration_booking_NMT.sql, 12_migration_sprint4_NMT.sql.
+--             Chạy lại được (DROP PROCEDURE IF EXISTS).
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
 -- LTP_sp_booking_create(p_user_id, p_schedule_id, p_request_token, p_contact_name,
 --                       p_contact_email, p_contact_phone, p_passengers, p_special_request,
---                       p_expected_total)
+--                       p_expected_total, p_extras)
 --   p_passengers    : mảng JSON, mỗi khách một phần tử, theo thứ tự trên form:
 --                     [{"ticket_type_id": "<uuid>", "full_name": "Nguyễn Văn A"}, ...]
 --   p_special_request: NULL / '' = không có.
---   p_expected_total: tổng tiền (VND) khách thấy trên trang trước khi bấm gửi.
+--   p_expected_total: tổng tiền (VND) khách thấy trên trang trước khi bấm gửi (vé + phụ thu /
+--                     tùy chọn đã chọn).
+--   p_extras        : mảng JSON mã các khoản phụ thu / tùy chọn khách chọn, vd. ["<uuid>", ...];
+--                     NULL / '[]' = không chọn.
 --   1 dòng: result, booking_code, total_vnd, remaining, max_group_size.
 --     result = 'ok'                   : đã tạo đơn pending; booking_code = mã đơn mới.
 --              'duplicate'            : request_token này đã tạo đơn; booking_code = mã đơn đó.
@@ -46,6 +59,7 @@
 --              'group_limit'          : số khách vượt max_group_size (trả max_group_size).
 --              'no_seats'             : số khách vượt số chỗ còn lại (trả remaining).
 --              'tickets_changed'      : có loại vé không còn bán cho lịch này.
+--              'extras_changed'       : có khoản phụ thu / tùy chọn không còn hoặc chưa có giá.
 --              'price_changed'        : tổng tiền hiện tại khác p_expected_total (trả total_vnd mới).
 --              'retry'                : trùng mã đơn hiếm gặp khi ghi, khách gửi lại là được.
 --     Khi không 'ok', không có gì được ghi.
@@ -62,7 +76,8 @@ CREATE PROCEDURE LTP_sp_booking_create(
     IN p_contact_phone   VARCHAR(20)  CHARACTER SET utf8mb4,
     IN p_passengers      TEXT         CHARACTER SET utf8mb4,
     IN p_special_request TEXT         CHARACTER SET utf8mb4,
-    IN p_expected_total  BIGINT
+    IN p_expected_total  BIGINT,
+    IN p_extras          TEXT
 )
 MODIFIES SQL DATA
 proc: BEGIN
@@ -85,6 +100,11 @@ proc: BEGIN
     DECLARE v_ticket_name VARCHAR(50)  CHARACTER SET utf8mb4 DEFAULT NULL;
     DECLARE v_price       BIGINT       DEFAULT NULL;
     DECLARE v_duplicate   BOOLEAN      DEFAULT FALSE;
+    DECLARE v_extra_count INT          DEFAULT 0;
+    DECLARE v_extra_id    VARCHAR(255) CHARACTER SET utf8mb4 DEFAULT NULL;
+    DECLARE v_extra_seen  TEXT         CHARACTER SET utf8mb4 DEFAULT '';
+    DECLARE v_extra_qty   INT          DEFAULT 0;
+    DECLARE v_extra_unit  VARCHAR(50)  CHARACTER SET utf8mb4 DEFAULT NULL;
     -- 1062 = trùng khóa UNIQUE: cùng request_token vừa được gửi song song, hoặc trùng mã đơn.
     DECLARE CONTINUE HANDLER FOR 1062 SET v_duplicate = TRUE;
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
@@ -128,6 +148,30 @@ proc: BEGIN
             SELECT 'invalid' AS result, NULL AS booking_code, NULL AS total_vnd, NULL AS remaining, NULL AS max_group_size;
             LEAVE proc;
         END IF;
+        SET v_i = v_i + 1;
+    END WHILE;
+
+    -- Phụ thu / tùy chọn: mảng mã, không trùng nhau.
+    IF NULLIF(TRIM(p_extras), '') IS NOT NULL THEN
+        IF COALESCE(JSON_VALID(p_extras), 0) = 0 THEN
+            SELECT 'invalid' AS result, NULL AS booking_code, NULL AS total_vnd, NULL AS remaining, NULL AS max_group_size;
+            LEAVE proc;
+        END IF;
+        IF JSON_TYPE(p_extras) <> 'ARRAY' THEN
+            SELECT 'invalid' AS result, NULL AS booking_code, NULL AS total_vnd, NULL AS remaining, NULL AS max_group_size;
+            LEAVE proc;
+        END IF;
+        SET v_extra_count = JSON_LENGTH(p_extras);
+    END IF;
+
+    SET v_i = 0;
+    WHILE v_i < v_extra_count DO
+        SET v_extra_id = JSON_UNQUOTE(JSON_EXTRACT(p_extras, CONCAT('$[', v_i, ']')));
+        IF v_extra_id IS NULL OR CHAR_LENGTH(v_extra_id) <> 36 OR FIND_IN_SET(v_extra_id, v_extra_seen) > 0 THEN
+            SELECT 'invalid' AS result, NULL AS booking_code, NULL AS total_vnd, NULL AS remaining, NULL AS max_group_size;
+            LEAVE proc;
+        END IF;
+        SET v_extra_seen = CONCAT(v_extra_seen, ',', v_extra_id);
         SET v_i = v_i + 1;
     END WHILE;
 
@@ -200,6 +244,27 @@ proc: BEGIN
         SET v_i = v_i + 1;
     END WHILE;
 
+    -- 5b. Phụ thu / tùy chọn: phải thuộc tour này và đã có giá.
+    SET v_i = 0;
+    WHILE v_i < v_extra_count DO
+        SET v_extra_id = JSON_UNQUOTE(JSON_EXTRACT(p_extras, CONCAT('$[', v_i, ']')));
+        SET v_price = NULL;
+        SET v_extra_unit = NULL;
+        SELECT te.price_vnd, te.price_unit INTO v_price, v_extra_unit
+          FROM tour_extras te
+         WHERE te.id = (v_extra_id COLLATE utf8mb4_unicode_ci)
+           AND te.tour_id = (v_tour_id COLLATE utf8mb4_unicode_ci)
+           LOCK IN SHARE MODE;
+        IF v_price IS NULL THEN
+            ROLLBACK;
+            SELECT 'extras_changed' AS result, NULL AS booking_code, NULL AS total_vnd, v_remaining AS remaining, v_max_group AS max_group_size;
+            LEAVE proc;
+        END IF;
+        SET v_extra_qty = IF(LOWER(TRIM(v_extra_unit)) IN ('người', 'khách'), v_count, 1);
+        SET v_total = v_total + v_price * v_extra_qty;
+        SET v_i = v_i + 1;
+    END WHILE;
+
     IF NOT (v_total <=> p_expected_total) THEN
         ROLLBACK;
         SELECT 'price_changed' AS result, NULL AS booking_code, v_total AS total_vnd, v_remaining AS remaining, v_max_group AS max_group_size;
@@ -256,6 +321,27 @@ proc: BEGIN
 
         SET v_i = v_i + 1;
     END WHILE;
+
+    -- 8. Phụ thu / tùy chọn đã chọn (chụp lại tên, loại, đơn vị, giá).
+    SET v_i = 0;
+    WHILE v_i < v_extra_count DO
+        SET v_extra_id = JSON_UNQUOTE(JSON_EXTRACT(p_extras, CONCAT('$[', v_i, ']')));
+        INSERT INTO booking_extras (id, booking_id, extra_id, kind, name, price_unit, quantity,
+                                    unit_price_vnd, line_total_vnd, sort_order)
+        SELECT UUID(), v_booking_id, te.id, te.kind, te.name, te.price_unit,
+               IF(LOWER(TRIM(te.price_unit)) IN ('người', 'khách'), v_count, 1),
+               te.price_vnd,
+               te.price_vnd * IF(LOWER(TRIM(te.price_unit)) IN ('người', 'khách'), v_count, 1),
+               v_i + 1
+          FROM tour_extras te
+         WHERE te.id = (v_extra_id COLLATE utf8mb4_unicode_ci);
+        SET v_i = v_i + 1;
+    END WHILE;
+
+    -- 9. Lịch sử của đơn (FR-11, NFR-09).
+    INSERT INTO booking_events (id, booking_id, actor, actor_user_id, action, from_status, to_status, note, created_at)
+    VALUES (UUID(), v_booking_id, 'customer', p_user_id, 'created', NULL, 'pending',
+            CONCAT(v_count, ' khách, tổng ', REPLACE(FORMAT(v_total, 0), ',', '.'), ' VND'), NOW());
 
     COMMIT;
     SELECT 'ok' AS result, v_code AS booking_code, v_total AS total_vnd, v_remaining AS remaining, v_max_group AS max_group_size;

@@ -15,6 +15,7 @@ spl_autoload_register(static function (string $class): void {
         'Core\\' => 'core/',
         'App\\Controllers\\' => 'app/controllers/',
         'App\\Models\\' => 'app/models/',
+        'App\\Services\\' => 'app/services/',
     ];
 
     foreach ($namespaces as $prefix => $directory) {
