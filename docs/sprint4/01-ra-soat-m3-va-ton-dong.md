@@ -5,7 +5,7 @@
 | Sprint | Sprint 4 – M4 Nghiệm thu bản tích hợp và Booking MVP |
 | WBS | M4 mục 1 – Rà soát kết quả nghiệm thu M3 và xử lý tồn đọng |
 | Người phụ trách | Lê Trung Phong |
-| Căn cứ | Báo cáo Sprint 3 (mục 2, 8, 9); Kết quả kiểm thử và defect log Sprint 3 (WBS 3.3.3); Retest và báo cáo kiểm thử (WBS 3.3.4); Checklist QC (WBS 3.3.2); tài liệu [Sprint 3](../sprint3/) |
+| Căn cứ | Báo cáo Sprint 3 (mục 2, 8, 9); Kết quả kiểm thử và defect log Sprint 3 (WBS 3.3.3); Retest và báo cáo kiểm thử (WBS 3.3.4); Checklist QC (WBS 3.3.2); Câu hỏi sau Sprint 3 (nhóm đã trả lời); tài liệu [Sprint 3](../sprint3/) |
 | Tài liệu liên quan | [02 – Yêu cầu và luồng đặt tour](02-yeu-cau-va-luong-dat-tour.md), [03 – Cấu trúc dữ liệu Booking](03-cau-truc-du-lieu-booking.md) |
 | Trạng thái | **Đã chốt.** |
 
@@ -58,13 +58,22 @@ Nguồn: bảng “Việc chuyển sang Sprint sau” của báo cáo Sprint 3 v
 | Giao diện desktop / 360 px, mục tiêu tải 3 giây, Chrome / Edge | NFR-01 → NFR-03, NFR-10 | QC: chưa ghi môi trường đo và ma trận trình duyệt. | **M4** (QA) | Kiểm tra trang đặt tour và “Đơn của tôi” ở 360 px và desktop trong M4 mục 9, 10; ghi môi trường đo vào checklist. |
 | Tài liệu Sprint 2 còn lại: hình WBS, wireframe “Đơn của tôi” và trang quản lý yêu cầu, tên vai trò “Quản trị viên” | – | Chưa cập nhật. | Tài liệu | Nhóm phân tích cập nhật; trang đặt tour M4 theo wireframe 4 đã có. |
 
-Quyết định nhóm còn mở theo checklist QC:
+Quyết định nhóm theo checklist QC:
 
 | Quyết định | Kết quả |
 | --- | --- |
 | Thời điểm giữ / nhả chỗ (FR-14) | **Đã chốt ở M4:** đơn mới chưa giữ chỗ; quản trị viên xác nhận chỗ thì giữ, hủy đơn đang giữ thì trả; hết hạn ở M5. |
-| Gói lựa chọn (FR-07) | Còn mở. M4 đặt theo loại vé của lịch, không có gói. |
-| Giữ hay bỏ giá trị `support`, `provider` trong `users.role` | Còn mở. M4 chỉ dùng `customer` và `admin`. |
+| Gói lựa chọn (FR-07) | **Đã chốt thiết kế** (câu hỏi sau Sprint 3, mục 4, bảng dưới). Chưa làm ở M4: tour mẫu chưa có gói, M4 đặt theo loại vé của lịch. Backlog. |
+| Vai trò `support`, `provider` trong `users.role` | **Đã chốt ở CR1 (25/10):** hệ thống không có tác nhân Nhân viên hỗ trợ khách hàng và Đơn vị tổ chức; Quản trị viên làm mọi việc vận hành (sơ đồ use case cập nhật theo CR1). Lược đồ còn hai giá trị này và các tài khoản mẫu tương ứng nhưng không trang nào dùng: đăng nhập khách hàng chỉ nhận `customer`, đăng nhập quản trị chỉ nhận `admin`. Dọn lược đồ ở backlog. |
+
+Câu hỏi sau Sprint 3 nhóm đã trả lời. Cả bốn mục thuộc backlog, M4 không đổi code:
+
+| Mục | Quyết định | Ghi chú |
+| --- | --- | --- |
+| 1. Đánh giá tour (FR-16) | Chỉ nhận đánh giá của khách có đơn đã hoàn thành (`bookings.status = 'completed'`), gửi trên hệ thống, không lấy nguồn ngoài. Quản trị viên duyệt trước khi hiện; từ chối nội dung quảng cáo, xúc phạm hoặc lộ thông tin cá nhân; mỗi lần duyệt ghi `admin_logs` (NFR-09). | Câu 1.2 (khách không có tài khoản gửi đánh giá bằng mã đặt chỗ) không áp dụng: từ Sprint 3 mỗi đơn thuộc một tài khoản (`bookings.user_id` bắt buộc), khách gửi đánh giá từ “Đơn của tôi”. Câu 1.3 ghi “nhân viên hỗ trợ”; theo CR1, người duyệt là Quản trị viên. |
+| 2. Tên người đánh giá (NFR-04) | Hiện dạng rút gọn gồm tên gọi và chữ cái đầu của họ (“Nguyễn Văn An” → “An N.”); không hiện email, số điện thoại. MVP không cho khách tự nhập tên hiển thị. | Áp dụng khi làm FR-16. |
+| 3. Xác minh nguồn tour (NFR-07) | Tour chưa xác minh vẫn hiện, kèm nhãn “Thông tin chưa được xác minh” cạnh giá và trong phần Thông tin tour. Quản trị viên chuyển tour sang “Đã xác minh” trên trang quản trị tour (FR-13), mỗi lần đổi ghi `admin_logs`. Dùng ba cột có sẵn `source_url`, `verified_at`, `verification_status` của `tours`, không thêm bảng. | Làm cùng FR-13 (bảng phân loại ở trên). Mọi tour mẫu đang ở trạng thái chưa xác minh. |
+| 4. Gói lựa chọn (FR-07) | Gói phân theo phương tiện hoặc tuyến điểm. Mỗi gói có tên, mô tả và giá vé riêng; lịch khởi hành và lịch trình chính dùng chung, điểm khác ghi trong mô tả gói. Thêm bảng `tour_packages` và cột `ticket_types.package_id` (để trống khi tour không có gói). | Câu 4.1 có nhắc lịch trình riêng cho từng gói; theo câu 4.2 và 4.3, lịch trình dùng chung. ERD vẽ thêm khi tạo bảng. |
 
 ## 4. Phần M3 thay đổi do luồng đặt tour
 
