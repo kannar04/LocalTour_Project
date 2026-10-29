@@ -1,6 +1,6 @@
 # LocalTour – Mã nguồn ứng dụng
 
-Thư mục `src/` chứa LocalTour Increment v0.2: trang danh sách tour, trang chi tiết tour, tài khoản khách hàng (đăng ký, đăng nhập, đăng xuất), trang quản trị (duyệt tour, xử lý yêu cầu đặt tour, thống kê) của Sprint 3 và luồng đặt tour MVP của Sprint 4 (M4: chọn lịch và số khách, nhập danh sách khách, gửi yêu cầu đặt tour, trang "Đơn của tôi"), đọc và ghi dữ liệu MySQL qua stored procedure. Toàn bộ dữ liệu tour, giá, tài khoản và đánh giá là dữ liệu minh họa.
+Thư mục `src/` chứa LocalTour Increment v0.3: trang danh sách tour, trang chi tiết tour, tài khoản khách hàng (đăng ký, đăng nhập, đăng xuất), trang quản trị (duyệt tour, xử lý yêu cầu đặt tour, thống kê) của Sprint 3; luồng đặt tour MVP (M4: chọn lịch và số khách, nhập danh sách khách, gửi yêu cầu đặt tour, trang "Đơn của tôi"); và Sprint 4: chọn phụ thu / hoạt động tùy chọn khi đặt, chốt giá, thanh toán VNPay (sandbox) và chuyển khoản VietQR, đối chiếu chuyển khoản, voucher, tự hủy đơn quá hạn, lịch sử đơn, quản lý đơn vị tổ chức, thêm / sửa tour và lịch khởi hành. Ứng dụng đọc và ghi dữ liệu MySQL qua stored procedure. Toàn bộ dữ liệu tour, giá, tài khoản và đánh giá là dữ liệu minh họa.
 
 Tài liệu thiết kế đi kèm:
 
@@ -37,9 +37,16 @@ src/
 │   │   ├── AdminDashboardController.php
 │   │   ├── AdminTourController.php
 │   │   ├── AdminBookingController.php
+│   │   ├── AdminPaymentController.php    # Hàng đợi đối chiếu VietQR, quyết định đã nhận tiền / không khớp
+│   │   ├── AdminProviderController.php   # Đơn vị tổ chức
+│   │   ├── AdminTourFormController.php   # Thêm / sửa thông tin tour
+│   │   ├── AdminScheduleController.php   # Lịch khởi hành, sức chứa, giá vé
 │   │   ├── ScheduleController.php        # Kiểm tra lịch và số chỗ (API)
 │   │   ├── BookingController.php         # Trang đặt tour, lưu yêu cầu đặt tour
-│   │   └── CustomerBookingController.php # Đơn của tôi
+│   │   ├── CustomerBookingController.php # Đơn của tôi
+│   │   ├── PaymentController.php         # Chọn phương thức, bắt đầu VNPay / VietQR, báo đã chuyển khoản
+│   │   ├── VnpayController.php           # Return URL và IPN của VNPay
+│   │   └── VoucherController.php         # Voucher tham gia tour
 │   ├── models/
 │   │   ├── TourListModel.php
 │   │   ├── TourDetailModel.php
@@ -48,18 +55,28 @@ src/
 │   │   ├── AdminStatsModel.php
 │   │   ├── AdminTourModel.php
 │   │   ├── AdminBookingModel.php
+│   │   ├── AdminPaymentModel.php
+│   │   ├── AdminProviderModel.php
+│   │   ├── AdminTourFormModel.php
+│   │   ├── AdminScheduleModel.php
 │   │   ├── BookingAvailabilityModel.php
 │   │   ├── BookingModel.php
-│   │   └── CustomerBookingModel.php
+│   │   ├── BookingHistoryModel.php
+│   │   ├── CustomerBookingModel.php
+│   │   ├── PaymentModel.php
+│   │   └── PaymentResultModel.php    # Kết quả VNPay, tự hủy đơn quá hạn
+│   ├── services/                 # VnpayGateway.php (tạo URL, kiểm tra chữ ký), VietQr.php (ảnh mã QR)
 │   └── views/
-│       ├── admin/                # login.php, dashboard.php, tours/, bookings/, partials/nav.php
+│       ├── admin/                # login.php, dashboard.php, tours/, bookings/, payments/, providers/, schedules/, partials/nav.php
 │       ├── auth/                 # login.php, register.php
 │       ├── bookings/             # create.php (đặt tour), index.php, show.php (đơn của tôi), message.php
 │       ├── errors/               # 403.php, 404.php, 500.php
 │       ├── layouts/              # main.php
+│       ├── payments/             # checkout.php (chọn phương thức), transfer.php (VietQR)
 │       ├── partials/             # header.php (nút tài khoản, Đơn của tôi), sidebar.php, footer.php
-│       └── tours/                # index.php, show.php, not-found.php
-├── config/                       # app.php, database.php (đọc giá trị từ .env)
+│       ├── tours/                # index.php, show.php, not-found.php
+│       └── vouchers/             # show.php (in được)
+├── config/                       # app.php, database.php, payment.php (đọc giá trị từ .env)
 ├── core/                         # bootstrap.php, Router.php, Controller.php, Database.php,
 │                                 # DatabaseException.php, Env.php, helpers.php,
 │                                 # Auth.php (phiên đăng nhập và mã CSRF)
@@ -75,7 +92,11 @@ src/
 │   ├── 09_procedures_NMT_booking.sql
 │   ├── 10_procedures_LTP_booking.sql
 │   ├── 11_procedures_NTK_booking.sql
-│   ├── db_localtour.sql          # File gộp 01–11, sinh tự động
+│   ├── 12_migration_sprint4_NMT.sql
+│   ├── 13_procedures_NMT_catalog.sql
+│   ├── 14_procedures_NMT_payment.sql
+│   ├── 15_procedures_LTP_payment.sql
+│   ├── db_localtour.sql          # File gộp 01–15, sinh tự động
 │   └── README.md
 ├── public/                       # Thư mục web duy nhất trình duyệt truy cập được
 │   ├── .htaccess                 # Chuyển mọi đường dẫn về index.php (Apache)
@@ -87,6 +108,8 @@ src/
 │       └── img/                  # Ảnh SVG minh họa; bảng tour_images lưu đường dẫn tới các file này
 ├── routes/
 │   └── web.php                   # Khai báo route
+├── scripts/
+│   └── expire_holds.php          # Tự hủy đơn quá hạn thanh toán (chạy bằng Task Scheduler)
 └── storage/
     └── logs/                     # app.log sinh khi chạy, không đưa lên Git
 ```
@@ -118,12 +141,25 @@ Tiền tố tên procedure cho biết người phụ trách: `LTP_` – Lê Trun
 | POST | `/admin/tours/{id}/reject` | `AdminTourController@reject` | `note` (bắt buộc, tối đa 255 ký tự), `_csrf`. |
 | GET | `/admin/bookings` | `AdminBookingController@index` | `status` (trống = tất cả), `q` (mã, tên, email, số điện thoại; tối đa 100 ký tự). |
 | GET | `/admin/bookings/{id}` | `AdminBookingController@show` | 404 nếu UUID sai hoặc không tìm thấy. |
-| POST | `/admin/bookings/{id}/status` | `AdminBookingController@updateStatus` | `status`, `note` (bắt buộc khi từ chối hoặc hủy), `_csrf`; 409 nếu không chuyển được trạng thái hoặc lịch không còn đủ chỗ. |
+| POST | `/admin/bookings/{id}/status` | `AdminBookingController@updateStatus` | `status`, `note` (bắt buộc khi từ chối hoặc hủy, hoặc khi đổi tổng giá), `total_vnd` (tổng giá chốt khi xác nhận chỗ, trống = giữ nguyên), `_csrf`; 409 nếu không chuyển được trạng thái hoặc lịch không còn đủ chỗ. |
+| GET | `/admin/payments` | `AdminPaymentController@index` | Hàng đợi chuyển khoản VietQR chờ đối chiếu. |
+| POST | `/admin/payments/{id}/decide` | `AdminPaymentController@decide` | `decision` (`confirm` / `reject`), `note` (bắt buộc khi không khớp), `_csrf`; xong về trang yêu cầu `#payments`. |
+| GET, POST | `/admin/providers`, `/admin/providers/new`, `/admin/providers/{id}/edit` | `AdminProviderController` | Danh sách, thêm, sửa đơn vị tổ chức; 422 lỗi theo ô, 409 email đã dùng. |
+| GET, POST | `/admin/tours/new`, `/admin/tours/{id}/edit` | `AdminTourFormController` | Thêm tour (luôn chờ duyệt), sửa thông tin và trạng thái xác minh. |
+| GET, POST | `/admin/tours/{id}/schedules`, `/admin/schedules/{id}/edit` | `AdminScheduleController` | Lịch khởi hành, sức chứa, giá vé người lớn / trẻ em; 409 khi sức chứa thấp hơn số chỗ đang giữ hoặc hủy lịch còn đơn. |
 | GET | `/tours/{id}/book` | `BookingController@create` | Trang "Hoàn tất thông tin đặt tour"; `schedule_id`, `tickets[<mã vé>]` (lịch và số khách chọn ở trang chi tiết). Chưa đăng nhập → `/login?next=…`; tài khoản không phải khách hàng → 403. |
 | GET | `/api/schedules/{id}/availability` | `ScheduleController@apiAvailability` | `people` (1–50). JSON `{ remaining, max_group_size, bookable, enough, tickets, … }`; 400 UUID sai, 404 không tìm thấy, 422 `people` sai. |
 | POST | `/api/bookings` | `BookingController@store` | Form đặt tour + `_csrf`, `request_token`; 201 đã tạo đơn, 200 gửi trùng, 401, 403, 409 (lịch, chỗ hoặc giá đã đổi), 422 (lỗi theo từng ô). |
 | GET | `/bookings` | `CustomerBookingController@index` | "Đơn của tôi" của tài khoản đang đăng nhập. |
-| GET | `/bookings/{code}` | `CustomerBookingController@show` | Chi tiết đơn (`LTxxxxxx`); 404 khi mã sai hoặc đơn của tài khoản khác; `?new=1` hiện thông báo vừa gửi. |
+| GET | `/bookings/{code}` | `CustomerBookingController@show` | Chi tiết đơn (`LTxxxxxx`); 404 khi mã sai hoặc đơn của tài khoản khác; `?new=1` hiện thông báo vừa gửi; `?pay=` hiện kết quả thanh toán. |
+| GET | `/bookings/{code}/pay` | `PaymentController@checkout` | Chọn VNPay hoặc VietQR; chỉ đơn "Chờ thanh toán" còn hạn. |
+| POST | `/bookings/{code}/pay/vnpay` | `PaymentController@startVnpay` | `_csrf`; 303 sang cổng VNPay sandbox. |
+| POST | `/bookings/{code}/pay/vietqr` | `PaymentController@startVietqr` | `_csrf`; 303 sang trang chuyển khoản. |
+| GET | `/bookings/{code}/pay/vietqr` | `PaymentController@transfer` | Mã VietQR, số tiền, nội dung chuyển khoản. |
+| POST | `/bookings/{code}/pay/vietqr/submit` | `PaymentController@submitTransfer` | `payment_id`, `_csrf`; khoản chuyển sang "Chờ đối chiếu". |
+| GET | `/payments/vnpay/return` | `VnpayController@result` | Return URL: kiểm tra chữ ký, ghi kết quả, chuyển về trang đơn. |
+| GET | `/payments/vnpay/ipn` | `VnpayController@ipn` | IPN: JSON `{ RspCode, Message }` theo quy ước VNPay. |
+| GET | `/bookings/{code}/voucher` | `VoucherController@show` | Voucher của đơn đã thanh toán; đơn chưa có voucher thì về trang đơn. |
 
 Mọi trang `/admin…` (trừ `/admin/login`): chưa đăng nhập thì chuyển tới `/admin/login`, đăng nhập bằng tài khoản không phải quản trị viên thì nhận trang 403.
 
@@ -174,12 +210,12 @@ Chọn một trong hai cách.
 **Cách B – Import database trên máy mình.**
 
 1. Mở XAMPP Control Panel, bấm Start cho **MySQL**.
-2. Dùng file `src/database/db_localtour.sql` trong repo. File này được gộp từ `src/database/01_schema.sql` đến `11_procedures_NTK_booking.sql`.
+2. Dùng file `src/database/db_localtour.sql` trong repo. File này được gộp từ `src/database/01_schema.sql` đến `15_procedures_LTP_payment.sql`.
 3. Mở `http://localhost/phpmyadmin`, chọn tab **Import**, chọn file `db_localtour.sql`, giữ **Character set of the file** là `utf-8`, bấm **Import** (hoặc **Go**). File tự tạo database `db_localtour` với `utf8mb4_unicode_ci`.
 
-Nếu không có file gộp: tạo database `db_localtour` với collation `utf8mb4_unicode_ci`, chọn database đó, rồi import lần lượt `01_schema.sql`, `02_seed.sql`, `03_procedures_LTP.sql`, `04_procedures_NMT.sql`, `05_procedures_NTK.sql`, `06_procedures_NTK_account.sql`, `07_procedures_NTK_admin.sql`, `08_migration_booking_NMT.sql`, `09_procedures_NMT_booking.sql`, `10_procedures_LTP_booking.sql`, `11_procedures_NTK_booking.sql`.
+Nếu không có file gộp: tạo database `db_localtour` với collation `utf8mb4_unicode_ci`, chọn database đó, rồi import lần lượt `01_schema.sql`, `02_seed.sql`, `03_procedures_LTP.sql`, `04_procedures_NMT.sql`, `05_procedures_NTK.sql`, `06_procedures_NTK_account.sql`, `07_procedures_NTK_admin.sql`, `08_migration_booking_NMT.sql`, `09_procedures_NMT_booking.sql`, `10_procedures_LTP_booking.sql`, `11_procedures_NTK_booking.sql`, `12_migration_sprint4_NMT.sql`, `13_procedures_NMT_catalog.sql`, `14_procedures_NMT_payment.sql`, `15_procedures_LTP_payment.sql`.
 
-Import lại bất cứ lúc nào để đưa dữ liệu về trạng thái ban đầu: `01_schema.sql` xóa và tạo lại 27 bảng, đồng thời xóa 2 bảng đã bỏ (`post_comments`, `post_interactions`). Tài khoản đã đăng ký thử cũng bị xóa. Ngày khởi hành mẫu được tính theo ngày import, vì vậy nên import lại trước mỗi buổi kiểm thử hoặc demo. Chi tiết xem [02 – Lược đồ dữ liệu](../docs/sprint3/02-luoc-do-du-lieu.md) và `src/database/README.md`.
+Import lại bất cứ lúc nào để đưa dữ liệu về trạng thái ban đầu: `01_schema.sql` xóa và tạo lại 27 bảng, đồng thời xóa 2 bảng đã bỏ (`post_comments`, `post_interactions`); `12_migration_sprint4_NMT.sql` thêm 2 bảng Sprint 4 (tổng 29 bảng). Tài khoản đã đăng ký thử cũng bị xóa. Ngày khởi hành mẫu được tính theo ngày import, vì vậy nên import lại trước mỗi buổi kiểm thử hoặc demo. Chi tiết xem [02 – Lược đồ dữ liệu](../docs/sprint3/02-luoc-do-du-lieu.md) và `src/database/README.md`.
 
 ### Bước 3. Tạo file `.env`
 
@@ -202,8 +238,12 @@ copy .env.example .env
 | `DB_DATABASE` | `db_localtour` |
 | `DB_USERNAME` | Cách A: tài khoản Phong cấp. Cách B: `root`. |
 | `DB_PASSWORD` | Cách A: mật khẩu Phong cấp. Cách B: để trống (mặc định của XAMPP). |
+| `PAYMENT_BANK_ID`, `PAYMENT_BANK_NAME`, `PAYMENT_ACCOUNT_NO`, `PAYMENT_ACCOUNT_NAME` | Tài khoản nhận chuyển khoản VietQR (mã ngân hàng theo VietQR, ví dụ `VCB`). Để trống thì VietQR hiện "đang tạm ngưng". |
+| `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET` | Mã website và khóa bí mật VNPay sandbox. Để trống thì VNPay hiện "đang tạm ngưng". |
+| `VNPAY_PAY_URL` | Giữ mặc định (cổng sandbox). |
+| `VNPAY_RETURN_URL` | Để trống: ứng dụng tự tính theo địa chỉ đang mở. |
 
-`.env` chứa thông tin kết nối thật và đã có trong `.gitignore`. Không commit file này và không sửa `.env.example` thành giá trị thật.
+`.env` chứa thông tin kết nối thật và đã có trong `.gitignore`. Không commit file này và không sửa `.env.example` thành giá trị thật. Thông tin VNPay sandbox và tài khoản nhận VietQR dùng chung bộ của nhóm (đã dùng ở Home2Home); hỏi trong nhóm, không gửi vào nhóm chat chung.
 
 ### Bước 4. Chạy ứng dụng
 
@@ -297,7 +337,41 @@ Dùng tài khoản khách hàng tự tạo ở Bước 6 (tài khoản quản tr
 | Đặt xong, mở lại `/bookings/<mã đơn>` bằng tài khoản khác | Trang "Không tìm thấy đơn" (404). |
 | Quản trị viên xác nhận chỗ cho đơn vừa đặt (Bước 7) | Khách thấy "Chờ thanh toán" và hạn giữ chỗ; lịch giảm đúng số khách. Quản trị viên hủy đơn kèm lý do → khách thấy "Đã hủy" và lý do, lịch được trả lại chỗ. |
 
-Bước thanh toán (VNPay, VietQR) thuộc M5: trang đơn chỉ ghi "Sắp có".
+| Tour 1, tích "Thêm phần chè cuối tour" (35.000đ / người) ở mục phụ thu và hoạt động tùy chọn | Với 3 khách, tạm tính cộng thêm 105.000đ; khoản "Phụ thu đi riêng" (500.000đ / nhóm) chỉ cộng một lần. Bước xem lại và trang đơn có dòng phụ thu / tùy chọn. |
+
+### Bước 9. Thử thanh toán
+
+Cần điền khóa VNPay sandbox và tài khoản VietQR trong `.env` (Bước 3). Đây là môi trường thử nghiệm: không chuyển tiền thật.
+
+1. Quản trị viên mở đơn vừa đặt (Bước 8), có thể sửa "Tổng giá chốt" (đổi giá phải ghi lý do), chọn "Xác nhận chỗ và giá" → đơn "Chờ thanh toán" trong 24 giờ.
+2. Khách mở đơn, bấm "Thanh toán ngay":
+   - **VNPay:** chuyển sang cổng sandbox; thanh toán bằng thẻ thử nghiệm NCB trong tài liệu VNPay sandbox. VNPay trả về trang đơn với thông báo "Thanh toán VNPay thành công", đơn "Đã xác nhận", có voucher. Chạy ở `localhost` thì VNPay không gọi được IPN; kết quả được ghi qua Return URL.
+   - **VietQR:** trang hiện mã QR đúng số tiền và nội dung `LTxxxxxxPn`; bấm "Tôi đã chuyển khoản" → khoản "Chờ đối chiếu". Quản trị viên mở "Đối chiếu thanh toán" ở menu quản trị, chọn "Đã nhận tiền" (đơn "Đã xác nhận", cấp voucher) hoặc "Không khớp" (bắt buộc lý do; khách thanh toán lại được).
+3. Đơn đã thanh toán có nút "Xem và in voucher"; trang voucher in được (Ctrl+P chỉ in phần voucher). Mục "Lịch sử đơn" ghi đủ các bước.
+
+| Thử thêm | Kết quả mong đợi |
+| --- | --- |
+| Hủy giao dịch ở cổng VNPay | Về trang đơn với thông báo "Bạn đã hủy giao dịch ở VNPay. Bạn có thể thanh toán lại trước hạn giữ chỗ.", đơn vẫn "Chờ thanh toán". |
+| Đơn "Chờ thanh toán" quá hạn giữ chỗ (không có chuyển khoản chờ đối chiếu) | Lần mở trang tiếp theo đơn thành "Đã hủy" với lý do quá hạn, lịch được trả lại chỗ. |
+| VNPay báo thành công sau khi đơn đã tự hủy | Khoản vẫn được ghi "Đã thanh toán"; trang quản trị của đơn có cảnh báo cần hoàn tiền cho khách. |
+
+**Tự hủy định kỳ:** ngoài việc chạy mỗi lần mở trang, có thể đặt Windows Task Scheduler chạy mỗi 15 phút:
+
+```bat
+C:\xampp\php\php.exe C:\xampp\htdocs\LocalTour_Project\src\scripts\expire_holds.php
+```
+
+(Task Scheduler → Create Basic Task → Daily → Start a program; sau khi tạo, mở Properties → Triggers → "Repeat task every 15 minutes".) Script chỉ chạy được từ dòng lệnh.
+
+### Bước 10. Thử quản lý đơn vị tổ chức, tour và lịch
+
+Đăng nhập quản trị (Bước 7):
+
+| Đường dẫn | Kết quả mong đợi |
+| --- | --- |
+| `/admin/providers` → "Thêm đơn vị" | Thêm đơn vị mới; email trùng (kể cả khác hoa thường) báo "đã được dùng". Đổi sang "Ngừng hợp tác" thì tour của đơn vị bị ẩn ở trang khách. |
+| `/admin/tours` → "Thêm tour" | Tour mới ở "Chờ duyệt"; chọn "Đã xác minh" mà không có nguồn thì báo lỗi ở ô nguồn. |
+| Chi tiết tour → "Lịch khởi hành và giá vé" | Thêm lịch (sức chứa, giá người lớn, giá trẻ em không bắt buộc). Hủy lịch còn đơn đang giữ chỗ → báo lỗi; giảm sức chứa dưới số chỗ đang giữ → báo lỗi. Đổi giá không đổi giá của đơn đã đặt. |
 
 ## Bảo mật
 
@@ -327,6 +401,7 @@ GRANT EXECUTE ON db_localtour.* TO 'localtour_app'@'<tiền tố IP của VPN>.%
 **Chỉ mở MySQL trên mạng VPN.**
 
 - Tạo luật Inbound trong Windows Defender Firewall cho cổng TCP 3306, phần **Remote IP address** chỉ cho phép dải IP của Radmin VPN; không mở cổng 3306 cho mạng khác.
+- Thanh toán: số tiền lấy từ `bookings.total_vnd` trong database, không nhận từ form. Kết quả VNPay (Return URL, IPN) chỉ được ghi khi chữ ký HMAC-SHA512 khớp và số tiền khớp khoản thanh toán; gọi lại cùng giao dịch không ghi lần hai. Khóa VNPay và tài khoản nhận tiền chỉ nằm trong `.env`. Trang thanh toán và voucher không cho trình duyệt lưu đệm.
 - Không chuyển tiếp (port forwarding) cổng 3306 trên router.
 - Nếu `my.ini` có `bind-address=127.0.0.1`, MySQL chỉ nhận kết nối trong máy. Có thể đặt `bind-address` là IP của card Radmin VPN; khi đó phpMyAdmin trên máy host cũng phải kết nối qua IP này. Cách đơn giản hơn là giữ MySQL lắng nghe mọi địa chỉ và dựa vào luật tường lửa ở trên.
 
@@ -339,9 +414,11 @@ GRANT EXECUTE ON db_localtour.* TO 'localtour_app'@'<tiền tố IP của VPN>.%
 | Dưới Apache, mọi trang (trừ trang chủ) đều 404 của Apache | `mod_rewrite` bị tắt hoặc `.htaccess` bị bỏ qua. | Trong `C:\xampp\apache\conf\httpd.conf`: bỏ dấu `#` trước `LoadModule rewrite_module modules/mod_rewrite.so`; trong khối `<Directory "C:/xampp/htdocs">` đặt `AllowOverride All`. Khởi động lại Apache. |
 | `http://localhost/LocalTour_Project/src/` báo 403 | Hành vi đúng: `src/.htaccess` chặn mọi thứ ngoài `public/`. | Mở `http://localhost/LocalTour_Project/src/public/`. |
 | Tiếng Việt hiển thị sai (`Ã¡`, `?`) | File SQL được import với bảng mã khác UTF-8, hoặc database tạo sai collation. | Import lại `db_localtour.sql`, chọn character set `utf-8`; database phải dùng `utf8mb4` và `utf8mb4_unicode_ci`. |
-| Trang lỗi 500, log có `PROCEDURE db_localtour.… does not exist` | Chưa import đủ các file procedure. | Import lại `db_localtour.sql`, hoặc import `03` đến `11` theo thứ tự. |
-| Trang lỗi 500, log có `Unknown column` (ví dụ `request_token`) hoặc `Table 'db_localtour.…' doesn't exist` | Database vẫn là lược đồ cũ (chưa chạy `08_migration_booking_NMT.sql`, hoặc trước lược đồ 27 bảng), hoặc file gộp được sinh từ bản cũ. | Sinh lại `db_localtour.sql` từ `01`–`11` mới nhất rồi import lại. |
+| Trang lỗi 500, log có `PROCEDURE db_localtour.… does not exist` | Chưa import đủ các file procedure. | Import lại `db_localtour.sql`, hoặc import `03` đến `15` theo thứ tự. |
+| Trang lỗi 500, log có `Unknown column` (ví dụ `request_token`) hoặc `Table 'db_localtour.…' doesn't exist` | Database vẫn là lược đồ cũ (chưa chạy `08_migration_booking_NMT.sql` / `12_migration_sprint4_NMT.sql`, hoặc trước lược đồ 27 bảng), hoặc file gộp được sinh từ bản cũ. | Sinh lại `db_localtour.sql` từ `01`–`15` mới nhất rồi import lại. |
 | Gửi yêu cầu đặt tour báo "Giá vé vừa thay đổi" hoặc "Lịch này chỉ còn X chỗ" | Hành vi đúng: giá hoặc số chỗ đã đổi từ lúc mở trang (quản trị viên vừa xác nhận chỗ cho đơn khác, hoặc giá vé được sửa). | Xem lại tổng tiền / số khách mới trên form rồi bấm "Xem lại & xác nhận" lần nữa. |
+| Trang thanh toán ghi VNPay hoặc VietQR "đang tạm ngưng" | Thiếu khóa trong `.env`. | Điền các khóa `VNPAY_…` / `PAYMENT_…` (Bước 3) rồi tải lại trang. |
+| Cổng VNPay báo lỗi chữ ký hoặc "Website không tồn tại" | `VNPAY_HASH_SECRET` / `VNPAY_TMN_CODE` sai, thừa khoảng trắng, hoặc lấy nhầm bộ khóa. | Chép lại đúng hai giá trị sandbox vào `.env`. |
 | Mọi tour đều "Chưa có lịch khởi hành sắp tới" | Dữ liệu mẫu đã import từ lâu, các ngày khởi hành đã qua. | Import lại `db_localtour.sql`. |
 | Đăng nhập bằng tài khoản mẫu luôn báo "Email hoặc mật khẩu không đúng." | Hành vi đúng: tài khoản mẫu có `password_hash = NULL`. | Đăng ký tài khoản mới ở `/register` (Bước 6). |
 | Mở `/admin` bị chuyển tới "Đăng nhập quản trị" hoặc nhận trang 403 | Chưa đăng nhập quản trị, hoặc đang đăng nhập bằng tài khoản khách hàng (kể cả tài khoản vừa được đổi `role` mà chưa đăng nhập lại). | Đăng xuất, rồi đăng nhập ở `/admin/login` bằng tài khoản `admin` (Bước 7). |
@@ -359,4 +436,4 @@ GRANT EXECUTE ON db_localtour.* TO 'localtour_app'@'<tiền tố IP của VPN>.%
 - Mọi form POST phải có `<?= csrf_field() ?>`; controller kiểm tra `Auth::verifyCsrf()` trước khi xử lý.
 - Thêm route trong `routes/web.php`, cập nhật [03 – Route và quy ước lỗi](../docs/sprint3/03-route-va-quy-uoc-loi.md) trong cùng lần thay đổi.
 - Không commit `.env`, mật khẩu, địa chỉ IP thật hay file log.
-- Sửa `src/database/01`–`11` thì sinh lại `src/database/db_localtour.sql` và commit cùng lúc (cách sinh xem [database/README.md](database/README.md)).
+- Sửa `src/database/01`–`15` thì sinh lại `src/database/db_localtour.sql` và commit cùng lúc (cách sinh xem [database/README.md](database/README.md)).

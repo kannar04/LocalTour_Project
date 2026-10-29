@@ -8,6 +8,7 @@
 | Căn cứ | User Flow đặt tour `docs/diagram/user-flow-dat-tour_localtour.drawio.png` (phần ① và ②, phần ③ ở trang quản trị); BPMN đặt tour dự kiến `docs/diagram/bpmn-dat-tour-du-kien_localtour.drawio.png`; wireframe `docs/diagram/wireframe-4-dat-tour_localtour.png`; bảng FR (FR-08, FR-09, FR-11, FR-14); [Sprint 3 – 03 Route và quy ước lỗi](../sprint3/03-route-va-quy-uoc-loi.md), mục 6 |
 | Tài liệu liên quan | [01 – Rà soát M3 và tồn đọng](01-ra-soat-m3-va-ton-dong.md), [03 – Cấu trúc dữ liệu Booking](03-cau-truc-du-lieu-booking.md), `src/README.md` (Bước 8), `src/database/README.md` |
 | Trạng thái | **Đã chốt.** |
+| Cập nhật 29/10 | Theo kế hoạch Sprint 4 chính thức (30/10 – 05/11): thanh toán, tự hủy đơn quá hạn, phụ thu / tùy chọn, voucher và CRUD nền tảng (đơn vị tổ chức, tour, lịch) chuyển từ M5 / backlog vào Sprint 4. Các mục thay đổi ghi “Sprint 4” kèm mã WBS của kế hoạch. |
 
 ## 1. Phạm vi M4
 
@@ -20,13 +21,23 @@
 | FR-11 | Mã đặt chỗ và trạng thái | Mã đơn `LTxxxxxx`; trang “Đơn của tôi” xem danh sách và chi tiết đơn của tài khoản đang đăng nhập. |
 | FR-14 | Ngày khởi hành và sức chứa | Chỉ đặt lịch còn nhận khách; số khách không vượt số chỗ còn lại và nhóm tối đa của tour. Quản trị viên xác nhận chỗ thì trừ chỗ, hủy đơn đang giữ chỗ thì trả lại chỗ. |
 
-Chưa làm trong M4:
+Bổ sung theo kế hoạch Sprint 4 chính thức (30/10 – 05/11):
 
-- Thanh toán VNPay / VietQR (FR-17, route B3–B5): M5. Ở trạng thái “Chờ thanh toán”, trang đơn chỉ báo bước tiếp theo.
-- Tự hủy đơn quá hạn giữ chỗ 24 giờ: M5, đi cùng thanh toán.
+| WBS | Nội dung |
+| --- | --- |
+| 4.3.2.3 | Phụ thu và hoạt động tùy chọn (`tour_extras`): khách tích ở trang đặt tour; khoản tính theo người nhân số khách, khoản còn lại tính một lần; chỉ chọn được khoản đã có giá. Tổng tiền = tiền vé + phụ thu / tùy chọn. |
+| 4.4.3.2 | Quản trị viên chốt tổng giá khi xác nhận chỗ (ví dụ phụ thu ngày lễ chưa có giá); đổi so với giá lúc đặt thì bắt buộc ghi lý do. |
+| 4.3.3.2 | Lịch sử đơn trên trang đơn của khách và trang quản trị: tạo đơn, chốt giá, đổi trạng thái, thanh toán, voucher, tự hủy. |
+| 4.5.1 – 4.5.3 | Thanh toán VNPay sandbox và chuyển khoản VietQR, đối chiếu chuyển khoản ở trang quản trị (mục 8). |
+| 4.5.4.1 | Tự hủy đơn quá hạn giữ chỗ 24 giờ và trả chỗ. |
+| 4.5.4.2 | Voucher tham gia tour, in được, sau khi thanh toán được xác minh. |
+
+Chưa làm:
+
 - Khách tự đổi ngày, đổi số người hoặc hủy đơn (FR-12): phát triển sau. Khách liên hệ LocalTour, quản trị viên xử lý ở trang quản trị.
-- Phụ thu và hoạt động tùy chọn (`tour_extras`), mã giảm giá: không có trong MVP. Tổng tiền chỉ gồm tiền vé.
+- Mã giảm giá: không có.
 - Gửi email xác nhận: chưa làm. Khách theo dõi đơn ở “Đơn của tôi”.
+- Hoàn tiền: hệ thống tạo yêu cầu hoàn tiền khi tiền VNPay tới sau khi đơn đã hủy; quản trị viên hoàn tiền thủ công.
 
 ## 2. Luồng đặt tour
 
@@ -200,4 +211,24 @@ Với 409, trang cập nhật lại theo dữ liệu mới: số chỗ còn lạ
 | ② Hệ thống tạo đơn, trạng thái Chờ xác nhận | `LTP_sp_booking_create`, đơn `pending`. |
 | ② Lưu đơn thành công? Không → giữ dữ liệu, cho thử lại | Lỗi mạng / máy chủ: ở lại bước xem lại; `request_token` chống tạo trùng. |
 | ③ Quản trị viên xác nhận chỗ & tổng giá | Trang quản trị (Sprint 3), M4 thêm trừ và trả chỗ. |
-| ④ Thanh toán & kết quả | M5. |
+| ④ Thanh toán & kết quả | Sprint 4: VNPay / VietQR, đối chiếu, voucher (mục 8). |
+
+## 8. Thanh toán và voucher (Sprint 4)
+
+Luồng sau khi quản trị viên xác nhận chỗ và chốt tổng giá (đơn “Chờ thanh toán”, giữ chỗ 24 giờ):
+
+1. Trang đơn hiện hạn thanh toán và nút **Thanh toán ngay** → `/bookings/{mã đơn}/pay`: chọn VNPay hoặc VietQR. Số tiền luôn là tổng giá đã chốt trong database.
+2. **VNPay (sandbox):** mỗi lần bắt đầu tạo một khoản `pending` có mã `LTxxxxxxPn` (gửi làm `vnp_TxnRef`) rồi chuyển sang cổng VNPay. Kết quả về qua Return URL (trình duyệt của khách) và IPN (máy chủ VNPay gọi). Cả hai kiểm tra chữ ký HMAC-SHA512 và số tiền; giao dịch đã có kết quả thì lần sau không ghi lại. Thành công → đơn “Đã xác nhận” và cấp voucher; thất bại → đơn vẫn chờ thanh toán, khách thử lại được trước hạn.
+3. **VietQR:** trang chuyển khoản hiện mã QR đúng số tiền và nội dung `LTxxxxxxPn`, kèm thông tin tài khoản nhận. Khách bấm “Tôi đã chuyển khoản” → khoản “Chờ đối chiếu”; đơn không bị tự hủy trong lúc chờ. Quản trị viên mở “Đối chiếu thanh toán”, chọn “Đã nhận tiền” (đơn “Đã xác nhận”, cấp voucher) hoặc “Không khớp” (bắt buộc lý do, khách thanh toán lại được).
+4. **Quá hạn:** đơn “Chờ thanh toán” quá `hold_expires_at` mà không có chuyển khoản chờ đối chiếu thì tự hủy và trả chỗ, khi có người mở trang đơn, trang thanh toán hoặc trang quản trị, và khi `src/scripts/expire_holds.php` chạy định kỳ. Tiền VNPay tới sau khi đơn đã hủy vẫn được ghi, kèm yêu cầu hoàn tiền cho quản trị viên.
+5. **Voucher:** mã `LTV…` cấp một lần cho đơn đã thanh toán; trang `/bookings/{mã đơn}/voucher` in được.
+
+| Route | Thay cho | Ghi chú |
+| --- | --- | --- |
+| `GET /bookings/{code}/pay`, `POST /bookings/{code}/pay/vnpay`, `POST /bookings/{code}/pay/vietqr` | B3 | Form có `_csrf`, chuyển trang bằng 303 thay cho API JSON. Chỉ đơn của tài khoản đang đăng nhập, đang `awaiting_payment` và còn hạn. |
+| `GET /payments/vnpay/return`, `GET /payments/vnpay/ipn` | B4 | VNPay gọi IPN bằng GET. Không dùng phiên, `_csrf`; xác minh bằng chữ ký. Kết quả đầu tiên của mỗi khoản ghi một dòng `payment_events`; gọi lại cùng giao dịch không ghi thêm. IPN trả JSON `{ RspCode, Message }` theo quy ước VNPay. |
+| `GET /bookings/{code}/pay/vietqr`, `POST /bookings/{code}/pay/vietqr/submit` | B5 | `payment_id`, `_csrf`. |
+| `GET /bookings/{code}/voucher` | – | Đơn chưa có voucher thì về trang đơn. |
+| `GET /admin/payments`, `POST /admin/payments/{id}/decide` | – | Hàng đợi và quyết định đối chiếu VietQR; mỗi quyết định ghi `admin_logs`. |
+
+Khóa VNPay sandbox và tài khoản nhận VietQR chỉ nằm trong `src/.env` (xem `src/.env.example`, `src/README.md` Bước 3 và Bước 9).

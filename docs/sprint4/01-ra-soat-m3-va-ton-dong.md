@@ -8,6 +8,7 @@
 | Căn cứ | Báo cáo Sprint 3 (mục 2, 8, 9); Kết quả kiểm thử và defect log Sprint 3 (WBS 3.3.3); Retest và báo cáo kiểm thử (WBS 3.3.4); Checklist QC (WBS 3.3.2); Câu hỏi sau Sprint 3 (nhóm đã trả lời); tài liệu [Sprint 3](../sprint3/) |
 | Tài liệu liên quan | [02 – Yêu cầu và luồng đặt tour](02-yeu-cau-va-luong-dat-tour.md), [03 – Cấu trúc dữ liệu Booking](03-cau-truc-du-lieu-booking.md) |
 | Trạng thái | **Đã chốt.** |
+| Cập nhật 29/10 | Theo kế hoạch Sprint 4 chính thức (30/10 – 05/11): thanh toán, tự hủy đơn quá hạn, phụ thu / tùy chọn, voucher và CRUD nền tảng (đơn vị tổ chức, tour, lịch) chuyển từ M5 / backlog vào Sprint 4. Các mục thay đổi ghi “Sprint 4” kèm mã WBS của kế hoạch. |
 
 ## 1. Kết quả M3 đã hoàn thành
 
@@ -41,16 +42,16 @@ Kết luận: M3 không còn defect mở, M4 không có lỗi M3 nào phải s�
 
 Nguồn: bảng “Việc chuyển sang Sprint sau” của báo cáo Sprint 3 và các mục “Chưa khớp” / “Chưa có thiết kế để đối chiếu” của checklist QC.
 
-| Việc | Yêu cầu | Tình trạng sau M3 | Phân loại | Xử lý ở M4 |
+| Việc | Yêu cầu | Tình trạng sau M3 | Phân loại | Xử lý ở Sprint 4 |
 | --- | --- | --- | --- | --- |
 | Gửi yêu cầu đặt tour: chọn lịch, số khách, thông tin khách, kiểm tra chỗ | FR-08, FR-09, FR-14 | Chưa làm, nút “Đặt tour” tắt. QC: “Chưa có thiết kế để đối chiếu”. | **M4** | Mục 2–9: thiết kế ở [02](02-yeu-cau-va-luong-dat-tour.md), [03](03-cau-truc-du-lieu-booking.md); route B1 `POST /api/bookings`. |
 | Giữ / nhả chỗ khi xác nhận, hủy | FR-14 | QC “Chưa khớp – Cao”: xác nhận và hủy không kiểm tra, không cập nhật `schedules.remaining`. | **M4** | Xác nhận chỗ trừ chỗ và báo khi không đủ; hủy đơn đang giữ chỗ trả lại chỗ ([03](03-cau-truc-du-lieu-booking.md), mục 3). |
-| Hết hạn giữ chỗ 24 giờ | FR-14, FR-17 | Chưa làm. | M5 | Làm cùng thanh toán. |
+| Hết hạn giữ chỗ 24 giờ | FR-14, FR-17 | Chưa làm. | **Sprint 4** | 4.5.4.1: đơn “Chờ thanh toán” quá hạn tự hủy và trả chỗ, trừ đơn có chuyển khoản VietQR chờ đối chiếu. |
 | “Đơn của tôi” | FR-11, FR-18 | Chưa làm. QC: “Chưa có thiết kế để đối chiếu” (route B2). | **M4** | Mục 7, 8: trang `/bookings`, `/bookings/{mã đơn}` thay cho route B2 `POST /api/bookings/lookup` ([02](02-yeu-cau-va-luong-dat-tour.md), mục 5). |
-| Thanh toán VNPay sandbox, chuyển khoản VietQR | FR-17 | Chưa làm (B3–B5). | M5 | Trang đơn ở “Chờ thanh toán” chỉ báo bước tiếp theo. |
-| Thêm / sửa tour và đơn vị tổ chức | FR-13, FR-24 | QC “Chưa khớp – Trung bình”: chỉ duyệt / từ chối được. | Backlog | Không thuộc M4. Tour vẫn nhập bằng SQL. |
-| Cập nhật nội dung tour, nguồn và ngày xác minh | NFR-07, NFR-08 | QC “Chưa khớp – Trung bình”: chỉ xem được. | Backlog | Không thuộc M4, làm cùng FR-13. |
-| Cấu hình lịch khởi hành và sức chứa trên trang quản trị | FR-14 | Chưa có màn hình; lịch nhập bằng SQL. | Backlog | Không thuộc M4. |
+| Thanh toán VNPay sandbox, chuyển khoản VietQR | FR-17 | Chưa làm (B3–B5). | **Sprint 4** | 4.5.1–4.5.3: VNPay sandbox (Return URL, IPN), VietQR và đối chiếu ở trang quản trị; 4.5.4.2: voucher sau khi thanh toán được xác minh ([02](02-yeu-cau-va-luong-dat-tour.md), mục 8). |
+| Thêm / sửa tour và đơn vị tổ chức | FR-13, FR-24 | QC “Chưa khớp – Trung bình”: chỉ duyệt / từ chối được. | **Sprint 4** | 4.4.2.1: trang “Đơn vị tổ chức” (thêm, sửa, trạng thái hợp tác), thêm / sửa thông tin tour; tour mới luôn chờ duyệt. Ảnh, lịch trình, dịch vụ, chính sách hủy vẫn nhập bằng SQL. |
+| Cập nhật nội dung tour, nguồn và ngày xác minh | NFR-07, NFR-08 | QC “Chưa khớp – Trung bình”: chỉ xem được. | **Sprint 4** (một phần) | 4.4.2.1: form sửa tour có nguồn và trạng thái xác minh, ngày xác minh tự ghi, mỗi lần sửa ghi `admin_logs`. Nhãn “Thông tin chưa được xác minh” trên trang khách vẫn ở backlog. |
+| Cấu hình lịch khởi hành và sức chứa trên trang quản trị | FR-14 | Chưa có màn hình; lịch nhập bằng SQL. | **Sprint 4** | 4.3.1.1, 4.3.1.2, 4.4.2.2: thêm / sửa lịch, sức chứa, giá vé người lớn và trẻ em; không cho giảm dưới số chỗ đang giữ hay hủy lịch còn đơn. |
 | So sánh 2–3 tour | FR-15 | Chưa làm, nút “So sánh” tắt. | Backlog | Giữ nhãn “Sắp có”. |
 | Gửi đánh giá tour | FR-16 | Đã hiện đánh giá đã duyệt; chưa gửi được. | Backlog | Giữ nguyên. |
 | Khách tự đổi / hủy đơn | FR-12 | Phát triển sau; quản trị viên hủy được kèm lý do. | Phát triển sau | Trang đơn hướng dẫn khách liên hệ LocalTour. |
@@ -62,17 +63,17 @@ Quyết định nhóm theo checklist QC:
 
 | Quyết định | Kết quả |
 | --- | --- |
-| Thời điểm giữ / nhả chỗ (FR-14) | **Đã chốt ở M4:** đơn mới chưa giữ chỗ; quản trị viên xác nhận chỗ thì giữ, hủy đơn đang giữ thì trả; hết hạn ở M5. |
+| Thời điểm giữ / nhả chỗ (FR-14) | **Đã chốt ở M4:** đơn mới chưa giữ chỗ; quản trị viên xác nhận chỗ thì giữ, hủy đơn đang giữ thì trả. Quá hạn 24 giờ chưa thanh toán thì tự hủy và trả chỗ (Sprint 4, 4.5.4.1). |
 | Gói lựa chọn (FR-07) | **Đã chốt thiết kế** (câu hỏi sau Sprint 3, mục 4, bảng dưới). Chưa làm ở M4: tour mẫu chưa có gói, M4 đặt theo loại vé của lịch. Backlog. |
 | Vai trò `support`, `provider` trong `users.role` | **Đã chốt ở CR1 (25/10):** hệ thống không có tác nhân Nhân viên hỗ trợ khách hàng và Đơn vị tổ chức; Quản trị viên làm mọi việc vận hành (sơ đồ use case cập nhật theo CR1). Lược đồ còn hai giá trị này và các tài khoản mẫu tương ứng nhưng không trang nào dùng: đăng nhập khách hàng chỉ nhận `customer`, đăng nhập quản trị chỉ nhận `admin`. Dọn lược đồ ở backlog. |
 
-Câu hỏi sau Sprint 3 nhóm đã trả lời. Cả bốn mục thuộc backlog, M4 không đổi code:
+Câu hỏi sau Sprint 3 nhóm đã trả lời. M4 không đổi code; Sprint 4 làm phần quản trị của mục 3, ba mục còn lại vẫn ở backlog:
 
 | Mục | Quyết định | Ghi chú |
 | --- | --- | --- |
 | 1. Đánh giá tour (FR-16) | Chỉ nhận đánh giá của khách có đơn đã hoàn thành (`bookings.status = 'completed'`), gửi trên hệ thống, không lấy nguồn ngoài. Quản trị viên duyệt trước khi hiện; từ chối nội dung quảng cáo, xúc phạm hoặc lộ thông tin cá nhân; mỗi lần duyệt ghi `admin_logs` (NFR-09). | Câu 1.2 (khách không có tài khoản gửi đánh giá bằng mã đặt chỗ) không áp dụng: từ Sprint 3 mỗi đơn thuộc một tài khoản (`bookings.user_id` bắt buộc), khách gửi đánh giá từ “Đơn của tôi”. Câu 1.3 ghi “nhân viên hỗ trợ”; theo CR1, người duyệt là Quản trị viên. |
 | 2. Tên người đánh giá (NFR-04) | Hiện dạng rút gọn gồm tên gọi và chữ cái đầu của họ (“Nguyễn Văn An” → “An N.”); không hiện email, số điện thoại. MVP không cho khách tự nhập tên hiển thị. | Áp dụng khi làm FR-16. |
-| 3. Xác minh nguồn tour (NFR-07) | Tour chưa xác minh vẫn hiện, kèm nhãn “Thông tin chưa được xác minh” cạnh giá và trong phần Thông tin tour. Quản trị viên chuyển tour sang “Đã xác minh” trên trang quản trị tour (FR-13), mỗi lần đổi ghi `admin_logs`. Dùng ba cột có sẵn `source_url`, `verified_at`, `verification_status` của `tours`, không thêm bảng. | Làm cùng FR-13 (bảng phân loại ở trên). Mọi tour mẫu đang ở trạng thái chưa xác minh. |
+| 3. Xác minh nguồn tour (NFR-07) | Tour chưa xác minh vẫn hiện, kèm nhãn “Thông tin chưa được xác minh” cạnh giá và trong phần Thông tin tour. Quản trị viên chuyển tour sang “Đã xác minh” trên trang quản trị tour (FR-13), mỗi lần đổi ghi `admin_logs`. Dùng ba cột có sẵn `source_url`, `verified_at`, `verification_status` của `tours`, không thêm bảng. | Sprint 4 (4.4.2.1) làm phần đổi trạng thái trên trang quản trị tour; nhãn trên trang khách còn ở backlog. Mọi tour mẫu đang ở trạng thái chưa xác minh. |
 | 4. Gói lựa chọn (FR-07) | Gói phân theo phương tiện hoặc tuyến điểm. Mỗi gói có tên, mô tả và giá vé riêng; lịch khởi hành và lịch trình chính dùng chung, điểm khác ghi trong mô tả gói. Thêm bảng `tour_packages` và cột `ticket_types.package_id` (để trống khi tour không có gói). | Câu 4.1 có nhắc lịch trình riêng cho từng gói; theo câu 4.2 và 4.3, lịch trình dùng chung. ERD vẽ thêm khi tạo bảng. |
 
 ## 4. Phần M3 thay đổi do luồng đặt tour

@@ -9,10 +9,11 @@
 | Script | `src/database/08_migration_booking_NMT.sql` (migration và dữ liệu kiểm thử); procedure: `09_procedures_NMT_booking.sql`, `10_procedures_LTP_booking.sql`, `11_procedures_NTK_booking.sql`, giữ chỗ trong `07_procedures_NTK_admin.sql`; file gộp `src/database/db_localtour.sql` (01 → 11) |
 | Tiêu chí nghiệm thu | Migration chạy không lỗi trên database đã có dữ liệu Sprint 3, chạy lại được; Booking liên kết đúng User / Tour / Schedule; có dữ liệu để thử đặt được, không đủ chỗ và giá đổi. |
 | Trạng thái | **Đã chốt.** |
+| Cập nhật 29/10 | Theo kế hoạch Sprint 4 chính thức (30/10 – 05/11): thanh toán, tự hủy đơn quá hạn, phụ thu / tùy chọn, voucher và CRUD nền tảng (đơn vị tổ chức, tour, lịch) chuyển từ M5 / backlog vào Sprint 4. Các mục thay đổi ghi “Sprint 4” kèm mã WBS của kế hoạch. |
 
 ## 1. Tổng quan
 
-M4 dùng lại các bảng đặt chỗ đã có trong lược đồ Sprint 3, không thêm bảng mới (vẫn 27 bảng). Migration 08 chỉ thêm hai cột và hai khóa duy nhất.
+M4 dùng lại các bảng đặt chỗ đã có trong lược đồ Sprint 3, không thêm bảng mới (vẫn 27 bảng). Migration 08 chỉ thêm hai cột và hai khóa duy nhất. Sprint 4 thêm migration 12 với 2 bảng (tổng 29 bảng), xem mục 7.
 
 ```text
 users (customer) 1 ── n bookings n ── 1 schedules n ── 1 tours 1 ── n cancellation_policies
@@ -61,7 +62,7 @@ Theo User Flow và BPMN đặt tour: yêu cầu mới chưa giữ chỗ, quản 
 | Quản trị viên xác nhận chỗ (`pending` → `awaiting_payment`) | `NTK_sp_admin_booking_set_status` | `remaining` trừ số khách của đơn; về 0 thì `status` `open` → `full`. Lịch không còn `open` / `full` hoặc đã khởi hành → `schedule_closed`; không đủ chỗ → `no_seats`; cả hai không đổi gì. |
 | Quản trị viên hủy đơn đang giữ chỗ (`awaiting_payment` / `confirmed` → `cancelled`) | `NTK_sp_admin_booking_set_status` | `remaining` cộng lại số khách, không vượt `capacity`; lịch `full` mở lại `open`. |
 | Từ chối / hủy đơn `pending`, hoàn thành đơn | `NTK_sp_admin_booking_set_status` | Không đổi. |
-| Quá hạn giữ chỗ 24 giờ mà chưa thanh toán | – | M5 (đi cùng thanh toán). |
+| Quá hạn giữ chỗ 24 giờ mà chưa thanh toán (Sprint 4) | `LTP_sp_booking_expire_holds` | Đơn → `cancelled`, `remaining` cộng lại như khi hủy; khoản `pending` → `failed`. Bỏ qua đơn có khoản VietQR chờ đối chiếu. |
 
 Số khách của đơn = tổng `booking_lines.quantity`. Mục này thay câu “Procedure không đổi `schedules.remaining` (giữ chỗ thuộc luồng đặt tour)” ở [Sprint 3 – 02](../sprint3/02-luoc-do-du-lieu.md), mục 7.3, và ý nghĩa cột `remaining` ở mục 4.4 (“Sprint 3 chỉ có trong dữ liệu mẫu; Sprint sau giảm khi có đơn đặt”): từ M4, `remaining` giảm khi quản trị viên xác nhận chỗ.
 
@@ -108,4 +109,30 @@ Thử “giá đổi”: mở trang đặt tour, sửa `ticket_types.price_vnd` 
 | 07 | `NTK_sp_admin_booking_set_status` | Ghi | Thêm giữ chỗ và trả chỗ (mục 3), thêm `result` `no_seats`, `schedule_closed`. |
 | 07 | `NTK_sp_admin_booking_passenger_list(p_booking_id)` | Đọc | Danh sách khách (theo `sort_order`) và yêu cầu đặc biệt ở trang chi tiết yêu cầu của quản trị viên. |
 
-Procedure của file 11 chỉ trả đơn thuộc `p_user_id`; mã của tài khoản khác → 0 dòng. Tổng số procedure sau M4: 34. Danh sách đầy đủ và câu `CALL` mẫu xem `src/database/README.md`.
+Procedure của file 11 chỉ trả đơn thuộc `p_user_id`; mã của tài khoản khác → 0 dòng. Tổng số procedure sau M4: 34; sau Sprint 4: 63 (mục 7). Danh sách đầy đủ và câu `CALL` mẫu xem `src/database/README.md`.
+
+## 7. Bổ sung Sprint 4 (migration 12, procedure 13 – 15)
+
+`12_migration_sprint4_NMT.sql` chạy sau 01 → 11, không xóa bảng hay dữ liệu, chạy lại được (bỏ qua bảng / cột / khóa đã có).
+
+| Thay đổi | Nội dung | Dùng cho |
+| --- | --- | --- |
+| Bảng `booking_extras` | Phụ thu / tùy chọn khách chọn: chụp tên, loại, đơn vị, đơn giá lúc đặt, `quantity`, `line_total_vnd`; `UNIQUE (booking_id, extra_id)`. | 4.3.2.3 |
+| Bảng `booking_events` | Lịch sử đơn do khách, hệ thống hoặc VNPay tạo (`actor`, `action`, trạng thái cũ / mới, ghi chú). Thao tác của quản trị viên vẫn ghi ở `admin_logs`. | 4.3.3.2, NFR-09 |
+| `bookings.voucher_code`, `voucher_issued_at`; chỉ mục `(status, hold_expires_at)` | Mã voucher cấp một lần; chỉ mục cho bước tự hủy. | 4.5.4.1, 4.5.4.2 |
+| `payments.reference` (UNIQUE), `created_at`, `submitted_at`, `response_code`, `bank_code`, `note` | Mã giao dịch `LTxxxxxxPn`, lúc khách báo chuyển khoản, kết quả VNPay, ghi chú đối chiếu. | 4.5.1 – 4.5.3 |
+
+ERD `docs/diagram/localtour-erd.drawio`, trang “03 Booking & Payments”, đã có hai bảng, các cột và khóa mới ở trên (kèm bản sao `tour_extras` để vẽ khóa ngoại `extra_id`).
+
+Trạng thái khoản thanh toán: `pending` (vừa tạo) → `paid` (VNPay thành công / quản trị viên xác nhận) hoặc `failed` (VNPay thất bại, không khớp, đơn quá hạn); VietQR có thêm `awaiting_reconciliation` (khách đã báo chuyển khoản).
+
+| File | Procedure | Đọc / ghi | Mục đích |
+| --- | --- | --- | --- |
+| 10 | `LTP_sp_booking_create(…, p_expected_total, p_extras)` | Ghi | Thêm `p_extras` (mảng JSON mã `tour_extras`), ghi `booking_extras`, `booking_events`; `result` thêm `extras_changed`. |
+| 07 | `NTK_sp_admin_booking_set_status(…, p_note, p_total_vnd)` | Ghi | Chốt tổng giá khi xác nhận chỗ; xác nhận đã thanh toán thì cấp voucher; `result` thêm `invalid_total`, `total_note_required`. |
+| 07, 11 | `NTK_sp_admin_booking_extra_list`, `NTK_sp_admin_booking_payment_list`, `NTK_sp_customer_booking_extra_list` | Đọc | Phụ thu / tùy chọn và các lần thanh toán của đơn. |
+| 13 | `NMT_sp_admin_provider_…`, `NMT_sp_admin_tour_…`, `NMT_sp_admin_schedule_…` (15 procedure) | Đọc / ghi | CRUD nền tảng: đơn vị tổ chức, thông tin tour và trạng thái xác minh, lịch khởi hành và giá vé. Mỗi lần ghi một dòng `admin_logs`. |
+| 14 | `NMT_sp_payment_list`, `_start`, `_get`, `_transfer_submit`, `NMT_sp_admin_payment_queue`, `_decide` | Đọc / ghi | Thanh toán của khách và đối chiếu VietQR. |
+| 15 | `LTP_sp_payment_vnpay_result`, `LTP_sp_booking_expire_holds`, `LTP_sp_voucher_issue`, `LTP_sp_booking_history`, `LTP_sp_customer_booking_history` | Đọc / ghi | Kết quả VNPay, tự hủy, voucher, lịch sử đơn. |
+
+Tham số, `result` và quy tắc chi tiết xem phần đầu từng file và `src/database/README.md`.
