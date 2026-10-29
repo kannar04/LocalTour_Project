@@ -13,9 +13,14 @@ use App\Controllers\AdminTourController;
         </div>
 
         <main id="main-content" class="col-12 col-lg lt-admin" tabindex="-1" aria-labelledby="admin-title">
-            <header class="lt-admin__head">
-                <h1 class="lt-admin__title" id="admin-title">Duyệt tour</h1>
-                <p class="lt-admin__subtitle">Tour chỉ hiển thị cho khách khi đã được duyệt và đơn vị tổ chức đã được duyệt, đang hoạt động</p>
+            <header class="lt-admin__head lt-admin__head--row">
+                <div>
+                    <h1 class="lt-admin__title" id="admin-title">Duyệt tour</h1>
+                    <p class="lt-admin__subtitle">Tour chỉ hiển thị cho khách khi đã được duyệt và đơn vị tổ chức đã được duyệt, đang hoạt động</p>
+                </div>
+                <a class="lt-btn lt-btn--primary" href="<?= e(url('/admin/tours/new')) ?>">
+                    <span class="lt-icon lt-icon--plus" aria-hidden="true"></span> Thêm tour
+                </a>
             </header>
 
             <nav class="lt-tabs" aria-label="Lọc theo trạng thái duyệt">

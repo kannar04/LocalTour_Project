@@ -372,3 +372,27 @@ function tour_status_label(?string $status): string
 
     return $labels[(string) $status] ?? (string) $status;
 }
+
+/** Trạng thái hợp tác của đơn vị tổ chức (providers.approval_status) → nhãn tiếng Việt. */
+function provider_status_label(?string $status): string
+{
+    $labels = ['approved' => 'Đang hợp tác', 'pending' => 'Chờ duyệt', 'rejected' => 'Ngừng hợp tác'];
+
+    return $labels[(string) $status] ?? (string) $status;
+}
+
+/** Trạng thái lịch khởi hành (schedules.status) → nhãn tiếng Việt. */
+function schedule_status_label(?string $status): string
+{
+    $labels = ['open' => 'Đang mở bán', 'full' => 'Hết chỗ', 'cancelled' => 'Đã hủy', 'completed' => 'Đã hoàn thành'];
+
+    return $labels[(string) $status] ?? (string) $status;
+}
+
+/** Trạng thái xác minh thông tin tour (tours.verification_status, NFR-07) → nhãn tiếng Việt. */
+function verification_status_label(?string $status): string
+{
+    $labels = ['unverified' => 'Chưa xác minh', 'verified' => 'Đã xác minh'];
+
+    return $labels[(string) $status] ?? (string) $status;
+}

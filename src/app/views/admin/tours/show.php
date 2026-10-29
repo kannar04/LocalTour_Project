@@ -43,7 +43,19 @@ $counts = [
     'Dịch vụ bao gồm / không bao gồm' => $tour['inclusion_count'],
     'Phiên bản chính sách hủy' => $tour['policy_count'],
 ];
-$actionLabels = ['tour_approve' => 'Phê duyệt', 'tour_reject' => 'Từ chối'];
+$actionLabels = ['tour_approve' => 'Phê duyệt', 'tour_reject' => 'Từ chối', 'tour_create' => 'Thêm tour', 'tour_update' => 'Sửa thông tin'];
+// Thêm tour: to_status = trạng thái duyệt; sửa thông tin: from / to = trạng thái xác minh (NFR-07).
+$historyText = static function (array $log) use ($actionLabels): string {
+    $label = $actionLabels[$log['action']] ?? $log['action'];
+
+    return match ($log['action']) {
+        'tour_create' => $label . ': ' . tour_status_label($log['to_status']),
+        'tour_update' => $log['from_status'] === $log['to_status']
+            ? $label
+            : $label . ': ' . verification_status_label($log['from_status']) . ' → ' . verification_status_label($log['to_status']),
+        default => $label . ': ' . tour_status_label($log['from_status']) . ' → ' . tour_status_label($log['to_status']),
+    };
+};
 ?>
 <div class="container-xl lt-container lt-page">
     <div class="row">
@@ -63,9 +75,13 @@ $actionLabels = ['tour_approve' => 'Phê duyệt', 'tour_reject' => 'Từ chối
                         <?= (int) $tour['is_public'] === 1 ? 'Đang hiển thị cho khách' : 'Chưa hiển thị cho khách' ?>
                     </p>
                 </div>
+                <div class="lt-admin__actions">
+                    <a class="lt-btn lt-btn--soft" href="<?= e(url('/admin/tours/' . $tour['tour_id'] . '/edit')) ?>">Sửa thông tin</a>
+                    <a class="lt-btn lt-btn--soft" href="<?= e(url('/admin/tours/' . $tour['tour_id'] . '/schedules')) ?>">Lịch khởi hành và giá vé</a>
 <?php if ((int) $tour['is_public'] === 1): ?>
-                <a class="lt-btn lt-btn--outline" href="<?= e(url('/tours/' . $tour['tour_id'])) ?>">Xem trang tour</a>
+                    <a class="lt-btn lt-btn--outline" href="<?= e(url('/tours/' . $tour['tour_id'])) ?>">Xem trang tour</a>
 <?php endif; ?>
+                </div>
             </header>
 
 <?php if ($success !== ''): ?>
@@ -145,7 +161,7 @@ $actionLabels = ['tour_approve' => 'Phê duyệt', 'tour_reject' => 'Từ chối
                             <tr>
                                 <td><?= e(format_datetime($log['created_at'])) ?></td>
                                 <td><?= e($log['actor_name']) ?></td>
-                                <td><?= e($actionLabels[$log['action']] ?? $log['action']) ?>: <?= e(tour_status_label($log['from_status'])) ?> → <?= e(tour_status_label($log['to_status'])) ?></td>
+                                <td><?= e($historyText($log)) ?></td>
                                 <td><?= $log['note'] !== null ? e($log['note']) : '<span class="lt-muted">Không có</span>' ?></td>
                             </tr>
 <?php endforeach; ?>

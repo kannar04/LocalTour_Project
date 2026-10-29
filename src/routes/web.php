@@ -6,7 +6,10 @@ use App\Controllers\AdminAuthController;
 use App\Controllers\AdminBookingController;
 use App\Controllers\AdminDashboardController;
 use App\Controllers\AdminPaymentController;
+use App\Controllers\AdminProviderController;
+use App\Controllers\AdminScheduleController;
 use App\Controllers\AdminTourController;
+use App\Controllers\AdminTourFormController;
 use App\Controllers\AuthController;
 use App\Controllers\BookingController;
 use App\Controllers\CustomerBookingController;
@@ -62,6 +65,23 @@ $router->get('/admin/login', [AdminAuthController::class, 'showLogin']);
 $router->post('/admin/login', [AdminAuthController::class, 'login']);
 $router->post('/admin/logout', [AdminAuthController::class, 'logout']);
 $router->get('/admin', [AdminDashboardController::class, 'index']);
+
+// CRUD nền tảng (FR-13, FR-14): đơn vị tổ chức, thêm / sửa tour, lịch khởi hành và giá vé.
+// Đặt trước '/admin/tours/{id}' để '/admin/tours/new' không bị hiểu là mã tour.
+$router->get('/admin/providers', [AdminProviderController::class, 'index']);
+$router->get('/admin/providers/new', [AdminProviderController::class, 'create']);
+$router->post('/admin/providers/new', [AdminProviderController::class, 'store']);
+$router->get('/admin/providers/{id}/edit', [AdminProviderController::class, 'edit']);
+$router->post('/admin/providers/{id}/edit', [AdminProviderController::class, 'update']);
+$router->get('/admin/tours/new', [AdminTourFormController::class, 'create']);
+$router->post('/admin/tours/new', [AdminTourFormController::class, 'store']);
+$router->get('/admin/tours/{id}/edit', [AdminTourFormController::class, 'edit']);
+$router->post('/admin/tours/{id}/edit', [AdminTourFormController::class, 'update']);
+$router->get('/admin/tours/{id}/schedules', [AdminScheduleController::class, 'index']);
+$router->post('/admin/tours/{id}/schedules', [AdminScheduleController::class, 'store']);
+$router->get('/admin/schedules/{id}/edit', [AdminScheduleController::class, 'edit']);
+$router->post('/admin/schedules/{id}/edit', [AdminScheduleController::class, 'update']);
+
 $router->get('/admin/tours', [AdminTourController::class, 'index']);
 $router->get('/admin/tours/{id}', [AdminTourController::class, 'show']);
 $router->post('/admin/tours/{id}/approve', [AdminTourController::class, 'approve']);

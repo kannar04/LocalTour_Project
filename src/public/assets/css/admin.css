@@ -577,3 +577,61 @@ textarea.lt-admin-input {
     gap: 8px;
     margin-top: 10px;
 }
+
+/* ---------- Form thêm / sửa đơn vị, tour, lịch khởi hành (FR-13, FR-14) ---------- */
+
+.lt-admin__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.lt-admin-field {
+    margin-bottom: 14px;
+}
+
+.lt-admin-field .lt-admin-hint {
+    margin-bottom: 0;
+}
+
+.lt-admin-input.is-invalid,
+.lt-choices.is-invalid .lt-choice {
+    border-color: var(--lt-danger);
+}
+
+.lt-admin-input.is-invalid:focus {
+    box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.2);
+}
+
+.lt-admin-error {
+    margin: 6px 0 0;
+    color: var(--lt-danger);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.lt-choices--inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.lt-choices--inline .lt-choice {
+    margin-bottom: 0;
+}
+
+.lt-admin-input[readonly] {
+    background: var(--lt-surface-alt);
+    color: var(--lt-muted-strong);
+}
+
+.lt-badge--open,
+.lt-badge--verified {
+    background: var(--lt-teal-50);
+    color: var(--lt-teal-700);
+}
+
+.lt-badge--full {
+    background: var(--lt-highlight);
+    color: var(--lt-highlight-text);
+}
