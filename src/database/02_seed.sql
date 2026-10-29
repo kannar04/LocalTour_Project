@@ -1,9 +1,10 @@
 -- =====================================================================
 -- LocalTour v0.1 - 02_seed.sql
--- Mục đích  : Nạp dữ liệu mẫu để kiểm thử trang danh sách, trang chi tiết tour và
---             tài khoản khách hàng cho lược đồ gộp 27 bảng (01_schema.sql).
---             Các bảng chưa dùng để trống: itinerary_stops, tour_schedules, tour_posts,
---             favorite_tours, notifications, comparisons, comparison_tours, admin_logs.
+-- Mục đích  : Nạp dữ liệu mẫu để kiểm thử trang danh sách, trang chi tiết tour,
+--             tài khoản khách hàng và trang quản trị cho lược đồ gộp 27 bảng
+--             (01_schema.sql). Các bảng chưa dùng để trống: itinerary_stops,
+--             tour_schedules, tour_posts, favorite_tours, notifications, comparisons,
+--             comparison_tours.
 -- Phụ trách : Nguyễn Minh Thức (NMT) - WBS 3.2.2
 -- Dữ liệu   : TẤT CẢ dữ liệu (tài khoản, nhà cung cấp, tour, giá, lịch, đơn đặt,
 --             thanh toán, đánh giá) là dữ liệu MINH HỌA, không phải thông tin thật
@@ -26,21 +27,25 @@
 --   payment_events 50000000 · refunds 60000000 · reviews 70000000
 --   tour_images 80000000 · tour_extras c1000000 · destinations c2000000
 --   categories c3000000 · tour_itinerary_items c4000000 · tour_inclusions c5000000
+--   admin_logs 90000000
 --   Tour N = c0000000-0000-4000-8000-00000000000N; tour 1 = "Hà Nội qua những món ăn phố cổ".
 -- Cách đánh số:
 --   users        : 1 = quản trị viên; 2 = nhân viên hỗ trợ khách hàng;
 --                  11-17 = tài khoản của nhà cung cấp 1-7;
---                  101-130 = tài khoản khách hàng: khách hàng 100 + N là người đặt đơn N
---                  (name = contact_name, email = contact_email của đơn).
+--                  101-139 = tài khoản khách hàng: khách hàng 100 + N là người đặt đơn N
+--                  (name = contact_name, email = contact_email của đơn);
+--                  140 = khách hàng bị khóa (không có đơn).
 --   destinations : 1 = Hà Nội, 2 = Đà Nẵng, 3 = Hội An, 4 = TP. Hồ Chí Minh,
---                  5 = Huế (chưa có tour).
+--                  5 = Huế (chỉ có tour 11 đang chờ duyệt).
 --   categories   : 1 = Ẩm thực, 2 = Văn hóa – lịch sử, 3 = Thiên nhiên, 4 = Về đêm,
 --                  5 = Trải nghiệm địa phương, 6 = Đạp xe.
---   schedules    : 1-37 = lịch của các tour; 101-128 = lịch đã đi của đơn có đánh giá
+--   schedules    : 1-37 = lịch của các tour; 38-39 = lịch của tour 11;
+--                  101-128 = lịch đã đi của đơn có đánh giá
 --                  (lịch 100 + N thuộc đơn N).
 --   ticket_types : số lịch x 10 + 1 = người lớn, + 2 = trẻ em (vd. lịch 3 -> 31, 32).
 --   bookings     : 1-28 = đơn có đánh giá đã duyệt (đơn N <-> đánh giá N);
---                  29 = đơn có đánh giá đang chờ duyệt; 30 = đơn đã hủy.
+--                  29 = đơn có đánh giá đang chờ duyệt; 30 = đơn đã hủy;
+--                  31-39 = đơn cho trang quản trị (mục 20).
 --   booking_lines, passengers: số đơn x 10 + thứ tự. payments: trùng số đơn.
 --   tour_images, tour_itinerary_items, tour_inclusions, tour_extras: đánh số theo thứ tự
 --                  chèn, cố ý lệch với thứ tự hiển thị để kiểm tra ORDER BY.
@@ -52,6 +57,8 @@
 --     không có ảnh, lịch trình, dịch vụ (tour_inclusions) và loại hình -> giao diện hiện
 --     "Chưa cập nhật".
 --   * Tour 10 có ảnh, lịch trình và dịch vụ riêng: không bao giờ được trả về.
+--   * Tour 11 (Huế) 'pending' và tour 12 (Hội An) 'rejected' cũng không hiển thị.
+--     Quản trị viên phê duyệt tour 11 thì trang khách có 10 tour và Huế xuất hiện.
 --   * Tour 1: lịch đã qua 'completed' (lịch 1), lịch 'full' (lịch 2) và lịch giá cao hơn
 --     690.000đ (lịch 6). Có 1 đánh giá 'pending' 1 sao: không hiện, không tính điểm.
 --   * Tour 2: lịch 'open' nhưng remaining = 0 (lịch 7) -> bị lọc; vé trẻ em của lịch 8
@@ -66,7 +73,7 @@
 --     bìa có id lớn hơn ảnh thứ 2. Tour 8: 3 ảnh chèn lệch thứ tự, 1 ảnh alt_text NULL.
 --   * Điểm đến (destinations): bộ lọc và thanh bên chỉ hiện điểm đến có tour hiển thị:
 --     Hà Nội 3 tour (1-3; tour 10 chờ duyệt không tính), Đà Nẵng 2, Hội An 2,
---     TP. Hồ Chí Minh 2. Huế không có tour -> bị ẩn. sort_order theo Bắc -> Nam
+--     TP. Hồ Chí Minh 2. Huế chỉ có tour 11 chờ duyệt -> bị ẩn. sort_order theo Bắc -> Nam
 --     (Hà Nội, Huế, Đà Nẵng, Hội An, TP. Hồ Chí Minh), khác thứ tự id.
 --   * Loại hình (categories): Ẩm thực 2 tour (1, 2), Văn hóa – lịch sử 2 (3, 6),
 --     Về đêm 2 (5, 8), Thiên nhiên 1 (4), Trải nghiệm địa phương 1 (7). Đạp xe chỉ có
@@ -90,20 +97,22 @@
 --   * Giá "Từ" = vé người lớn rẻ nhất trong các lịch đặt được (nghìn đồng):
 --     tour 1: 650, tour 2: 720, tour 3: 900, tour 4: 550, tour 5: 480,
 --     tour 6: 590, tour 7: 750, tour 8: 850, tour 9: NULL.
---   * Tài khoản: mọi tài khoản mẫu (quản trị, hỗ trợ, nhà cung cấp, khách hàng 101-130)
+--   * Tài khoản: mọi tài khoản mẫu (quản trị, hỗ trợ, nhà cung cấp, khách hàng 101-140)
 --     có password_hash NULL -> đăng nhập luôn báo "Email hoặc mật khẩu không đúng.".
 --     Đăng ký bằng email đã có, kể cả khác chữ hoa / thường (vd. quoc.huy@localtour.test,
 --     Quoc.Huy@LocalTour.test) -> "Email này đã được dùng.".
 --   * Đánh giá: tên người đánh giá = users.name của chủ đơn (bookings.user_id), trùng
 --     contact_name của đơn.
+--   * Trang quản trị (FR-19 → FR-25): đơn 31-39 ở đủ 6 trạng thái, tour 11 chờ duyệt,
+--     tour 12 bị từ chối, khách hàng 140 bị khóa, 10 dòng lịch sử xử lý; xem mục 20.
 --
--- Số dòng: users 39, providers 7, destinations 5, categories 6, tours 10,
---          cancellation_policies 11, schedules 65, ticket_types 118, bookings 30,
---          booking_lines 35, passengers 60, payments 30, payment_events 30, refunds 1,
+-- Số dòng: users 49, providers 7, destinations 5, categories 6, tours 12,
+--          cancellation_policies 12, schedules 67, ticket_types 122, bookings 39,
+--          booking_lines 45, passengers 79, payments 33, payment_events 32, refunds 1,
 --          reviews 29, tour_images 12, tour_itinerary_items 43, tour_inclusions 45,
---          tour_extras 15. Để trống (0 dòng): itinerary_stops, tour_schedules,
---          tour_posts, favorite_tours, notifications, comparisons, comparison_tours,
---          admin_logs.
+--          tour_extras 15, admin_logs 10. Để trống (0 dòng): itinerary_stops,
+--          tour_schedules, tour_posts, favorite_tours, notifications, comparisons,
+--          comparison_tours.
 -- =====================================================================
 
 SET NAMES utf8mb4;
@@ -1355,3 +1364,194 @@ INSERT INTO tour_extras (id, tour_id, kind, name, price_vnd, price_unit, conditi
     50000, 'xe', NULL, 1),
 ('c1000000-0000-4000-8000-000000000015', 'c0000000-0000-4000-8000-000000000010', 'surcharge', 'Phụ thu đi riêng',
     300000, 'nhóm', NULL, 1);
+
+-- ---------------------------------------------------------------------
+-- 20. Dữ liệu cho trang quản trị (FR-19 → FR-25, theo CR1)
+--   a) Ngày tạo đơn và ngày thanh toán của đơn 1-30: paid_at = lúc nhận thông báo thanh toán
+--      thành công (payment_events.received_at); created_at = 2 ngày trước khi thanh toán.
+--   b) Khách hàng 131-139 (người đặt đơn 31-39) và khách hàng 140 bị khóa (FR-19).
+--   c) Tour 11 (Huế) đang chờ duyệt, có lịch và giá; tour 12 (Hội An) đã bị từ chối (FR-20, FR-24).
+--      Cả hai không hiển thị công khai: trang khách vẫn chỉ có 9 tour, 4 điểm đến, 5 loại hình.
+--   d) Đơn 31-39 ở đủ các trạng thái (FR-21, FR-25), trên các lịch còn trống chỗ
+--      (capacity - remaining đã đủ cho số khách của đơn, nên số chỗ còn lại trên trang khách
+--      không đổi):
+--        31, 32, 33 Chờ xác nhận | 34 Chờ thanh toán (chưa thanh toán)
+--        35 Chờ thanh toán + chuyển khoản VietQR Chờ đối chiếu
+--        36 Đã xác nhận (VNPay) | 37 Đã xác nhận, lịch đã khởi hành 3 ngày trước
+--        38 Từ chối | 39 Đã hủy (quá hạn thanh toán 24 giờ)
+--   e) admin_logs (NFR-09): lịch sử xử lý của tour 12 và đơn 34-39, người thao tác là tài
+--      khoản quản trị viên mẫu. Đơn 1-30 không có lịch sử (lịch sử bắt đầu từ CR1).
+-- ---------------------------------------------------------------------
+
+-- a) Ngày thanh toán và ngày tạo của đơn 1-30
+UPDATE payments p
+JOIN payment_events e ON e.payment_id = p.id
+SET p.paid_at = e.received_at
+WHERE p.status = 'paid';
+
+UPDATE bookings b
+JOIN payments p ON p.booking_id = b.id
+SET b.created_at = p.paid_at - INTERVAL 2 DAY;
+
+-- b) Khách hàng 131-140
+INSERT INTO users (id, email, password_hash, name, phone, role, status) VALUES
+('a0000000-0000-4000-8000-000000000131', 'viet.hung@localtour.test', NULL, 'Việt Hùng', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000132', 'my.duyen@localtour.test', NULL, 'Mỹ Duyên', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000133', 'duc.anh@localtour.test', NULL, 'Đức Anh', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000134', 'ngoc.tram@localtour.test', NULL, 'Ngọc Trâm', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000135', 'van.toan@localtour.test', NULL, 'Văn Toàn', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000136', 'dieu.linh@localtour.test', NULL, 'Diệu Linh', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000137', 'tien.dat@localtour.test', NULL, 'Tiến Đạt', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000138', 'tuyet.mai@localtour.test', NULL, 'Tuyết Mai', NULL, 'customer', 'active'),
+('a0000000-0000-4000-8000-000000000139', 'hong.nhung@localtour.test', NULL, 'Hồng Nhung', NULL, 'customer', 'active'),
+-- Tài khoản bị khóa: vẫn được tính vào tổng số khách hàng, hiển thị riêng ở mục "Bị khóa"
+('a0000000-0000-4000-8000-000000000140', 'kha.vy@localtour.test', NULL, 'Khả Vy', NULL, 'customer', 'locked');
+
+-- c) Tour 11 (chờ duyệt) và tour 12 (bị từ chối)
+INSERT INTO tours (id, provider_id, destination_id, category_id, title, description, destination,
+                   duration_minutes, max_group_size, language_codes, pickup_mode, meeting_point, included_summary,
+                   transport, guide_info, dropoff_point, excluded_summary,
+                   document_terms, meal_terms, voucher_terms, reschedule_terms,
+                   source_url, verified_at, verification_status, approval_status) VALUES
+('c0000000-0000-4000-8000-000000000011', 'b0000000-0000-4000-8000-000000000003',
+    'c2000000-0000-4000-8000-000000000005', 'c3000000-0000-4000-8000-000000000002',   -- Huế, Văn hóa – lịch sử
+    'Một buổi chiều trong Đại Nội Huế',
+    CONCAT_WS(CHAR(10),
+        'Dạo Đại Nội Huế buổi chiều cùng người dẫn địa phương, nghe chuyện cung đình và ngắm hoàng hôn trên sông Hương.',
+        '',
+        'Nhóm gặp nhau ở cổng Ngọ Môn, đi qua điện Thái Hòa, Tử Cấm Thành và vườn Cơ Hạ, kết thúc bằng tách trà cung đình bên bờ sông Hương.'),
+    'Huế', 180, 10, 'vi,en', 'meeting_point', 'Cổng Ngọ Môn, Đại Nội Huế',
+    NULL,   -- included_summary: không dùng
+    -- FR-02 phương tiện / hướng dẫn viên / điểm trả
+    'Đi bộ',
+    'Người dẫn địa phương nói tiếng Việt và tiếng Anh',
+    'Bến thuyền Tòa Khâm',
+    NULL,   -- excluded_summary: không dùng
+    -- FR-05 giấy tờ / ăn uống / voucher / đổi lịch
+    'Không yêu cầu giấy tờ tùy thân.',
+    'Gồm trà và bánh cung đình.',
+    'Xuất trình mã đặt chỗ tại cổng Ngọ Môn.',
+    'Đổi lịch miễn phí nếu báo trước ít nhất 24 giờ.',
+    NULL, NULL, 'unverified',   -- NFR-07: nguồn, ngày kiểm tra, trạng thái xác minh
+    'pending'),
+('c0000000-0000-4000-8000-000000000012', 'b0000000-0000-4000-8000-000000000005',
+    'c2000000-0000-4000-8000-000000000003', 'c3000000-0000-4000-8000-000000000005',   -- Hội An, Trải nghiệm địa phương
+    'Làm đèn lồng cùng nghệ nhân phố Hội',
+    'Tự tay làm một chiếc đèn lồng tre và lụa cùng nghệ nhân phố Hội.',
+    'Hội An', 120, 8, 'vi', 'meeting_point', 'Xưởng đèn lồng trên đường Nguyễn Thị Minh Khai, Hội An',
+    NULL,
+    NULL, NULL, NULL,
+    NULL,
+    NULL, NULL, NULL, NULL,
+    NULL, NULL, 'unverified',
+    'rejected');
+
+INSERT INTO cancellation_policies (id, tour_id, free_before_hours, refund_percent, terms, version) VALUES
+('f0000000-0000-4000-8000-000000000111', 'c0000000-0000-4000-8000-000000000011', 24, 0, 'Hủy miễn phí nếu báo trước giờ khởi hành ít nhất 24 giờ. Hủy sau mốc này không được hoàn tiền.', 1);
+
+-- Tour 11 (180 phút): lịch 38, 39
+INSERT INTO schedules (id, tour_id, starts_at, ends_at, capacity, remaining, status) VALUES
+('d0000000-0000-4000-8000-000000000038', 'c0000000-0000-4000-8000-000000000011',
+    TIMESTAMP(CURDATE() + INTERVAL 6 DAY, '14:00:00'), TIMESTAMP(CURDATE() + INTERVAL 6 DAY, '17:00:00'), 10, 10, 'open'),
+('d0000000-0000-4000-8000-000000000039', 'c0000000-0000-4000-8000-000000000011',
+    TIMESTAMP(CURDATE() + INTERVAL 13 DAY, '14:00:00'), TIMESTAMP(CURDATE() + INTERVAL 13 DAY, '17:00:00'), 10, 10, 'open');
+
+INSERT INTO ticket_types (id, schedule_id, name, min_age, max_age, price_vnd, active) VALUES
+('e0000000-0000-4000-8000-000000000381', 'd0000000-0000-4000-8000-000000000038', 'adult', 12, NULL, 520000, TRUE),
+('e0000000-0000-4000-8000-000000000382', 'd0000000-0000-4000-8000-000000000038', 'child', 4, 11, 360000, TRUE),
+('e0000000-0000-4000-8000-000000000391', 'd0000000-0000-4000-8000-000000000039', 'adult', 12, NULL, 520000, TRUE),
+('e0000000-0000-4000-8000-000000000392', 'd0000000-0000-4000-8000-000000000039', 'child', 4, 11, 360000, TRUE);
+
+-- d) Đơn 31-39
+INSERT INTO bookings (id, user_id, schedule_id, code, contact_name, contact_email, contact_phone,
+                      status, total_vnd, policy_version, hold_expires_at, created_at) VALUES
+-- Chờ xác nhận
+('10000000-0000-4000-8000-000000000031', 'a0000000-0000-4000-8000-000000000131', 'd0000000-0000-4000-8000-000000000003',
+    'LT518204', 'Việt Hùng', 'viet.hung@localtour.test', '0000000131', 'pending', 1300000, 1, NULL, NOW() - INTERVAL 2 HOUR),
+('10000000-0000-4000-8000-000000000032', 'a0000000-0000-4000-8000-000000000132', 'd0000000-0000-4000-8000-000000000018',
+    'LT527716', 'Mỹ Duyên', 'my.duyen@localtour.test', '0000000132', 'pending', 1300000, 1, NULL, NOW() - INTERVAL 26 HOUR),
+('10000000-0000-4000-8000-000000000033', 'a0000000-0000-4000-8000-000000000133', 'd0000000-0000-4000-8000-000000000022',
+    'LT533940', 'Đức Anh', 'duc.anh@localtour.test', '0000000133', 'pending', 590000, 1, NULL, NOW() - INTERVAL 50 HOUR),
+-- Chờ thanh toán: hạn 24 giờ tính từ lúc quản trị viên xác nhận chỗ (xem admin_logs)
+('10000000-0000-4000-8000-000000000034', 'a0000000-0000-4000-8000-000000000134', 'd0000000-0000-4000-8000-000000000014',
+    'LT541385', 'Ngọc Trâm', 'ngoc.tram@localtour.test', '0000000134', 'awaiting_payment', 1100000, 2, NOW() + INTERVAL 20 HOUR, NOW() - INTERVAL 30 HOUR),
+('10000000-0000-4000-8000-000000000035', 'a0000000-0000-4000-8000-000000000135', 'd0000000-0000-4000-8000-000000000016',
+    'LT556021', 'Văn Toàn', 'van.toan@localtour.test', '0000000135', 'awaiting_payment', 550000, 2, NOW() + INTERVAL 6 HOUR, NOW() - INTERVAL 40 HOUR),
+-- Đã xác nhận
+('10000000-0000-4000-8000-000000000036', 'a0000000-0000-4000-8000-000000000136', 'd0000000-0000-4000-8000-000000000010',
+    'LT562478', 'Diệu Linh', 'dieu.linh@localtour.test', '0000000136', 'confirmed', 1440000, 1, NULL, NOW() - INTERVAL 96 HOUR),
+('10000000-0000-4000-8000-000000000037', 'a0000000-0000-4000-8000-000000000137', 'd0000000-0000-4000-8000-000000000001',
+    'LT574913', 'Tiến Đạt', 'tien.dat@localtour.test', '0000000137', 'confirmed', 1300000, 1, NULL, NOW() - INTERVAL 216 HOUR),
+-- Từ chối
+('10000000-0000-4000-8000-000000000038', 'a0000000-0000-4000-8000-000000000138', 'd0000000-0000-4000-8000-000000000005',
+    'LT581356', 'Tuyết Mai', 'tuyet.mai@localtour.test', '0000000138', 'rejected', 2600000, 1, NULL, NOW() - INTERVAL 120 HOUR),
+-- Đã hủy
+('10000000-0000-4000-8000-000000000039', 'a0000000-0000-4000-8000-000000000139', 'd0000000-0000-4000-8000-000000000023',
+    'LT598742', 'Hồng Nhung', 'hong.nhung@localtour.test', '0000000139', 'cancelled', 1180000, 1, NULL, NOW() - INTERVAL 144 HOUR);
+
+INSERT INTO booking_lines (id, booking_id, ticket_type_id, quantity, unit_price_vnd, line_total_vnd) VALUES
+('20000000-0000-4000-8000-000000000311', '10000000-0000-4000-8000-000000000031', 'e0000000-0000-4000-8000-000000000031', 2, 650000, 1300000),
+('20000000-0000-4000-8000-000000000321', '10000000-0000-4000-8000-000000000032', 'e0000000-0000-4000-8000-000000000181', 2, 480000, 960000),
+('20000000-0000-4000-8000-000000000322', '10000000-0000-4000-8000-000000000032', 'e0000000-0000-4000-8000-000000000182', 1, 340000, 340000),
+('20000000-0000-4000-8000-000000000331', '10000000-0000-4000-8000-000000000033', 'e0000000-0000-4000-8000-000000000221', 1, 590000, 590000),
+('20000000-0000-4000-8000-000000000341', '10000000-0000-4000-8000-000000000034', 'e0000000-0000-4000-8000-000000000141', 2, 550000, 1100000),
+('20000000-0000-4000-8000-000000000351', '10000000-0000-4000-8000-000000000035', 'e0000000-0000-4000-8000-000000000161', 1, 550000, 550000),
+('20000000-0000-4000-8000-000000000361', '10000000-0000-4000-8000-000000000036', 'e0000000-0000-4000-8000-000000000101', 2, 720000, 1440000),
+('20000000-0000-4000-8000-000000000371', '10000000-0000-4000-8000-000000000037', 'e0000000-0000-4000-8000-000000000011', 2, 650000, 1300000),
+('20000000-0000-4000-8000-000000000381', '10000000-0000-4000-8000-000000000038', 'e0000000-0000-4000-8000-000000000051', 4, 650000, 2600000),
+('20000000-0000-4000-8000-000000000391', '10000000-0000-4000-8000-000000000039', 'e0000000-0000-4000-8000-000000000231', 2, 590000, 1180000);
+
+INSERT INTO passengers (id, booking_id, full_name, age_group, special_request) VALUES
+('30000000-0000-4000-8000-000000000311', '10000000-0000-4000-8000-000000000031', 'Việt Hùng', 'adult', NULL),
+('30000000-0000-4000-8000-000000000312', '10000000-0000-4000-8000-000000000031', 'Bảo Trân', 'adult', NULL),
+('30000000-0000-4000-8000-000000000321', '10000000-0000-4000-8000-000000000032', 'Mỹ Duyên', 'adult', 'Ăn chay.'),
+('30000000-0000-4000-8000-000000000322', '10000000-0000-4000-8000-000000000032', 'Minh Đức', 'adult', NULL),
+('30000000-0000-4000-8000-000000000323', '10000000-0000-4000-8000-000000000032', 'Phúc An', 'child', NULL),
+('30000000-0000-4000-8000-000000000331', '10000000-0000-4000-8000-000000000033', 'Đức Anh', 'adult', 'Dị ứng hải sản.'),
+('30000000-0000-4000-8000-000000000341', '10000000-0000-4000-8000-000000000034', 'Ngọc Trâm', 'adult', NULL),
+('30000000-0000-4000-8000-000000000342', '10000000-0000-4000-8000-000000000034', 'Hữu Tài', 'adult', NULL),
+('30000000-0000-4000-8000-000000000351', '10000000-0000-4000-8000-000000000035', 'Văn Toàn', 'adult', NULL),
+('30000000-0000-4000-8000-000000000361', '10000000-0000-4000-8000-000000000036', 'Diệu Linh', 'adult', NULL),
+('30000000-0000-4000-8000-000000000362', '10000000-0000-4000-8000-000000000036', 'Khánh Duy', 'adult', NULL),
+('30000000-0000-4000-8000-000000000371', '10000000-0000-4000-8000-000000000037', 'Tiến Đạt', 'adult', NULL),
+('30000000-0000-4000-8000-000000000372', '10000000-0000-4000-8000-000000000037', 'Thanh Thảo', 'adult', NULL),
+('30000000-0000-4000-8000-000000000381', '10000000-0000-4000-8000-000000000038', 'Tuyết Mai', 'adult', NULL),
+('30000000-0000-4000-8000-000000000382', '10000000-0000-4000-8000-000000000038', 'Quốc Bảo', 'adult', NULL),
+('30000000-0000-4000-8000-000000000383', '10000000-0000-4000-8000-000000000038', 'Lan Anh', 'adult', NULL),
+('30000000-0000-4000-8000-000000000384', '10000000-0000-4000-8000-000000000038', 'Đức Thịnh', 'adult', NULL),
+('30000000-0000-4000-8000-000000000391', '10000000-0000-4000-8000-000000000039', 'Hồng Nhung', 'adult', NULL),
+('30000000-0000-4000-8000-000000000392', '10000000-0000-4000-8000-000000000039', 'Thùy Trang', 'adult', NULL);
+
+-- Đơn 35: khách đã chuyển khoản VietQR, chờ quản trị viên đối chiếu (paid_at NULL).
+-- Đơn 36 (VNPay) và 37 (VietQR đã đối chiếu): thanh toán thành công.
+INSERT INTO payments (id, booking_id, method, provider_txn_id, amount_vnd, status, expires_at, paid_at) VALUES
+('40000000-0000-4000-8000-000000000035', '10000000-0000-4000-8000-000000000035', 'vietqr', 'VQR-DEMO-000016', 550000, 'awaiting_reconciliation', NOW() + INTERVAL 6 HOUR, NULL),
+('40000000-0000-4000-8000-000000000036', '10000000-0000-4000-8000-000000000036', 'vnpay', 'VNP-DEMO-000016', 1440000, 'paid', NULL, NOW() - INTERVAL 72 HOUR),
+('40000000-0000-4000-8000-000000000037', '10000000-0000-4000-8000-000000000037', 'vietqr', 'VQR-DEMO-000017', 1300000, 'paid', NULL, NOW() - INTERVAL 190 HOUR);
+
+INSERT INTO payment_events (id, payment_id, provider_event_id, result_code, verified, received_at) VALUES
+('50000000-0000-4000-8000-000000000036', '40000000-0000-4000-8000-000000000036', 'EVT-DEMO-000036', '00', TRUE, NOW() - INTERVAL 72 HOUR),
+('50000000-0000-4000-8000-000000000037', '40000000-0000-4000-8000-000000000037', 'EVT-DEMO-000037', '00', TRUE, NOW() - INTERVAL 190 HOUR);
+
+-- e) Lịch sử xử lý (NFR-09)
+INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at) VALUES
+('90000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'tour', 'c0000000-0000-4000-8000-000000000012',
+    'tour_reject', 'pending', 'rejected', 'Thiếu lịch khởi hành, giá vé và chính sách hủy; đã báo đơn vị tổ chức gửi lại đủ thông tin.', NOW() - INTERVAL 72 HOUR),
+('90000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000001', 'booking', '10000000-0000-4000-8000-000000000034',
+    'booking_status', 'pending', 'awaiting_payment', 'Đơn vị tổ chức xác nhận còn chỗ và giá.', NOW() - INTERVAL 4 HOUR),
+('90000000-0000-4000-8000-000000000003', 'a0000000-0000-4000-8000-000000000001', 'booking', '10000000-0000-4000-8000-000000000035',
+    'booking_status', 'pending', 'awaiting_payment', NULL, NOW() - INTERVAL 18 HOUR),
+('90000000-0000-4000-8000-000000000004', 'a0000000-0000-4000-8000-000000000001', 'booking', '10000000-0000-4000-8000-000000000036',
+    'booking_status', 'pending', 'awaiting_payment', NULL, NOW() - INTERVAL 90 HOUR),
+('90000000-0000-4000-8000-000000000005', 'a0000000-0000-4000-8000-000000000001', 'booking', '10000000-0000-4000-8000-000000000036',
+    'booking_status', 'awaiting_payment', 'confirmed', 'Thanh toán VNPay thành công.', NOW() - INTERVAL 71 HOUR),
+('90000000-0000-4000-8000-000000000006', 'a0000000-0000-4000-8000-000000000001', 'booking', '10000000-0000-4000-8000-000000000037',
+    'booking_status', 'pending', 'awaiting_payment', NULL, NOW() - INTERVAL 212 HOUR),
+('90000000-0000-4000-8000-000000000007', 'a0000000-0000-4000-8000-000000000001', 'booking', '10000000-0000-4000-8000-000000000037',
+    'booking_status', 'awaiting_payment', 'confirmed', 'Đã đối chiếu khoản chuyển khoản VietQR.', NOW() - INTERVAL 189 HOUR),
+('90000000-0000-4000-8000-000000000008', 'a0000000-0000-4000-8000-000000000001', 'booking', '10000000-0000-4000-8000-000000000038',
+    'booking_status', 'pending', 'rejected', 'Đơn vị tổ chức báo lịch này không còn đủ 4 chỗ; đã gợi ý khách chọn lịch khác.', NOW() - INTERVAL 117 HOUR),
+('90000000-0000-4000-8000-000000000009', 'a0000000-0000-4000-8000-000000000001', 'booking', '10000000-0000-4000-8000-000000000039',
+    'booking_status', 'pending', 'awaiting_payment', NULL, NOW() - INTERVAL 140 HOUR),
+('90000000-0000-4000-8000-000000000010', 'a0000000-0000-4000-8000-000000000001', 'booking', '10000000-0000-4000-8000-000000000039',
+    'booking_status', 'awaiting_payment', 'cancelled', 'Quá hạn thanh toán 24 giờ, khách không thanh toán.', NOW() - INTERVAL 112 HOUR);
