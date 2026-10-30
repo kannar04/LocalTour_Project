@@ -1,0 +1,344 @@
+## DỰ ÁN WEBSITE ĐẶT TOUR DU LỊCH ĐỊA PHƯƠNG – LOCALTOUR
+
+| Thông tin tài liệu | Giá trị |
+| --- | --- |
+| Mã tài liệu | SRS-LOC |
+| Phiên bản | 2.0 |
+| Trạng thái | Bản cập nhật theo Requirement List Tuần 2 và CR1 đã phê duyệt |
+| Ngày cập nhật | 29/10/2026 |
+| Đơn vị thực hiện | Nhóm dự án LocalTour |
+
+Tài liệu dùng làm cơ sở thống nhất yêu cầu, thiết kế, phát triển, kiểm thử và nghiệm thu.
+
+## LỊCH SỬ PHIÊN BẢN
+
+| Phiên bản | Ngày | Nội dung thay đổi | Cơ sở |
+| --- | --- | --- | --- |
+| 0.1 / V1 | 14/10/2026 | Bản dự thảo ban đầu; có các nhóm yêu cầu và giả định sơ bộ. Một số mã FR, tác nhân và phạm vi chưa thống nhất với quyết định sau đó. | SRS bản đầu do nhóm cung cấp |
+| 1.0 | 29/10/2026 | Chuẩn hóa danh mục FR theo Requirement List FR-01–FR-25; cập nhật CR1 (FR-18–FR-25); chốt tác nhân, phạm vi MVP, quy tắc đặt tour/thanh toán, thống kê, phê duyệt tour, quản lý yêu cầu; chuẩn hóa NFR-01–NFR-10 và tiêu chí nghiệm thu. |
+
+## MỤC LỤC
+
+- 1. Giới thiệu
+- 2. Tổng quan hệ thống và phạm vi
+- 3. Nhóm người dùng và tác nhân
+- 4. Yêu cầu chức năng
+- 5. Yêu cầu phi chức năng
+- 6. Quy tắc nghiệp vụ
+- 7. Luồng nghiệp vụ chính
+- 8. Giả định, ràng buộc và ngoài phạm vi
+- 9. Tiêu chí nghiệm thu tổng thể
+- 10. Ma trận truy vết yêu cầu – Use Case
+- 11. Phụ lục: trạng thái triển khai tại Sprint 3
+Quy ước: MUST/MVP là yêu cầu bắt buộc trong phạm vi MVP đã thống nhất; “Phát triển sau” hoặc “Điều kiện triển khai” không đồng nghĩa đã hoàn thành trong Sprint 3.
+
+## 1. GIỚI THIỆU
+
+### 1.1. Mục đích tài liệu
+
+Tài liệu SRS phiên bản 1.0 mô tả các yêu cầu đã được nhóm thống nhất đối với Website đặt tour du lịch địa phương – LocalTour. Tài liệu là cơ sở chung cho phân tích, thiết kế, lập trình, kiểm thử, quản lý thay đổi và nghiệm thu.
+
+- Xác định phạm vi sản phẩm, tác nhân và trách nhiệm tương tác với hệ thống.
+- Đặc tả các yêu cầu chức năng FR-01 đến FR-25 và yêu cầu phi chức năng NFR-01 đến NFR-10.
+- Ghi nhận các quy tắc nghiệp vụ đã chốt, đặc biệt là tài khoản khách hàng, quy trình xác nhận đặt tour, thanh toán và vận hành quản trị.
+- Làm cơ sở liên kết yêu cầu với Use Case, Product Backlog, WBS, API, test case và minh chứng nghiệm thu.
+
+### 1.2. Bối cảnh và vấn đề
+
+LocalTour hướng đến việc tập trung thông tin tour du lịch địa phương trên một website, giúp người dùng tra cứu, lọc, so sánh và xem thông tin tour theo cấu trúc thống nhất. Dự án giải quyết các vấn đề về thông tin phân tán, khó so sánh giá, thiếu thông tin dịch vụ bao gồm/không bao gồm, khó tìm chính sách và chưa rõ quy trình tiếp nhận – xác nhận yêu cầu đặt tour.
+
+### 1.3. Căn cứ xây dựng
+
+Bản đầu ghi nhận khảo sát định lượng 200 người trả lời. Các số liệu được giữ như căn cứ của nhóm khảo sát, không suy rộng thành đại diện cho toàn bộ thị trường:
+
+- 147/200 (73,5%) gặp khó khăn khi so sánh giá; 146/200 (73,0%) không rõ giá tour đã bao gồm những gì.
+- 152/200 (76,0%) muốn xem tổng giá và phụ phí; 141/200 (70,5%) muốn biết tình trạng chỗ.
+- 132/200 (66,0%) gặp tình trạng thông tin tour nằm rải rác; 162/200 (81,0%) chọn điện thoại là thiết bị tìm kiếm/đặt tour.
+- 139/200 (69,5%) muốn theo dõi trạng thái đặt tour trong tài khoản website.
+Các yêu cầu và quy tắc trong phiên bản này được cập nhật theo Requirement List Tuần 2 và CR1 ngày 25/10/2026 đã được phê duyệt; các kết quả thực hiện Sprint 3 chỉ được ghi nhận tại Phụ lục, không thay thế đặc tả yêu cầu.
+
+### 1.4. Thuật ngữ và viết tắt
+
+| Thuật ngữ | Diễn giải |
+| --- | --- |
+| SRS | Software Requirements Specification – Đặc tả yêu cầu phần mềm. |
+| FR / NFR | Functional Requirement / Non-functional Requirement – Yêu cầu chức năng / phi chức năng. |
+| MVP | Minimum Viable Product – Phiên bản sản phẩm tối thiểu. |
+| Admin / Quản trị viên | Tài khoản có quyền truy cập khu vực quản trị LocalTour. |
+| Yêu cầu đặt tour / booking | Bản ghi yêu cầu đặt chỗ do khách gửi; chưa đồng nghĩa đã được xác nhận hoặc thanh toán. |
+| CR1 | Yêu cầu thay đổi bổ sung FR-18 đến FR-25 và điều chỉnh một số yêu cầu liên quan; được phê duyệt ngày 25/10/2026. |
+| VNPay sandbox | Môi trường thử nghiệm của cổng thanh toán VNPay; không dùng để nhận tiền thật trong giai đoạn đồ án. |
+| VietQR | Mã QR chuyển khoản; LocalTour không kết nối trực tiếp ngân hàng, Admin đối chiếu thủ công. |
+
+## 2. TỔNG QUAN HỆ THỐNG VÀ PHẠM VI
+
+### 2.1. Mục tiêu hệ thống
+
+- Tập trung danh mục tour và thông tin chi tiết theo cấu trúc nhất quán.
+- Hỗ trợ tìm kiếm, lọc, sắp xếp và so sánh từ 2 đến 3 tour.
+- Hiển thị minh bạch giá, đơn vị tính, dịch vụ, phụ thu và chính sách theo dữ liệu đã xác minh.
+- Cho phép khách đăng ký/đăng nhập trước khi gửi yêu cầu đặt tour và theo dõi yêu cầu của chính mình.
+- Cho phép Admin nhập, phê duyệt tour; quản lý yêu cầu đặt tour; theo dõi thống kê.
+- Hỗ trợ quy trình thanh toán VNPay sandbox hoặc VietQR đối chiếu thủ công theo phạm vi đồ án.
+
+### 2.2. Phạm vi sản phẩm
+
+| Phạm vi | Nội dung |
+| --- | --- |
+| Trong MVP | Danh mục và chi tiết tour; lịch trình; dịch vụ và chính sách; tìm kiếm/lọc/sắp xếp; gói lựa chọn khi có biến thể; so sánh 2–3 tour; tài khoản khách; tạo và theo dõi yêu cầu đặt tour; quản trị tour và đơn vị tổ chức; ngày khởi hành/sức chứa trước khi nhận đặt chỗ thật; VNPay sandbox và VietQR; đánh giá và xem đánh giá; thống kê FR-19–FR-23; phê duyệt tour FR-24; quản lý yêu cầu FR-25; các NFR-01–NFR-10. |
+| Phát triển sau | Đổi/hủy theo yêu cầu khách theo FR-12; các chức năng khác chưa được xác nhận trong phạm vi MVP. |
+| Điều kiện triển khai | FR-14 phải hoàn thiện trước khi nhận đặt chỗ thật. Thanh toán trong đồ án chỉ dùng VNPay sandbox và VietQR đối chiếu thủ công; không mặc định có giao dịch tiền thật. |
+| Ngoài phạm vi | Tài khoản tự phục vụ cho nhà cung cấp; nhà cung cấp trực tiếp đăng nhập/quản lý tour; ứng dụng mobile độc lập; tích hợp kế toán/điều hành nội bộ nhà cung cấp; tự động hoàn tiền; SSO; xác minh email và quên mật khẩu trong phạm vi Sprint 3. |
+
+### 2.3. Nguyên tắc dữ liệu hiển thị
+
+- Chỉ hiển thị thông tin có trong dữ liệu nguồn đã nhập/duyệt; trường thiếu hiển thị “Chưa cập nhật”, không suy diễn hoặc lấy nội dung từ tour khác.
+- Giá phải kèm đơn vị tính, tiền tệ và điều kiện áp dụng khi xác định được; không so sánh hoặc sắp xếp chung các giá khác đơn vị/tiền tệ.
+- Chỉ tour đã được Admin phê duyệt mới được hiển thị công khai.
+- Tour và booking phải liên kết đúng định danh; booking phải gắn với tài khoản khách đã đăng nhập.
+
+## 3. NHÓM NGƯỜI DÙNG VÀ TÁC NHÂN
+
+| Tác nhân | Mô tả và quyền chính |
+| --- | --- |
+| Khách vãng lai | Chưa đăng nhập; được xem danh sách, tìm kiếm, lọc, xem chi tiết, xem giá/chính sách và so sánh tour. Khi chọn gửi yêu cầu đặt tour phải đăng nhập/đăng ký. |
+| Khách hàng | Người dùng đã đăng nhập; kế thừa quyền khách vãng lai, đăng xuất, gửi yêu cầu đặt tour, xem mục “Đơn của tôi” và thanh toán theo phương thức được hỗ trợ. Chỉ xem được yêu cầu thuộc tài khoản của mình. |
+| Quản trị viên (Admin) | Đăng nhập qua trang quản trị riêng; xem thống kê, nhập và phê duyệt/từ chối tour, quản lý yêu cầu đặt tour, xác nhận thanh toán VietQR và xử lý đối chiếu khi cần. |
+| Đơn vị tổ chức tour | Tác nhân bên ngoài, không có tài khoản LocalTour trong MVP; cung cấp thông tin tour qua email hoặc điện thoại. Admin nhập thông tin vào hệ thống. |
+| VNPay | Dịch vụ thanh toán bên ngoài ở môi trường sandbox; trả kết quả giao dịch qua Return URL và IPN theo tích hợp. |
+| Ngân hàng / ứng dụng ngân hàng | Khách sử dụng để chuyển khoản VietQR; LocalTour không tích hợp trực tiếp với ngân hàng. Admin đối chiếu khoản tiền thủ công. |
+
+## 4. YÊU CẦU CHỨC NĂNG
+
+Tất cả FR-01 đến FR-11, FR-13 đến FR-15 và FR-17 đến FR-25 thuộc phạm vi MUST/MVP theo Requirement List và CR1, ngoại trừ các điều kiện triển khai được nêu rõ bên dưới. FR-12 và FR-16 là phát triển sau.
+
+| Mã | Tên yêu cầu | Mô tả / phạm vi | Tác nhân | Ưu tiên |
+| --- | --- | --- | --- | --- |
+| FR-01 | Danh mục tour | Hiển thị danh sách tour đã được phép công khai, gồm tên, điểm đến, nơi khởi hành và các trường tóm tắt có trong dữ liệu. | Khách vãng lai, Khách hàng | MUST / MVP |
+| FR-02 | Trang chi tiết tour | Trình bày mô tả, điểm tham quan, phương tiện, hướng dẫn viên, điểm đón/trả và thông tin dịch vụ theo dữ liệu của từng tour. | Khách vãng lai, Khách hàng | MUST / MVP |
+| FR-03 | Lịch trình theo trình tự | Hiển thị điểm/hoạt động đúng thứ tự dữ liệu nguồn đã duyệt; chỉ hiển thị giờ khi nguồn có ghi. | Khách vãng lai, Khách hàng | MUST / MVP |
+| FR-04 | Dịch vụ và chi phí phát sinh | Tách dịch vụ “đã bao gồm”, “không bao gồm”, phụ thu và hoạt động tùy chọn; nêu điều kiện áp dụng khi có dữ liệu. | Khách vãng lai, Khách hàng | MUST / MVP |
+| FR-05 | Điều kiện và chính sách | Hiển thị riêng theo tour các điều kiện về độ tuổi, giấy tờ, ăn uống, voucher, đổi lịch, hoàn tiền và đón khách khi dữ liệu có. | Khách vãng lai, Khách hàng | MUST / MVP |
+| FR-06 | Tìm kiếm, lọc và sắp xếp | Tìm theo tên/điểm đến; lọc theo điểm đến và loại hình; sắp xếp tăng/giảm theo giá chỉ khi giá có cùng đơn vị tính và tiền tệ. | Khách vãng lai, Khách hàng | MUST / MVP |
+| FR-07 | Gói lựa chọn của tour | Lưu và hiển thị các biến thể trong cùng tour (ví dụ phương tiện hoặc tuyến điểm); mỗi gói có thông tin riêng. Chỉ áp dụng khi tour có biến thể. | Khách hàng | MUST khi có biến thể |
+| FR-08 | Tạo yêu cầu đặt tour | Cho khách chọn tour, gói (nếu có), ngày khởi hành và số lượng người; kiểm tra trường bắt buộc và điều kiện còn chỗ trước khi lưu. | Khách hàng đã đăng nhập | MUST / MVP – xác nhận thủ công |
+| FR-09 | Thông tin khách và yêu cầu đặc biệt | Thu thập thông tin liên hệ và người tham gia cần thiết; ghi chú ăn chay/dị ứng hoặc thông tin khách sạn khi điều kiện tour yêu cầu. | Khách hàng đã đăng nhập | MUST / MVP |
+| FR-10 | Hiển thị giá minh bạch | Hiển thị giá nguồn cùng đơn vị tính/tiền tệ và điều kiện áp dụng; tách giá cơ bản, phụ thu, tùy chọn nếu dữ liệu phân biệt được. Chỉ tính tổng dự kiến khi đủ thành phần. | Khách vãng lai, Khách hàng | MUST / MVP |
+| FR-11 | Mã đặt chỗ và trạng thái | Sau khi lưu yêu cầu hợp lệ, tạo mã duy nhất và trạng thái; khách xem mã/trạng thái trong “Đơn của tôi”. Chỉ phát hành voucher/xác nhận chính thức khi quy trình xác nhận và thanh toán hoàn tất. | Khách hàng, Admin | MUST / MVP |
+| FR-12 | Quản lý đổi/hủy | Cho phép gửi yêu cầu đổi/hủy theo chính sách của đúng tour; lưu thời điểm, trạng thái xử lý và kết quả; không áp dụng một chính sách chung cho mọi tour. | Khách hàng, Admin/nhân viên | Phát triển sau |
+| FR-13 | Quản trị tour và đơn vị tổ chức | Nhân viên nội bộ được phân quyền tạo/sửa/quản lý thông tin tour, lịch trình, dịch vụ, chính sách, gói lựa chọn và thông tin đơn vị tổ chức. Trong MVP, nhà cung cấp không có tài khoản; Admin nhập dữ liệu do họ cung cấp. | Admin/nhân viên được phân quyền | MUST / MVP |
+| FR-14 | Quản lý ngày khởi hành và sức chứa | Quản trị ngày khởi hành, sức chứa và số chỗ còn lại; ngăn xác nhận/đặt vượt số chỗ cấu hình. | Admin/nhân viên được phân quyền | Bắt buộc trước khi nhận đặt chỗ thật |
+| FR-15 | So sánh tour | Cho phép chọn 2–3 tour để đối chiếu giá, đơn vị tổ chức, điểm đến, thời lượng, lịch trình tóm tắt, dịch vụ và chính sách có sẵn. Chỉ so giá khi cùng đơn vị/tiền tệ. | Khách vãng lai, Khách hàng | MUST / MVP |
+| FR-16 | Xem đánh giá | Hiển thị điểm và nội dung đánh giá khi có nguồn hợp lệ, xác thực và kiểm duyệt; nếu chưa có dữ liệu thì hiển thị trạng thái chưa có đánh giá. | Khách vãng lai, Khách hàng | Phát triển sau |
+| FR-17 | Thanh toán trực tuyến | Cho phép thanh toán yêu cầu đã được Admin xác nhận qua VNPay sandbox hoặc chuyển khoản VietQR. VNPay chỉ ghi thành công sau khi xác minh chữ ký và số tiền; VietQR chỉ thành công sau khi Admin đối chiếu đủ tiền. | Khách hàng, VNPay, Admin | MUST / MVP – sandbox/đối chiếu thủ công |
+| FR-18 | Quản lý tài khoản khách hàng | Cho phép đăng ký, đăng nhập, đăng xuất và xem yêu cầu đặt tour của chính tài khoản trong “Đơn của tôi”. Khách chưa đăng nhập vẫn được tra cứu tour; phải đăng nhập trước khi gửi yêu cầu. | Khách vãng lai, Khách hàng | MUST / MVP – CR1 |
+| FR-19 | Thống kê người dùng | Admin xem tổng số tài khoản khách hàng; hiển thị riêng số tài khoản đang hoạt động và bị khóa. Tổng số tính toàn bộ tài khoản khách hàng theo quy tắc đã chốt. | Admin | MUST / MVP – CR1 |
+| FR-20 | Thống kê tour | Admin xem tổng số tour và số tour theo trạng thái: chờ duyệt, đã duyệt, bị từ chối. Tổng số tính toàn bộ tour theo quy tắc thống kê đã chốt. | Admin | MUST / MVP – CR1 |
+| FR-21 | Thống kê yêu cầu đặt tour theo trạng thái | Admin xem số lượng yêu cầu ở sáu trạng thái: Chờ xác nhận, Chờ thanh toán, Đã xác nhận, Từ chối, Đã hủy, Đã hoàn thành. | Admin | MUST / MVP – CR1 |
+| FR-22 | Thống kê yêu cầu đặt tour theo thời gian | Admin lọc/thống kê yêu cầu theo ngày, tháng, năm; mốc thời gian được tính theo ngày tạo yêu cầu (ngày khách gửi yêu cầu), không phải ngày khởi hành. | Admin | MUST / MVP – CR1 |
+| FR-23 | Thống kê doanh thu | Admin xem doanh thu theo ngày/tháng/năm. Doanh thu thuần = tổng tiền đã thanh toán − tổng tiền đã hoàn; phân nhóm theo ngày thanh toán. | Admin | MUST / MVP – CR1 |
+| FR-24 | Phê duyệt tour | Admin nhập tour do đơn vị tổ chức cung cấp qua email/điện thoại ở trạng thái “Chờ duyệt”; xem xét và phê duyệt hoặc từ chối kèm lý do. Chỉ tour đã duyệt được công khai. Tiêu chí xem xét gồm lịch khởi hành, loại vé/giá vé, chính sách hủy và ảnh. | Admin | MUST / MVP – CR1 |
+| FR-25 | Quản lý yêu cầu đặt tour | Admin xem danh sách/tìm kiếm/chi tiết yêu cầu; xác nhận chỗ và giá, xác nhận đã thanh toán, từ chối, hủy hoặc đánh dấu tour đã diễn ra; ghi lịch sử xử lý. Đổi ngày khởi hành/số người thuộc FR-12, phát triển sau. | Admin | MUST / MVP – CR1 |
+
+### 4.1. Quy định chung cho xử lý yêu cầu đặt tour
+
+- Khách phải đăng nhập trước khi gửi yêu cầu; nếu chưa đăng nhập, hệ thống chuyển tới đăng nhập/đăng ký và sau đó quay lại tour đã chọn.
+- Yêu cầu mới được lưu ở trạng thái “Chờ xác nhận”; trạng thái này không có nghĩa là đã giữ chỗ hoặc đã thanh toán.
+- Admin liên hệ đơn vị tổ chức để xác nhận khả năng cung cấp, chỗ và tổng giá; nếu chấp nhận thì chuyển yêu cầu sang “Chờ thanh toán”, giữ chỗ và thiết lập hạn thanh toán 24 giờ.
+- Khách thanh toán bằng VNPay sandbox hoặc VietQR. Với VNPay, kiểm tra chữ ký, mã đặt chỗ và số tiền; với VietQR, Admin đối chiếu số tiền/nội dung chuyển khoản.
+- Chỉ phát hành voucher/xác nhận chính thức khi thanh toán đã được xác minh hoặc đối chiếu thành công.
+- Yêu cầu quá hạn 24 giờ chưa thanh toán thành công và chưa bấm “Đã chuyển khoản” được chuyển “Đã hủy” và nhả chỗ. Yêu cầu đang “Chờ đối chiếu” không tự động bị hủy.
+- Nếu tiền về sau khi yêu cầu đã hủy, việc hoàn tiền được xử lý thủ công; không có chức năng tự động hoàn tiền trong phạm vi đồ án.
+
+### 4.2. Trạng thái yêu cầu đặt tour
+
+| Trạng thái | Ý nghĩa |
+| --- | --- |
+| Chờ xác nhận | Khách đã gửi yêu cầu hợp lệ; Admin chưa xác nhận chỗ và tổng giá. |
+| Chờ thanh toán | Admin đã xác nhận chỗ và tổng giá; khách cần thanh toán trong thời hạn quy định. |
+| Đã xác nhận | Yêu cầu đã hoàn tất điều kiện xác nhận và thanh toán thành công; có thể phát hành voucher. |
+| Từ chối | Admin từ chối yêu cầu; phải lưu lý do. |
+| Đã hủy | Yêu cầu bị hủy theo thao tác/quy tắc quá hạn; ghi nhận lịch sử và nhả chỗ nếu có giữ chỗ. |
+| Đã hoàn thành | Tour đã diễn ra và Admin đánh dấu hoàn thành. |
+
+### 4.3. Quy tắc phê duyệt tour
+
+- Tour mới do Admin nhập ở trạng thái “Chờ duyệt”.
+- Admin kiểm tra tối thiểu lịch khởi hành, loại vé và giá vé, chính sách hủy và ảnh.
+- Nếu đạt, Admin phê duyệt và tour được phép hiển thị công khai.
+- Nếu không đạt, Admin từ chối và bắt buộc ghi lý do; không có vòng “yêu cầu chỉnh sửa”. Thông tin được sửa và gửi lại được xử lý như một lần gửi mới.
+- Mỗi thao tác duyệt/từ chối phải ghi nhận người thực hiện và thời điểm.
+
+## 5. YÊU CẦU PHI CHỨC NĂNG
+
+| Mã | Thuộc tính | Yêu cầu | Ưu tiên | Tiêu chí nghiệm thu |
+| --- | --- | --- | --- | --- |
+| NFR-01 | Dễ sử dụng và dễ đọc | Nội dung quan trọng (lịch trình, bao gồm/không bao gồm, giá và chính sách) có tiêu đề riêng; người dùng không phải đọc toàn bộ điều khoản để tìm thông tin chính. | MUST / MVP | Kiểm thử các tác vụ xem tour, tìm chính sách và bắt đầu đặt chỗ; người kiểm thử hoàn thành theo kịch bản mà không cần hướng dẫn miệng. |
+| NFR-02 | Tương thích thiết bị | Trang danh mục, chi tiết và biểu mẫu sử dụng được trên máy tính và màn hình di động. | MUST / MVP | Kiểm thử ở chiều rộng khoảng 360 px và desktop; không cắt nội dung chính hoặc buộc cuộn ngang toàn trang. |
+| NFR-03 | Hiệu năng | Trang danh mục/chi tiết phản hồi trong thời gian hợp lý trên môi trường demo. | MUST / MVP | Mục tiêu ban đầu: tải nội dung chính trong 3 giây ở môi trường kiểm thử đã thống nhất; ghi cấu hình máy chủ, mạng và kích thước dữ liệu khi đo. |
+| NFR-04 | Bảo mật truy cập | Chức năng quản trị và thông tin đặt chỗ không công khai cho người dùng không có quyền. | MUST / MVP | Chỉ Admin đăng nhập mới mở được trang quản trị; khách chỉ xem đơn của mình; mật khẩu băm bcrypt; form đăng nhập/đăng ký/đăng xuất có CSRF; máy chủ kiểm tra quyền. |
+| NFR-05 | Bảo vệ dữ liệu cá nhân | Chỉ thu thập dữ liệu cần cho đặt tour; giới hạn người xem/sửa; không lưu dữ liệu thẻ thanh toán thô. | MUST / MVP | Mỗi trường cá nhân có mục đích; giấy tờ chỉ bắt buộc khi tour yêu cầu; quyền xem/sửa được kiểm thử theo vai trò. |
+| NFR-06 | Toàn vẹn và nhất quán dữ liệu | Tour, lịch trình, gói, chính sách và booking liên kết bằng định danh ổn định. | MUST / MVP | Không có lịch trình mồ côi; booking tham chiếu đúng tour/gói; kiểm tra trường bắt buộc phía máy chủ; mã booking không trùng. |
+| NFR-07 | Khả năng truy vết và cập nhật | Mỗi tour lưu nguồn tham khảo và lần xác minh gần nhất khi xác định được. | MUST / MVP | Trang quản trị lưu URL nguồn, ngày kiểm tra và trạng thái xác minh; thiếu nguồn/ngày phải đánh dấu chưa xác minh, không gán ngày giả. |
+| NFR-08 | Khả năng bảo trì | Thông tin tour không bị khóa cứng vào giao diện; nhân viên có thể sửa nội dung qua dữ liệu/quản trị. | MUST / MVP | Sửa tên, lịch trình hoặc điều khoản không cần sửa mã giao diện; thay đổi không ảnh hưởng nhầm tour khác. |
+| NFR-09 | Khả năng phục hồi và nhật ký | Các thao tác quan trọng như tạo booking và đổi trạng thái có lịch sử xử lý. | MUST / MVP | Nếu lưu thất bại không báo thành công/không cấp mã như yêu cầu đã lưu; mỗi lần đổi trạng thái có người thực hiện và thời điểm. |
+| NFR-10 | Tương thích trình duyệt | Các luồng chính hoạt động trên trình duyệt máy tính/di động được nhóm công bố hỗ trợ. | MUST / MVP | Tối thiểu kiểm thử Chrome và Edge; bổ sung Safari/Firefox theo thiết bị mục tiêu; tại 360 px không mất nội dung chính hoặc cuộn ngang toàn trang. |
+
+## 6. QUY TẮC NGHIỆP VỤ
+
+| Mã | Tên quy tắc | Nội dung |
+| --- | --- | --- |
+| BR-01 | Công khai tour | Chỉ tour đã được Admin phê duyệt mới hiển thị ở danh mục công khai. Tour chờ duyệt/từ chối không hiển thị công khai. |
+| BR-02 | Thông tin tour và giá | Thông tin thiếu hoặc chưa xác minh hiển thị “Chưa cập nhật”. Giá phải có đơn vị tính/tiền tệ và điều kiện áp dụng nếu xác định được; không tự tính tổng khi thiếu thành phần. |
+| BR-03 | Tình trạng chỗ | Việc nhận yêu cầu/giữ chỗ phải dựa trên ngày khởi hành và sức chứa đã cấu hình. FR-14 phải hoàn thiện trước khi nhận đặt chỗ thật. |
+| BR-04 | Điều kiện gửi yêu cầu | Khách phải đăng nhập; yêu cầu hợp lệ gắn với tài khoản, tour, gói (nếu có), ngày khởi hành và số lượng người. |
+| BR-05 | Trạng thái yêu cầu | Sử dụng sáu trạng thái: Chờ xác nhận, Chờ thanh toán, Đã xác nhận, Từ chối, Đã hủy, Đã hoàn thành. Mọi lần đổi trạng thái phải ghi lịch sử. |
+| BR-06 | Thanh toán và hoàn tiền | VNPay chỉ thành công khi chữ ký và số tiền hợp lệ; VietQR chỉ thành công sau Admin đối chiếu đủ tiền. Không tự động hoàn tiền. |
+| BR-07 | Đánh giá | Chỉ hiển thị đánh giá khi có nguồn hợp lệ và đáp ứng quy tắc xác thực/kiểm duyệt; FR-16 là phát triển sau. |
+| BR-08 | Nhà cung cấp | Đơn vị tổ chức không có tài khoản LocalTour trong MVP; cung cấp dữ liệu qua email/điện thoại để Admin nhập. |
+| BR-09 | Phân quyền Admin | Chỉ tài khoản Admin được truy cập khu vực quản trị; việc kiểm tra quyền phải thực hiện ở máy chủ. |
+| BR-10 | Bảo vệ dữ liệu | Khách chỉ xem được yêu cầu của chính mình; không lưu mật khẩu gốc hoặc dữ liệu thẻ thanh toán thô. |
+| BR-11 | Thống kê người dùng | FR-19 tính toàn bộ tài khoản khách hàng; hiển thị riêng số đang hoạt động và bị khóa. |
+| BR-12 | Thống kê tour | FR-20 tính toàn bộ tour và phân nhóm chờ duyệt, đã duyệt, bị từ chối. |
+| BR-13 | Thống kê yêu cầu | FR-21 thống kê theo sáu trạng thái quy định tại BR-05; FR-22 dùng ngày tạo yêu cầu làm mốc thời gian. |
+| BR-14 | Thống kê doanh thu | FR-23 tính doanh thu thuần = tiền đã thanh toán − tiền đã hoàn, theo ngày thanh toán. |
+| BR-15 | Phê duyệt tour | Tour không đạt bị từ chối kèm lý do; không có trạng thái/vòng yêu cầu chỉnh sửa trong quy trình đã chốt. |
+
+## 7. LUỒNG NGHIỆP VỤ CHÍNH
+
+### 7.1. UC-01 – Tìm kiếm và xem tour
+
+Tác nhân chính: Khách vãng lai (Khách hàng cũng sử dụng được). Điều kiện: website truy cập được và có tour đã được Admin phê duyệt.
+
+1. Khách mở danh mục; hệ thống hiển thị tour công khai và thông tin tóm tắt có trong dữ liệu.
+1. Khách tìm theo tên/điểm đến, chọn bộ lọc và cách sắp xếp.
+1. Hệ thống trả kết quả; chỉ sắp xếp giá giữa các tour có cùng đơn vị tính/tiền tệ.
+1. Khách có thể chọn 2–3 tour để so sánh; không cho chọn tour thứ tư.
+1. Khách mở một tour; hệ thống hiển thị mô tả, lịch trình, dịch vụ, điều kiện, chính sách và giá.
+1. Nếu dữ liệu thiếu, hệ thống hiển thị “Chưa cập nhật”; nếu tour không còn công khai, thông báo và quay lại danh mục.
+Yêu cầu liên quan: FR-01 đến FR-06, FR-10, FR-15; NFR-01, NFR-02, NFR-03.
+
+### 7.2. UC-02 – Gửi yêu cầu đặt tour
+
+Tác nhân chính: Khách hàng đã đăng nhập. Admin là tác nhân xử lý tiếp theo.
+
+1. Khách chọn tour, gói lựa chọn (nếu có), ngày khởi hành và số người.
+1. Nếu chưa đăng nhập, hệ thống yêu cầu đăng nhập/đăng ký rồi quay lại tour đã chọn.
+1. Khách nhập thông tin liên hệ, người tham gia và yêu cầu đặc biệt cần thiết.
+1. Hệ thống kiểm tra dữ liệu bắt buộc, định dạng, gói lựa chọn và số chỗ.
+1. Nếu hợp lệ, hệ thống lưu yêu cầu, sinh mã booking duy nhất, gắn tài khoản khách và đặt trạng thái “Chờ xác nhận”.
+1. Admin tiếp nhận yêu cầu để liên hệ đơn vị tổ chức và xử lý theo FR-25.
+Ngoại lệ: thiếu trường hoặc sai định dạng thì không lưu; không đủ chỗ thì thông báo số chỗ còn lại; lỗi lưu thì không hiển thị mã/thông báo thành công; khách chưa đăng nhập được chuyển tới trang đăng nhập.
+
+Yêu cầu liên quan: FR-07, FR-08, FR-09, FR-11, FR-14, FR-18; NFR-04, NFR-05, NFR-06, NFR-09.
+
+### 7.3. UC-03 – Thanh toán và nhận kết quả
+
+1. Điều kiện đầu vào: yêu cầu đã được Admin xác nhận chỗ và tổng giá, chuyển sang “Chờ thanh toán”; hạn thanh toán mặc định 24 giờ.
+1. Với VNPay: hệ thống tạo yêu cầu có chữ ký; VNPay trả Return URL/IPN; hệ thống xác minh chữ ký, mã booking và số tiền trước khi cập nhật thành công.
+1. Với VietQR: hệ thống hiển thị QR đúng số tiền và nội dung là mã booking; khách bấm “Đã chuyển khoản”; trạng thái chuyển “Chờ đối chiếu”; Admin đối chiếu tài khoản nhận.
+1. Khi thanh toán thành công, yêu cầu chuyển “Đã xác nhận”, phát hành voucher/xác nhận chính thức và lưu lịch sử.
+1. Giao dịch VNPay thất bại/đang xử lý không được ghi thành công; IPN lặp không tạo ghi nhận trùng.
+1. Yêu cầu quá hạn chưa thanh toán và chưa bấm “Đã chuyển khoản” bị hủy, nhả chỗ; yêu cầu “Chờ đối chiếu” không tự động hủy.
+Yêu cầu liên quan: FR-11, FR-17, FR-18, FR-25; NFR-04, NFR-05, NFR-06, NFR-09.
+
+### 7.4. UC-04 – Admin quản trị tour và phê duyệt tour
+
+1. Đơn vị tổ chức gửi thông tin tour qua email/điện thoại.
+1. Admin nhập thông tin tour và lưu ở trạng thái “Chờ duyệt”, bao gồm dữ liệu nguồn/xác minh khi có.
+1. Admin kiểm tra lịch khởi hành, loại vé/giá vé, chính sách hủy và ảnh.
+1. Admin phê duyệt để công khai hoặc từ chối kèm lý do; hệ thống ghi người thao tác và thời điểm.
+1. Nhà cung cấp không đăng nhập và không trực tiếp sửa dữ liệu trên website trong MVP.
+Yêu cầu liên quan: FR-13, FR-24; NFR-04, NFR-07, NFR-08, NFR-09.
+
+### 7.5. UC-05 – Admin quản lý yêu cầu và thống kê
+
+1. Admin đăng nhập khu vực quản trị.
+1. Admin xem danh sách, tìm kiếm và mở chi tiết yêu cầu đặt tour.
+1. Admin xác nhận chỗ/giá, từ chối kèm lý do, hủy hoặc đánh dấu tour đã diễn ra; mỗi thay đổi được ghi lịch sử.
+1. Admin xem thống kê người dùng, tour, yêu cầu theo trạng thái, yêu cầu theo thời gian và doanh thu theo quy tắc BR-11 đến BR-14.
+Yêu cầu liên quan: FR-19 đến FR-25; NFR-04, NFR-09.
+
+## 8. GIẢ ĐỊNH, RÀNG BUỘC VÀ NGOÀI PHẠM VI
+
+### 8.1. Giả định
+
+- Thông tin tour được cung cấp từ dữ liệu công khai hoặc do đơn vị tổ chức gửi cho Admin; quy trình nội bộ của nhà cung cấp chưa được xác minh trực tiếp.
+- Admin là đầu mối nhập và kiểm duyệt thông tin tour, xác nhận yêu cầu với đơn vị tổ chức và đối chiếu VietQR.
+- Các thông tin thiếu/chưa xác minh được đánh dấu rõ, không tự suy đoán.
+- VNPay chỉ sử dụng môi trường sandbox trong giai đoạn đồ án; VietQR được đối chiếu thủ công.
+
+### 8.2. Ràng buộc kỹ thuật đã chốt cho Sprint 3
+
+- PHP 8.2 thuần hướng đối tượng, mô hình MVC tự xây, không dùng framework.
+- MySQL/MariaDB 10.4 trong XAMPP; PHP truy cập dữ liệu qua PDO và stored procedure.
+- Giao diện HTML5, CSS3, Bootstrap 4.6.2, jQuery 3.7.1; trao đổi AJAX/JSON UTF-8.
+- Mã nguồn quản lý bằng Git/GitHub; môi trường phát triển XAMPP.
+
+### 8.3. Ngoài phạm vi hoặc chưa cam kết
+
+- Ứng dụng di động độc lập; tài khoản tự phục vụ cho nhà cung cấp.
+- Quên mật khẩu, xác minh email và dịch vụ gửi email trong phạm vi Sprint 3.
+- Tự động hoàn tiền; xử lý đổi ngày khởi hành/số người (FR-12 – phát triển sau).
+- Đánh giá tour (FR-16) cho đến khi có nguồn hợp lệ và quy tắc xác minh/kiểm duyệt.
+- Tích hợp ngân hàng cho VietQR; VietQR chỉ hiển thị mã và Admin đối chiếu thủ công.
+- Giao dịch tiền thật trong VNPay; chỉ chạy sandbox trong giai đoạn đồ án.
+
+## 9. TIÊU CHÍ NGHIỆM THU TỔNG THỂ
+
+- Các FR trong phạm vi nghiệm thu phải có mã yêu cầu, mô tả, Use Case/Backlog/WBS liên quan, tiêu chí kiểm thử và minh chứng tương ứng.
+- Danh mục chỉ hiển thị tour đã duyệt; thông tin thiếu được thể hiện “Chưa cập nhật”; dữ liệu lịch trình, dịch vụ, giá và chính sách phải khớp nguồn.
+- Tìm kiếm/lọc/sắp xếp hoạt động đúng; so sánh tối đa 3 tour và không so giá khi khác đơn vị/tiền tệ.
+- Khách chưa đăng nhập có thể tra cứu nhưng không gửi yêu cầu; khách đã đăng nhập chỉ xem yêu cầu thuộc tài khoản mình.
+- Yêu cầu hợp lệ có mã duy nhất, trạng thái chính xác và không được báo thành công nếu chưa lưu.
+- Admin chỉ có quyền phù hợp mới được truy cập trang quản trị; thao tác quan trọng ghi người thực hiện và thời điểm.
+- VNPay chỉ ghi thành công sau xác minh; VietQR chỉ ghi thành công sau đối chiếu đủ tiền; voucher chỉ phát hành khi thanh toán thành công.
+- Thống kê phải khớp dữ liệu nguồn theo các quy tắc FR-19 đến FR-23 và BR-11 đến BR-14.
+- Giao diện đáp ứng ở desktop và chiều rộng 360 px; tối thiểu kiểm thử Chrome và Edge; mục tiêu tải nội dung chính không quá 3 giây trong môi trường đo đã thống nhất.
+
+## 10. MA TRẬN TRUY VẾT YÊU CẦU – USE CASE
+
+| FR | Use Case liên quan | Phạm vi truy vết |
+| --- | --- | --- |
+| FR-01 | UC-01 | Danh mục tour |
+| FR-02 | UC-01 | Chi tiết tour |
+| FR-03 | UC-01 | Lịch trình |
+| FR-04 | UC-01 | Dịch vụ/chi phí |
+| FR-05 | UC-01 | Điều kiện/chính sách |
+| FR-06 | UC-01 | Tìm kiếm/lọc/sắp xếp |
+| FR-07 | UC-02 | Gói lựa chọn (khi có biến thể) |
+| FR-08 | UC-02 | Tạo yêu cầu đặt tour |
+| FR-09 | UC-02 | Thông tin khách/yêu cầu đặc biệt |
+| FR-10 | UC-01 | Hiển thị giá minh bạch |
+| FR-11 | UC-02, UC-03, UC-05 | Mã và trạng thái booking |
+| FR-12 | UC-02 (phát triển sau) | Đổi/hủy theo chính sách |
+| FR-13 | UC-04 | Quản trị tour/đơn vị tổ chức |
+| FR-14 | UC-02, UC-05 | Ngày khởi hành/sức chứa |
+| FR-15 | UC-01 | So sánh 2–3 tour |
+| FR-16 | UC-01 | Đánh giá và xem đánh giá |
+| FR-17 | UC-03 | Thanh toán VNPay/VietQR |
+| FR-18 | UC-02, UC-03 | Tài khoản khách/Đơn của tôi |
+| FR-19 | UC-05 | Thống kê người dùng |
+| FR-20 | UC-05 | Thống kê tour |
+| FR-21 | UC-05 | Thống kê booking theo trạng thái |
+| FR-22 | UC-05 | Thống kê booking theo thời gian |
+| FR-23 | UC-05 | Thống kê doanh thu |
+| FR-24 | UC-04 | Phê duyệt tour |
+| FR-25 | UC-05 | Quản lý yêu cầu đặt tour |
+
+Lưu ý: Ma trận này là truy vết SRS–Use Case ở cấp yêu cầu. Liên kết WBS và API cần được hoàn thiện trong bảng truy vết triển khai riêng; không tự suy diễn endpoint khi chưa đối chiếu API thực tế.
+
+## 11. PHỤ LỤC – TÌNH TRẠNG TRIỂN KHAI TẠI SPRINT 3
+
+Phần này ghi nhận trạng thái tại Báo cáo Sprint 3 ngày 28–29/10/2026. Đây là ảnh chụp tiến độ triển khai, không phải cam kết rằng toàn bộ phạm vi MVP đã hoàn tất.
+
+| Nhóm yêu cầu | Thông tin ghi nhận trong báo cáo Sprint 3 | Lưu ý khi nghiệm thu |
+| --- | --- | --- |
+| FR-01, FR-02 và các nội dung tour liên quan | Danh sách tour và chi tiết tour lấy dữ liệu MySQL; tìm kiếm/lọc/sắp xếp; trạng thái rỗng/lỗi; trang không tìm thấy tour. WBS 3.2.3–3.2.7 báo hoàn thành. | Đối chiếu test case, ảnh demo và API thực tế trước khi đánh dấu Done. |
+| FR-18 | WBS 3.2.8 báo hoàn thành phần đăng ký, đăng nhập, đăng xuất và chế độ khách. “Đơn của tôi” chưa làm do phụ thuộc luồng gửi yêu cầu đặt tour. | Không ghi nhận toàn bộ FR-18 đã hoàn thành nếu chưa có “Đơn của tôi”. |
+| FR-19 đến FR-25 | WBS 3.2.9 báo hoàn thành trang quản trị theo CR1; QA kiểm thử 9 ca trang quản trị ngày 26/10 và 28/10. | Cần đối chiếu từng yêu cầu thống kê/phê duyệt/quản lý yêu cầu với test case và minh chứng tương ứng. |
+| QA/QC | Báo cáo ghi 34 test case TC-LT-01 đến TC-LT-34; 43 ca chạy chính thức ngày 28/10: 43 Pass, 0 Fail, 0 Blocked; 9 lỗi đã retest và đóng. | Kết quả này là minh chứng tổng hợp Sprint; cần gắn test case cụ thể với từng FR. |
+
+## KẾT THÚC TÀI LIỆU
+
+SRS v1.0 thay thế bản dự thảo ban đầu làm cơ sở tham chiếu yêu cầu của LocalTour. Mọi thay đổi tiếp theo phải được ghi nhận qua quy trình quản lý thay đổi, đánh giá tác động đến SRS, Use Case, Product Backlog, WBS, thiết kế dữ liệu/API, test case và kế hoạch nghiệm thu.
