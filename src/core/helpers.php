@@ -184,6 +184,22 @@ function age_range_text(int|string|null $min, int|string|null $max): string
 }
 
 /**
+ * Một loại vé (dòng có ticket_type_id, name, min_age, max_age, price_vnd) → dữ liệu cho JS chọn số khách.
+ *
+ * @param array<string, mixed> $ticket
+ * @return array{id: string, label: string, ages: string, price: int}
+ */
+function ticket_option(array $ticket): array
+{
+    return [
+        'id' => (string) $ticket['ticket_type_id'],
+        'label' => ticket_label((string) $ticket['name']),
+        'ages' => age_range_text($ticket['min_age'], $ticket['max_age']),
+        'price' => (int) $ticket['price_vnd'],
+    ];
+}
+
+/**
  * Tách văn bản thành các đoạn (ngăn bởi dòng trống); mỗi đoạn vẫn có thể chứa xuống dòng đơn.
  *
  * @return list<string>
@@ -228,6 +244,40 @@ function format_time(?string $time): string
     }
 
     return strlen($time) > 8 ? substr($time, 11, 5) : substr($time, 0, 5);
+}
+
+/** Giờ của một lịch khởi hành: "17:00 – 21:00"; thêm ngày kết thúc nếu tour qua ngày hôm sau. */
+function schedule_time_text(?string $startsAt, ?string $endsAt): string
+{
+    $start = (string) $startsAt;
+    $end = (string) $endsAt;
+    $text = format_time($start) . ' – ' . format_time($end);
+    if ($end !== '' && substr($end, 0, 10) !== substr($start, 0, 10)) {
+        $text .= ' (' . format_date($end) . ')';
+    }
+
+    return $text;
+}
+
+/**
+ * Chính sách hủy → các câu hiển thị (giống thẻ giá ở trang chi tiết tour).
+ * $freeBeforeHours null = không có mốc hủy miễn phí.
+ *
+ * @return list<string>
+ */
+function cancellation_policy_lines(int|string|null $freeBeforeHours, int|string|null $refundPercent): array
+{
+    $refundPercent = (int) $refundPercent;
+    if ($freeBeforeHours === null || $freeBeforeHours === '') {
+        return [$refundPercent > 0 ? 'Hủy tour được hoàn ' . $refundPercent . '% tiền tour.' : 'Tour không hoàn tiền khi hủy.'];
+    }
+
+    $freeBeforeHours = (int) $freeBeforeHours;
+
+    return [
+        $freeBeforeHours > 0 ? 'Hủy miễn phí trước giờ khởi hành ' . $freeBeforeHours . ' giờ.' : 'Hủy miễn phí đến giờ khởi hành.',
+        $refundPercent > 0 ? 'Sau thời điểm này hoàn ' . $refundPercent . '% tiền tour.' : 'Sau thời điểm này không hoàn tiền.',
+    ];
 }
 
 /** "2026-10-24 17:05:00" → "24/10/2026 17:05"; '' khi không có giá trị. */
@@ -277,10 +327,72 @@ function payment_method_label(?string $method): string
     return $labels[(string) $method] ?? (string) $method;
 }
 
+/**
+ * Một dòng lịch sử đơn (LTP_sp_booking_history, LTP_sp_customer_booking_history) → tiêu đề tiếng Việt.
+ * Đổi trạng thái hiện "A → B"; thao tác khác hiện tên thao tác.
+ *
+ * @param array<string, mixed> $event
+ */
+function booking_history_title(array $event): string
+{
+    $labels = [
+        'created' => 'Gửi yêu cầu đặt tour',
+        'booking_total' => 'Chốt tổng giá',
+        'transfer_submitted' => 'Báo đã chuyển khoản VietQR',
+        'payment_confirm' => 'Đối chiếu: đã nhận tiền chuyển khoản',
+        'payment_reject' => 'Đối chiếu: chuyển khoản không khớp',
+        'vnpay_paid' => 'Thanh toán VNPay thành công',
+        'vnpay_failed' => 'Thanh toán VNPay không thành công',
+        'hold_expired' => 'Quá hạn thanh toán, đơn tự hủy',
+        'voucher_issued' => 'Cấp voucher',
+        'refund_requested' => 'Tạo yêu cầu hoàn tiền',
+    ];
+    $action = (string) ($event['action'] ?? '');
+    $from = $event['from_status'] ?? null;
+    $to = $event['to_status'] ?? null;
+    if ($action === 'booking_status' && $to !== null) {
+        return ($from !== null ? booking_status_label((string) $from) . ' → ' : '') . booking_status_label((string) $to);
+    }
+
+    return $labels[$action] ?? $action;
+}
+
+/** Người thực hiện một dòng lịch sử đơn (booking_events.actor hoặc 'admin') → nhãn. */
+function booking_history_actor(?string $actor): string
+{
+    $labels = ['customer' => 'Khách hàng', 'system' => 'Hệ thống', 'vnpay' => 'VNPay', 'admin' => 'LocalTour'];
+
+    return $labels[(string) $actor] ?? (string) $actor;
+}
+
 /** Trạng thái duyệt tour (tours.approval_status) → nhãn tiếng Việt. */
 function tour_status_label(?string $status): string
 {
     $labels = ['draft' => 'Nháp', 'pending' => 'Chờ duyệt', 'approved' => 'Đã duyệt', 'rejected' => 'Bị từ chối'];
+
+    return $labels[(string) $status] ?? (string) $status;
+}
+
+/** Trạng thái hợp tác của đơn vị tổ chức (providers.approval_status) → nhãn tiếng Việt. */
+function provider_status_label(?string $status): string
+{
+    $labels = ['approved' => 'Đang hợp tác', 'pending' => 'Chờ duyệt', 'rejected' => 'Ngừng hợp tác'];
+
+    return $labels[(string) $status] ?? (string) $status;
+}
+
+/** Trạng thái lịch khởi hành (schedules.status) → nhãn tiếng Việt. */
+function schedule_status_label(?string $status): string
+{
+    $labels = ['open' => 'Đang mở bán', 'full' => 'Hết chỗ', 'cancelled' => 'Đã hủy', 'completed' => 'Đã hoàn thành'];
+
+    return $labels[(string) $status] ?? (string) $status;
+}
+
+/** Trạng thái xác minh thông tin tour (tours.verification_status, NFR-07) → nhãn tiếng Việt. */
+function verification_status_label(?string $status): string
+{
+    $labels = ['unverified' => 'Chưa xác minh', 'verified' => 'Đã xác minh'];
 
     return $labels[(string) $status] ?? (string) $status;
 }

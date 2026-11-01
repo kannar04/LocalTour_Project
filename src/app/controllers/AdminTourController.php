@@ -18,6 +18,10 @@ final class AdminTourController extends AdminController
     private const MESSAGES = [
         'approved' => 'Đã phê duyệt tour.',
         'rejected' => 'Đã từ chối tour và lưu lý do.',
+        // Thêm / sửa thông tin tour (AdminTourFormController, FR-13)
+        'created' => 'Đã thêm tour. Tour đang ở trạng thái Chờ duyệt: thêm lịch khởi hành và giá vé trước khi phê duyệt.',
+        'updated' => 'Đã lưu thông tin tour.',
+        'unchanged' => 'Không có thay đổi nào.',
     ];
 
     private AdminTourModel $tours;
