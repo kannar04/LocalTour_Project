@@ -128,7 +128,7 @@
                         <h2 class="lt-panel__title" id="compare-title">Tour đang so sánh</h2>
                         <span class="lt-soon">Sắp có</span>
                     </div>
-                    <p class="lt-panel__text">Tính năng so sánh sẽ có ở Sprint sau</p>
+                    <p class="lt-panel__text">Tính năng so sánh sẽ có ở phiên bản sau</p>
                     <ol class="lt-compare__slots" aria-hidden="true">
 <?php for ($slot = 1; $slot <= 3; $slot++): ?>
                         <li class="lt-compare__slot">
