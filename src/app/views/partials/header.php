@@ -3,7 +3,7 @@
 /*
  * Header (Lê Trung Phong): logo, ô tìm kiếm (GET /tours?q=), tài khoản, "Menu".
  * Chế độ khách: nút "Đăng nhập" (quay lại đúng trang đang xem sau khi đăng nhập) và "Đăng ký".
- * Đã đăng nhập: tên khách hàng và nút "Đăng xuất" (form POST kèm mã CSRF).
+ * Đã đăng nhập: "Đơn của tôi" (tài khoản khách hàng), tên khách hàng và nút "Đăng xuất" (form POST kèm mã CSRF).
  * Trên trang danh sách, tour-list.js chặn submit và tải lại kết quả bằng AJAX.
  * "Menu" chỉ hoạt động dưới 992px: mở/đóng thanh bên #lt-sidebar (Bootstrap collapse).
  */
@@ -45,6 +45,12 @@ $userInitial = $currentUser === null ? '' : mb_strtoupper(mb_substr(trim($curren
             </a>
             <a class="lt-btn lt-btn--primary lt-header-cta d-none d-sm-inline-flex" href="<?= e($registerHref) ?>">Đăng ký</a>
 <?php else: ?>
+<?php if ($currentUser['role'] === 'customer'): ?>
+            <a class="lt-header-btn" href="<?= e(url('/bookings')) ?>" aria-label="Đơn của tôi"<?= str_starts_with($currentPath, '/bookings') ? ' aria-current="page"' : '' ?>>
+                <span class="lt-icon lt-icon--clipboard" aria-hidden="true"></span>
+                <span class="d-none d-md-inline" aria-hidden="true">Đơn của tôi</span>
+            </a>
+<?php endif; ?>
             <span class="lt-header-user" title="<?= e($currentUser['email']) ?>">
                 <span class="lt-avatar lt-avatar--sm" aria-hidden="true"><?= e($userInitial) ?></span>
                 <span class="lt-header-user__name d-none d-md-inline"><span class="sr-only">Đang đăng nhập: </span><?= e($currentUser['name']) ?></span>
