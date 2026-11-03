@@ -13,7 +13,7 @@ $pageTitle = ($title ?? '') === '' || $title === 'LocalTour' ? 'LocalTour' : $ti
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="app-base-url" content="<?= e(url('/')) ?>">
-    <meta name="description" content="LocalTour – khám phá tour địa phương do người bản địa dẫn. Dữ liệu minh họa phục vụ Sprint 3.">
+    <meta name="description" content="LocalTour – khám phá tour địa phương do người bản địa dẫn. Dữ liệu minh họa phục vụ đồ án.">
     <meta name="theme-color" content="#176b5f">
     <title><?= e($pageTitle) ?></title>
     <link rel="icon" type="image/svg+xml" href="<?= e(asset('img/logo-mark.svg')) ?>">
