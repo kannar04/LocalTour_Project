@@ -3,7 +3,7 @@
 -- Mục đích  : Lưu yêu cầu đặt tour (M4 mục 6): tạo đơn 'pending' (Chờ xác nhận) kèm dòng vé,
 --             phụ thu / hoạt động tùy chọn và danh sách khách trong một transaction, sinh mã
 --             đơn LTxxxxxx và ghi lịch sử "tạo đơn".
--- Phụ trách : Lê Trung Phong (LTP) - M4 mục 6; Sprint 4: 4.3.3.1, 4.3.3.2
+-- Phụ trách : Lê Trung Phong (LTP) - M4 mục 6; Sprint 4: 4.3.3.1, 4.3.3.2; Sprint 5: US06-S5-01
 -- Procedures: LTP_sp_booking_create
 -- Quy tắc   : * Chỉ tài khoản khách hàng đang hoạt động đặt được (user_id lấy từ session).
 --             * Lịch phải đặt được: tour đang hiển thị, lịch 'open', chưa khởi hành.
@@ -28,19 +28,24 @@
 --               tạo một đơn; gửi lại trả 'duplicate' kèm mã đơn đã tạo.
 --             * Yêu cầu đặc biệt (ăn chay, dị ứng...) lưu ở khách đầu tiên trong danh sách.
 --             * Lịch sử (4.3.3.2, FR-11): ghi booking_events 'created' (actor = khách).
+--             * Gói tour (Sprint 5, US06-S5-01, FR-07): tour có gói đang bán thì phải chọn
+--               đúng một gói của tour; giá vé lấy theo gói (người lớn / trẻ em), vé trẻ em chỉ
+--               bán khi gói có giá trẻ em. Tour không có gói đang bán thì không gửi gói, giá
+--               theo lịch như trước. Mã và tên gói chụp lại vào bookings (file 16).
 --             * Không gọi cổng thanh toán, không thu tiền ở bước này: khách thanh toán sau khi
 --               quản trị viên xác nhận chỗ và giá (14_procedures_NMT_payment.sql).
 --             Tham số chuỗi được so sánh với COLLATE utf8mb4_unicode_ci; không có DEFINER.
 -- Tương thích: MariaDB 10.4 (XAMPP) / MySQL 8: đọc JSON bằng JSON_EXTRACT theo chỉ số
 --             (MariaDB 10.4 chưa có JSON_TABLE).
--- Chạy sau  : 01_schema.sql, 08_migration_booking_NMT.sql, 12_migration_sprint4_NMT.sql.
+-- Chạy sau  : 01_schema.sql, 08_migration_booking_NMT.sql, 12_migration_sprint4_NMT.sql,
+--             16_migration_sprint5_LTP.sql.
 --             Chạy lại được (DROP PROCEDURE IF EXISTS).
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
 -- LTP_sp_booking_create(p_user_id, p_schedule_id, p_request_token, p_contact_name,
 --                       p_contact_email, p_contact_phone, p_passengers, p_special_request,
---                       p_expected_total, p_extras)
+--                       p_expected_total, p_extras, p_package_id)
 --   p_passengers    : mảng JSON, mỗi khách một phần tử, theo thứ tự trên form:
 --                     [{"ticket_type_id": "<uuid>", "full_name": "Nguyễn Văn A"}, ...]
 --   p_special_request: NULL / '' = không có.
@@ -48,6 +53,8 @@
 --                     tùy chọn đã chọn).
 --   p_extras        : mảng JSON mã các khoản phụ thu / tùy chọn khách chọn, vd. ["<uuid>", ...];
 --                     NULL / '[]' = không chọn.
+--   p_package_id    : gói khách chọn (NULL / '' = không chọn, chỉ hợp lệ khi tour không có gói
+--                     đang bán).
 --   1 dòng: result, booking_code, total_vnd, remaining, max_group_size.
 --     result = 'ok'                   : đã tạo đơn pending; booking_code = mã đơn mới.
 --              'duplicate'            : request_token này đã tạo đơn; booking_code = mã đơn đó.
@@ -60,6 +67,8 @@
 --              'no_seats'             : số khách vượt số chỗ còn lại (trả remaining).
 --              'tickets_changed'      : có loại vé không còn bán cho lịch này.
 --              'extras_changed'       : có khoản phụ thu / tùy chọn không còn hoặc chưa có giá.
+--              'package_changed'      : gói đã chọn không còn bán, tour vừa có / hết gói, hoặc
+--                                       gói không bán loại vé đã chọn (vé trẻ em).
 --              'price_changed'        : tổng tiền hiện tại khác p_expected_total (trả total_vnd mới).
 --              'retry'                : trùng mã đơn hiếm gặp khi ghi, khách gửi lại là được.
 --     Khi không 'ok', không có gì được ghi.
@@ -77,7 +86,8 @@ CREATE PROCEDURE LTP_sp_booking_create(
     IN p_passengers      TEXT         CHARACTER SET utf8mb4,
     IN p_special_request TEXT         CHARACTER SET utf8mb4,
     IN p_expected_total  BIGINT,
-    IN p_extras          TEXT
+    IN p_extras          TEXT,
+    IN p_package_id      CHAR(36)
 )
 MODIFIES SQL DATA
 proc: BEGIN
@@ -105,6 +115,11 @@ proc: BEGIN
     DECLARE v_extra_seen  TEXT         CHARACTER SET utf8mb4 DEFAULT '';
     DECLARE v_extra_qty   INT          DEFAULT 0;
     DECLARE v_extra_unit  VARCHAR(50)  CHARACTER SET utf8mb4 DEFAULT NULL;
+    DECLARE v_package_id  CHAR(36)     DEFAULT NULLIF(TRIM(p_package_id), '');
+    DECLARE v_package     VARCHAR(100) CHARACTER SET utf8mb4 DEFAULT NULL;
+    DECLARE v_pkg_adult   BIGINT       DEFAULT NULL;
+    DECLARE v_pkg_child   BIGINT       DEFAULT NULL;
+    DECLARE v_pkg_count   INT          DEFAULT 0;
     -- 1062 = trùng khóa UNIQUE: cùng request_token vừa được gửi song song, hoặc trùng mã đơn.
     DECLARE CONTINUE HANDLER FOR 1062 SET v_duplicate = TRUE;
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
@@ -224,12 +239,37 @@ proc: BEGIN
         LEAVE proc;
     END IF;
 
-    -- 5. Giá hiện tại của từng khách theo loại vé (vé phải còn bán cho đúng lịch này).
+    -- 4b. Gói: tour có gói đang bán thì phải chọn một gói đang bán của tour; không có thì
+    --     không được gửi gói.
+    SELECT COUNT(*) INTO v_pkg_count
+      FROM tour_packages tp
+     WHERE tp.tour_id = (v_tour_id COLLATE utf8mb4_unicode_ci)
+       AND tp.active = TRUE;
+
+    IF v_package_id IS NOT NULL THEN
+        SELECT tp.name, tp.adult_price_vnd, tp.child_price_vnd
+          INTO v_package, v_pkg_adult, v_pkg_child
+          FROM tour_packages tp
+         WHERE tp.id = (v_package_id COLLATE utf8mb4_unicode_ci)
+           AND tp.tour_id = (v_tour_id COLLATE utf8mb4_unicode_ci)
+           AND tp.active = TRUE
+           LOCK IN SHARE MODE;
+    END IF;
+
+    IF (v_pkg_count > 0 AND v_package IS NULL) OR (v_pkg_count = 0 AND v_package_id IS NOT NULL) THEN
+        ROLLBACK;
+        SELECT 'package_changed' AS result, NULL AS booking_code, NULL AS total_vnd, v_remaining AS remaining, v_max_group AS max_group_size;
+        LEAVE proc;
+    END IF;
+
+    -- 5. Giá hiện tại của từng khách theo loại vé (vé phải còn bán cho đúng lịch này); có gói
+    --    thì giá theo gói.
     SET v_i = 0;
     WHILE v_i < v_count DO
         SET v_ticket_id = JSON_UNQUOTE(JSON_EXTRACT(p_passengers, CONCAT('$[', v_i, '].ticket_type_id')));
         SET v_price = NULL;
-        SELECT tt.price_vnd INTO v_price
+        SET v_ticket_name = NULL;
+        SELECT tt.price_vnd, tt.name INTO v_price, v_ticket_name
           FROM ticket_types tt
          WHERE tt.id = (v_ticket_id COLLATE utf8mb4_unicode_ci)
            AND tt.schedule_id = (p_schedule_id COLLATE utf8mb4_unicode_ci)
@@ -239,6 +279,14 @@ proc: BEGIN
             ROLLBACK;
             SELECT 'tickets_changed' AS result, NULL AS booking_code, NULL AS total_vnd, v_remaining AS remaining, v_max_group AS max_group_size;
             LEAVE proc;
+        END IF;
+        IF v_package IS NOT NULL THEN
+            SET v_price = IF(LOWER(v_ticket_name) = 'child', v_pkg_child, v_pkg_adult);
+            IF v_price IS NULL THEN
+                ROLLBACK;
+                SELECT 'package_changed' AS result, NULL AS booking_code, NULL AS total_vnd, v_remaining AS remaining, v_max_group AS max_group_size;
+                LEAVE proc;
+            END IF;
         END IF;
         SET v_total = v_total + v_price;
         SET v_i = v_i + 1;
@@ -282,10 +330,10 @@ proc: BEGIN
     UNTIL NOT EXISTS (SELECT 1 FROM bookings b WHERE b.code = v_code) END REPEAT;
 
     SET v_booking_id = UUID();
-    INSERT INTO bookings (id, user_id, schedule_id, code, request_token, contact_name, contact_email,
-                          contact_phone, status, total_vnd, policy_version, hold_expires_at, created_at)
-    VALUES (v_booking_id, p_user_id, p_schedule_id, v_code, v_token, v_name, v_email,
-            v_phone, 'pending', v_total, v_policy, NULL, NOW());
+    INSERT INTO bookings (id, user_id, schedule_id, package_id, package_name, code, request_token, contact_name,
+                          contact_email, contact_phone, status, total_vnd, policy_version, hold_expires_at, created_at)
+    VALUES (v_booking_id, p_user_id, p_schedule_id, IF(v_package IS NULL, NULL, v_package_id), v_package, v_code,
+            v_token, v_name, v_email, v_phone, 'pending', v_total, v_policy, NULL, NOW());
 
     IF v_duplicate THEN
         ROLLBACK;
@@ -308,6 +356,9 @@ proc: BEGIN
         SELECT tt.name, tt.price_vnd INTO v_ticket_name, v_price
           FROM ticket_types tt
          WHERE tt.id = (v_ticket_id COLLATE utf8mb4_unicode_ci);
+        IF v_package IS NOT NULL THEN
+            SET v_price = IF(LOWER(v_ticket_name) = 'child', v_pkg_child, v_pkg_adult);
+        END IF;
 
         INSERT INTO passengers (id, booking_id, full_name, age_group, special_request, sort_order)
         VALUES (UUID(), v_booking_id, v_full_name,
@@ -341,7 +392,8 @@ proc: BEGIN
     -- 9. Lịch sử của đơn (FR-11, NFR-09).
     INSERT INTO booking_events (id, booking_id, actor, actor_user_id, action, from_status, to_status, note, created_at)
     VALUES (UUID(), v_booking_id, 'customer', p_user_id, 'created', NULL, 'pending',
-            CONCAT(v_count, ' khách, tổng ', REPLACE(FORMAT(v_total, 0), ',', '.'), ' VND'), NOW());
+            LEFT(CONCAT(v_count, ' khách', IF(v_package IS NULL, '', CONCAT(', gói ', v_package)),
+                        ', tổng ', REPLACE(FORMAT(v_total, 0), ',', '.'), ' VND'), 255), NOW());
 
     COMMIT;
     SELECT 'ok' AS result, v_code AS booking_code, v_total AS total_vnd, v_remaining AS remaining, v_max_group AS max_group_size;

@@ -230,7 +230,8 @@ DELIMITER ;
 -- NMT_sp_admin_summary()
 --   1 dòng. Cột: customer_total, customer_active, customer_locked (FR-19, tài khoản
 --   role = 'customer'), tour_total, tour_draft, tour_pending, tour_approved,
---   tour_rejected (FR-20), tour_public (đang hiển thị cho khách), booking_total,
+--   tour_rejected (FR-20), tour_archived (ngừng hiển thị, Sprint 5),
+--   tour_public (đang hiển thị cho khách), booking_total,
 --   booking_pending (yêu cầu chờ xác nhận, cần quản trị viên xử lý).
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NMT_sp_admin_summary;
@@ -248,6 +249,7 @@ BEGIN
         tr.tour_pending,
         tr.tour_approved,
         tr.tour_rejected,
+        tr.tour_archived,
         tr.tour_public,
         bk.booking_total,
         bk.booking_pending
@@ -262,6 +264,7 @@ BEGIN
                  COALESCE(SUM(t.approval_status = 'pending'), 0)  AS tour_pending,
                  COALESCE(SUM(t.approval_status = 'approved'), 0) AS tour_approved,
                  COALESCE(SUM(t.approval_status = 'rejected'), 0) AS tour_rejected,
+                 COALESCE(SUM(t.approval_status = 'archived'), 0) AS tour_archived,
                  COALESCE(SUM(t.approval_status = 'approved'
                               AND p.approval_status = 'approved'
                               AND u.status = 'active'), 0)        AS tour_public
