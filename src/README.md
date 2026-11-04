@@ -109,7 +109,8 @@ src/
 ├── routes/
 │   └── web.php                   # Khai báo route
 ├── scripts/
-│   └── expire_holds.php          # Tự hủy đơn quá hạn thanh toán (chạy bằng Task Scheduler)
+│   ├── expire_holds.php          # Tự hủy đơn quá hạn thanh toán (chạy bằng Task Scheduler)
+│   └── register_expire_task.bat  # Đăng ký Task Scheduler chạy expire_holds.php mỗi 15 phút
 └── storage/
     └── logs/                     # app.log sinh khi chạy, không đưa lên Git
 ```
@@ -358,13 +359,13 @@ Cần điền khóa VNPay sandbox và tài khoản VietQR trong `.env` (Bước 
 | VNPay báo thành công sau khi đơn đã tự hủy | Khoản vẫn được ghi "Đã thanh toán"; trang quản trị của đơn có cảnh báo cần hoàn tiền cho khách. |
 | Bấm "Thanh toán ngay" → VNPay rồi đóng tab cổng VNPay (không thanh toán, không bấm Hủy), chờ 15 phút | Khoản hiện ở mục "Giao dịch VNPay chưa rõ kết quả" của "Đối chiếu thanh toán". Ở trang yêu cầu, quản trị viên tra mã thanh toán trên cổng VNPay rồi chọn "Có giao dịch thành công" (nhập mã giao dịch VNPay; đơn còn hạn thì "Đã xác nhận" và có voucher, đơn đã hủy thì tạo yêu cầu hoàn tiền) hoặc "Không có giao dịch" (bắt buộc lý do; khách thanh toán lại được). |
 
-**Tự hủy định kỳ:** ngoài việc chạy mỗi lần mở trang, có thể đặt Windows Task Scheduler chạy mỗi 15 phút:
+**Tự hủy định kỳ:** ngoài việc chạy mỗi lần mở trang, cài lịch chạy `expire_holds.php` mỗi 15 phút trên máy chạy demo. Khi đã có `src/.env` và MySQL đang chạy, mở Command Prompt ở thư mục `src\scripts` rồi chạy:
 
 ```bat
-C:\xampp\php\php.exe C:\xampp\htdocs\LocalTour_Project\src\scripts\expire_holds.php
+register_expire_task.bat
 ```
 
-(Task Scheduler → Create Basic Task → Daily → Start a program; sau khi tạo, mở Properties → Triggers → "Repeat task every 15 minutes".) Script chỉ chạy được từ dòng lệnh.
+Script chạy thử `expire_holds.php` một lần (in "đã hủy N đơn quá hạn thanh toán"; lỗi kết nối database thì dừng, không đăng ký), rồi tạo task "LocalTour - Tu huy don qua han" chạy mỗi 15 phút bằng `php-win.exe` (không hiện cửa sổ). PHP không nằm ở `C:\xampp\php` thì thêm thư mục PHP: `register_expire_task.bat D:\xampp\php`. Gỡ lịch: `register_expire_task.bat /delete`. Task chỉ chạy khi tài khoản Windows đó đang đăng nhập. `expire_holds.php` chỉ chạy được từ dòng lệnh.
 
 ### Bước 10. Thử quản lý đơn vị tổ chức, tour và lịch
 

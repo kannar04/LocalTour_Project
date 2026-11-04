@@ -5,8 +5,8 @@ declare(strict_types=1);
 /*
  * Tự hủy đơn quá hạn thanh toán và nhả chỗ (Sprint 4, 4.5.4.1 – Lê Trung Phong).
  * Đơn "Chờ thanh toán" quá hold_expires_at (24 giờ từ lúc xác nhận chỗ) bị hủy, trừ đơn có khoản VietQR chờ đối chiếu.
- * Chạy định kỳ bằng Task Scheduler (Windows), ví dụ mỗi 15 phút:
- *   C:\xampp\php\php.exe <thư mục dự án>\src\scripts\expire_holds.php
+ * Chạy định kỳ mỗi 15 phút bằng Task Scheduler (Windows): đăng ký bằng register_expire_task.bat cùng thư mục
+ * (xem src/README.md, Bước 9), task chạy: C:\xampp\php\php-win.exe <thư mục dự án>\src\scripts\expire_holds.php
  * Trang "Đơn của tôi" và trang quản trị cũng tự chạy bước này trước khi hiển thị.
  */
 
