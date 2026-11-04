@@ -30,8 +30,8 @@ final class TourListController extends Controller
             'initialQuery' => mb_substr($this->query('q'), 0, TourListModel::KEYWORD_MAX_LENGTH),
             'initialDestinationId' => self::parseUuid($this->query('destination_id')) ?? '',
             'initialCategoryId' => self::parseUuid($this->query('category_id')) ?? '',
-            'pageStyles' => ['css/tour-list.css'],
-            'pageScripts' => ['js/tour-list.js'],
+            'pageStyles' => ['css/tour-list.css', 'css/compare.css'],
+            'pageScripts' => ['js/compare.js', 'js/tour-list.js'],
         ]);
     }
 

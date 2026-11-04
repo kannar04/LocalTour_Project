@@ -6,21 +6,25 @@ namespace App\Controllers;
 
 use App\Models\TourContentModel;
 use App\Models\TourDetailModel;
+use App\Models\TourPackageModel;
 use Core\Controller;
 
 /**
  * Trang chi tiết tour theo UUID và endpoint JSON tương ứng (WBS 3.2.4 – Nguyễn Minh Thức).
  * UUID sai định dạng hoặc tour không tồn tại / chưa duyệt đều hiển thị "Không tìm thấy tour" (HTTP 404).
+ * Sprint 5: kèm gói tour đang bán (US06-S5-01) và nút "Thêm vào so sánh" (compare.js, US04-S5-01).
  */
 final class TourDetailController extends Controller
 {
     private TourDetailModel $details;
     private TourContentModel $content;
+    private TourPackageModel $packages;
 
     public function __construct()
     {
         $this->details = new TourDetailModel();
         $this->content = new TourContentModel();
+        $this->packages = new TourPackageModel();
     }
 
     /** GET /tours/{id} */
@@ -40,8 +44,8 @@ final class TourDetailController extends Controller
         $this->render('tours/show', [
             'title' => $tour['title'],
             'tour' => $tour,
-            'pageStyles' => ['css/tour-detail.css'],
-            'pageScripts' => ['js/tour-detail.js'],
+            'pageStyles' => ['css/tour-detail.css', 'css/compare.css'],
+            'pageScripts' => ['js/compare.js', 'js/tour-detail.js'],
         ] + $this->sections($tourId, $tour));
     }
 
@@ -74,7 +78,7 @@ final class TourDetailController extends Controller
     }
 
     /**
-     * Các phần dùng chung cho trang HTML và JSON: lịch, vé, lịch trình, dịch vụ bao gồm / không bao gồm,
+     * Các phần dùng chung cho trang HTML và JSON: lịch, vé, gói tour, lịch trình, dịch vụ bao gồm / không bao gồm,
      * phụ thu/tùy chọn, đánh giá, chính sách và ảnh của chính tour.
      *
      * @param array<string, mixed> $tour
@@ -103,6 +107,7 @@ final class TourDetailController extends Controller
         return [
             'schedules' => $this->details->schedules($tourId),
             'tickets' => $this->details->tickets($tourId),
+            'packages' => TourPackageModel::options($this->packages->list($tourId)),
             'itinerary' => $itinerary,
             'inclusions' => $inclusions,
             'extras' => $this->content->extras($tourId),

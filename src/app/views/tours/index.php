@@ -123,13 +123,13 @@
 
         <aside class="col-12 lt-col-aside d-none d-lg-block" aria-label="So sánh tour">
             <div class="lt-aside-sticky">
-                <section class="lt-panel lt-compare" aria-labelledby="compare-title">
+                <section class="lt-panel lt-compare" id="compare-panel" aria-labelledby="compare-title">
                     <div class="lt-panel__head">
                         <h2 class="lt-panel__title" id="compare-title">Tour đang so sánh</h2>
-                        <span class="lt-soon">Sắp có</span>
+                        <span class="lt-compare__count js-compare-count">0/3 tour</span>
                     </div>
-                    <p class="lt-panel__text">Tính năng so sánh sẽ có ở phiên bản sau</p>
-                    <ol class="lt-compare__slots" aria-hidden="true">
+                    <p class="lt-panel__text">Chọn tối đa 3 tour để xem giá, lịch trình và chính sách cạnh nhau.</p>
+                    <ol class="lt-compare__slots js-compare-slots" aria-label="Các tour đã chọn">
 <?php for ($slot = 1; $slot <= 3; $slot++): ?>
                         <li class="lt-compare__slot">
                             <span class="lt-compare__num"><?= $slot ?></span>
@@ -137,13 +137,22 @@
                         </li>
 <?php endfor; ?>
                     </ol>
-                    <button type="button" class="lt-btn lt-btn--primary lt-btn--block" disabled title="Sắp có">
+                    <a class="lt-btn lt-btn--primary lt-btn--block js-compare-go is-disabled" href="<?= e(url('/compare')) ?>" aria-disabled="true">
                         <span class="lt-icon lt-icon--columns" aria-hidden="true"></span>
                         So sánh tour
-                    </button>
-                    <p class="lt-panel__note">Chọn 2–3 tour để so sánh.</p>
+                    </a>
+                    <p class="lt-panel__note js-compare-note">Chọn 2–3 tour để so sánh.</p>
+                    <button type="button" class="lt-linklike js-compare-clear" hidden>Xóa danh sách</button>
                 </section>
             </div>
         </aside>
     </div>
+</div>
+
+<div class="lt-compare-bar d-lg-none" id="compare-bar" hidden>
+    <p class="lt-compare-bar__text js-compare-bar-text">0/3 tour đang so sánh</p>
+    <a class="lt-btn lt-btn--primary js-compare-go is-disabled" href="<?= e(url('/compare')) ?>" aria-disabled="true">
+        <span class="lt-icon lt-icon--columns" aria-hidden="true"></span>
+        So sánh
+    </a>
 </div>

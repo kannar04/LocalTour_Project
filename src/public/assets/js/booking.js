@@ -4,6 +4,8 @@
  *   - chọn lịch và số khách theo loại vé (giống thẻ giá ở trang chi tiết), tổng từ 1 đến min(nhóm tối đa, chỗ còn lại);
  *   - mỗi khách một ô họ tên, họ tên đã gõ được giữ lại khi đổi số khách hoặc đổi lịch;
  *   - Sprint 4 (4.3.2.3): phụ thu / hoạt động tùy chọn cộng vào tổng tiền (theo người thì nhân số khách);
+ *   - Sprint 5 (US06-S5-01): tour chia gói thì giá vé người lớn / trẻ em theo gói đang chọn; gói không có giá
+ *     trẻ em thì ẩn vé trẻ em;
  *   - "Xem lại & xác nhận": kiểm tra ở trình duyệt rồi hỏi chỗ trống (GET /api/schedules/{id}/availability);
  *   - "Gửi yêu cầu đặt tour": POST /api/bookings, thành công thì chuyển tới trang đơn.
  * Lỗi từ server (401, 403, 409, 422) hiện ngay trên form và giữ nguyên thông tin đã nhập.
@@ -32,7 +34,10 @@
         return isNaN(number) ? 0 : number;
     }
 
-    /** { maxGroup, scheduleId, selected: { <mã vé>: số khách }, schedules: [{ id, dateText, timeText, remaining, tickets }] } */
+    /**
+     * { maxGroup, selected: { <mã vé>: số khách }, packages: [{ id, name, adult, child }],
+     *   schedules: [{ id, dateText, timeText, remaining, tickets: [{ id, name, label, ages, price }] }] }
+     */
     function readData() {
         var node = document.getElementById('book-data');
         if (!node) {
@@ -60,6 +65,13 @@
                 schedules[String(schedule.id)] = schedule;
             }
         });
+        var packages = {};
+        $.each($.isArray(data.packages) ? data.packages : [], function (index, item) {
+            if (item && item.id) {
+                packages[String(item.id)] = item;
+            }
+        });
+        var hasPackages = !$.isEmptyObject(packages);
 
         var $schedule = $('#book-schedule');
         var $time = $('#book-time');
@@ -70,6 +82,7 @@
         var $requestCount = $('#book-special-request-count');
         var $expected = $('#book-expected-total');
         var $extras = $form.find('.js-extra');
+        var $packages = $form.find('.js-package');
         var $alert = $('#book-alert');
         var $stepEdit = $('#book-step-edit');
         var $stepReview = $('#book-step-review');
@@ -86,6 +99,26 @@
 
         function currentSchedule() {
             return schedules[String($schedule.val())] || null;
+        }
+
+        /** Gói đang chọn (null khi tour không chia gói hoặc chưa chọn). */
+        function currentPackage() {
+            return hasPackages ? packages[String($packages.filter(':checked').val())] || null : null;
+        }
+
+        /** Giá một vé: theo gói đang chọn (vé trẻ em lấy giá trẻ em của gói), không có gói thì theo lịch. null = gói không bán loại vé này. */
+        function ticketPrice(ticket) {
+            var pack = currentPackage();
+            if (!hasPackages) {
+                return Math.max(0, toInt(ticket.price));
+            }
+            if (!pack) {
+                return null;
+            }
+            if (String(ticket.name) === 'child') {
+                return pack.child === null || pack.child === undefined ? null : Math.max(0, toInt(pack.child));
+            }
+            return Math.max(0, toInt(pack.adult));
         }
 
         function maxGuests(schedule) {
@@ -156,6 +189,8 @@
             });
 
             $hint.text('Tối đa ' + max + ' khách' + (remaining > 0 && remaining < maxGroup ? ' · lịch này còn ' + remaining + ' chỗ' : ' mỗi nhóm'));
+            var pack = currentPackage();
+            $('.js-sum-package').text(pack ? String(pack.name) : '—');
             $('.js-sum-date').text(schedule ? String(schedule.dateText || '—') : '—');
             $('.js-sum-time').text(schedule ? String(schedule.timeText || '—') : '—');
             $('.js-sum-people').text(total > 0 ? total + ' khách' : '—');
@@ -181,11 +216,10 @@
             }
         }
 
-        function buildRow(ticket, index, qty) {
+        function buildRow(ticket, index, qty, price) {
             var label = String(ticket.label || 'Khách');
             var inputId = 'book-ticket-' + index;
             var metaId = inputId + '-meta';
-            var price = Math.max(0, toInt(ticket.price));
 
             var $dec = $('<button>').addClass('lt-stepper__btn')
                 .attr({ type: 'button', 'aria-controls': inputId, 'aria-label': 'Bớt 1 vé ' + label })
@@ -244,7 +278,15 @@
             rows = [];
             $tickets.empty();
 
-            var tickets = schedule && $.isArray(schedule.tickets) ? schedule.tickets : [];
+            if (hasPackages && !currentPackage()) {
+                $tickets.append($('<p>').addClass('lt-field__hint').text('Vui lòng chọn gói tour để xem giá vé.'));
+                return;
+            }
+
+            // Vé gói không bán (vd. gói không có giá trẻ em) không hiện.
+            var tickets = $.grep(schedule && $.isArray(schedule.tickets) ? schedule.tickets : [], function (ticket) {
+                return ticket && ticketPrice(ticket) !== null;
+            });
             if (!tickets.length) {
                 $tickets.append($('<p>').addClass('lt-field__hint').text('Lịch này chưa có giá vé. Vui lòng chọn ngày khác.'));
                 return;
@@ -254,14 +296,13 @@
             var total = 0;
             var hasPrevious = !initial && !$.isEmptyObject(previous);
             $.each(tickets, function (index, ticket) {
-                ticket = ticket || {};
                 var label = String(ticket.label || 'Khách');
                 var wanted = initial
                     ? toInt(selected[String(ticket.id)])
                     : (hasPrevious ? toInt(previous[label]) : (index === 0 ? 1 : 0));
                 var qty = Math.max(0, Math.min(wanted, max - total));
                 total += qty;
-                rows.push(buildRow(ticket, index, qty));
+                rows.push(buildRow(ticket, index, qty, ticketPrice(ticket)));
             });
 
             if (total === 0) {
@@ -418,7 +459,9 @@
             } else if (!PHONE_PATTERN.test(phone)) {
                 errors.contact_phone = 'Số điện thoại không hợp lệ.';
             }
-            if (!currentSchedule() || !rows.length) {
+            if (hasPackages && !currentPackage()) {
+                errors.package_id = 'Vui lòng chọn gói tour.';
+            } else if (!currentSchedule() || !rows.length) {
                 errors.schedule_id = 'Vui lòng chọn ngày tham gia còn giá vé.';
             } else if (totalGuests(null) < 1) {
                 errors.passengers = 'Vui lòng chọn ít nhất 1 khách.';
@@ -467,6 +510,8 @@
             });
             var request = String($request.val()).trim();
 
+            var pack = currentPackage();
+            $stepReview.find('.js-review-package').text(pack ? String(pack.name) : '—');
             $stepReview.find('.js-review-date').text(schedule ? String(schedule.dateText) : '—');
             $stepReview.find('.js-review-time').text(schedule ? String(schedule.timeText) : '—');
             $stepReview.find('.js-review-people').text(totalGuests(null) + ' khách');
@@ -530,7 +575,10 @@
                 });
         }
 
-        /** Loại vé đang chọn còn bán với đúng giá đang hiện không. */
+        /**
+         * Loại vé đang chọn còn bán với đúng giá đang hiện không. Tour chia gói: giá theo gói (server kiểm tra lại khi
+         * gửi), ở đây chỉ kiểm tra loại vé còn bán.
+         */
         function pricesChanged(tickets) {
             if (!$.isArray(tickets)) {
                 return false;
@@ -544,7 +592,7 @@
             var changed = false;
             $.each(rows, function (index, row) {
                 var id = String(row.ticket.id);
-                if (!(id in current) || (row.qty > 0 && current[id] !== row.price)) {
+                if (!(id in current) || (!hasPackages && row.qty > 0 && current[id] !== row.price)) {
                     changed = true;
                 }
             });
@@ -603,7 +651,7 @@
         /** 409: lịch, số chỗ hoặc giá đã đổi từ lúc mở trang. Cập nhật lại form theo dữ liệu mới. */
         function handleConflict(info, message) {
             var schedule = currentSchedule();
-            if (info.reason === 'extras_changed') {
+            if (info.reason === 'extras_changed' || info.reason === 'package_changed') {
                 showAlert(message + ' ', reloadLink());
                 $alert.trigger('focus');
                 return;
@@ -645,6 +693,12 @@
 
         $extras.on('change', function () {
             render();
+        });
+
+        // Đổi gói: giá vé đổi theo gói, giữ số khách theo loại vé.
+        $packages.on('change', function () {
+            clearError('package_id');
+            selectSchedule(false);
         });
 
         // Sửa một ô đang báo lỗi thì bỏ đánh dấu lỗi của ô đó.

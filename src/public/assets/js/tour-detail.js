@@ -6,6 +6,8 @@
  * "Đặt tour" gửi form GET tới /tours/{id}/book kèm schedule_id và tickets[<mã vé>]; ở chế độ khách, link
  * "Đăng nhập để đặt tour" được cập nhật để đăng nhập xong vào thẳng trang đặt tour với lựa chọn hiện tại.
  * Dữ liệu vé đọc từ <script type="application/json" id="booking-data"> và chỉ đưa vào DOM bằng .text() / .attr().
+ * Tour chia gói (Sprint 5, US06-S5-01): giá vé lấy theo gói đang chọn ở #booking-package (người lớn / trẻ em);
+ * gói không bán vé trẻ em thì ẩn hàng vé trẻ em. package_id được gửi kèm sang trang đặt tour.
  */
 (function (window, document, $) {
     'use strict';
@@ -27,7 +29,10 @@
         return isNaN(number) ? 0 : number;
     }
 
-    /** { maxGroup, schedules: [{ id, timeText, remaining, tickets: [{ id, label, ages, price }] }] } hoặc null. */
+    /**
+     * { maxGroup, packages: [{ id, name, adult, child }], schedules: [{ id, timeText, remaining,
+     *   tickets: [{ id, name, label, ages, price }] }] } hoặc null.
+     */
     function readBookingData() {
         var node = document.getElementById('booking-data');
         if (!node) {
@@ -49,6 +54,7 @@
 
         var $form = $('#booking-form');
         var $schedule = $('#booking-schedule');
+        var $package = $('#booking-package');
         var $time = $('#booking-time');
         var $tickets = $('#booking-tickets');
         var $hint = $('#booking-guests-hint');
@@ -76,6 +82,13 @@
         var data = readBookingData();
         var maxGroup = Math.max(1, toInt(data && data.maxGroup));
         var schedules = {};
+        var packages = {};
+        $.each(data && $.isArray(data.packages) ? data.packages : [], function (index, pack) {
+            if (pack && pack.id) {
+                packages[String(pack.id)] = pack;
+            }
+        });
+        var hasPackages = !$.isEmptyObject(packages);
         $.each(data ? data.schedules : [], function (index, schedule) {
             if (schedule && schedule.id !== undefined && schedule.id !== null) {
                 schedules[String(schedule.id)] = schedule;
@@ -94,6 +107,25 @@
 
         function currentSchedule() {
             return schedules[String($schedule.val())] || null;
+        }
+
+        function currentPackage() {
+            return hasPackages ? packages[String($package.val())] || null : null;
+        }
+
+        /** Giá một loại vé: tour chia gói lấy giá theo gói (null = gói không bán loại vé này). */
+        function ticketPrice(ticket) {
+            if (!hasPackages) {
+                return Math.max(0, toInt(ticket.price));
+            }
+            var pack = currentPackage();
+            if (!pack) {
+                return null;
+            }
+            if (String(ticket.name) === 'child') {
+                return pack.child === null || pack.child === undefined ? null : Math.max(0, toInt(pack.child));
+            }
+            return Math.max(0, toInt(pack.adult));
         }
 
         /** Số khách tối đa của lịch: min(nhóm tối đa, chỗ còn lại). */
@@ -175,10 +207,9 @@
             render();
         }
 
-        function buildRow(ticket, label, index, qty) {
+        function buildRow(ticket, label, index, qty, price) {
             var inputId = 'booking-ticket-' + index;
             var metaId = inputId + '-meta';
-            var price = Math.max(0, toInt(ticket.price));
             var ages = ticket.ages ? String(ticket.ages) : '';
 
             var $dec = $('<button>').addClass('lt-stepper__btn')
@@ -245,7 +276,14 @@
             rows = [];
             $tickets.empty();
 
-            var tickets = schedule && $.isArray(schedule.tickets) ? schedule.tickets : [];
+            if (hasPackages && !currentPackage()) {
+                $tickets.append($('<p>').addClass('lt-field__hint').text('Vui lòng chọn gói tour để xem giá vé.'));
+                return;
+            }
+            // Bỏ các loại vé gói đang chọn không bán (vd. gói không bán vé trẻ em).
+            var tickets = $.grep(schedule && $.isArray(schedule.tickets) ? schedule.tickets : [], function (ticket) {
+                return ticket && ticketPrice(ticket) !== null;
+            });
             if (!tickets.length) {
                 $tickets.append($('<p>').addClass('lt-field__hint').text('Lịch này chưa có giá vé.'));
                 return;
@@ -258,7 +296,7 @@
                 var wanted = keepPrevious ? toInt(previous[label]) : (index === 0 ? 1 : 0);
                 var qty = Math.max(0, Math.min(wanted, max - total));
                 total += qty;
-                rows.push(buildRow(ticket || {}, label, index, qty));
+                rows.push(buildRow(ticket, label, index, qty, ticketPrice(ticket)));
             });
 
             if (total === 0) {
@@ -275,6 +313,7 @@
         }
 
         $schedule.on('change', selectSchedule);
+        $package.on('change', selectSchedule);
         selectSchedule();
     }
 

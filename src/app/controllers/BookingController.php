@@ -8,6 +8,7 @@ use App\Models\BookingAvailabilityModel;
 use App\Models\BookingModel;
 use App\Models\TourContentModel;
 use App\Models\TourDetailModel;
+use App\Models\TourPackageModel;
 use App\Models\UserModel;
 use Core\Auth;
 use Core\Controller;
@@ -18,6 +19,7 @@ use Core\Router;
  * Chỉ tài khoản khách hàng đặt được; chế độ khách được chuyển tới đăng nhập rồi quay lại đúng trang.
  * Đơn mới ở trạng thái 'pending' (Chờ xác nhận), chưa giữ chỗ và chưa thu tiền. Sprint 4: khách chọn phụ thu / hoạt động
  * tùy chọn (4.3.2.3); API kiểm tra lại và lưu cùng đơn (4.3.3.1, 4.3.3.2). Thanh toán mở sau khi quản trị viên xác nhận chỗ.
+ * Sprint 5 (US06-S5-01): tour chia gói thì khách chọn một gói, giá vé người lớn / trẻ em lấy theo gói.
  */
 final class BookingController extends Controller
 {
@@ -30,6 +32,7 @@ final class BookingController extends Controller
     private TourContentModel $content;
     private BookingModel $bookings;
     private BookingAvailabilityModel $availability;
+    private TourPackageModel $packages;
 
     public function __construct()
     {
@@ -37,9 +40,13 @@ final class BookingController extends Controller
         $this->content = new TourContentModel();
         $this->bookings = new BookingModel();
         $this->availability = new BookingAvailabilityModel();
+        $this->packages = new TourPackageModel();
     }
 
-    /** GET /tours/{id}/book?schedule_id=&tickets[<mã vé>]=<số khách> (lịch và số khách chọn ở trang chi tiết) */
+    /**
+     * GET /tours/{id}/book?schedule_id=&package_id=&tickets[<mã vé>]=<số khách>
+     * (lịch, gói và số khách chọn ở trang chi tiết)
+     */
     public function create(string $id): void
     {
         $user = Auth::user();
@@ -71,6 +78,12 @@ final class BookingController extends Controller
             ? 'Lịch bạn chọn đã hết chỗ hoặc không còn nhận khách. Vui lòng chọn ngày khác.'
             : '';
 
+        // Tour chia gói: chọn sẵn gói khách đã chọn ở trang chi tiết, không có thì gói đầu tiên.
+        $packages = TourPackageModel::options($this->packages->list($tourId));
+        $packageIds = array_column($packages, 'id');
+        $requestedPackage = self::parseUuid($this->query('package_id'));
+        $selectedPackageId = in_array($requestedPackage, $packageIds, true) ? $requestedPackage : ($packageIds[0] ?? null);
+
         $gallery = $this->details->images($tourId);
 
         $this->render('bookings/create', [
@@ -80,6 +93,8 @@ final class BookingController extends Controller
             'tickets' => $this->details->tickets($tourId),
             'extras' => array_map([self::class, 'extraOption'], $this->content->extras($tourId)),
             'policy' => $this->content->cancellationPolicy($tourId),
+            'packages' => $packages,
+            'selectedPackageId' => $selectedPackageId,
             'coverUrl' => isset($gallery[0]) ? image_src((string) $gallery[0]['url']) : null,
             'selectedScheduleId' => $selectedScheduleId,
             'selectedTickets' => $this->selectedTickets(),
@@ -95,8 +110,8 @@ final class BookingController extends Controller
 
     /**
      * POST /api/bookings – schedule_id, request_token, contact_name, contact_email, contact_phone,
-     * passengers[i][ticket_type_id], passengers[i][full_name], extras[] (mã phụ thu / tùy chọn), special_request,
-     * expected_total (tiền vé + các khoản đã chọn), terms, _csrf.
+     * passengers[i][ticket_type_id], passengers[i][full_name], extras[] (mã phụ thu / tùy chọn), package_id ('' = tour
+     * không chia gói), special_request, expected_total (tiền vé + các khoản đã chọn), terms, _csrf.
      */
     public function store(): void
     {
@@ -124,7 +139,8 @@ final class BookingController extends Controller
             $form['passengers'],
             $form['special_request'],
             $form['expected_total'],
-            $form['extras']
+            $form['extras'],
+            $form['package_id']
         );
         $result = (string) $row['result'];
         $code = (string) ($row['booking_code'] ?? '');
@@ -155,6 +171,7 @@ final class BookingController extends Controller
                 'tickets' => $this->ticketOptions($form['schedule_id']),
             ]),
             'extras_changed' => $this->conflict($result, 'Phụ thu hoặc hoạt động tùy chọn của tour vừa thay đổi. Vui lòng tải lại trang để chọn lại.'),
+            'package_changed' => $this->conflict($result, 'Gói tour vừa thay đổi (gói ngừng bán, tour đổi danh sách gói hoặc gói không bán vé trẻ em). Vui lòng tải lại trang để chọn lại.'),
             'price_changed' => $this->conflict(
                 $result,
                 'Giá vừa thay đổi, tổng tiền mới là ' . format_vnd((int) $row['total_vnd']) . '. Vui lòng xem lại trước khi gửi.',
@@ -231,6 +248,13 @@ final class BookingController extends Controller
             }
         }
 
+        // Gói tour: '' = tour không chia gói; database kiểm tra gói thuộc tour và còn bán.
+        $packageInput = $this->input('package_id');
+        $packageId = $packageInput === '' ? null : self::parseUuid($packageInput);
+        if ($packageInput !== '' && $packageId === null) {
+            $errors['form'] = 'Trang đặt tour đã cũ, vui lòng tải lại trang.';
+        }
+
         // Phụ thu / tùy chọn: chỉ nhận mã đúng dạng, không trùng; database kiểm tra thuộc tour và đã có giá.
         $extraIds = [];
         $extraEntries = $this->inputArray('extras');
@@ -263,6 +287,7 @@ final class BookingController extends Controller
             'special_request' => $specialRequest,
             'expected_total' => (int) $expectedTotal,
             'extras' => array_keys($extraIds),
+            'package_id' => $packageId,
         ], $errors];
     }
 
@@ -290,7 +315,7 @@ final class BookingController extends Controller
     /**
      * Giá vé hiện tại của lịch, để trang cập nhật lại khi giá hoặc loại vé vừa đổi.
      *
-     * @return list<array{id: string, label: string, ages: string, price: int}>
+     * @return list<array{id: string, name: string, label: string, ages: string, price: int}>
      */
     private function ticketOptions(string $scheduleId): array
     {

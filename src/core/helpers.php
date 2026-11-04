@@ -185,14 +185,16 @@ function age_range_text(int|string|null $min, int|string|null $max): string
 
 /**
  * Một loại vé (dòng có ticket_type_id, name, min_age, max_age, price_vnd) → dữ liệu cho JS chọn số khách.
+ * name ('adult', 'child'...) dùng để lấy giá theo gói tour đã chọn (Sprint 5).
  *
  * @param array<string, mixed> $ticket
- * @return array{id: string, label: string, ages: string, price: int}
+ * @return array{id: string, name: string, label: string, ages: string, price: int}
  */
 function ticket_option(array $ticket): array
 {
     return [
         'id' => (string) $ticket['ticket_type_id'],
+        'name' => strtolower((string) $ticket['name']),
         'label' => ticket_label((string) $ticket['name']),
         'ages' => age_range_text($ticket['min_age'], $ticket['max_age']),
         'price' => (int) $ticket['price_vnd'],
@@ -348,6 +350,12 @@ function booking_history_title(array $event): string
         'hold_expired' => 'Quá hạn thanh toán, đơn tự hủy',
         'voucher_issued' => 'Cấp voucher',
         'refund_requested' => 'Tạo yêu cầu hoàn tiền',
+        'cancel_requested' => 'Gửi yêu cầu hủy tour',
+        'change_requested' => 'Gửi yêu cầu đổi ngày',
+        'cancel_approved' => 'Đồng ý hủy tour',
+        'cancel_rejected' => 'Từ chối yêu cầu hủy tour',
+        'change_approved' => 'Đồng ý đổi ngày',
+        'change_rejected' => 'Từ chối yêu cầu đổi ngày',
     ];
     $action = (string) ($event['action'] ?? '');
     $from = $event['from_status'] ?? null;
@@ -370,7 +378,13 @@ function booking_history_actor(?string $actor): string
 /** Trạng thái duyệt tour (tours.approval_status) → nhãn tiếng Việt. */
 function tour_status_label(?string $status): string
 {
-    $labels = ['draft' => 'Nháp', 'pending' => 'Chờ duyệt', 'approved' => 'Đã duyệt', 'rejected' => 'Bị từ chối'];
+    $labels = [
+        'draft' => 'Nháp',
+        'pending' => 'Chờ duyệt',
+        'approved' => 'Đã duyệt',
+        'rejected' => 'Bị từ chối',
+        'archived' => 'Ngừng hiển thị',
+    ];
 
     return $labels[(string) $status] ?? (string) $status;
 }
@@ -395,6 +409,22 @@ function schedule_status_label(?string $status): string
 function verification_status_label(?string $status): string
 {
     $labels = ['unverified' => 'Chưa xác minh', 'verified' => 'Đã xác minh'];
+
+    return $labels[(string) $status] ?? (string) $status;
+}
+
+/** Loại yêu cầu đổi / hủy (booking_change_requests.type) → nhãn tiếng Việt. */
+function change_request_type_label(?string $type): string
+{
+    $labels = ['cancel' => 'Hủy tour', 'change_date' => 'Đổi ngày'];
+
+    return $labels[(string) $type] ?? (string) $type;
+}
+
+/** Trạng thái yêu cầu đổi / hủy (booking_change_requests.status) → nhãn tiếng Việt. */
+function change_request_status_label(?string $status): string
+{
+    $labels = ['pending' => 'Chờ xử lý', 'approved' => 'Đã đồng ý', 'rejected' => 'Đã từ chối'];
 
     return $labels[(string) $status] ?? (string) $status;
 }

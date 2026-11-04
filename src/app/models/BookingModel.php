@@ -8,7 +8,7 @@ use Core\Database;
 
 /**
  * Lưu yêu cầu đặt tour (M4 mục 6 – Lê Trung Phong): một đơn 'pending' kèm dòng vé, phụ thu / tùy chọn khách chọn
- * (Sprint 4, 4.3.3.1) và danh sách khách; ghi lịch sử "tạo đơn" (4.3.3.2).
+ * (Sprint 4, 4.3.3.1), gói tour khách chọn (Sprint 5, US06-S5-01) và danh sách khách; ghi lịch sử "tạo đơn" (4.3.3.2).
  * Procedure: LTP_sp_booking_create.
  */
 final class BookingModel
@@ -20,12 +20,13 @@ final class BookingModel
 
     /**
      * Tạo yêu cầu đặt tour. Trả dòng kết quả của procedure: result (ok, duplicate, forbidden, invalid,
-     * schedule_unavailable, group_limit, no_seats, tickets_changed, extras_changed, price_changed, retry),
-     * booking_code, total_vnd, remaining, max_group_size.
+     * schedule_unavailable, group_limit, no_seats, tickets_changed, extras_changed, package_changed, price_changed,
+     * retry), booking_code, total_vnd, remaining, max_group_size.
      *
      * @param array{name: string, email: string, phone: string} $contact
      * @param list<array{ticket_type_id: string, full_name: string}> $passengers Theo thứ tự trên form.
      * @param list<string> $extraIds Mã các khoản phụ thu / tùy chọn khách chọn (không trùng).
+     * @param string|null $packageId Gói khách chọn; null khi tour không chia gói.
      * @return array<string, mixed>
      */
     public function create(
@@ -36,7 +37,8 @@ final class BookingModel
         array $passengers,
         string $specialRequest,
         int $expectedTotal,
-        array $extraIds = []
+        array $extraIds = [],
+        ?string $packageId = null
     ): array {
         $rows = Database::call('LTP_sp_booking_create', [
             $userId,
@@ -49,6 +51,7 @@ final class BookingModel
             $specialRequest === '' ? null : $specialRequest,
             $expectedTotal,
             json_encode(array_values($extraIds), JSON_THROW_ON_ERROR),
+            $packageId,
         ]);
 
         return $rows[0] ?? ['result' => 'retry'];

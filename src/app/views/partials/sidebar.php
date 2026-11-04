@@ -4,7 +4,8 @@
  * Thanh bên (Nguyễn Tuấn Khôi).
  * $sidebarMode = 'column' (mặc định, trang danh sách): cột trái trên desktop, panel thu gọn trên mobile;
  *                'mobile' (trang chi tiết / không tìm thấy): chỉ là panel thu gọn dưới 992px.
- * Mục: Bảng tin, "Đơn của tôi" (chỉ tài khoản khách hàng) và "So sánh tour" (FR-15, sắp có).
+ * Mục: Bảng tin, "Đơn của tôi" (chỉ tài khoản khách hàng) và "So sánh tour" (FR-15, Sprint 5: compare.js gắn
+ * các tour đã chọn vào link .js-compare-link).
  * Danh sách #sidebar-destinations được JS điền từ /api/destinations
  * (tour-list.js ở chế độ 'column', app.js tải khi mở panel ở chế độ 'mobile').
  */
@@ -12,10 +13,8 @@ $sidebarMode = $sidebarMode ?? 'column';
 $isColumn = $sidebarMode === 'column';
 $isFeedActive = ($activeNav ?? 'feed') === 'feed';
 $isBookingsActive = ($activeNav ?? 'feed') === 'bookings';
+$isCompareActive = ($activeNav ?? 'feed') === 'compare';
 $isCustomer = (current_user()['role'] ?? '') === 'customer';
-$comingSoonItems = [
-    ['icon' => 'columns', 'label' => 'So sánh tour'],
-];
 ?>
 <?php if (!$isColumn): ?>
 <div class="container-xl lt-container d-lg-none">
@@ -42,15 +41,12 @@ $comingSoonItems = [
                 </a>
             </li>
 <?php endif; ?>
-<?php foreach ($comingSoonItems as $item): ?>
             <li>
-                <button type="button" class="lt-nav__link" disabled title="Sắp có">
-                    <span class="lt-icon lt-icon--<?= e($item['icon']) ?>" aria-hidden="true"></span>
-                    <span class="lt-nav__label"><?= e($item['label']) ?></span>
-                    <span class="lt-soon">Sắp có</span>
-                </button>
+                <a class="lt-nav__link js-compare-link<?= $isCompareActive ? ' is-active' : '' ?>" href="<?= e(url('/compare')) ?>"<?= $isCompareActive ? ' aria-current="page"' : '' ?>>
+                    <span class="lt-icon lt-icon--columns" aria-hidden="true"></span>
+                    <span class="lt-nav__label">So sánh tour</span>
+                </a>
             </li>
-<?php endforeach; ?>
         </ul>
 
         <div class="lt-sidebar__section">
