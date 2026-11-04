@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Models\BookingHistoryModel;
+use App\Models\ChangeRequestModel;
 use App\Models\CustomerBookingModel;
 use App\Models\PaymentModel;
 use App\Models\PaymentResultModel;
@@ -17,6 +18,7 @@ use Core\Router;
  * "Đơn của tôi" (M4 mục 7, 8 – Nguyễn Tuấn Khôi): khách hàng xem các yêu cầu đặt tour đã gửi, trạng thái xử lý,
  * lý do từ chối / hủy, danh sách khách và chính sách hủy đã áp dụng.
  * Sprint 4: phụ thu / tùy chọn đã chọn, hạn và nút thanh toán, kết quả VNPay / VietQR (?pay=), voucher và lịch sử đơn.
+ * Sprint 5: gói tour đã chọn và lối vào "Đổi ngày / hủy tour" (ChangeRequestController).
  * Đơn quá hạn thanh toán được tự hủy trước khi mở trang (4.5.4.1).
  * Chế độ khách được chuyển tới đăng nhập; đơn của tài khoản khác hiện "Không tìm thấy đơn" (không lộ đơn).
  */
@@ -108,6 +110,7 @@ final class CustomerBookingController extends Controller
             'passengers' => $this->bookings->passengers($userId, $code),
             'payments' => (new PaymentModel())->list($userId, $code),
             'history' => (new BookingHistoryModel())->forCustomer($userId, $code),
+            'changeQuote' => (new ChangeRequestModel())->quote($userId, $code),
             'justCreated' => $this->query('new') === '1',
             'payNotice' => $this->payNotice(),
             'pageStyles' => ['css/tour-detail.css', 'css/booking.css'],

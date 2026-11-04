@@ -7,10 +7,12 @@
  *       $history (LTP_sp_booking_history: thao tác của khách, hệ thống, VNPay và quản trị viên, NFR-09),
  *       $nextStatuses (trạng thái được chọn tiếp, [] = trạng thái cuối), $success / $error ('' = không có),
  *       $newStatus, $note, $totalInput (giữ lại lựa chọn khi có lỗi),
- *       $vnpayUnclear (payment_id của các khoản VNPay chưa rõ kết quả, NTK_sp_admin_vnpay_queue).
+ *       $vnpayUnclear (payment_id của các khoản VNPay chưa rõ kết quả, NTK_sp_admin_vnpay_queue),
+ *       $changeRequests (yêu cầu đổi ngày / hủy tour của đơn, Sprint 5).
  * Sprint 4: chốt tổng giá khi xác nhận chỗ (4.4.3.2), đối chiếu chuyển khoản VietQR ngay ở khoản thanh toán (4.5.3.2)
  * và đối chiếu khoản VNPay chưa rõ kết quả với cổng VNPay.
- * Đổi ngày hoặc số người không làm ở đây (FR-12, phát triển sau).
+ * Sprint 5: gói tour khách chọn; yêu cầu đổi ngày / hủy tour của khách được xử lý ở trang "Đổi ngày / hủy tour"
+ * (AdminChangeRequestController), ở đây chỉ liệt kê và dẫn tới trang đó.
  */
 $actionLabels = [
     'awaiting_payment' => 'Xác nhận chỗ và giá (giữ chỗ, chuyển “Chờ thanh toán”, hạn 24 giờ)',
@@ -64,6 +66,9 @@ $canSetTotal = in_array('awaiting_payment', $nextStatuses, true);
                         <h2 class="lt-panel__title" id="booking-tour-title">Tour và lịch khởi hành</h2>
                         <dl class="lt-fields">
                             <dt>Tour</dt><dd><?= e($booking['tour_title']) ?></dd>
+<?php if ($booking['package_name'] !== null): ?>
+                            <dt>Gói tour</dt><dd><?= e($booking['package_name']) ?></dd>
+<?php endif; ?>
                             <dt>Khởi hành</dt><dd><?= e(format_datetime($booking['starts_at'])) ?> – <?= e(format_time($booking['ends_at'])) ?> <?= format_date($booking['ends_at']) !== format_date($booking['starts_at']) ? e(format_date($booking['ends_at'])) : '' ?></dd>
                             <dt>Chỗ của lịch</dt><dd>Còn <?= e((int) $booking['schedule_remaining']) ?>/<?= e((int) $booking['schedule_capacity']) ?> chỗ · lịch <?= e($scheduleState) ?><?= $holdsSeats ? ' · đơn này đang giữ ' . e((int) $booking['people']) . ' chỗ' : '' ?></dd>
                             <dt>Đơn vị tổ chức</dt><dd><?= e($booking['provider_name']) ?> · <?= e($booking['provider_phone']) ?></dd>
@@ -207,6 +212,25 @@ $canSetTotal = in_array('awaiting_payment', $nextStatuses, true);
                 </div>
 
                 <div class="col-12 col-xl-5">
+<?php if ($changeRequests !== []): ?>
+                    <section class="lt-panel" aria-labelledby="booking-change-title">
+                        <h2 class="lt-panel__title" id="booking-change-title">Yêu cầu đổi ngày / hủy tour</h2>
+                        <ol class="lt-history">
+<?php foreach ($changeRequests as $changeRequest): ?>
+                            <li class="lt-history__item">
+                                <p class="lt-history__head">
+                                    <a href="<?= e(url('/admin/change-requests/' . $changeRequest['request_id'])) ?>"><?= e(change_request_type_label((string) $changeRequest['type'])) ?></a>
+                                    · <span class="lt-badge lt-badge--<?= e($changeRequest['status']) ?>"><?= e(change_request_status_label((string) $changeRequest['status'])) ?></span>
+                                </p>
+                                <p class="lt-history__meta">Gửi lúc <?= e(format_datetime((string) $changeRequest['created_at'])) ?></p>
+                            </li>
+<?php endforeach; ?>
+                        </ol>
+<?php if (in_array('pending', array_column($changeRequests, 'status'), true)): ?>
+                        <p class="lt-admin-hint">Khách đang chờ kết quả: xử lý yêu cầu trước khi đổi trạng thái đơn.</p>
+<?php endif; ?>
+                    </section>
+<?php endif; ?>
                     <section class="lt-panel" aria-labelledby="booking-action-title">
                         <h2 class="lt-panel__title" id="booking-action-title">Cập nhật trạng thái</h2>
 <?php if ($nextStatuses === []): ?>

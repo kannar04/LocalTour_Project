@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Models\AdminBookingModel;
+use App\Models\AdminChangeRequestModel;
 use App\Models\AdminPaymentModel;
 use App\Models\BookingHistoryModel;
 use App\Models\PaymentResultModel;
@@ -158,6 +159,7 @@ final class AdminBookingController extends AdminController
             'vnpayUnclear' => array_column((new AdminPaymentModel())->vnpayQueue($bookingId), 'payment_id'),
             'passengers' => $this->bookings->passengers($bookingId),
             'history' => (new BookingHistoryModel())->forAdmin($bookingId),
+            'changeRequests' => (new AdminChangeRequestModel())->list('', $bookingId),
             'nextStatuses' => AdminBookingModel::NEXT_STATUSES[$booking['status']] ?? [],
             'success' => $success,
             'error' => $error,

@@ -2,7 +2,7 @@
 <?php
 /*
  * Thanh bên của trang quản trị: cột trái trên desktop, panel thu gọn (nút "Menu" ở header) dưới 992px.
- * Biến: $adminNav = 'dashboard' | 'tours' | 'providers' | 'bookings' | 'payments' (mục đang mở).
+ * Biến: $adminNav = 'dashboard' | 'tours' | 'providers' | 'bookings' | 'change-requests' | 'payments' (mục đang mở).
  */
 $adminNav = $adminNav ?? 'dashboard';
 $adminItems = [
@@ -10,6 +10,7 @@ $adminItems = [
     ['key' => 'tours', 'href' => '/admin/tours', 'icon' => 'verified', 'label' => 'Duyệt tour'],
     ['key' => 'providers', 'href' => '/admin/providers', 'icon' => 'user', 'label' => 'Đơn vị tổ chức'],
     ['key' => 'bookings', 'href' => '/admin/bookings', 'icon' => 'calendar', 'label' => 'Yêu cầu đặt tour'],
+    ['key' => 'change-requests', 'href' => '/admin/change-requests', 'icon' => 'message', 'label' => 'Đổi ngày / hủy tour'],
     ['key' => 'payments', 'href' => '/admin/payments', 'icon' => 'clipboard', 'label' => 'Đối chiếu thanh toán'],
 ];
 ?>
