@@ -146,7 +146,7 @@ $canSetTotal = in_array('awaiting_payment', $nextStatuses, true);
                         <p class="lt-admin-hint">Đã hoàn tiền <?= e(format_vnd($refund)) ?>.</p>
 <?php endif; ?>
 <?php if ($refundRequested > 0): ?>
-                        <div class="lt-alert lt-alert--warning" role="note"><span class="lt-icon lt-icon--alert" aria-hidden="true"></span><span>Có khoản <?= e(format_vnd($refundRequested)) ?> khách đã trả sau khi đơn không còn chờ thanh toán: cần hoàn tiền cho khách.</span></div>
+                        <div class="lt-alert lt-alert--warning" role="note"><span class="lt-icon lt-icon--alert" aria-hidden="true"></span><span>Có khoản <?= e(format_vnd($refundRequested)) ?> cần hoàn tiền cho khách (khách trả sau khi đơn không còn chờ thanh toán, hoặc yêu cầu hủy tour đã được đồng ý). Chưa có hoàn tiền tự động: chuyển khoản tay cho khách.</span></div>
 <?php endif; ?>
 <?php if ($payments === []): ?>
                         <p class="lt-empty">Chưa có khoản thanh toán nào.</p>
