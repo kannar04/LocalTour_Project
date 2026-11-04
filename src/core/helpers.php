@@ -341,6 +341,8 @@ function booking_history_title(array $event): string
         'transfer_submitted' => 'Báo đã chuyển khoản VietQR',
         'payment_confirm' => 'Đối chiếu: đã nhận tiền chuyển khoản',
         'payment_reject' => 'Đối chiếu: chuyển khoản không khớp',
+        'vnpay_reconcile_paid' => 'Đối chiếu: có giao dịch VNPay thành công',
+        'vnpay_reconcile_none' => 'Đối chiếu: không có giao dịch VNPay',
         'vnpay_paid' => 'Thanh toán VNPay thành công',
         'vnpay_failed' => 'Thanh toán VNPay không thành công',
         'hold_expired' => 'Quá hạn thanh toán, đơn tự hủy',

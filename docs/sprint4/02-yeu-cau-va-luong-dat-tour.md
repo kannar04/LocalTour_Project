@@ -229,6 +229,7 @@ Luồng sau khi quản trị viên xác nhận chỗ và chốt tổng giá (đ�
 | `GET /payments/vnpay/return`, `GET /payments/vnpay/ipn` | B4 | VNPay gọi IPN bằng GET. Không dùng phiên, `_csrf`; xác minh bằng chữ ký. Kết quả đầu tiên của mỗi khoản ghi một dòng `payment_events`; gọi lại cùng giao dịch không ghi thêm. IPN trả JSON `{ RspCode, Message }` theo quy ước VNPay. |
 | `GET /bookings/{code}/pay/vietqr`, `POST /bookings/{code}/pay/vietqr/submit` | B5 | `payment_id`, `_csrf`. |
 | `GET /bookings/{code}/voucher` | – | Đơn chưa có voucher thì về trang đơn. |
-| `GET /admin/payments`, `POST /admin/payments/{id}/decide` | – | Hàng đợi và quyết định đối chiếu VietQR; mỗi quyết định ghi `admin_logs`. |
+| `GET /admin/payments`, `POST /admin/payments/{id}/decide` | – | Hàng đợi và quyết định đối chiếu VietQR; mỗi quyết định ghi `admin_logs`. Trang hàng đợi có thêm mục khoản VNPay chưa rõ kết quả. |
+| `POST /admin/payments/{id}/vnpay` | – | Khoản VNPay không nhận được Return URL / IPN: quản trị viên tra trên cổng VNPay rồi ghi “Có giao dịch thành công” (`txn_no`) hoặc “Không có giao dịch” (`note`); ghi `payment_events` và `admin_logs`. |
 
 Khóa VNPay sandbox và tài khoản nhận VietQR chỉ nằm trong `src/.env` (xem `src/.env.example`, `src/README.md` Bước 3 và Bước 9).
