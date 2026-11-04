@@ -9,7 +9,7 @@ use Core\Database;
 /**
  * Số liệu cho trang "Tổng quan" của quản trị viên (FR-19 → FR-23, Nguyễn Minh Thức).
  * Procedure: NMT_sp_admin_summary, NMT_sp_admin_booking_status_stats,
- * NMT_sp_admin_booking_time_stats, NMT_sp_admin_revenue_stats.
+ * NMT_sp_admin_booking_time_stats, NMT_sp_admin_revenue_stats, NMT_sp_admin_revenue_payment_list.
  */
 final class AdminStatsModel
 {
@@ -51,5 +51,16 @@ final class AdminStatsModel
     public function revenue(string $period, ?string $from, ?string $to): array
     {
         return Database::call('NMT_sp_admin_revenue_stats', [$period, $from, $to]);
+    }
+
+    /**
+     * Các khoản thanh toán làm nên doanh thu của một kỳ (FR-23, đối chiếu giao dịch nguồn): cùng điều kiện với
+     * revenue(), ngày dạng 'Y-m-d' (gồm cả hai đầu), null = không giới hạn.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function revenuePayments(?string $from, ?string $to): array
+    {
+        return Database::call('NMT_sp_admin_revenue_payment_list', [$from, $to]);
     }
 }

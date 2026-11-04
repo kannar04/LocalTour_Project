@@ -135,6 +135,7 @@ Tiền tố tên procedure cho biết người phụ trách: `LTP_` – Lê Trun
 | POST | `/admin/login` | `AdminAuthController@login` | `email`, `password`, `next`, `_csrf`; chỉ tài khoản `admin` đang `active`. |
 | POST | `/admin/logout` | `AdminAuthController@logout` | `_csrf`; xong chuyển về `/admin/login`. |
 | GET | `/admin` | `AdminDashboardController@index` | Tổng quan và thống kê; tham số `period` (`day`, `month`, `year`), `from`, `to` (`YYYY-MM-DD`). |
+| GET | `/admin/revenue` | `AdminDashboardController@revenuePayments` | Các khoản thanh toán thành công của một kỳ doanh thu; `from`, `to` (`YYYY-MM-DD`). Mở bằng cách bấm vào kỳ trong bảng doanh thu ở `/admin`. |
 | GET | `/admin/tours` | `AdminTourController@index` | `status`: `pending` (mặc định), `approved`, `rejected`, `all`. |
 | GET | `/admin/tours/{id}` | `AdminTourController@show` | 404 nếu UUID sai hoặc không tìm thấy. |
 | POST | `/admin/tours/{id}/approve` | `AdminTourController@approve` | `_csrf`; 409 nếu tour không còn chờ duyệt. |
@@ -315,7 +316,7 @@ Trang quản trị chỉ dành cho tài khoản `admin` đang `active`, đăng n
 
 | Đường dẫn | Kết quả mong đợi |
 | --- | --- |
-| `/admin` | 40 tài khoản khách hàng (39 đang hoạt động, 1 bị khóa), 12 tour (2 chờ duyệt, 9 đã duyệt, 1 bị từ chối), 3 yêu cầu chờ xác nhận trên tổng 39; bảng yêu cầu theo trạng thái, theo thời gian và doanh thu. |
+| `/admin` | 40 tài khoản khách hàng (39 đang hoạt động, 1 bị khóa), 12 tour (2 chờ duyệt, 9 đã duyệt, 1 bị từ chối), 3 yêu cầu chờ xác nhận trên tổng 39; bảng yêu cầu theo trạng thái, theo thời gian và doanh thu. Bấm “Tháng 10/2026” trong bảng doanh thu → trang “Khoản thanh toán theo kỳ” có 20 khoản, tổng thuần 24.930.000đ, khớp dòng của kỳ. |
 | `/admin/tours` | 2 tour chờ duyệt. Mở "Một buổi chiều trong Đại Nội Huế", bấm "Phê duyệt tour" → "Đã phê duyệt tour."; `/tours` giờ có 10 tour và bộ lọc có Huế. |
 | `/admin/bookings` | 39 yêu cầu, tab "Chờ xác nhận" có 3. Mở yêu cầu `LT518204`, chọn "Xác nhận chỗ và giá" rồi bấm "Cập nhật trạng thái" → trạng thái "Chờ thanh toán", mục "Lịch sử xử lý" có thêm một dòng, "Chỗ của lịch" giảm 2. Yêu cầu `LT527716` cần 3 chỗ nhưng lịch chỉ còn 2 → báo "Lịch khởi hành không còn đủ chỗ…", trạng thái không đổi. |
 | `/admin` khi đăng nhập bằng tài khoản khách hàng | Trang 403 "Bạn không có quyền truy cập trang này." |

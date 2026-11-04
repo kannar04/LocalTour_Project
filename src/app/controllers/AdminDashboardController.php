@@ -11,6 +11,7 @@ use DateTimeImmutable;
  * Trang "Tổng quan" của quản trị viên (FR-19 → FR-23, Nguyễn Minh Thức).
  * Bộ lọc GET: period = day | month | year, from / to = Y-m-d.
  * Mặc định: theo ngày = 30 ngày gần nhất, theo tháng = 12 tháng gần nhất, theo năm = toàn bộ.
+ * Mỗi kỳ doanh thu mở được danh sách khoản thanh toán của kỳ đó (/admin/revenue), để đối chiếu giao dịch nguồn.
  */
 final class AdminDashboardController extends AdminController
 {
@@ -46,8 +47,27 @@ final class AdminDashboardController extends AdminController
             'summary' => $this->stats->summary(),
             'byStatus' => $this->stats->bookingsByStatus(),
             'byTime' => self::withLabels($this->stats->bookingsByTime($period, $from, $to), $period),
-            'revenue' => self::withLabels($this->stats->revenue($period, $from, $to), $period),
+            'revenue' => self::withRanges(self::withLabels($this->stats->revenue($period, $from, $to), $period), $period, $from, $to),
             'period' => $period,
+            'from' => $from,
+            'to' => $to,
+            'pageStyles' => ['css/admin.css'],
+        ]);
+    }
+
+    /** GET /admin/revenue?from=&to= – các khoản thanh toán của một kỳ doanh thu (đối chiếu giao dịch nguồn, FR-23). */
+    public function revenuePayments(): void
+    {
+        $from = self::parseDate($this->query('from'));
+        $to = self::parseDate($this->query('to'));
+        if ($from !== null && $to !== null && $from > $to) {
+            [$from, $to] = [$to, $from];
+        }
+
+        $this->render('admin/revenue', [
+            'title' => 'Khoản thanh toán theo kỳ',
+            'adminNav' => 'dashboard',
+            'payments' => $this->stats->revenuePayments($from, $to),
             'from' => $from,
             'to' => $to,
             'pageStyles' => ['css/admin.css'],
@@ -89,6 +109,29 @@ final class AdminDashboardController extends AdminController
                 'month' => 'Tháng ' . substr($key, 5, 2) . '/' . substr($key, 0, 4),
                 default => 'Năm ' . $key,
             };
+
+            return $row;
+        }, $rows);
+    }
+
+    /**
+     * Thêm khoảng ngày của từng kỳ (range_from, range_to: 'Y-m-d'), cắt theo khoảng lọc của trang, để mở danh sách
+     * khoản thanh toán của kỳ.
+     *
+     * @param list<array<string, mixed>> $rows
+     * @return list<array<string, mixed>>
+     */
+    private static function withRanges(array $rows, string $period, ?string $from, ?string $to): array
+    {
+        return array_map(static function (array $row) use ($period, $from, $to): array {
+            $key = (string) $row['period_key'];
+            [$start, $end] = match ($period) {
+                'day' => [$key, $key],
+                'month' => [$key . '-01', (new DateTimeImmutable($key . '-01'))->format('Y-m-t')],
+                default => [$key . '-01-01', $key . '-12-31'],
+            };
+            $row['range_from'] = $from !== null && $from > $start ? $from : $start;
+            $row['range_to'] = $to !== null && $to < $end ? $to : $end;
 
             return $row;
         }, $rows);

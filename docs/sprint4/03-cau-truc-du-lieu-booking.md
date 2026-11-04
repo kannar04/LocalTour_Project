@@ -109,7 +109,7 @@ Thử “giá đổi”: mở trang đặt tour, sửa `ticket_types.price_vnd` 
 | 07 | `NTK_sp_admin_booking_set_status` | Ghi | Thêm giữ chỗ và trả chỗ (mục 3), thêm `result` `no_seats`, `schedule_closed`. |
 | 07 | `NTK_sp_admin_booking_passenger_list(p_booking_id)` | Đọc | Danh sách khách (theo `sort_order`) và yêu cầu đặc biệt ở trang chi tiết yêu cầu của quản trị viên. |
 
-Procedure của file 11 chỉ trả đơn thuộc `p_user_id`; mã của tài khoản khác → 0 dòng. Tổng số procedure sau M4: 34; sau Sprint 4: 63 (mục 7). Danh sách đầy đủ và câu `CALL` mẫu xem `src/database/README.md`.
+Procedure của file 11 chỉ trả đơn thuộc `p_user_id`; mã của tài khoản khác → 0 dòng. Tổng số procedure sau M4: 34; sau Sprint 4: 64 (mục 7). Danh sách đầy đủ và câu `CALL` mẫu xem `src/database/README.md`.
 
 ## 7. Bổ sung Sprint 4 (migration 12, procedure 13 – 15)
 
@@ -134,5 +134,6 @@ Trạng thái khoản thanh toán: `pending` (vừa tạo) → `paid` (VNPay th�
 | 13 | `NMT_sp_admin_provider_…`, `NMT_sp_admin_tour_…`, `NMT_sp_admin_schedule_…` (15 procedure) | Đọc / ghi | CRUD nền tảng: đơn vị tổ chức, thông tin tour và trạng thái xác minh, lịch khởi hành và giá vé. Mỗi lần ghi một dòng `admin_logs`. |
 | 14 | `NMT_sp_payment_list`, `_start`, `_get`, `_transfer_submit`, `NMT_sp_admin_payment_queue`, `_decide` | Đọc / ghi | Thanh toán của khách và đối chiếu VietQR. |
 | 15 | `LTP_sp_payment_vnpay_result`, `LTP_sp_booking_expire_holds`, `LTP_sp_voucher_issue`, `LTP_sp_booking_history`, `LTP_sp_customer_booking_history` | Đọc / ghi | Kết quả VNPay, tự hủy, voucher, lịch sử đơn. |
+| 04 | `NMT_sp_admin_revenue_payment_list(p_from, p_to)` | Đọc | Các khoản thanh toán của một kỳ doanh thu, để đối chiếu giao dịch nguồn (FR-23). |
 
 Tham số, `result` và quy tắc chi tiết xem phần đầu từng file và `src/database/README.md`.
