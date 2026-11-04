@@ -65,7 +65,7 @@ Quyết định nhóm theo checklist QC:
 | --- | --- |
 | Thời điểm giữ / nhả chỗ (FR-14) | **Đã chốt ở M4:** đơn mới chưa giữ chỗ; quản trị viên xác nhận chỗ thì giữ, hủy đơn đang giữ thì trả. Quá hạn 24 giờ chưa thanh toán thì tự hủy và trả chỗ (Sprint 4, 4.5.4.1). |
 | Gói lựa chọn (FR-07) | **Đã chốt thiết kế** (câu hỏi sau Sprint 3, mục 4, bảng dưới). Chưa làm ở M4: tour mẫu chưa có gói, M4 đặt theo loại vé của lịch. Backlog. |
-| Vai trò `support`, `provider` trong `users.role` | **Đã chốt ở CR1 (25/10):** hệ thống không có tác nhân Nhân viên hỗ trợ khách hàng và Đơn vị tổ chức; Quản trị viên làm mọi việc vận hành (sơ đồ use case cập nhật theo CR1). Lược đồ còn hai giá trị này và các tài khoản mẫu tương ứng nhưng không trang nào dùng: đăng nhập khách hàng chỉ nhận `customer`, đăng nhập quản trị chỉ nhận `admin`. Dọn lược đồ ở backlog. |
+| Vai trò `support`, `provider` trong `users.role` | **Đã chốt ở CR1 (25/10):** hệ thống không có tác nhân Nhân viên hỗ trợ khách hàng và Đơn vị tổ chức; Quản trị viên làm mọi việc vận hành (sơ đồ use case cập nhật theo CR1). Ngày 04/11/2026 đã bỏ giá trị `support` và tài khoản mẫu nhân viên hỗ trợ. Giữ `provider`: mỗi đơn vị tổ chức có một dòng `users` không đăng nhập được (`providers.user_id`). Đăng nhập khách hàng chỉ nhận `customer`, đăng nhập quản trị chỉ nhận `admin`. |
 
 Câu hỏi sau Sprint 3 nhóm đã trả lời. M4 không đổi code; Sprint 4 làm phần quản trị của mục 3, ba mục còn lại vẫn ở backlog:
 
