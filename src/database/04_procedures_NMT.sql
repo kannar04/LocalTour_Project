@@ -7,7 +7,7 @@
 -- Procedures: NMT_sp_tour_detail, NMT_sp_tour_schedule_list, NMT_sp_tour_ticket_list,
 --             NMT_sp_tour_image_list, NMT_sp_admin_summary,
 --             NMT_sp_admin_booking_status_stats, NMT_sp_admin_booking_time_stats,
---             NMT_sp_admin_revenue_stats
+--             NMT_sp_admin_revenue_stats, NMT_sp_admin_revenue_payment_list
 -- Quy tắc   : Trang chi tiết tour chỉ trả dữ liệu của tour đang hiển thị: tours.approval_status = 'approved'
 --             VÀ providers.approval_status = 'approved' VÀ users.status = 'active'
 --             (tài khoản của nhà cung cấp). Tour khác hoặc không tồn tại -> 0 dòng.
@@ -380,5 +380,54 @@ BEGIN
       AND (p_to IS NULL OR p.paid_at < p_to + INTERVAL 1 DAY)
     GROUP BY period_key
     ORDER BY period_key;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NMT_sp_admin_revenue_payment_list(p_from, p_to)
+--   Các khoản thanh toán của một kỳ doanh thu (FR-23, "đối chiếu giao dịch nguồn"):
+--   cùng điều kiện với NMT_sp_admin_revenue_stats (khoản 'paid', theo ngày thanh toán,
+--   tiền hoàn 'completed' trừ vào khoản gốc), nên tổng của danh sách = dòng của kỳ đó.
+--   p_from / p_to: ngày (bao gồm cả hai đầu), NULL = không giới hạn. Tối đa 1000 dòng,
+--   thanh toán trước lên trước.
+--   Cột: payment_id, paid_at, method, reference, provider_txn_id, amount_vnd, refund_vnd,
+--   net_vnd, booking_id, code, tour_title.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NMT_sp_admin_revenue_payment_list;
+
+DELIMITER $$
+CREATE PROCEDURE NMT_sp_admin_revenue_payment_list(
+    IN p_from DATE,
+    IN p_to   DATE
+)
+READS SQL DATA
+BEGIN
+    SELECT
+        p.id              AS payment_id,
+        p.paid_at,
+        p.method,
+        COALESCE(p.reference, p.provider_txn_id) AS reference,
+        p.provider_txn_id,
+        p.amount_vnd,
+        COALESCE(r.refund_vnd, 0)                AS refund_vnd,
+        p.amount_vnd - COALESCE(r.refund_vnd, 0) AS net_vnd,
+        b.id              AS booking_id,
+        b.code,
+        t.title           AS tour_title
+    FROM payments p
+    JOIN bookings b  ON b.id = p.booking_id
+    JOIN schedules s ON s.id = b.schedule_id
+    JOIN tours t     ON t.id = s.tour_id
+    LEFT JOIN (SELECT payment_id, SUM(amount_vnd) AS refund_vnd
+                 FROM refunds
+                WHERE status = 'completed'
+                GROUP BY payment_id) r
+           ON r.payment_id = p.id
+    WHERE p.status = 'paid'
+      AND p.paid_at IS NOT NULL
+      AND (p_from IS NULL OR p.paid_at >= p_from)
+      AND (p_to IS NULL OR p.paid_at < p_to + INTERVAL 1 DAY)
+    ORDER BY p.paid_at, p.id
+    LIMIT 1000;
 END$$
 DELIMITER ;

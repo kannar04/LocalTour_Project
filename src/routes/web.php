@@ -65,6 +65,7 @@ $router->get('/admin/login', [AdminAuthController::class, 'showLogin']);
 $router->post('/admin/login', [AdminAuthController::class, 'login']);
 $router->post('/admin/logout', [AdminAuthController::class, 'logout']);
 $router->get('/admin', [AdminDashboardController::class, 'index']);
+$router->get('/admin/revenue', [AdminDashboardController::class, 'revenuePayments']);
 
 // CRUD nền tảng (FR-13, FR-14): đơn vị tổ chức, thêm / sửa tour, lịch khởi hành và giá vé.
 // Đặt trước '/admin/tours/{id}' để '/admin/tours/new' không bị hiểu là mã tour.
@@ -91,6 +92,5 @@ $router->get('/admin/bookings/{id}', [AdminBookingController::class, 'show']);
 $router->post('/admin/bookings/{id}/status', [AdminBookingController::class, 'updateStatus']);
 $router->get('/admin/payments', [AdminPaymentController::class, 'index']);
 $router->post('/admin/payments/{id}/decide', [AdminPaymentController::class, 'decide']);
-$router->post('/admin/payments/{id}/vnpay', [AdminPaymentController::class, 'vnpayDecide']);
 
 return $router;

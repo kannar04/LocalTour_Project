@@ -134,7 +134,7 @@ $rangeText = match (true) {
 
             <section class="lt-panel" aria-labelledby="stats-revenue-title">
                 <h2 class="lt-panel__title" id="stats-revenue-title">Doanh thu theo ngày thanh toán</h2>
-                <p class="lt-panel__lead"><?= e($rangeText) ?> · Doanh thu thuần = tiền đã thanh toán thành công − tiền đã hoàn</p>
+                <p class="lt-panel__lead"><?= e($rangeText) ?> · Doanh thu thuần = tiền đã thanh toán thành công − tiền đã hoàn · Bấm vào kỳ để xem từng khoản thanh toán</p>
 <?php if ($revenue === []): ?>
                 <p class="lt-empty">Chưa có dữ liệu trong khoảng thời gian này.</p>
 <?php else: ?>
@@ -153,7 +153,7 @@ $rangeText = match (true) {
                         <tbody>
 <?php foreach ($revenue as $row): ?>
                             <tr>
-                                <td class="lt-nowrap"><?= e($row['label']) ?></td>
+                                <td class="lt-nowrap"><a href="<?= e(url('/admin/revenue?' . http_build_query(['from' => $row['range_from'], 'to' => $row['range_to']]))) ?>" title="Xem các khoản thanh toán của kỳ này"><?= e($row['label']) ?></a></td>
                                 <td class="text-right"><?= e($num($row['paid_count'])) ?></td>
                                 <td class="text-right"><?= e(format_vnd($row['gross_vnd'])) ?></td>
                                 <td class="text-right"><?= (int) $row['refund_vnd'] > 0 ? '−' . e(format_vnd($row['refund_vnd'])) : '0đ' ?></td>
@@ -164,7 +164,7 @@ $rangeText = match (true) {
                         </tbody>
                         <tfoot>
                             <tr>
-                                <th scope="row">Tổng</th>
+                                <th scope="row"><a href="<?= e(url(rtrim('/admin/revenue?' . http_build_query(['from' => $from, 'to' => $to]), '?'))) ?>" title="Xem mọi khoản thanh toán trong khoảng này">Tổng</a></th>
                                 <td class="text-right"><?= e($num($revenueTotal['paid_count'])) ?></td>
                                 <td class="text-right"><?= e(format_vnd($revenueTotal['gross_vnd'])) ?></td>
                                 <td class="text-right"><?= $revenueTotal['refund_vnd'] > 0 ? '−' . e(format_vnd($revenueTotal['refund_vnd'])) : '0đ' ?></td>
