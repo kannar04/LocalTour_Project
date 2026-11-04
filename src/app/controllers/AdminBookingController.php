@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Models\AdminBookingModel;
+use App\Models\AdminPaymentModel;
 use App\Models\BookingHistoryModel;
 use App\Models\PaymentResultModel;
 
@@ -20,19 +21,23 @@ final class AdminBookingController extends AdminController
     public const FILTERS = ['', 'pending', 'awaiting_payment', 'confirmed', 'completed', 'rejected', 'cancelled'];
     public const KEYWORD_MAX_LENGTH = 100;
 
-    /** Lỗi đối chiếu VietQR (AdminPaymentController chuyển về với ?err=). */
+    /** Lỗi đối chiếu VietQR / VNPay (AdminPaymentController chuyển về với ?err=). */
     public const PAYMENT_ERRORS = [
         'csrf' => self::CSRF_FAILED,
         'invalid' => 'Thao tác đối chiếu không hợp lệ.',
         'note_too_long' => self::NOTE_TOO_LONG,
-        'note_required' => '“Không khớp” cần nhập lý do để báo cho khách.',
+        'note_required' => '“Không khớp” / “Không có giao dịch” cần nhập lý do.',
         'not_payable' => 'Khoản này không còn chờ đối chiếu hoặc đơn không còn chờ thanh toán. Trang đã tải lại trạng thái mới.',
+        'txn_required' => '“Có giao dịch thành công” cần nhập mã giao dịch VNPay của giao dịch đó.',
+        'txn_invalid' => 'Mã giao dịch VNPay chỉ gồm chữ số (tối đa 20 số).',
     ];
 
     private const MESSAGES = [
         'status' => 'Đã cập nhật trạng thái yêu cầu.',
         'payment_confirm' => 'Đã xác nhận nhận tiền: đơn chuyển “Đã xác nhận” và khách nhận được voucher.',
         'payment_reject' => 'Đã báo chuyển khoản không khớp. Đơn vẫn chờ thanh toán tới hết hạn giữ chỗ.',
+        'vnpay_confirm' => 'Đã ghi giao dịch VNPay thành công. Đơn còn chờ thanh toán thì chuyển “Đã xác nhận” và khách nhận được voucher; đơn đã hủy thì tạo yêu cầu hoàn tiền.',
+        'vnpay_reject' => 'Đã ghi “Không có giao dịch VNPay”. Đơn còn hạn giữ chỗ thì khách thanh toán lại được.',
     ];
 
     private const ERRORS = [
@@ -150,6 +155,7 @@ final class AdminBookingController extends AdminController
             'lines' => $this->bookings->lines($bookingId),
             'extras' => $this->bookings->extras($bookingId),
             'payments' => $this->bookings->payments($bookingId),
+            'vnpayUnclear' => array_column((new AdminPaymentModel())->vnpayQueue($bookingId), 'payment_id'),
             'passengers' => $this->bookings->passengers($bookingId),
             'history' => (new BookingHistoryModel())->forAdmin($bookingId),
             'nextStatuses' => AdminBookingModel::NEXT_STATUSES[$booking['status']] ?? [],

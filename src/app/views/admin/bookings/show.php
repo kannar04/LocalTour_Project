@@ -6,8 +6,10 @@
  *       khách chọn), $payments (các khoản thanh toán), $passengers (danh sách khách),
  *       $history (LTP_sp_booking_history: thao tác của khách, hệ thống, VNPay và quản trị viên, NFR-09),
  *       $nextStatuses (trạng thái được chọn tiếp, [] = trạng thái cuối), $success / $error ('' = không có),
- *       $newStatus, $note, $totalInput (giữ lại lựa chọn khi có lỗi).
- * Sprint 4: chốt tổng giá khi xác nhận chỗ (4.4.3.2), đối chiếu chuyển khoản VietQR ngay ở khoản thanh toán (4.5.3.2).
+ *       $newStatus, $note, $totalInput (giữ lại lựa chọn khi có lỗi),
+ *       $vnpayUnclear (payment_id của các khoản VNPay chưa rõ kết quả, NTK_sp_admin_vnpay_queue).
+ * Sprint 4: chốt tổng giá khi xác nhận chỗ (4.4.3.2), đối chiếu chuyển khoản VietQR ngay ở khoản thanh toán (4.5.3.2)
+ * và đối chiếu khoản VNPay chưa rõ kết quả với cổng VNPay.
  * Đổi ngày hoặc số người không làm ở đây (FR-12, phát triển sau).
  */
 $actionLabels = [
@@ -147,7 +149,8 @@ $canSetTotal = in_array('awaiting_payment', $nextStatuses, true);
                         <ul class="lt-pay-list">
 <?php foreach ($payments as $payment): ?>
 <?php $reconcile = $payment['method'] === 'vietqr' && $payment['status'] === 'awaiting_reconciliation'; ?>
-                            <li class="lt-pay-item<?= $reconcile ? ' is-waiting' : '' ?>">
+<?php $vnpayCheck = in_array($payment['payment_id'], $vnpayUnclear, true); ?>
+                            <li class="lt-pay-item<?= $reconcile || $vnpayCheck ? ' is-waiting' : '' ?>">
                                 <div class="lt-pay-item__head">
                                     <span><strong><?= e(payment_method_label($payment['method'])) ?></strong> · <?= e(format_vnd($payment['amount_vnd'])) ?></span>
                                     <span class="lt-badge lt-badge--<?= e($payment['status']) ?>"><?= e(payment_status_label($payment['status'])) ?></span>
@@ -177,6 +180,22 @@ $canSetTotal = in_array('awaiting_payment', $nextStatuses, true);
                                     <div class="lt-pay-item__actions">
                                         <button class="lt-btn lt-btn--primary" type="submit" name="decision" value="confirm">Đã nhận tiền</button>
                                         <button class="lt-btn lt-btn--danger" type="submit" name="decision" value="reject">Không khớp</button>
+                                    </div>
+                                </form>
+<?php elseif ($vnpayCheck): ?>
+                                <form action="<?= e(url('/admin/payments/' . $payment['payment_id'] . '/vnpay')) ?>" method="post" class="lt-admin-form lt-pay-item__form">
+                                    <?= csrf_field() ?>
+                                    <p class="lt-admin-hint">VNPay chưa trả kết quả cho khoản này. Tra mã thanh toán <strong><?= e($payment['reference']) ?></strong> trên cổng VNPay (mục quản lý giao dịch): có giao dịch thành công đúng <?= e(format_vnd($payment['amount_vnd'])) ?> thì nhập mã giao dịch VNPay; không có thì ghi lý do.</p>
+<?php if ($booking['status'] !== 'awaiting_payment'): ?>
+                                    <p class="lt-admin-hint">Đơn đang “<?= e(booking_status_label($booking['status'])) ?>”: ghi có giao dịch thành công sẽ tạo yêu cầu hoàn tiền cho khách, đơn không mở lại.</p>
+<?php endif; ?>
+                                    <label class="lt-admin-label" for="vnp-txn-<?= e($payment['payment_id']) ?>">Mã giao dịch VNPay (khi có giao dịch thành công)</label>
+                                    <input class="lt-admin-input" id="vnp-txn-<?= e($payment['payment_id']) ?>" name="txn_no" type="text" inputmode="numeric" maxlength="20" pattern="[0-9]{1,20}" title="Mã giao dịch VNPay chỉ gồm chữ số" autocomplete="off">
+                                    <label class="lt-admin-label" for="vnp-note-<?= e($payment['payment_id']) ?>">Ghi chú (bắt buộc khi không có giao dịch)</label>
+                                    <textarea class="lt-admin-input" id="vnp-note-<?= e($payment['payment_id']) ?>" name="note" rows="2" maxlength="255"></textarea>
+                                    <div class="lt-pay-item__actions">
+                                        <button class="lt-btn lt-btn--primary" type="submit" name="decision" value="confirm">Có giao dịch thành công</button>
+                                        <button class="lt-btn lt-btn--danger" type="submit" name="decision" value="reject" formnovalidate>Không có giao dịch</button>
                                     </div>
                                 </form>
 <?php endif; ?>
