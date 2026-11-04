@@ -2,7 +2,8 @@
 <?php
 /*
  * Danh sách tour cho quản trị viên duyệt (FR-24, Lê Trung Phong).
- * Biến: $filter ('pending' | 'approved' | 'rejected' | 'all'), $tours (LTP_sp_admin_tour_list).
+ * Biến: $filter ('pending' | 'approved' | 'rejected' | 'archived' | 'all'), $tours (LTP_sp_admin_tour_list),
+ *       $success (thông báo sau khi xóa tour, '' = không có).
  */
 use App\Controllers\AdminTourController;
 ?>
@@ -22,6 +23,10 @@ use App\Controllers\AdminTourController;
                     <span class="lt-icon lt-icon--plus" aria-hidden="true"></span> Thêm tour
                 </a>
             </header>
+
+<?php if ($success !== ''): ?>
+            <div class="lt-alert lt-alert--success" role="status"><span class="lt-icon lt-icon--check" aria-hidden="true"></span><span><?= e($success) ?></span></div>
+<?php endif; ?>
 
             <nav class="lt-tabs" aria-label="Lọc theo trạng thái duyệt">
 <?php foreach (AdminTourController::FILTERS as $value => $label): ?>
