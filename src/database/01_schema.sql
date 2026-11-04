@@ -88,9 +88,11 @@ SET FOREIGN_KEY_CHECKS = @OLD_FOREIGN_KEY_CHECKS;
 -- 2. TÀI KHOẢN & NHÀ CUNG CẤP
 -- ---------------------------------------------------------------------
 
--- NGƯỜI_DÙNG (FR-13, NFR-04): tài khoản khách hàng, nhân viên và nhà cung cấp.
--- role: admin = Quản trị viên, support = Nhân viên hỗ trợ khách hàng,
---       provider = tài khoản của nhà cung cấp, customer = tài khoản khách hàng.
+-- NGƯỜI_DÙNG (FR-13, NFR-04): tài khoản quản trị viên, khách hàng và đơn vị tổ chức.
+-- role: admin = Quản trị viên, customer = tài khoản khách hàng,
+--       provider = dòng tài khoản của đơn vị tổ chức (providers.user_id): không có mật
+--       khẩu, không đăng nhập được; theo CR1 đơn vị tổ chức chỉ là dữ liệu do quản trị viên
+--       quản lý. CR1 bỏ tác nhân Nhân viên hỗ trợ khách hàng nên không còn role support.
 --       Trang đăng ký chỉ tạo tài khoản customer; trang đăng nhập chỉ nhận customer.
 -- email lưu chữ thường (ứng dụng chuẩn hóa trước khi ghi và khi tìm).
 -- password_hash: chuỗi do password_hash() của PHP tạo (bcrypt), không bao giờ lưu mật
@@ -103,7 +105,7 @@ CREATE TABLE users (
     password_hash VARCHAR(255)  NULL,
     name          VARCHAR(100)  NOT NULL,
     phone         VARCHAR(20)   NULL,
-    role          ENUM('admin','support','provider','customer') NOT NULL,
+    role          ENUM('admin','provider','customer') NOT NULL,
     status        ENUM('active','locked')            NOT NULL DEFAULT 'active',
     PRIMARY KEY (id),
     UNIQUE KEY uq_users_email (email)

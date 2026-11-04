@@ -30,7 +30,7 @@
 --   admin_logs 90000000
 --   Tour N = c0000000-0000-4000-8000-00000000000N; tour 1 = "Hà Nội qua những món ăn phố cổ".
 -- Cách đánh số:
---   users        : 1 = quản trị viên; 2 = nhân viên hỗ trợ khách hàng;
+--   users        : 1 = quản trị viên;
 --                  11-17 = tài khoản của nhà cung cấp 1-7;
 --                  101-139 = tài khoản khách hàng: khách hàng 100 + N là người đặt đơn N
 --                  (name = contact_name, email = contact_email của đơn);
@@ -106,7 +106,7 @@
 --   * Trang quản trị (FR-19 → FR-25): đơn 31-39 ở đủ 6 trạng thái, tour 11 chờ duyệt,
 --     tour 12 bị từ chối, khách hàng 140 bị khóa, 10 dòng lịch sử xử lý; xem mục 20.
 --
--- Số dòng: users 49, providers 7, destinations 5, categories 6, tours 12,
+-- Số dòng: users 48, providers 7, destinations 5, categories 6, tours 12,
 --          cancellation_policies 12, schedules 67, ticket_types 122, bookings 39,
 --          booking_lines 45, passengers 79, payments 33, payment_events 32, refunds 1,
 --          reviews 29, tour_images 12, tour_itinerary_items 43, tour_inclusions 45,
@@ -119,14 +119,12 @@ SET NAMES utf8mb4;
 
 -- ---------------------------------------------------------------------
 -- 1. users (NGƯỜI_DÙNG)
---   Tài khoản nhân viên, nhà cung cấp và khách hàng. Mọi tài khoản mẫu có password_hash
+--   Tài khoản quản trị viên, nhà cung cấp và khách hàng. Mọi tài khoản mẫu có password_hash
 --   NULL nên không đăng nhập được; người kiểm thử tự đăng ký tài khoản ở /register.
 -- ---------------------------------------------------------------------
 INSERT INTO users (id, email, password_hash, name, phone, role, status) VALUES
 -- Quản trị viên
 ('a0000000-0000-4000-8000-000000000001', 'admin@localtour.test', NULL, 'Quản trị viên LocalTour', NULL, 'admin', 'active'),
--- Nhân viên hỗ trợ khách hàng
-('a0000000-0000-4000-8000-000000000002', 'hotro@localtour.test', NULL, 'Nhân viên hỗ trợ LocalTour', NULL, 'support', 'active'),
 -- Tài khoản của nhà cung cấp 1-7
 ('a0000000-0000-4000-8000-000000000011', 'hanoilocal@localtour.test', NULL, 'Hà Nội Local', NULL, 'provider', 'active'),
 ('a0000000-0000-4000-8000-000000000012', 'phocostories@localtour.test', NULL, 'Phố Cổ Stories', NULL, 'provider', 'active'),
