@@ -7,6 +7,8 @@
 | Căn cứ | `src/database/01_schema.sql`, `src/README.md`, wireframe UIEx1–UIEx4 và [01 – Danh mục trường dữ liệu](01-truong-du-lieu.md) |
 | Trạng thái | **Đã chốt.** Cập nhật 23/10/2026: thêm route tài khoản khách hàng (đăng ký, đăng nhập, đăng xuất) và chế độ khách. Cập nhật 25/10/2026: thêm route trang quản trị (mục 2.3) và quy ước lỗi của trang quản trị (mục 8.1) theo CR1. |
 
+> **Ghi chú (04/11/2026):** tài liệu giữ nguyên như lúc chốt ở Sprint 3. Route “Sprint sau” ở mục 6 (B1–B5) đã làm ở M4 và Sprint 4, có thay đổi (ví dụ thanh toán dùng form và chuyển trang 303 thay cho API JSON). Route hiện tại xem `src/README.md` (mục “Route”) và [02 – Yêu cầu và luồng đặt tour](../sprint4/02-yeu-cau-va-luong-dat-tour.md).
+
 ## 1. Phạm vi Sprint 3
 
 Sprint 3 làm các route ở mục 2: danh sách tour, chi tiết tour, tài khoản khách hàng và trang quản trị (CR1: FR-19 → FR-25, NFR-09). Cấu trúc router, controller, model xem `src/README.md`; danh sách stored procedure xem `src/database/README.md`.

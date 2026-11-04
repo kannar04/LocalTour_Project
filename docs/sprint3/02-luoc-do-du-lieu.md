@@ -11,6 +11,8 @@
 | Tài liệu liên quan | [01 – Danh mục trường dữ liệu](01-truong-du-lieu.md), [03 – Route và quy ước lỗi](03-route-va-quy-uoc-loi.md), `src/database/README.md` |
 | Tiêu chí nghiệm thu | Schema SQL chạy không lỗi; khóa chính/khóa ngoại hợp lý; có dữ liệu tối thiểu 6 tour để kiểm thử. |
 
+> **Ghi chú (04/11/2026):** tài liệu mô tả lược đồ lúc chốt Sprint 3 (27 bảng). Từ M4 và Sprint 4: migration 08 thêm cột cho đặt tour, migration 12 thêm bảng `booking_extras`, `booking_events` và các cột thanh toán (29 bảng); các bảng ghi “Sprint sau” (`booking_lines`, `passengers`, `payments`, `payment_events`, `refunds`) đã được ghi; `users.role` còn `admin`, `provider`, `customer` (bỏ `support` theo CR1). Lược đồ hiện tại xem [03 – Cấu trúc dữ liệu đặt tour](../sprint4/03-cau-truc-du-lieu-booking.md) và `src/database/README.md`.
+
 ## 1. Tổng quan
 
 - Hệ quản trị: MySQL chạy qua XAMPP (MariaDB 10.4); script tương thích MySQL 8.

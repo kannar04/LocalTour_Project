@@ -8,6 +8,8 @@
 | Căn cứ | SRS v0.1, bảng FR/NFR tuần 2, wireframe UIEx1/UIEx2, ERD `docs/diagram/localtour-erd.drawio` và schema `src/database/01_schema.sql` |
 | Trạng thái | **Đã chốt.** Khớp schema 27 bảng. Cập nhật 23/10/2026: thêm tài khoản khách hàng (đăng ký, đăng nhập, đăng xuất) và chế độ khách. Cập nhật 25/10/2026: thêm trường của trang quản trị (mục 7, theo CR1). |
 
+> **Ghi chú (04/11/2026):** tài liệu giữ nguyên như lúc chốt ở Sprint 3. Đặt tour, “Đơn của tôi” và thanh toán (ghi “Sprint sau”) đã làm ở M4 và Sprint 4; lược đồ hiện có 29 bảng (thêm `booking_extras`, `booking_events`). Trường dữ liệu hiện tại xem [03 – Cấu trúc dữ liệu đặt tour](../sprint4/03-cau-truc-du-lieu-booking.md) và `src/database/README.md`.
+
 ## 1. Nguyên tắc đọc tài liệu
 
 - **Nguồn dữ liệu** dùng đúng tên `bảng.cột` trong `src/database/01_schema.sql`.
