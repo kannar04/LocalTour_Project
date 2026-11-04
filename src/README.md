@@ -109,7 +109,8 @@ src/
 ├── routes/
 │   └── web.php                   # Khai báo route
 ├── scripts/
-│   └── expire_holds.php          # Tự hủy đơn quá hạn thanh toán (chạy bằng Task Scheduler)
+│   ├── expire_holds.php          # Tự hủy đơn quá hạn thanh toán (chạy bằng Task Scheduler)
+│   └── register_expire_task.bat  # Đăng ký Task Scheduler chạy expire_holds.php mỗi 15 phút
 └── storage/
     └── logs/                     # app.log sinh khi chạy, không đưa lên Git
 ```
@@ -143,8 +144,9 @@ Tiền tố tên procedure cho biết người phụ trách: `LTP_` – Lê Trun
 | GET | `/admin/bookings` | `AdminBookingController@index` | `status` (trống = tất cả), `q` (mã, tên, email, số điện thoại; tối đa 100 ký tự). |
 | GET | `/admin/bookings/{id}` | `AdminBookingController@show` | 404 nếu UUID sai hoặc không tìm thấy. |
 | POST | `/admin/bookings/{id}/status` | `AdminBookingController@updateStatus` | `status`, `note` (bắt buộc khi từ chối hoặc hủy, hoặc khi đổi tổng giá), `total_vnd` (tổng giá chốt khi xác nhận chỗ, trống = giữ nguyên), `_csrf`; 409 nếu không chuyển được trạng thái hoặc lịch không còn đủ chỗ. |
-| GET | `/admin/payments` | `AdminPaymentController@index` | Hàng đợi chuyển khoản VietQR chờ đối chiếu. |
+| GET | `/admin/payments` | `AdminPaymentController@index` | Hàng đợi chuyển khoản VietQR chờ đối chiếu và khoản VNPay chưa rõ kết quả. |
 | POST | `/admin/payments/{id}/decide` | `AdminPaymentController@decide` | `decision` (`confirm` / `reject`), `note` (bắt buộc khi không khớp), `_csrf`; xong về trang yêu cầu `#payments`. |
+| POST | `/admin/payments/{id}/vnpay` | `AdminPaymentController@vnpayDecide` | Ghi kết quả khoản VNPay chưa rõ kết quả: `decision` (`confirm` / `reject`), `txn_no` (mã giao dịch VNPay, bắt buộc khi `confirm`), `note` (bắt buộc khi `reject`), `_csrf`; xong về trang yêu cầu `#payments`. |
 | GET, POST | `/admin/providers`, `/admin/providers/new`, `/admin/providers/{id}/edit` | `AdminProviderController` | Danh sách, thêm, sửa đơn vị tổ chức; 422 lỗi theo ô, 409 email đã dùng. |
 | GET, POST | `/admin/tours/new`, `/admin/tours/{id}/edit` | `AdminTourFormController` | Thêm tour (luôn chờ duyệt), sửa thông tin và trạng thái xác minh. |
 | GET, POST | `/admin/tours/{id}/schedules`, `/admin/schedules/{id}/edit` | `AdminScheduleController` | Lịch khởi hành, sức chứa, giá vé người lớn / trẻ em; 409 khi sức chứa thấp hơn số chỗ đang giữ hoặc hủy lịch còn đơn. |
@@ -269,8 +271,8 @@ Mở `http://127.0.0.1:8080`. Giữ cửa sổ dòng lệnh mở trong lúc dùn
 **Database (chỉ với Cách B).** Trong phpMyAdmin, bấm `db_localtour` ở cột trái, mở tab **SQL**, chạy lần lượt từng câu:
 
 ```sql
-SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'db_localtour';                                  -- 27
-SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = 'db_localtour' AND ROUTINE_TYPE = 'PROCEDURE'; -- 34
+SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'db_localtour';                                  -- 29
+SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = 'db_localtour' AND ROUTINE_TYPE = 'PROCEDURE'; -- 66
 ```
 
 Ra số khác thì xem mục "Cách 1" của `src/database/README.md` để so tên bảng và procedure. Với Cách A, tài khoản ứng dụng chỉ có quyền gọi procedure nên bỏ qua bước này; các đường dẫn dưới đây đã đủ để kiểm tra.
@@ -355,14 +357,15 @@ Cần điền khóa VNPay sandbox và tài khoản VietQR trong `.env` (Bước 
 | Hủy giao dịch ở cổng VNPay | Về trang đơn với thông báo "Bạn đã hủy giao dịch ở VNPay. Bạn có thể thanh toán lại trước hạn giữ chỗ.", đơn vẫn "Chờ thanh toán". |
 | Đơn "Chờ thanh toán" quá hạn giữ chỗ (không có chuyển khoản chờ đối chiếu) | Lần mở trang tiếp theo đơn thành "Đã hủy" với lý do quá hạn, lịch được trả lại chỗ. |
 | VNPay báo thành công sau khi đơn đã tự hủy | Khoản vẫn được ghi "Đã thanh toán"; trang quản trị của đơn có cảnh báo cần hoàn tiền cho khách. |
+| Bấm "Thanh toán ngay" → VNPay rồi đóng tab cổng VNPay (không thanh toán, không bấm Hủy), chờ 15 phút | Khoản hiện ở mục "Giao dịch VNPay chưa rõ kết quả" của "Đối chiếu thanh toán". Ở trang yêu cầu, quản trị viên tra mã thanh toán trên cổng VNPay rồi chọn "Có giao dịch thành công" (nhập mã giao dịch VNPay; đơn còn hạn thì "Đã xác nhận" và có voucher, đơn đã hủy thì tạo yêu cầu hoàn tiền) hoặc "Không có giao dịch" (bắt buộc lý do; khách thanh toán lại được). |
 
-**Tự hủy định kỳ:** ngoài việc chạy mỗi lần mở trang, có thể đặt Windows Task Scheduler chạy mỗi 15 phút:
+**Tự hủy định kỳ:** ngoài việc chạy mỗi lần mở trang, cài lịch chạy `expire_holds.php` mỗi 15 phút trên máy chạy demo. Khi đã có `src/.env` và MySQL đang chạy, mở Command Prompt ở thư mục `src\scripts` rồi chạy:
 
 ```bat
-C:\xampp\php\php.exe C:\xampp\htdocs\LocalTour_Project\src\scripts\expire_holds.php
+register_expire_task.bat
 ```
 
-(Task Scheduler → Create Basic Task → Daily → Start a program; sau khi tạo, mở Properties → Triggers → "Repeat task every 15 minutes".) Script chỉ chạy được từ dòng lệnh.
+Script chạy thử `expire_holds.php` một lần (in "đã hủy N đơn quá hạn thanh toán"; lỗi kết nối database thì dừng, không đăng ký), rồi tạo task "LocalTour - Tu huy don qua han" chạy mỗi 15 phút bằng `php-win.exe` (không hiện cửa sổ). PHP không nằm ở `C:\xampp\php` thì thêm thư mục PHP: `register_expire_task.bat D:\xampp\php`. Gỡ lịch: `register_expire_task.bat /delete`. Task chỉ chạy khi tài khoản Windows đó đang đăng nhập. `expire_holds.php` chỉ chạy được từ dòng lệnh.
 
 ### Bước 10. Thử quản lý đơn vị tổ chức, tour và lịch
 
