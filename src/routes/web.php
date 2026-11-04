@@ -91,5 +91,6 @@ $router->get('/admin/bookings/{id}', [AdminBookingController::class, 'show']);
 $router->post('/admin/bookings/{id}/status', [AdminBookingController::class, 'updateStatus']);
 $router->get('/admin/payments', [AdminPaymentController::class, 'index']);
 $router->post('/admin/payments/{id}/decide', [AdminPaymentController::class, 'decide']);
+$router->post('/admin/payments/{id}/vnpay', [AdminPaymentController::class, 'vnpayDecide']);
 
 return $router;
