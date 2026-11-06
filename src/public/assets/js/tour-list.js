@@ -204,6 +204,24 @@
                 .append(LT.icon(iconName), $('<span>').addClass('lt-action__label').text(label));
         }
 
+        /** Nút chọn / bỏ so sánh (compare.js xử lý bấm và trạng thái đã chọn). */
+        function compareAction(tour, tourId) {
+            var $button = $('<button>')
+                .attr({
+                    type: 'button',
+                    'data-tour-id': tourId,
+                    'data-tour-title': String(tour.title || ''),
+                    'data-tour-image': tour.cover_image_url ? String(tour.cover_image_url) : '',
+                    'aria-pressed': 'false'
+                })
+                .addClass('lt-action lt-action--compare js-compare-toggle')
+                .append(LT.icon('columns'), $('<span>').addClass('lt-action__label js-compare-label').text('Thêm vào so sánh'));
+            if (!tourId) {
+                $button.prop('disabled', true);
+            }
+            return $button;
+        }
+
         function buildCard(tour, index) {
             var tourId = UUID_PATTERN.test(String(tour.tour_id || '')) ? String(tour.tour_id).toLowerCase() : '';
             var titleId = 'tour-title-' + (tourId || 'i' + index);
@@ -300,7 +318,7 @@
                     .text('Xem chi tiết')
             );
 
-            // Thích / Bình luận / Chia sẻ / Lưu tour và So sánh tour (FR-15): chưa làm ở Sprint 3, luôn tắt.
+            // Thích / Bình luận / Chia sẻ / Lưu tour: chưa làm, luôn tắt. So sánh tour (FR-15, Sprint 5): compare.js.
             var $social = $('<div>').addClass('lt-tour-card__social').attr({ role: 'group', 'aria-label': 'Tương tác (sắp có)' }).append(
                 disabledAction('heart', 'Thích'),
                 disabledAction('message', 'Bình luận'),
@@ -310,7 +328,7 @@
             );
             var $actions = $('<div>').addClass('lt-tour-card__actions').append(
                 $social,
-                disabledAction('columns', 'Thêm vào so sánh').addClass('lt-action--compare').append(LT.soonBadge())
+                compareAction(tour, tourId)
             );
 
             return $card.append(
@@ -357,6 +375,9 @@
             );
             setCount(total + ' tour');
             showState('results');
+            if (window.LocalTourCompare) {
+                window.LocalTourCompare.sync();
+            }
         }
 
         /* ---------- AJAX ---------- */
