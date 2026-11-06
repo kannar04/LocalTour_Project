@@ -12,7 +12,7 @@
 
 ## 1. Mục tiêu và phạm vi
 
-Mục tiêu: xác nhận bốn story Sprint 5 chạy đúng trên bản tích hợp nhánh `test_3` theo đúng câu chữ, mã HTTP và dữ liệu của ứng dụng; không làm hỏng luồng đặt tour, thanh toán, voucher của Sprint 4; có đủ bằng chứng để quyết định Go / No-go ngày 12/11.
+Mục tiêu: xác nhận bốn story Sprint 5 chạy đúng trên bản tích hợp theo đúng câu chữ, mã HTTP và dữ liệu của ứng dụng; không làm hỏng luồng đặt tour, thanh toán, voucher của Sprint 4; có đủ bằng chứng để quyết định Go / No-go ngày 12/11.
 
 Trong phạm vi:
 
@@ -50,7 +50,7 @@ Ngoài phạm vi (không ghi Fail cho các mục này):
 | Mục | Nội dung |
 | --- | --- |
 | Máy chủ | XAMPP 8.2 (PHP 8.2, MariaDB 10.4); chạy bằng Apache hoặc PHP built-in server theo Bước 4 của `src/README.md`; `.env` để `APP_DEBUG=false`. |
-| Mã nguồn | Nhánh `test_3`; ghi mã commit đã chạy vào biên bản. |
+| Mã nguồn | Bản tích hợp Sprint 5; ghi mã commit đã chạy vào biên bản. |
 | Database | Database thử trên máy mình (Cách B): import mới `src/database/db_localtour.sql` trước mỗi buổi chạy (lịch mẫu tính theo ngày import). **Không dùng database chung của nhóm**: các ca xóa tour, xóa đơn vị và nâng quyền quản trị làm đổi dữ liệu. |
 | Tài khoản | KH-A, KH-B (khách hàng) và QTV (quản trị viên): tài khoản tự đăng ký, không ghi email/mật khẩu vào tài liệu. QTV: đăng ký ở `/register` rồi `UPDATE users SET role='admin'` trên database thử theo Bước 7 của `src/README.md`. |
 | Trình duyệt | Chrome bản mới nhất: chạy đủ bộ ca. Edge: lượt rút gọn TC-LT-74, 76, 81, 89, 93, 118. Ghi số phiên bản vào biên bản. |
@@ -75,7 +75,7 @@ Ngoài phạm vi (không ghi Fail cho các mục này):
 
 | Tiêu chí vào (trước khi chạy 08/11) |
 | --- |
-| 1. Nhánh `test_3` có đủ US04, US06-S5-01, US07-S5-01, US14; ghi mã commit chạy thử. |
+| 1. Bản tích hợp có đủ US04, US06-S5-01, US07-S5-01, US14; ghi mã commit chạy thử. |
 | 2. Import mới `db_localtour.sql` không lỗi: 31 bảng, 92 procedure; 4 câu kiểm tra ở mục “Cách 1” của `src/database/README.md` đúng. |
 | 3. Bảng ở Bước 5 của `src/README.md` đúng hết (9 tour, tour 10 → “Không tìm thấy tour”, API). |
 | 4. Có KH-A, KH-B, QTV, file ảnh mẫu (mục 6.3); `.env` có cấu hình VietQR (và VNPay sandbox nếu dùng). |
@@ -266,7 +266,7 @@ Loại: thường / biên / lỗi / quyền / hồi quy. Ưu tiên: **Must** –
 
 | Mục | Kết quả |
 | --- | --- |
-| Mã commit đã kiểm thử (`test_3`) | |
+| Mã commit đã kiểm thử | |
 | Ca Must chưa chạy / lý do | |
 | Lỗi mở theo mức (Critical / High / Medium / Low) | __ / __ / __ / __ |
 | Lỗi đã đóng (mã DEF, commit sửa) | |
