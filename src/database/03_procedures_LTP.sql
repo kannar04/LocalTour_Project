@@ -19,7 +19,8 @@
 --             "Illegal mix of collations" khi database mặc định dùng collation khác.
 --             Trang quản trị: xem mọi tour, quy tắc riêng ở phần "Trang quản trị" cuối file.
 --             Không có DEFINER.
--- Chạy sau  : 01_schema.sql. Chạy lại được (DROP PROCEDURE IF EXISTS).
+-- Chạy sau  : 01_schema.sql, 16_migration_sprint5_LTP.sql (bảng tour_packages).
+--             Chạy lại được (DROP PROCEDURE IF EXISTS).
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
@@ -47,6 +48,8 @@
 --     người lớn (giá hiển thị là "/ người lớn", FR-10); không lấy giá vé trẻ em thay thế.
 --     NULL khi không có lịch đặt được hoặc không lịch nào còn vé người lớn đang bán
 --     (giao diện xếp vào nhóm "chưa cập nhật giá").
+--     Sprint 5 (US06-S5-01): tour có gói đang bán (tour_packages) thì "Từ" = giá người lớn
+--     thấp nhất của các gói, vì khách đặt theo giá gói.
 --   next_starts_at: giờ khởi hành sớm nhất trong các lịch đặt được (NULL nếu không có).
 --   cover_image_url / cover_alt_text: url và alt_text của ảnh bìa trong tour_images
 --     (sort_order nhỏ nhất, cùng sort_order thì id nhỏ nhất); NULL nếu tour chưa có ảnh.
@@ -114,9 +117,15 @@ BEGIN
     -- Lịch đặt được của từng tour: giá "Từ" và lịch khởi hành gần nhất
     LEFT JOIN (SELECT s.tour_id,
                       MIN(s.starts_at) AS next_starts_at,
-                      MIN(CASE WHEN tt.name = 'adult' THEN tt.price_vnd END) AS from_price_vnd
+                      MIN(CASE WHEN tt.name = 'adult' THEN COALESCE(pk.adult_from, tt.price_vnd) END) AS from_price_vnd
                  FROM schedules s
                  JOIN ticket_types tt ON tt.schedule_id = s.id AND tt.active = TRUE
+                 -- Tour có gói đang bán: giá người lớn thấp nhất của các gói
+                 LEFT JOIN (SELECT tp.tour_id, MIN(tp.adult_price_vnd) AS adult_from
+                              FROM tour_packages tp
+                             WHERE tp.active = TRUE
+                             GROUP BY tp.tour_id) pk
+                        ON pk.tour_id = s.tour_id
                 WHERE s.status = 'open'
                   AND s.starts_at > NOW()
                   AND s.remaining > 0
@@ -235,7 +244,7 @@ DELIMITER ;
 -- ---------------------------------------------------------------------
 -- LTP_sp_admin_tour_list(p_approval_status)
 --   p_approval_status: NULL / '' = mọi trạng thái; ngược lại 'draft' | 'pending' |
---                      'approved' | 'rejected'.
+--                      'approved' | 'rejected' | 'archived' (ngừng hiển thị, Sprint 5).
 --   Cột trả về: tour_id, title, provider_name, provider_approval_status,
 --     provider_user_status, destination_name, category_name, approval_status,
 --     is_public (1 = đang hiển thị cho khách), schedule_count (mọi lịch của tour),
