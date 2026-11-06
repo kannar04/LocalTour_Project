@@ -5,7 +5,7 @@
 | Sprint | Sprint 5 – So sánh tour, đổi/hủy và kiểm thử hệ thống (06/11 – 12/11/2026) |
 | WBS | Test Plan / RTM; Chuẩn bị dữ liệu kiểm thử; Thực thi test nghiệp vụ E2E; Retest và hồi quy; System Test Exit |
 | Người phụ trách | Hồ Duy Hải, Đỗ Sơn Thành (QA / Documentation) |
-| Căn cứ | Gantt chart QLDA_LocalTour (Sprint 5); Product Backlog (US04, US06, US07, US14); [Sprint 4 – Rà soát và tồn đọng](../sprint4/01-ra-soat-m3-va-ton-dong.md), mục 3; Kết quả kiểm thử và defect log Sprint 4; [src/README.md](../../src/README.md) (Route, Bước 5, 7–11); [src/database/README.md](../../src/database/README.md) (Dữ liệu mẫu và ca kiểm thử) |
+| Căn cứ | Gantt chart QLDA_LocalTour (Sprint 5); Product Backlog (US04, US06, US07, US14); [Sprint 4 – Rà soát và tồn đọng](../sprint4/R%C3%A0%20so%C3%A1t%20k%E1%BA%BFt%20qu%E1%BA%A3%20M3%20v%C3%A0%20t%E1%BB%93n%20%C4%91%E1%BB%8Dng.docx), mục 3; Kết quả kiểm thử và defect log Sprint 4; [src/README.md](../../src/README.md) (Route, Bước 5, 7–11); [src/database/README.md](../../src/database/README.md) (Dữ liệu mẫu và ca kiểm thử) |
 | Tài liệu liên quan | [01 – Yêu cầu và luồng Sprint 5](01-yeu-cau-va-luong-sprint5.md), [02 – Cấu trúc dữ liệu Sprint 5](02-cau-truc-du-lieu-sprint5.md) |
 | Bộ test case | TC-LT-74 → TC-LT-118 (45 ca: 40 Must, 5 Should), đánh số tiếp theo TC-LT-35…73 của Sprint 4 |
 | Trạng thái | Bản nháp; nhóm rà soát và chốt ngày 07/11/2026 (trước khi chạy test 08/11). |

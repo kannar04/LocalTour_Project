@@ -67,7 +67,7 @@ Tồn từ Sprint 4: chưa có bảng gói, tour mẫu chưa có gói, đơn đ�
 | # | Quy tắc |
 | --- | --- |
 | 1 | Gói phân theo phương tiện hoặc tuyến điểm; có tên, mô tả, giá người lớn và giá trẻ em riêng (trống = gói không bán vé trẻ em). Lịch khởi hành, lịch trình và phụ thu dùng chung với tour; điểm khác ghi trong mô tả gói. |
-| 2 | Giá gói lưu trong `tour_packages`, áp dụng cho mọi lịch của tour; không thêm cột `ticket_types.package_id` như bản thiết kế ở [Sprint 4 – 01](../sprint4/01-ra-soat-m3-va-ton-dong.md), mục 3. |
+| 2 | Giá gói lưu trong `tour_packages`, áp dụng cho mọi lịch của tour; không thêm cột `ticket_types.package_id` như bản thiết kế ở [Sprint 4 – 01](../sprint4/R%C3%A0%20so%C3%A1t%20k%E1%BA%BFt%20qu%E1%BA%A3%20M3%20v%C3%A0%20t%E1%BB%93n%20%C4%91%E1%BB%8Dng.docx), mục 3. |
 | 3 | Tour có ít nhất một gói đang bán thì khách phải chọn một gói: trang chi tiết có mục “Gói tour”, thẻ đặt tour có ô chọn gói và tạm tính theo gói; link đặt tour mang `package_id`. Mã gói sai hoặc không có thì trang đặt tour chọn gói đầu tiên. |
 | 4 | Server tính lại giá theo gói: vé trẻ em lấy giá trẻ em của gói, vé khác lấy giá người lớn. Gói vừa ngừng bán hoặc không thuộc tour, tour vừa có / hết gói, gói không bán vé trẻ em → 409 `package_changed` “Gói tour vừa thay đổi (gói ngừng bán, tour đổi danh sách gói hoặc gói không bán vé trẻ em). Vui lòng tải lại trang để chọn lại.”, không tạo đơn. `package_id` sai dạng → 422 “Trang đặt tour đã cũ, vui lòng tải lại trang.” |
 | 5 | Mã và tên gói chụp vào đơn, giá chụp vào `booking_lines`; trang đơn của khách và trang quản trị ghi tên gói. Sửa tên / giá gói sau đó không đổi đơn cũ. |

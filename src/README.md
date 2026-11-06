@@ -7,7 +7,7 @@ Tài liệu thiết kế đi kèm:
 - [01 – Danh mục trường dữ liệu](../docs/sprint3/01-truong-du-lieu.md)
 - [02 – Lược đồ dữ liệu](../docs/sprint3/02-luoc-do-du-lieu.md)
 - [03 – Route và quy ước lỗi](../docs/sprint3/03-route-va-quy-uoc-loi.md)
-- Sprint 4: [01 – Rà soát M3 và tồn đọng](../docs/sprint4/01-ra-soat-m3-va-ton-dong.md), [02 – Yêu cầu và luồng đặt tour](../docs/sprint4/02-yeu-cau-va-luong-dat-tour.md), [03 – Cấu trúc dữ liệu Booking](../docs/sprint4/03-cau-truc-du-lieu-booking.md)
+- Sprint 4: [01 – Rà soát M3 và tồn đọng](../docs/sprint4/R%C3%A0%20so%C3%A1t%20k%E1%BA%BFt%20qu%E1%BA%A3%20M3%20v%C3%A0%20t%E1%BB%93n%20%C4%91%E1%BB%8Dng.docx), [02 – Yêu cầu và luồng đặt tour](../docs/sprint4/02-yeu-cau-va-luong-dat-tour.md), [03 – Cấu trúc dữ liệu Booking](../docs/sprint4/03-cau-truc-du-lieu-booking.md)
 - Sprint 5: [01 – Yêu cầu và luồng Sprint 5](../docs/sprint5/01-yeu-cau-va-luong-sprint5.md), [02 – Cấu trúc dữ liệu Sprint 5](../docs/sprint5/02-cau-truc-du-lieu-sprint5.md), [03 – Test Plan và RTM](../docs/sprint5/03-test-plan-rtm.md)
 
 ## Công nghệ

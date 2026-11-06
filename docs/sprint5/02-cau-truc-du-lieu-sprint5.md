@@ -57,7 +57,7 @@ Khóa ngoại `booking_id` → `bookings`, `user_id` và `handled_by` → `users
 
 ## 3. Gói tour: giá lưu ở gói
 
-[Sprint 4 – 01 Rà soát kết quả M3 và tồn đọng](../sprint4/01-ra-soat-m3-va-ton-dong.md), mục 3, dòng “4. Gói lựa chọn (FR-07)”, dự kiến thêm bảng `tour_packages` và cột `ticket_types.package_id`. Khi làm, nhóm giữ bảng `tour_packages` nhưng **không thêm** `ticket_types.package_id`: giá người lớn / trẻ em lưu ngay trên dòng gói.
+[Sprint 4 – 01 Rà soát kết quả M3 và tồn đọng](../sprint4/R%C3%A0%20so%C3%A1t%20k%E1%BA%BFt%20qu%E1%BA%A3%20M3%20v%C3%A0%20t%E1%BB%93n%20%C4%91%E1%BB%8Dng.docx), mục 3, dòng “4. Gói lựa chọn (FR-07)”, dự kiến thêm bảng `tour_packages` và cột `ticket_types.package_id`. Khi làm, nhóm giữ bảng `tour_packages` nhưng **không thêm** `ticket_types.package_id`: giá người lớn / trẻ em lưu ngay trên dòng gói.
 
 Lý do: giá của gói áp dụng cho mọi lịch của tour. Nếu gắn gói vào `ticket_types`, mỗi lịch phải có một bộ vé cho từng gói, số dòng phải nhập là số gói × số lịch × số loại vé (tour 3: 3 gói × 3 lịch × 1 loại vé = 9 dòng `ticket_types` thay vì 3 dòng `tour_packages`), và mỗi lần thêm lịch hay đổi giá gói phải sửa nhiều dòng.
 

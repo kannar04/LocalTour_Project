@@ -454,7 +454,7 @@ CREATE TABLE passengers (
 -- provider_txn_id: mã giao dịch phía cổng VNPay / VietQR (NULL khi chưa tạo giao dịch).
 -- status: pending = Chưa thanh toán, processing = Đang xử lý,
 --         awaiting_reconciliation = Chờ đối chiếu, paid = Thành công, failed = Thất bại.
---         Luồng VietQR kết thúc ở 'awaiting_reconciliation' (chờ nhân viên đối chiếu)
+--         Luồng VietQR kết thúc ở 'awaiting_reconciliation' (chờ quản trị viên đối chiếu)
 --         hoặc 'paid'.
 --         Không có trạng thái "đã hoàn tiền": tiền hoàn được ghi ở bảng refunds.
 -- paid_at: thời điểm ghi nhận thanh toán thành công (status chuyển sang 'paid'); NULL khi
