@@ -5,6 +5,8 @@
  * Biến: $tour (NMT_sp_tour_detail, gồm destination_id/destination_name, category_id/category_name, transport,
  *       guide_info, dropoff_point, document_terms, meal_terms, voucher_terms, reschedule_terms),
  *       $schedules (lịch còn đặt được), $tickets (vé đang bán của các lịch đó),
+ *       $packages (gói tour đang bán, TourPackageModel::options(): [{id, name, description, adult, child|null}];
+ *       [] = tour không chia gói, giá theo loại vé của lịch),
  *       $itinerary (mục lịch trình theo sort_order: [{item_id, start_time, time_text, description}]),
  *       $inclusions (['included' => [...], 'excluded' => [...]]), $extras (phụ thu / hoạt động tùy chọn, phụ thu trước),
  *       $reviews (tối đa 5, mới nhất trước), $policy (null hoặc chính sách hủy mới nhất),
@@ -12,7 +14,9 @@
  * Dữ liệu thiếu hiển thị "Chưa cập nhật" (FR-01..05), không lấy từ tour khác và không tự suy diễn.
  * Thẻ đặt tour là form GET tới /tours/{id}/book (trang "Hoàn tất thông tin đặt tour") kèm lịch và số khách đã chọn.
  * Chế độ khách: nút "Đăng nhập để đặt tour" (đăng nhập xong vào thẳng trang đặt tour với lựa chọn hiện tại).
- * Tài khoản khách hàng: nút "Đặt tour". Thích / Bình luận / Chia sẻ / Lưu tour / So sánh: sắp có.
+ * Tài khoản khách hàng: nút "Đặt tour". Thích / Bình luận / Chia sẻ / Lưu tour: sắp có.
+ * Tour chia gói (US06-S5-01): giá "Từ" là giá người lớn rẻ nhất trong các gói, thẻ đặt tour có ô chọn gói
+ * (package_id gửi kèm sang trang đặt tour). Nút "Thêm vào so sánh" (US04-S5-01) do compare.js xử lý.
  */
 $missing = or_missing(null);
 
@@ -37,6 +41,13 @@ $categoryUrl = $tour['category_id'] === null ? null : url('/tours?category_id=' 
 $ratingText = format_rating($tour['rating_avg']);
 $reviewCount = (int) $tour['review_count'];
 $priceText = $tour['from_price_vnd'] === null ? null : format_vnd((int) $tour['from_price_vnd']);
+// Tour chia gói: giá theo gói, không theo giá vé gốc của lịch.
+$hasPackages = $packages !== [];
+$packageFrom = $hasPackages ? min(array_column($packages, 'adult')) : null;
+if ($packageFrom !== null) {
+    $priceText = format_vnd($packageFrom);
+}
+$compareImage = $gallery !== [] ? (string) $gallery[array_key_first($gallery)]['url'] : '';
 $maxGroup = max(1, (int) $tour['max_group_size']);
 $hasSchedules = !empty($schedules);
 $providerName = (string) $tour['provider_name'];
@@ -114,6 +125,7 @@ foreach ($tickets as $ticket) {
     $ticketAges = age_range_text($ticket['min_age'], $ticket['max_age']);
     $ticketsBySchedule[(string) $ticket['schedule_id']][] = [
         'id' => (string) $ticket['ticket_type_id'],
+        'name' => strtolower((string) $ticket['name']),
         'label' => $ticketLabel,
         'ages' => $ticketAges,
         'price' => (int) $ticket['price_vnd'],
@@ -123,7 +135,7 @@ foreach ($tickets as $ticket) {
     }
 }
 $ageLines = array_keys($ageLines);
-$bookingData = ['maxGroup' => $maxGroup, 'schedules' => []];
+$bookingData = ['maxGroup' => $maxGroup, 'packages' => $packages, 'schedules' => []];
 foreach ($schedules as $schedule) {
     $scheduleId = (string) $schedule['schedule_id'];
     $bookingData['schedules'][] = [
@@ -175,8 +187,11 @@ $policyRows = [
     'Điều kiện đón khách' => $pickupLines,
 ];
 
-$sections = [
-    'thong-tin' => 'Thông tin tour',
+$sections = ['thong-tin' => 'Thông tin tour'];
+if ($hasPackages) {
+    $sections['goi-tour'] = 'Gói tour';
+}
+$sections += [
     'lich-trinh' => 'Lịch trình',
     'lich-khoi-hanh' => 'Lịch khởi hành',
     'dich-vu' => 'Dịch vụ',
@@ -298,6 +313,27 @@ $sections = [
                     </dl>
                 </section>
 
+<?php if ($hasPackages): ?>
+                <section class="lt-section" id="goi-tour" tabindex="-1" aria-labelledby="goi-tour-title">
+                    <h2 class="lt-section__title" id="goi-tour-title">Gói tour</h2>
+                    <p class="lt-empty-note">Tour có <?= e(count($packages)) ?> gói. Chọn gói ở thẻ đặt tour; giá vé tính theo gói đã chọn.</p>
+                    <ul class="lt-extras">
+<?php foreach ($packages as $package): ?>
+                        <li class="lt-extra">
+                            <div class="lt-extra__head">
+                                <span class="lt-extra__name"><?= e($package['name']) ?></span>
+                                <span class="lt-extra__price"><?= e(format_vnd($package['adult'])) ?> / người lớn</span>
+                            </div>
+                            <p class="lt-extra__conditions"><?= $package['child'] === null ? 'Không bán vé trẻ em.' : 'Trẻ em ' . e(format_vnd($package['child'])) . ' / người.' ?></p>
+<?php if ($package['description'] !== ''): ?>
+                            <p class="lt-extra__conditions"><?= nl2br(e($package['description']), false) ?></p>
+<?php endif; ?>
+                        </li>
+<?php endforeach; ?>
+                    </ul>
+                </section>
+
+<?php endif; ?>
                 <section class="lt-section" id="lich-trinh" tabindex="-1" aria-labelledby="lich-trinh-title">
                     <h2 class="lt-section__title" id="lich-trinh-title">Lịch trình</h2>
 <?php if (empty($itinerary)): ?>
@@ -329,7 +365,7 @@ $sections = [
 <?php else: ?>
                     <ul class="lt-schedules">
 <?php foreach ($schedules as $schedule): ?>
-<?php $schedulePrice = $schedule['from_price_vnd'] === null ? null : format_vnd((int) $schedule['from_price_vnd']); ?>
+<?php $schedulePrice = $packageFrom !== null ? format_vnd($packageFrom) : ($schedule['from_price_vnd'] === null ? null : format_vnd((int) $schedule['from_price_vnd'])); ?>
                         <li class="lt-schedule">
                             <span class="lt-schedule__icon" aria-hidden="true"><span class="lt-icon lt-icon--calendar"></span></span>
                             <div class="lt-schedule__when">
@@ -499,6 +535,17 @@ $sections = [
                     <p class="lt-booking__note">Giá minh họa · VND</p>
 
                     <form class="lt-booking__form" id="booking-form" action="<?= e(url($bookPath)) ?>" method="get" novalidate>
+<?php if ($hasPackages): ?>
+                        <div class="lt-field">
+                            <label class="lt-field__label" for="booking-package">Gói tour</label>
+                            <select class="lt-input lt-select" id="booking-package" name="package_id"<?= $hasSchedules ? '' : ' disabled' ?>>
+<?php foreach ($packages as $package): ?>
+                                <option value="<?= e($package['id']) ?>"><?= e($package['name']) ?> · <?= e(format_vnd($package['adult'])) ?> / người lớn</option>
+<?php endforeach; ?>
+                            </select>
+                        </div>
+
+<?php endif; ?>
                         <div class="lt-field">
                             <label class="lt-field__label" for="booking-schedule">Ngày tham gia</label>
 <?php if ($hasSchedules): ?>
@@ -580,10 +627,13 @@ $sections = [
                                 Tài khoản quản trị không đặt tour được. Đăng nhập bằng tài khoản khách hàng để đặt tour.
                             </p>
 <?php endif; ?>
-                            <button type="button" class="lt-btn lt-btn--soft lt-btn--block" disabled title="Sắp có">
+                            <button type="button" class="lt-btn lt-btn--soft lt-btn--block js-compare-toggle" aria-pressed="false"
+                                    data-tour-id="<?= e($tour['tour_id']) ?>" data-tour-title="<?= e($tour['title']) ?>" data-tour-image="<?= e($compareImage) ?>">
                                 <span class="lt-icon lt-icon--columns" aria-hidden="true"></span>
-                                Thêm vào so sánh <span class="lt-soon">Sắp có</span>
+                                <span class="js-compare-label">Thêm vào so sánh</span>
                             </button>
+                            <p class="lt-compare-status js-compare-status" aria-live="polite">Chọn 2–3 tour để so sánh giá, lịch trình và chính sách.</p>
+                            <a class="lt-btn lt-btn--outline lt-btn--block js-compare-go is-disabled" href="<?= e(url('/compare')) ?>" aria-disabled="true">Xem bảng so sánh</a>
                         </div>
                     </form>
                     <script type="application/json" id="booking-data"><?= $bookingJson ?></script>
