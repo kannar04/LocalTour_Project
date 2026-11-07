@@ -13,8 +13,8 @@
 --             Đơn vẫn hiện khi tour đã bị ẩn sau lúc đặt; cột tour_public cho biết còn mở
 --             được trang chi tiết tour hay không.
 --             Tham số chuỗi được so sánh với COLLATE utf8mb4_unicode_ci; không có DEFINER.
--- Chạy sau  : 01_schema.sql, 08_migration_booking_NMT.sql, 12_migration_sprint4_NMT.sql.
---             Chạy lại được (DROP PROCEDURE IF EXISTS).
+-- Chạy sau  : 01_schema.sql, 08_migration_booking_NMT.sql, 12_migration_sprint4_NMT.sql,
+--             16_migration_sprint5_LTP.sql. Chạy lại được (DROP PROCEDURE IF EXISTS).
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
@@ -82,6 +82,7 @@ DELIMITER ;
 --   trạng thái hiện tại, do quản trị viên (admin_logs) hoặc hệ thống / VNPay (booking_events);
 --   NULL khi đơn còn 'pending' hoặc không có ghi chú).
 --   Trang chỉ hiện status_note cho đơn bị từ chối / bị hủy (lý do).
+--   Sprint 5: package_name (gói đã chọn khi đặt, NULL = tour không có gói).
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NTK_sp_customer_booking_detail;
 
@@ -109,6 +110,7 @@ BEGIN
         b.voucher_code,
         b.voucher_issued_at,
         b.policy_version,
+        b.package_name,
         b.contact_name,
         b.contact_email,
         b.contact_phone,

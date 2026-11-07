@@ -30,7 +30,8 @@
 --             admin_logs ghi "Tổng giá: A -> B". Khách thanh toán đúng tổng giá đã chốt.
 --             Xác nhận đơn (-> confirmed) cấp voucher (LTP_sp_voucher_issue, file 15).
 --             Tham số chuỗi được so sánh với COLLATE utf8mb4_unicode_ci; không có DEFINER.
--- Chạy sau  : 01_schema.sql. Chạy lại được (DROP PROCEDURE IF EXISTS).
+-- Chạy sau  : 01_schema.sql (Sprint 5: cột bookings.package_name ở 16_migration_sprint5_LTP.sql).
+--             Chạy lại được (DROP PROCEDURE IF EXISTS).
 --             Các procedure đọc cột / bảng của file 08 và 12 và gọi LTP_sp_voucher_issue
 --             (file 15), nên cần import đủ 01 -> 15 trước khi mở trang quản trị.
 -- =====================================================================
@@ -94,6 +95,7 @@ DELIMITER ;
 --   'processing', 'pending', 'failed'), tổng tiền đã hoàn ('completed'), số tiền đang chờ
 --   hoàn ('requested'), tiền vé (tickets_vnd), phụ thu / tùy chọn khách chọn (extras_vnd)
 --   và voucher (voucher_code, voucher_issued_at; NULL = chưa cấp).
+--   Sprint 5: package_name (gói khách chọn, NULL = tour không có gói).
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NTK_sp_admin_booking_detail;
 
@@ -119,6 +121,7 @@ BEGIN
         b.voucher_code,
         b.voucher_issued_at,
         b.policy_version,
+        b.package_name,
         b.contact_name,
         b.contact_email,
         b.contact_phone,
