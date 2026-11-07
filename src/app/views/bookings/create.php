@@ -7,10 +7,13 @@
  *       $policy (null hoặc chính sách hủy mới nhất), $coverUrl (ảnh bìa hoặc null),
  *       $selectedScheduleId, $selectedTickets ([mã vé => số khách] chọn ở trang chi tiết),
  *       $scheduleNotice (lịch đã chọn không còn nhận khách), $contact (name, email, phone),
- *       $requestToken (mã một lần mở form), $loginUrl (đăng nhập lại khi hết phiên), $title.
+ *       $requestToken (mã một lần mở form), $loginUrl (đăng nhập lại khi hết phiên), $title,
+ *       $packages (gói đang bán, TourPackageModel::options(); [] = tour không chia gói), $selectedPackageId.
  * Hai bước trong cùng trang: điền thông tin → "Xem lại & xác nhận" → "Gửi yêu cầu đặt tour".
  * booking.js dựng hàng vé, danh sách khách, tạm tính và gửi POST /api/bookings; trang cần JavaScript.
  * Sprint 4 (4.3.2.3): khách chọn phụ thu / hoạt động tùy chọn; tổng tiền = tiền vé + các khoản đã chọn.
+ * Sprint 5 (US06-S5-01): tour chia gói thì chọn một gói; giá người lớn / trẻ em theo gói, gói không có giá trẻ em
+ * thì không bán vé trẻ em.
  * Chưa thu tiền ở bước này: đơn mới là "Chờ xác nhận", thanh toán làm sau khi LocalTour xác nhận chỗ và chốt tổng giá.
  */
 $missing = or_missing(null);
@@ -31,9 +34,11 @@ $ticketsBySchedule = [];
 foreach ($tickets as $ticket) {
     $ticketsBySchedule[(string) $ticket['schedule_id']][] = ticket_option($ticket);
 }
+$hasPackages = $packages !== [];
 $bookData = [
     'maxGroup' => $maxGroup,
     'selected' => (object) $selectedTickets,
+    'packages' => $packages,
     'schedules' => [],
 ];
 foreach ($schedules as $schedule) {
@@ -101,6 +106,9 @@ $contactFields = [
             <?= csrf_field() ?>
             <input type="hidden" name="request_token" value="<?= e($requestToken) ?>">
             <input type="hidden" name="expected_total" id="book-expected-total" value="0">
+<?php if (!$hasPackages): ?>
+            <input type="hidden" name="package_id" value="">
+<?php endif; ?>
 
             <div class="col-12 col-lg-7 col-xl-8">
                 <div class="lt-book-alert" id="book-alert" role="alert" tabindex="-1" hidden>
@@ -148,6 +156,33 @@ $contactFields = [
                                 <input class="lt-input" type="text" id="book-time" readonly value="—">
                             </div>
                         </div>
+
+<?php if ($hasPackages): ?>
+                        <fieldset class="lt-field lt-extras lt-packages" aria-describedby="book-packages-hint">
+                            <legend class="lt-field__label">Gói tour</legend>
+                            <ul class="lt-extras__list">
+<?php foreach ($packages as $package): ?>
+<?php $packageInputId = 'book-package-' . $package['id']; ?>
+                                <li class="lt-extras__item">
+                                    <input class="lt-check__input js-package" type="radio" id="<?= e($packageInputId) ?>" name="package_id" value="<?= e($package['id']) ?>"
+                                           data-name="<?= e($package['name']) ?>"<?= $package['id'] === $selectedPackageId ? ' checked' : '' ?>>
+                                    <label class="lt-extras__label" for="<?= e($packageInputId) ?>">
+                                        <span class="lt-extras__name"><?= e($package['name']) ?></span>
+                                        <span class="lt-extras__price"><?= e(format_vnd($package['adult'])) ?> / người lớn</span>
+                                        <span class="lt-extras__note">
+                                            <?= e($package['child'] === null ? 'Không bán vé trẻ em.' : 'Trẻ em ' . format_vnd($package['child']) . ' / người.') ?>
+<?php if ($package['description'] !== ''): ?>
+                                            <?= e($package['description']) ?>
+<?php endif; ?>
+                                        </span>
+                                    </label>
+                                </li>
+<?php endforeach; ?>
+                            </ul>
+                            <p class="lt-field__hint" id="book-packages-hint">Giá vé tính theo gói đã chọn.</p>
+                            <p class="lt-field__error" data-error-for="package_id" hidden></p>
+                        </fieldset>
+<?php endif; ?>
 
                         <fieldset class="lt-field lt-tickets" aria-describedby="book-guests-hint">
                             <legend class="lt-field__label">Số khách</legend>
@@ -244,6 +279,9 @@ $contactFields = [
                     <p class="lt-book-card__lead">Kiểm tra lại thông tin trước khi gửi. Bạn vẫn có thể quay lại để sửa.</p>
                     <dl class="lt-book-summary">
                         <div><dt>Tour</dt><dd><?= e($tour['title']) ?></dd></div>
+<?php if ($hasPackages): ?>
+                        <div><dt>Gói tour</dt><dd class="js-review-package"></dd></div>
+<?php endif; ?>
                         <div><dt>Ngày tham gia</dt><dd class="js-review-date"></dd></div>
                         <div><dt>Giờ</dt><dd class="js-review-time"></dd></div>
                         <div><dt>Số khách</dt><dd class="js-review-people"></dd></div>
@@ -290,6 +328,9 @@ $contactFields = [
                     </div>
 
                     <dl class="lt-book-facts">
+<?php if ($hasPackages): ?>
+                        <div><dt>Gói tour</dt><dd class="js-sum-package">—</dd></div>
+<?php endif; ?>
                         <div><dt>Ngày tham gia</dt><dd class="js-sum-date">—</dd></div>
                         <div><dt>Giờ</dt><dd class="js-sum-time">—</dd></div>
                         <div><dt>Số khách</dt><dd class="js-sum-people">—</dd></div>
