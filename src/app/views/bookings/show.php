@@ -5,8 +5,9 @@
  * chuyến đi, danh sách khách, tiền vé và chính sách hủy đúng phiên bản lúc đặt.
  * Biến: $booking (NTK_sp_customer_booking_detail), $lines (vé), $extras (phụ thu / tùy chọn), $passengers,
  *       $payments (NMT_sp_payment_list), $history (LTP_sp_customer_booking_history), $justCreated (vừa gửi yêu cầu),
- *       $payNotice (kết quả thanh toán: [loại, nội dung] hoặc null), $title.
+ *       $payNotice (kết quả thanh toán: [loại, nội dung] hoặc null), $changeQuote (LTP_sp_change_quote), $title.
  * Sprint 4: "Chờ thanh toán" có nút thanh toán VNPay / VietQR và hạn giữ chỗ; đơn đã xác nhận có voucher.
+ * Sprint 5: gói tour đã chọn; thẻ "Đổi ngày / hủy tour" (gửi yêu cầu hoặc xem yêu cầu đang chờ xử lý).
  */
 $missing = or_missing(null);
 $bookingStatus = (string) $booking['status'];
@@ -50,6 +51,10 @@ $nextStep = match ($bookingStatus) {
     default => '',
 };
 $isClosed = in_array($bookingStatus, ['rejected', 'cancelled'], true);
+$packageName = trim((string) ($booking['package_name'] ?? ''));
+$changeUrl = url('/bookings/' . $code . '/change');
+$pendingChange = $changeQuote !== null && $changeQuote['pending_request_id'] !== null ? (string) $changeQuote['pending_request_type'] : null;
+$canChange = $changeQuote !== null && (int) $changeQuote['can_request'] === 1;
 // Bước 1 "Thông tin chuyến đi" luôn xong; bước 2 "Thanh toán" đang làm khi chờ thanh toán; bước 3 xong khi đã xác nhận.
 $paymentDone = in_array($bookingStatus, ['confirmed', 'completed'], true);
 $steps = [
@@ -89,7 +94,7 @@ $steps = [
             <span class="lt-icon lt-icon--check" aria-hidden="true"></span>
             <div>
                 <p class="lt-book-success__title">Đã gửi yêu cầu đặt tour</p>
-                <p>Mã đơn của bạn là <strong><?= e($booking['code']) ?></strong>. LocalTour sẽ kiểm tra chỗ và báo kết quả qua email <?= e($booking['contact_email']) ?>.</p>
+                <p>Mã đơn của bạn là <strong><?= e($booking['code']) ?></strong>. LocalTour sẽ kiểm tra chỗ; kết quả hiện ở trang này và trong Đơn của tôi.</p>
             </div>
         </div>
 <?php endif; ?>
@@ -141,6 +146,19 @@ $steps = [
 <?php endif; ?>
                 </section>
 
+<?php if ($pendingChange !== null || $canChange): ?>
+                <section class="lt-book-card" aria-labelledby="order-change-title">
+                    <h2 class="lt-book-card__title" id="order-change-title">Đổi ngày / hủy tour</h2>
+<?php if ($pendingChange !== null): ?>
+                    <p>Bạn đã gửi yêu cầu <strong><?= e(mb_strtolower(change_request_type_label($pendingChange))) ?></strong>. LocalTour đang xử lý; đơn giữ nguyên cho tới khi có kết quả.</p>
+                    <a class="lt-btn lt-btn--outline lt-book-state__action" href="<?= e($changeUrl) ?>">Xem yêu cầu</a>
+<?php else: ?>
+                    <p>Cần đổi sang ngày khác hoặc hủy tour? Xem chính sách hủy và số tiền dự kiến được hoàn trước khi gửi yêu cầu.</p>
+                    <a class="lt-btn lt-btn--outline lt-book-state__action" href="<?= e($changeUrl) ?>">Đổi ngày / hủy tour</a>
+<?php endif; ?>
+                </section>
+<?php endif; ?>
+
                 <section class="lt-book-card" aria-labelledby="order-trip-title">
                     <h2 class="lt-book-card__title" id="order-trip-title">Chuyến đi</h2>
                     <dl class="lt-book-summary">
@@ -154,6 +172,9 @@ $steps = [
 <?php endif; ?>
                             </dd>
                         </div>
+<?php if ($packageName !== ''): ?>
+                        <div><dt>Gói tour</dt><dd><?= e($packageName) ?></dd></div>
+<?php endif; ?>
                         <div><dt>Điểm đến</dt><dd><?= e(or_missing((string) $booking['destination_name'])) ?></dd></div>
                         <div><dt>Ngày tham gia</dt><dd><?= e(format_date((string) $booking['starts_at'])) ?></dd></div>
                         <div><dt>Giờ</dt><dd><?= e(schedule_time_text((string) $booking['starts_at'], (string) $booking['ends_at'])) ?></dd></div>
