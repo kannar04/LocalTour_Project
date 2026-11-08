@@ -635,3 +635,106 @@ textarea.lt-admin-input {
     background: var(--lt-highlight);
     color: var(--lt-highlight-text);
 }
+
+/* ---------- Sprint 5: gói tour, nội dung tour, xóa / ngừng hiển thị (Nguyễn Tuấn Khôi) ---------- */
+
+/* Chữ .sr-only trong bảng là position: absolute: giữ trong vùng cuộn để trang không rộng ra trên điện thoại. */
+.lt-admin .table-responsive {
+    position: relative;
+}
+
+.lt-badge--archived,
+.lt-badge--draft {
+    background: #eceef1;
+    color: var(--lt-muted-strong);
+}
+
+.lt-table__actions {
+    white-space: nowrap;
+}
+
+.lt-table__actions form,
+.lt-thumb__actions form,
+.lt-plain-list form {
+    display: inline-block;
+    margin: 0;
+}
+
+.lt-table__actions > * + * {
+    margin-left: 4px;
+}
+
+.lt-thumbs {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.lt-thumb {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--lt-border);
+    border-radius: var(--lt-radius-lg);
+    overflow: hidden;
+    background: var(--lt-surface);
+}
+
+.lt-thumb.is-cover {
+    border-color: var(--lt-teal);
+    box-shadow: 0 0 0 1px var(--lt-teal);
+}
+
+.lt-thumb__img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    background: var(--lt-surface-alt);
+}
+
+.lt-thumb__caption {
+    flex: 1;
+    margin: 0;
+    padding: 8px 10px 4px;
+    font-size: 0.8125rem;
+    overflow-wrap: anywhere;
+}
+
+.lt-thumb__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 4px 10px 10px;
+}
+
+.lt-plain-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.875rem;
+}
+
+.lt-plain-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--lt-border);
+}
+
+.lt-plain-list li:last-child {
+    border-bottom: 0;
+}
+
+.lt-panel--danger {
+    border-color: var(--lt-danger);
+}
+
+.lt-panel--danger .lt-panel__title {
+    color: var(--lt-danger);
+}

@@ -3,6 +3,10 @@ src/.env
 src/storage/logs/*
 !src/storage/logs/.gitkeep
 
+# Ảnh tour quản trị viên tải lên (chỉ có trên máy chạy web)
+src/public/assets/uploads/*
+!src/public/assets/uploads/.gitkeep
+
 # Hệ điều hành / editor
 .DS_Store
 Thumbs.db
