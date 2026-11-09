@@ -5,6 +5,7 @@
  * Biến: $provider (NMT_sp_admin_provider_detail; null = thêm mới), $old (business_name, contact_phone, email,
  *       approval_status đang nhập), $errors (lỗi theo ô; 'form' = lỗi chung như hết phiên),
  *       $history (lịch sử thêm / sửa, cũ trước; [] khi thêm mới).
+ * Sprint 5 (US07-S5-01, Nguyễn Tuấn Khôi): ô "Xóa đơn vị" khi sửa; chỉ xóa được đơn vị chưa có tour.
  */
 use App\Models\AdminProviderModel;
 
@@ -123,6 +124,28 @@ $statusError = $errors['approval_status'] ?? '';
                             </li>
 <?php endforeach; ?>
                         </ol>
+<?php endif; ?>
+                    </section>
+
+                    <section class="lt-panel lt-panel--danger" aria-labelledby="provider-delete-title">
+                        <h2 class="lt-panel__title" id="provider-delete-title">Xóa đơn vị</h2>
+<?php if ((int) $provider['tour_count'] > 0): ?>
+                        <p class="lt-admin__text">Đơn vị còn <?= e($provider['tour_count']) ?> tour nên không xóa được (đơn cũ cần giữ thông tin đơn vị).
+                            Muốn ẩn mọi tour của đơn vị khỏi trang khách, chọn “<?= e(provider_status_label('rejected')) ?>” rồi lưu.</p>
+<?php else: ?>
+                        <p class="lt-admin__text">Đơn vị chưa có tour nào. Xóa sẽ xóa hẳn đơn vị và tài khoản không đăng nhập đi kèm; lịch sử thao tác vẫn được giữ.</p>
+                        <form action="<?= e(url('/admin/providers/' . $provider['provider_id'] . '/delete')) ?>" method="post" class="lt-admin-form">
+                            <?= csrf_field() ?>
+                            <div class="custom-control custom-checkbox lt-admin-field">
+                                <input class="custom-control-input<?= isset($errors['confirm']) ? ' is-invalid' : '' ?>" type="checkbox" id="provider-delete-confirm" name="confirm" value="1" required
+                                       <?= isset($errors['confirm']) ? 'aria-invalid="true" aria-describedby="provider-delete-error"' : '' ?>>
+                                <label class="custom-control-label" for="provider-delete-confirm">Tôi hiểu đơn vị sẽ bị xóa hẳn.</label>
+<?php if (isset($errors['confirm'])): ?>
+                                <p class="lt-admin-error" id="provider-delete-error"><?= e($errors['confirm']) ?></p>
+<?php endif; ?>
+                            </div>
+                            <button class="lt-btn lt-btn--danger" type="submit"><span class="lt-icon lt-icon--x" aria-hidden="true"></span> Xóa đơn vị</button>
+                        </form>
 <?php endif; ?>
                     </section>
                 </div>

@@ -11,6 +11,7 @@ use App\Models\AdminProviderModel;
  * Đơn vị tổ chức (FR-13, Nguyễn Minh Thức): danh sách, thêm, sửa thông tin và trạng thái hợp tác.
  * Đơn vị chưa có tài khoản đăng nhập riêng: thêm đơn vị = thêm tài khoản 'provider' không có mật khẩu.
  * Mỗi lần thêm / sửa được ghi lịch sử (admin_logs, target_type 'provider').
+ * Sprint 5 (US07-S5-01, Nguyễn Tuấn Khôi): xóa đơn vị chưa có tour; đơn vị còn tour thì chuyển "Ngừng hợp tác".
  */
 final class AdminProviderController extends AdminController
 {
@@ -18,6 +19,7 @@ final class AdminProviderController extends AdminController
         'created' => 'Đã thêm đơn vị tổ chức.',
         'updated' => 'Đã lưu thông tin đơn vị tổ chức.',
         'unchanged' => 'Không có thay đổi nào.',
+        'deleted' => 'Đã xóa đơn vị tổ chức.',
     ];
 
     /** Lỗi khi procedure báo ô sai (đã kiểm tra ở PHP trước, đây là lớp chặn cuối). */
@@ -113,6 +115,33 @@ final class AdminProviderController extends AdminController
             // Email vừa được tài khoản khác dùng: tải lại thông tin mới nhất của đơn vị.
             'email_taken' => $this->renderForm($this->findOrFail($providerId), $old, ['email' => self::EMAIL_TAKEN], 409),
             default => $this->renderForm($provider, $old, self::fieldError($row['field'] ?? null), 422),
+        };
+    }
+
+    /** POST /admin/providers/{id}/delete – confirm=1, _csrf */
+    public function delete(string $id): void
+    {
+        $provider = $this->findOrFail($id);
+        $old = self::oldFrom($provider);
+        if (!$this->csrfValid()) {
+            $this->renderForm($provider, $old, ['form' => self::CSRF_FAILED], 403);
+            return;
+        }
+        if ($this->input('confirm') !== '1') {
+            $this->renderForm($provider, $old, ['confirm' => 'Đánh dấu ô xác nhận trước khi xóa đơn vị.'], 422);
+            return;
+        }
+
+        $row = $this->providers->delete($this->actorId(), (string) $provider['provider_id']);
+        match ((string) $row['result']) {
+            'deleted' => $this->redirect('/admin/providers?msg=deleted'),
+            'forbidden' => self::forbidden(),
+            'not_found' => self::notFound(),
+            // Vừa có tour được thêm cho đơn vị: tải lại số tour mới nhất.
+            default => $this->renderForm($this->findOrFail((string) $provider['provider_id']), $old, [
+                'form' => 'Đơn vị còn ' . (int) $row['tour_count'] . ' tour nên không xóa được. Chọn “'
+                    . provider_status_label('rejected') . '” để ẩn mọi tour của đơn vị khỏi trang khách.',
+            ], 409),
         };
     }
 
