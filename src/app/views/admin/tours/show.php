@@ -5,8 +5,11 @@
  * Biến: $tour (LTP_sp_admin_tour_detail), $history (lịch sử xử lý, NFR-09), $success / $error ('' = không có),
  *       $note (lý do từ chối giữ lại khi có lỗi).
  * Form "Phê duyệt" và "Từ chối" chỉ hiện khi tour đang "Chờ duyệt".
+ * Sprint 5 (Nguyễn Tuấn Khôi): nút "Gói tour" (US06-S5-01) và "Ảnh, lịch trình, dịch vụ, chính sách" (US07-S5-01,
+ * gồm cả xóa tour / ngừng hiển thị); lịch sử ghi thêm các thao tác đó.
  */
 $isPending = $tour['approval_status'] === 'pending';
+$isArchived = $tour['approval_status'] === 'archived';
 $providerOk = $tour['provider_approval_status'] === 'approved' && $tour['provider_user_status'] === 'active';
 $missing = [];
 if ((int) $tour['schedule_count'] === 0) {
@@ -43,12 +46,27 @@ $counts = [
     'Dịch vụ bao gồm / không bao gồm' => $tour['inclusion_count'],
     'Phiên bản chính sách hủy' => $tour['policy_count'],
 ];
-$actionLabels = ['tour_approve' => 'Phê duyệt', 'tour_reject' => 'Từ chối', 'tour_create' => 'Thêm tour', 'tour_update' => 'Sửa thông tin'];
+$actionLabels = [
+    'tour_approve' => 'Phê duyệt', 'tour_reject' => 'Từ chối', 'tour_create' => 'Thêm tour', 'tour_update' => 'Sửa thông tin',
+    'tour_archive' => 'Ngừng hiển thị', 'tour_restore' => 'Hiển thị lại',
+    'package_create' => 'Thêm gói tour', 'package_update' => 'Sửa gói tour',
+    'image_add' => 'Thêm ảnh', 'image_delete' => 'Xóa ảnh', 'image_cover' => 'Đổi ảnh bìa',
+    'itinerary_add' => 'Thêm lịch trình', 'itinerary_update' => 'Sửa lịch trình', 'itinerary_delete' => 'Xóa lịch trình',
+    'inclusion_add' => 'Thêm dịch vụ', 'inclusion_delete' => 'Xóa dịch vụ', 'policy_add' => 'Thêm chính sách hủy',
+];
+$packageStatus = ['active' => 'Đang bán', 'inactive' => 'Ngừng bán'];
 // Thêm tour: to_status = trạng thái duyệt; sửa thông tin: from / to = trạng thái xác minh (NFR-07).
-$historyText = static function (array $log) use ($actionLabels): string {
+$historyText = static function (array $log) use ($actionLabels, $packageStatus): string {
     $label = $actionLabels[$log['action']] ?? $log['action'];
+    if ($log['from_status'] === null && $log['to_status'] === null) {
+        return $label; // ảnh, lịch trình, dịch vụ, chính sách: chi tiết nằm ở cột ghi chú
+    }
 
     return match ($log['action']) {
+        'package_create' => $label . ': ' . ($packageStatus[$log['to_status']] ?? $log['to_status']),
+        'package_update' => $log['from_status'] === $log['to_status']
+            ? $label
+            : $label . ': ' . ($packageStatus[$log['from_status']] ?? $log['from_status']) . ' → ' . ($packageStatus[$log['to_status']] ?? $log['to_status']),
         'tour_create' => $label . ': ' . tour_status_label($log['to_status']),
         'tour_update' => $log['from_status'] === $log['to_status']
             ? $label
@@ -78,6 +96,8 @@ $historyText = static function (array $log) use ($actionLabels): string {
                 <div class="lt-admin__actions">
                     <a class="lt-btn lt-btn--soft" href="<?= e(url('/admin/tours/' . $tour['tour_id'] . '/edit')) ?>">Sửa thông tin</a>
                     <a class="lt-btn lt-btn--soft" href="<?= e(url('/admin/tours/' . $tour['tour_id'] . '/schedules')) ?>">Lịch khởi hành và giá vé</a>
+                    <a class="lt-btn lt-btn--soft" href="<?= e(url('/admin/tours/' . $tour['tour_id'] . '/packages')) ?>">Gói tour</a>
+                    <a class="lt-btn lt-btn--soft" href="<?= e(url('/admin/tours/' . $tour['tour_id'] . '/content')) ?>">Ảnh, lịch trình, dịch vụ, chính sách</a>
 <?php if ((int) $tour['is_public'] === 1): ?>
                     <a class="lt-btn lt-btn--outline" href="<?= e(url('/tours/' . $tour['tour_id'])) ?>">Xem trang tour</a>
 <?php endif; ?>
@@ -89,6 +109,10 @@ $historyText = static function (array $log) use ($actionLabels): string {
 <?php endif; ?>
 <?php if ($error !== ''): ?>
             <div class="lt-alert lt-alert--danger" role="alert"><span class="lt-icon lt-icon--alert" aria-hidden="true"></span><span><?= e($error) ?></span></div>
+<?php endif; ?>
+<?php if ($isArchived): ?>
+            <div class="lt-alert lt-alert--warning"><span class="lt-icon lt-icon--info" aria-hidden="true"></span><span>Tour đang ngừng hiển thị: khách không tìm thấy và không đặt được tour, các đơn cũ giữ nguyên.
+                <a href="<?= e(url('/admin/tours/' . $tour['tour_id'] . '/content#content-delete')) ?>">Hiển thị lại</a></span></div>
 <?php endif; ?>
 <?php if (!$providerOk): ?>
             <div class="lt-alert lt-alert--warning"><span class="lt-icon lt-icon--info" aria-hidden="true"></span><span>Đơn vị tổ chức chưa được duyệt hoặc đang bị khóa: tour sẽ chưa hiển thị cho khách dù đã phê duyệt.</span></div>

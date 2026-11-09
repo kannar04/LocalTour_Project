@@ -13,7 +13,7 @@ use App\Models\AdminTourModel;
  */
 final class AdminTourController extends AdminController
 {
-    public const FILTERS = ['pending' => 'Chờ duyệt', 'approved' => 'Đã duyệt', 'rejected' => 'Bị từ chối', 'all' => 'Tất cả'];
+    public const FILTERS = ['pending' => 'Chờ duyệt', 'approved' => 'Đã duyệt', 'rejected' => 'Bị từ chối', 'archived' => 'Ngừng hiển thị', 'all' => 'Tất cả'];
 
     private const MESSAGES = [
         'approved' => 'Đã phê duyệt tour.',
@@ -22,6 +22,8 @@ final class AdminTourController extends AdminController
         'created' => 'Đã thêm tour. Tour đang ở trạng thái Chờ duyệt: thêm lịch khởi hành và giá vé trước khi phê duyệt.',
         'updated' => 'Đã lưu thông tin tour.',
         'unchanged' => 'Không có thay đổi nào.',
+        // Xóa tour (AdminTourContentController, US07-S5-01): tour chưa có đơn bị xóa hẳn
+        'deleted' => 'Đã xóa tour.',
     ];
 
     private AdminTourModel $tours;
@@ -34,7 +36,7 @@ final class AdminTourController extends AdminController
         $this->logs = new AdminBookingModel();
     }
 
-    /** GET /admin/tours?status=pending|approved|rejected|all (mặc định pending) */
+    /** GET /admin/tours?status=pending|approved|rejected|archived|all (mặc định pending) */
     public function index(): void
     {
         $status = $this->query('status');
@@ -47,6 +49,7 @@ final class AdminTourController extends AdminController
             'adminNav' => 'tours',
             'filter' => $status,
             'tours' => $this->tours->list($status === 'all' ? '' : $status),
+            'success' => $this->flash(self::MESSAGES),
             'pageStyles' => ['css/admin.css'],
         ]);
     }
