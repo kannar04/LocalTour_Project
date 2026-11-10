@@ -124,7 +124,8 @@ final class AdminTourContentController extends AdminController
             'ok' => $this->back($tourId, 'image_added'),
             'forbidden' => self::forbidden(),
             'not_found' => self::notFound(),
-            'limit' => $this->renderContent($tour, $old, ['image_url' => 'Mỗi tour tối đa ' . AdminTourContentModel::IMAGE_MAX . ' ảnh. Xóa bớt ảnh trước khi thêm.'], '', 409),
+            // Đủ ảnh thì form "Thêm ảnh" bị ẩn, nên lỗi hiện ở thông báo đầu trang thay vì gắn với ô ảnh.
+            'limit' => $this->renderContent($tour, $old, ['form' => 'Mỗi tour tối đa ' . AdminTourContentModel::IMAGE_MAX . ' ảnh. Xóa bớt ảnh trước khi thêm.'], '', 409),
             default => $this->renderContent($tour, $old, self::fieldError($row['field'] ?? null), '', 422),
         };
     }
