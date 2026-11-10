@@ -426,7 +426,7 @@ Script chạy thử `expire_holds.php` một lần (in "đã hủy N đơn quá 
 | Quản trị: chi tiết tour → "Gói tour" | Thêm / sửa gói (tên, giá người lớn, giá trẻ em không bắt buộc); trùng tên báo lỗi; "Ngừng bán" thì gói không còn ở trang khách, đơn cũ vẫn giữ tên gói. |
 | Quản trị: chi tiết tour → "Ảnh, lịch trình, dịch vụ, chính sách" | Tải ảnh JPG / PNG / WebP tối đa 2 MB (file khác hoặc quá lớn báo lỗi), chọn ảnh bìa, xóa ảnh; thêm / sửa / xóa lịch trình và dịch vụ; lưu chính sách hủy tạo phiên bản mới. "Xóa tour": tour chưa có đơn bị xóa hẳn; tour đã có đơn chuyển "Ngừng hiển thị" (khách mở thì 404); còn đơn đang xử lý thì báo lỗi. |
 
-Ảnh tải lên nằm ở `src/public/assets/uploads/tours/` trên máy chạy web, không có trong Git; máy khác chỉ thấy ảnh SVG mẫu.
+Ảnh tải lên nằm ở `src/public/assets/uploads/tours/` trên máy chạy web, không có trong Git. Khi đóng gói demo hoặc chép database sang máy khác, chép kèm thư mục này; ảnh nào không có file trên máy đang chạy thì trang hiện ảnh thay thế (`img/tour-placeholder.svg`), không hiện ảnh vỡ.
 
 ## Bảo mật
 
@@ -473,6 +473,7 @@ GRANT EXECUTE ON db_localtour.* TO 'localtour_app'@'<tiền tố IP của VPN>.%
 | Trang lỗi 500, log có `PROCEDURE db_localtour.… does not exist` | Chưa import đủ các file procedure. | Import lại `db_localtour.sql`, hoặc import `03` đến `21` theo thứ tự. |
 | Trang lỗi 500, log có `Unknown column` (ví dụ `request_token`) hoặc `Table 'db_localtour.…' doesn't exist` | Database vẫn là lược đồ cũ (chưa chạy `08_migration_booking_NMT.sql` / `12_migration_sprint4_NMT.sql` / `16_migration_sprint5_LTP.sql`, hoặc trước lược đồ 27 bảng), hoặc file gộp được sinh từ bản cũ. | Sinh lại `db_localtour.sql` từ `01`–`21` mới nhất rồi import lại. |
 | Tải ảnh tour báo "Chưa lưu được ảnh trên máy chủ" | PHP không tạo / ghi được thư mục `src/public/assets/uploads/tours/`. | Cho tài khoản chạy Apache / PHP quyền ghi vào `src/public/assets/uploads/` (repo có sẵn file `.gitkeep`). |
+| Ảnh tour chỉ hiện ô xám có biểu tượng ảnh | Database có ảnh tải lên ở máy khác, file ảnh không có trên máy này. | Chép thư mục `src/public/assets/uploads/tours/` từ máy đã tải ảnh lên. |
 | Gửi yêu cầu đặt tour báo "Giá vé vừa thay đổi" hoặc "Lịch này chỉ còn X chỗ" | Hành vi đúng: giá hoặc số chỗ đã đổi từ lúc mở trang (quản trị viên vừa xác nhận chỗ cho đơn khác, hoặc giá vé được sửa). | Xem lại tổng tiền / số khách mới trên form rồi bấm "Xem lại & xác nhận" lần nữa. |
 | Trang thanh toán ghi VNPay hoặc VietQR "đang tạm ngưng" | Thiếu khóa trong `.env`. | Điền các khóa `VNPAY_…` / `PAYMENT_…` (Bước 3) rồi tải lại trang. |
 | Cổng VNPay báo lỗi chữ ký hoặc "Website không tồn tại" | `VNPAY_HASH_SECRET` / `VNPAY_TMN_CODE` sai, thừa khoảng trắng, hoặc lấy nhầm bộ khóa. | Chép lại đúng hai giá trị sandbox vào `.env`. |
