@@ -6,7 +6,7 @@
 | WBS | US04-S5-01 → US04-S5-03, US14-S5-01 → US14-S5-03, US06-S5-01, US07-S5-01 |
 | Người phụ trách | Nguyễn Tuấn Khôi |
 | Căn cứ | Gantt chart QLDA_LocalTour (Sprint 5); bảng FR (FR-07 gói lựa chọn, FR-12 đổi/hủy, FR-13 quản trị tour, FR-15 so sánh); Báo cáo Sprint 4 mục 3 và 8.1 (việc chuyển sang Sprint 5); wireframe `docs/diagram/wireframe-3-so-sanh-tour_localtour.png` |
-| Tài liệu liên quan | [02 – Cấu trúc dữ liệu Sprint 5](02-cau-truc-du-lieu-sprint5.md), [03 – Test Plan và RTM](03-test-plan-rtm.md), `src/README.md` (Bước 11), `src/database/README.md` |
+| Tài liệu liên quan | [02 – Cấu trúc dữ liệu Sprint 5](02-cau-truc-du-lieu-sprint5.md), [Test Plan và RTM Sprint 5](Test%20Plan%20v%C3%A0%20RTM%20Sprint%205.docx), `src/README.md` (Bước 11), `src/database/README.md` |
 | Trạng thái | **Đã chốt.** |
 
 ## 1. Phạm vi Sprint 5
@@ -22,7 +22,7 @@
 | US06-S5-01 | Hoàn thiện phần Booking còn tồn: gói lựa chọn (FR-07). | Phong, Khôi | 06–07/11 |
 | US07-S5-01 | Hoàn thiện quản trị tour còn tồn (FR-13): ảnh, lịch trình, dịch vụ, chính sách hủy trên giao diện; xóa tour, xóa đơn vị tổ chức. | Thức, Khôi | 08–09/11 |
 
-Kiểm thử Sprint 5 (Test Plan / RTM và dữ liệu kiểm thử 06–07/11, E2E 08–09/11, kiểm tra phân quyền và dữ liệu nhập 08–09/11, sửa lỗi Critical / High 10–11/11, retest 11–12/11, System Test Exit 12/11) ghi ở [03 – Test Plan và RTM](03-test-plan-rtm.md).
+Kiểm thử Sprint 5 (Test Plan / RTM và dữ liệu kiểm thử 06–07/11, E2E 08–09/11, kiểm tra phân quyền và dữ liệu nhập 08–09/11, sửa lỗi Critical / High 10–11/11, retest 11–12/11, System Test Exit 12/11) ghi ở [Test Plan và RTM Sprint 5](Test%20Plan%20v%C3%A0%20RTM%20Sprint%205.docx).
 
 Chưa làm:
 
@@ -209,10 +209,10 @@ Chưa đăng nhập: trang của khách chuyển tới `/login?next=<trang đang
 | --- | --- | --- |
 | US04-S5-01 | Chọn / bỏ tour, tối đa 3 | Nút “Thêm vào so sánh”, khung “Tour đang so sánh”, nút “Bỏ”, “Xóa danh sách”; tour thứ 4 bị chặn kèm thông báo (mục 2, quy tắc 1–2). |
 | US04-S5-02 | Giá / đơn vị, lịch trình, chính sách; thiếu ghi “Chưa cập nhật” | `NMT_sp_tour_compare` và `CompareModel` đưa về cùng đơn vị theo 4 nhóm dòng; ô thiếu ghi “Chưa cập nhật” (quy tắc 5–6). |
-| US04-S5-03 | Dữ liệu thật, chặn quá 3 tour, dữ liệu thiếu / khác đơn vị | Dữ liệu đọc từ database; server chỉ nhận 3 tour (trang lấy 3 tour đầu, API 422) và bỏ tour ẩn / mã sai (quy tắc 3, 4, 7). Ca kiểm thử ở [03](03-test-plan-rtm.md). |
+| US04-S5-03 | Dữ liệu thật, chặn quá 3 tour, dữ liệu thiếu / khác đơn vị | Dữ liệu đọc từ database; server chỉ nhận 3 tour (trang lấy 3 tour đầu, API 422) và bỏ tour ẩn / mã sai (quy tắc 3, 4, 7). Ca kiểm thử ở [Test Plan và RTM Sprint 5](Test%20Plan%20v%C3%A0%20RTM%20Sprint%205.docx). |
 | US14-S5-01 | Form theo chính sách của đúng tour, thông báo lỗi | `/bookings/{code}/change` hiện chính sách lưu cùng đơn và số dự kiến hoàn; lỗi theo ô và lỗi trạng thái (mục 4.1, 4.5). |
 | US14-S5-02 | Kiểm tra quyền, chính sách, trạng thái; lưu yêu cầu và lịch sử; chưa tự động hoàn tiền | `LTP_sp_change_request_create`: chủ đơn, trạng thái đơn, chưa khởi hành, một yêu cầu chờ, lịch mới; chụp chính sách và số dự kiến hoàn; ghi `booking_events`. Lưu qua form `POST /bookings/{code}/change`, không có API JSON riêng. Không hoàn tiền tự động (mục 4.3). |
 | US14-S5-03 | Xử lý thủ công, có lịch sử / trạng thái | `/admin/change-requests`: lọc theo trạng thái, đồng ý / từ chối kèm ghi chú bắt buộc, mỗi yêu cầu một lần, ghi `admin_logs`; quản trị viên thay “nhân viên” theo CR1 (mục 4.2, 4.4). |
 | US06-S5-01 | Phần Booking còn tồn: gói lựa chọn (FR-07) | Bảng `tour_packages`, chọn gói khi đặt, giá theo gói, quản lý gói ở trang quản trị (mục 3). |
 | US07-S5-01 | Quản trị tour còn tồn: xóa tour / đơn vị; ảnh, lịch trình, dịch vụ, chính sách trên giao diện | Trang nội dung tour, xóa / ngừng hiển thị / hiển thị lại tour, xóa đơn vị chưa có tour (mục 5). |
-| Kiểm thử | Test Plan, RTM, E2E, phân quyền / dữ liệu nhập, sửa lỗi, retest, System Test Exit 12/11 | [03 – Test Plan và RTM](03-test-plan-rtm.md). |
+| Kiểm thử | Test Plan, RTM, E2E, phân quyền / dữ liệu nhập, sửa lỗi, retest, System Test Exit 12/11 | [Test Plan và RTM Sprint 5](Test%20Plan%20v%C3%A0%20RTM%20Sprint%205.docx). |
