@@ -77,10 +77,19 @@ function asset(string $path): string
     return url('/assets/' . $path) . $version;
 }
 
-/** URL ảnh lưu trong tour_images: link http(s) giữ nguyên, đường dẫn tương đối nằm trong public/assets. */
+/**
+ * URL ảnh lưu trong tour_images: link http(s) giữ nguyên, đường dẫn tương đối nằm trong public/assets.
+ * File không có trên máy đang chạy (ảnh tải lên ở máy khác rồi chép database sang) thì dùng ảnh thay thế, không hiện ảnh vỡ.
+ */
 function image_src(string $url): string
 {
-    return preg_match('#^https?://#i', $url) ? $url : asset($url);
+    if (preg_match('#^https?://#i', $url)) {
+        return $url;
+    }
+
+    $path = ltrim($url, '/');
+
+    return is_file(BASE_PATH . '/public/assets/' . $path) ? asset($path) : asset('img/tour-placeholder.svg');
 }
 
 /** Giá trị rỗng/thiếu → "Chưa cập nhật" (không tự suy diễn dữ liệu). */
