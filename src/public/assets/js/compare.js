@@ -13,6 +13,7 @@
     'use strict';
 
     var KEY = 'localtour.compare';
+    var FLASH_KEY = 'localtour.compare.flash'; // Thông báo chờ hiện sau khi trang /compare tải lại.
     var MAX = 3;
     var MIN = 2;
     var LIMIT_MESSAGE = 'Chỉ so sánh tối đa ' + MAX + ' tour. Bỏ bớt một tour trước khi thêm tour khác.';
@@ -124,6 +125,29 @@
         toastTimer = window.setTimeout(function () {
             $toast.removeClass('is-visible');
         }, 4000);
+    }
+
+    /** Trang /compare tải lại theo danh sách mới: giữ thông báo trong sessionStorage để hiện sau khi tải. */
+    function reloadWithMessage(message) {
+        try {
+            window.sessionStorage.setItem(FLASH_KEY, message);
+        } catch (error) {
+            // Bị chặn sessionStorage: trang vẫn tải lại, chỉ mất thông báo.
+        }
+        window.location.assign(compareUrl());
+    }
+
+    function showPendingMessage() {
+        var message = null;
+        try {
+            message = window.sessionStorage.getItem(FLASH_KEY);
+            window.sessionStorage.removeItem(FLASH_KEY);
+        } catch (error) {
+            return;
+        }
+        if (message) {
+            notify(message);
+        }
     }
 
     /* ---------- Hiển thị theo danh sách hiện tại ---------- */
@@ -256,20 +280,22 @@
         });
 
         $(document).on('click', '.js-compare-remove', function () {
-            var id = $(this).attr('data-tour-id');
+            var id = LT.normaliseId($(this).attr('data-tour-id'));
+            var tour = $.grep(list(), function (item) { return item.id === id; })[0];
             remove(id);
             // Trang so sánh: tải lại theo danh sách mới.
             if (document.getElementById('compare-data')) {
-                window.location.assign(compareUrl());
+                reloadWithMessage('Đã bỏ "' + String((tour && tour.title) || 'tour') + '" khỏi so sánh.');
             }
         });
 
         $(document).on('click', '.js-compare-clear', function () {
             save([]);
-            notify('Đã xóa danh sách so sánh.');
             if (document.getElementById('compare-data')) {
-                window.location.assign(compareUrl());
+                reloadWithMessage('Đã xóa danh sách so sánh.');
+                return;
             }
+            notify('Đã xóa danh sách so sánh.');
         });
 
         $(document).on('click', '.js-compare-go', function (event) {
@@ -288,6 +314,7 @@
 
         initComparePage();
         sync();
+        showPendingMessage();
     });
 
     window.LocalTourCompare = {
