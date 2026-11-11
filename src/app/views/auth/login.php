@@ -2,7 +2,8 @@
 <?php
 /*
  * Trang đăng nhập tài khoản khách hàng (Nguyễn Tuấn Khôi).
- * Biến: $next (đường dẫn quay lại sau khi đăng nhập), $email (giữ lại khi nhập sai), $error ('' = không lỗi).
+ * Biến: $next (đường dẫn quay lại sau khi đăng nhập), $email (giữ lại khi nhập sai), $error ('' = không lỗi),
+ *       $socialButtons (nút Google / Facebook), $recaptchaSiteKey ('' = không có captcha).
  * Không bao giờ in lại mật khẩu. Khách có thể bỏ qua và tiếp tục xem tour ở chế độ khách.
  */
 $registerHref = url('/register') . ($next !== '/tours' ? '?next=' . rawurlencode($next) : '');
@@ -22,6 +23,8 @@ $registerHref = url('/register') . ($next !== '/tours' ? '?next=' . rawurlencode
             </div>
 <?php endif; ?>
 
+<?php require __DIR__ . '/../partials/auth-social.php'; ?>
+
             <form class="lt-auth__form" action="<?= e(url('/login')) ?>" method="post" novalidate>
                 <?= csrf_field() ?>
                 <input type="hidden" name="next" value="<?= e($next) ?>">
@@ -38,6 +41,7 @@ $registerHref = url('/register') . ($next !== '/tours' ? '?next=' . rawurlencode
                            maxlength="72" autocomplete="current-password" required<?= $email !== '' ? ' autofocus' : '' ?>>
                 </div>
 
+<?php require __DIR__ . '/../partials/auth-recaptcha.php'; ?>
                 <button class="lt-btn lt-btn--primary lt-btn--block" type="submit">Đăng nhập</button>
             </form>
 

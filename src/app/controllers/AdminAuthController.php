@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Models\UserModel;
+use App\Services\Recaptcha;
 use Core\Auth;
 use Core\Controller;
 
@@ -51,6 +52,12 @@ final class AdminAuthController extends Controller
         $password = $this->input('password', false);
         if ($email === '' || $password === '') {
             $this->renderLogin($next, $email, 'Vui lòng nhập email và mật khẩu.', 422);
+            return;
+        }
+        // Kiểm tra ô "không phải robot" (khi đã cấu hình reCAPTCHA) trước khi kiểm tra mật khẩu.
+        $captcha = Recaptcha::check();
+        if ($captcha !== null) {
+            $this->renderLogin($next, $email, $captcha['message'], $captcha['code']);
             return;
         }
 
@@ -105,6 +112,7 @@ final class AdminAuthController extends Controller
             'next' => $next,
             'email' => $email,
             'error' => $error,
+            'recaptchaSiteKey' => Recaptcha::siteKey(),
             'pageStyles' => ['css/auth.css'],
         ], $status);
     }

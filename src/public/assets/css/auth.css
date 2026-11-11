@@ -1,6 +1,7 @@
 /*
  * LocalTour – auth.css (Nguyễn Tuấn Khôi)
  * Trang đăng nhập và đăng ký tài khoản khách hàng: thẻ form ở giữa trang.
+ * Nút "Tiếp tục với Google / Facebook" và ô reCAPTCHA (khi đã cấu hình trong .env).
  * Dùng màu, nút (.lt-btn) và icon của base.css.
  */
 
@@ -158,4 +159,59 @@
     color: var(--lt-muted);
     font-size: 0.75rem;
     text-align: center;
+}
+
+/* ---------- Đăng nhập bằng Google / Facebook ---------- */
+
+.lt-auth__social {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.lt-auth__social-btn {
+    gap: 10px;
+    border-color: var(--lt-border-strong);
+    background: var(--lt-surface);
+    color: var(--lt-text);
+}
+
+.lt-auth__social-btn:hover,
+.lt-auth__social-btn:focus {
+    border-color: #b5bbc4;
+    background: var(--lt-surface-alt);
+    color: var(--lt-text);
+}
+
+.lt-auth__social-btn:focus-visible {
+    border-color: var(--lt-teal);
+    outline: none;
+    box-shadow: var(--lt-focus-ring);
+}
+
+.lt-auth__social-logo {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+}
+
+/* ---------- reCAPTCHA ---------- */
+
+.lt-auth__captcha {
+    min-height: 78px;
+    margin: 4px 0 8px;
+}
+
+/* Ô reCAPTCHA của Google rộng cố định 304px: thu nhỏ trên màn hình hẹp để không tràn khỏi ô nhập. */
+@media (max-width: 374.98px) {
+    .lt-auth__captcha .g-recaptcha {
+        transform: scale(0.92);
+        transform-origin: 0 0;
+    }
+}
+
+@media (max-width: 349.98px) {
+    .lt-auth__captcha .g-recaptcha {
+        transform: scale(0.8);
+    }
 }
