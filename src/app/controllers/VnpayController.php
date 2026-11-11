@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Models\PaymentResultModel;
+use App\Services\BookingMail;
 use App\Services\VnpayGateway;
 use Core\Controller;
 use Throwable;
@@ -96,7 +97,7 @@ final class VnpayController extends Controller
         $amount = self::field($input, 'vnp_Amount');
         $amountVnd = preg_match('/^\d{3,15}$/D', $amount) && str_ends_with($amount, '00') ? intdiv((int) $amount, 100) : -1;
 
-        return (new PaymentResultModel())->vnpayResult(
+        $result = (new PaymentResultModel())->vnpayResult(
             $reference,
             $amountVnd,
             mb_substr(self::field($input, 'vnp_ResponseCode'), 0, 10),
@@ -104,6 +105,13 @@ final class VnpayController extends Controller
             mb_substr(self::field($input, 'vnp_TransactionNo'), 0, 50),
             mb_substr(self::field($input, 'vnp_BankCode'), 0, 20)
         );
+
+        // Email "Đặt tour thành công": chỉ khi lần ghi này vừa xác nhận đơn ('already' = Return URL / IPN đã ghi trước).
+        if ($result['result'] === 'ok' && ($result['payment_status'] ?? '') === 'paid' && ($result['booking_status'] ?? '') === 'confirmed') {
+            BookingMail::sendConfirmed((string) $result['booking_code']);
+        }
+
+        return $result;
     }
 
     /** @param array<mixed> $input */

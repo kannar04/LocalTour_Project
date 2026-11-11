@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Models\AdminPaymentModel;
 use App\Models\PaymentResultModel;
+use App\Services\BookingMail;
 
 /**
  * Đối chiếu chuyển khoản VietQR (Sprint 4, 4.5.3.2 – Nguyễn Minh Thức, Nguyễn Tuấn Khôi): danh sách khoản khách đã
@@ -95,6 +96,11 @@ final class AdminPaymentController extends AdminController
     {
         $result = (string) $row['result'];
         $bookingId = (string) ($row['booking_id'] ?? '');
+
+        // Email "Đặt tour thành công" khi vừa ghi nhận tiền; BookingMail bỏ qua đơn không "Đã xác nhận" (tiền tới muộn).
+        if ($result === 'ok' && in_array($message, ['payment_confirm', 'vnpay_confirm'], true)) {
+            BookingMail::sendConfirmedForBooking($bookingId);
+        }
 
         match ($result) {
             'ok' => $this->redirect('/admin/bookings/' . $bookingId . '?msg=' . $message . '#payments'),
