@@ -31,7 +31,7 @@ $rangeText = match (true) {
             </a>
             <header class="lt-admin__head">
                 <h1 class="lt-admin__title" id="admin-title">Khoản thanh toán theo kỳ</h1>
-                <p class="lt-admin__subtitle"><?= e($rangeText) ?> · khoản thanh toán thành công theo ngày thanh toán, dùng để đối chiếu doanh thu với VNPay và sao kê</p>
+                <p class="lt-admin__subtitle"><?= e($rangeText) ?> · khoản thanh toán thành công theo ngày thanh toán, dùng để đối chiếu doanh thu với VNPay, MoMo và sao kê</p>
             </header>
 
             <section class="lt-panel" aria-labelledby="revenue-list-title">
@@ -66,6 +66,8 @@ $rangeText = match (true) {
                                     <code><?= e(or_missing($row['reference'])) ?></code>
 <?php if ($row['method'] === 'vnpay' && $row['provider_txn_id'] !== null && $row['provider_txn_id'] !== $row['reference']): ?>
                                     <span class="lt-table__sub">Mã GD VNPay <?= e($row['provider_txn_id']) ?></span>
+<?php elseif ($row['method'] === 'momo' && $row['provider_txn_id'] !== null): ?>
+                                    <span class="lt-table__sub">Mã GD MoMo <?= e($row['provider_txn_id']) ?></span>
 <?php endif; ?>
                                 </td>
                                 <td class="text-right lt-nowrap"><?= e(format_vnd($row['amount_vnd'])) ?></td>

@@ -61,6 +61,10 @@ $router->post('/bookings/{code}/pay/vietqr/submit', [PaymentController::class, '
 $router->get('/payments/vnpay/return', [VnpayController::class, 'result']);
 $router->get('/payments/vnpay/ipn', [VnpayController::class, 'ipn']);
 $router->get('/bookings/{code}/voucher', [VoucherController::class, 'show']);
+// Thanh toán MoMo (môi trường thử): '/payments/momo/ipn' đặt trước '/payments/momo/{code}'.
+$router->get('/payments/momo/return', [\App\Controllers\MomoController::class, 'result']);
+$router->post('/payments/momo/ipn', [\App\Controllers\MomoController::class, 'ipn']);
+$router->post('/payments/momo/{code}', [\App\Controllers\MomoController::class, 'start']);
 
 // Đổi ngày / hủy tour (Sprint 5, US14): khách gửi yêu cầu, quản trị viên xử lý thủ công.
 $router->get('/bookings/{code}/change', [ChangeRequestController::class, 'create']);
@@ -131,5 +135,7 @@ $router->post('/admin/change-requests/{id}/decide', [AdminChangeRequestControlle
 $router->get('/admin/payments', [AdminPaymentController::class, 'index']);
 $router->post('/admin/payments/{id}/decide', [AdminPaymentController::class, 'decide']);
 $router->post('/admin/payments/{id}/vnpay', [AdminPaymentController::class, 'vnpayDecide']);
+// Thanh toán MoMo: quản trị viên tra cứu lại khoản MoMo chưa rõ kết quả.
+$router->post('/admin/payments/{id}/momo', [AdminPaymentController::class, 'momoCheck']);
 
 return $router;

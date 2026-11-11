@@ -42,7 +42,7 @@ $nextStep = match ($bookingStatus) {
         ? 'Bạn đã báo chuyển khoản. LocalTour đang đối chiếu và sẽ xác nhận đơn; chỗ của bạn vẫn được giữ trong lúc chờ.'
         : ((int) $booking['hold_expired'] === 1
             ? 'Đơn đã quá hạn thanh toán và sẽ được hủy, chỗ được trả lại cho lịch.'
-            : 'LocalTour đã giữ chỗ và chốt tổng giá. Vui lòng thanh toán bằng VNPay hoặc VietQR'
+            : 'LocalTour đã giữ chỗ và chốt tổng giá. Vui lòng thanh toán bằng VNPay, MoMo hoặc VietQR'
                 . ($holdUntil !== '' ? ' trước ' . $holdUntil : '') . '; quá hạn đơn tự hủy.'),
     'confirmed' => 'Đơn đã được xác nhận. Mang theo voucher (bản in hoặc trên điện thoại) và có mặt ở điểm hẹn trước giờ khởi hành.',
     'completed' => 'Chuyến đi đã hoàn thành. Cảm ơn bạn đã đi tour cùng LocalTour.',

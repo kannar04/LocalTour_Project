@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Models\AdminPaymentModel;
+use App\Models\MomoPaymentModel;
 use App\Models\PaymentResultModel;
 use App\Services\BookingMail;
+use App\Services\MomoGateway;
+use Throwable;
 
 /**
  * Đối chiếu chuyển khoản VietQR (Sprint 4, 4.5.3.2 – Nguyễn Minh Thức, Nguyễn Tuấn Khôi): danh sách khoản khách đã
@@ -14,6 +17,8 @@ use App\Services\BookingMail;
  * "Không khớp" kèm lý do. Nút đối chiếu nằm ở trang chi tiết yêu cầu, cạnh số tiền và nội dung chuyển khoản.
  * Giao dịch VNPay chưa rõ kết quả (Nguyễn Tuấn Khôi): quản trị viên tra mã thanh toán trên cổng VNPay rồi ghi
  * "Có giao dịch thành công" (kèm mã giao dịch VNPay) hoặc "Không có giao dịch" (kèm lý do).
+ * Giao dịch MoMo chưa rõ kết quả (Nguyễn Tuấn Khôi): nút "Tra cứu MoMo" gọi API query có chữ ký rồi ghi đúng kết quả
+ * MoMo trả lời (quản trị viên không tự nhập kết quả).
  */
 final class AdminPaymentController extends AdminController
 {
@@ -34,6 +39,7 @@ final class AdminPaymentController extends AdminController
             'adminNav' => 'payments',
             'payments' => $this->payments->queue(),
             'vnpayPayments' => $this->payments->vnpayQueue(),
+            'momoPayments' => (new MomoPaymentModel())->queue(),
             'error' => AdminBookingController::PAYMENT_ERRORS[$this->query('err')] ?? '',
             'pageStyles' => ['css/admin.css'],
         ]);
@@ -85,6 +91,52 @@ final class AdminPaymentController extends AdminController
 
         $row = $this->payments->vnpayDecide($paymentId, $decision, $this->actorId(), $txnNo, $note);
         $this->finish($row, 'vnpay_' . $decision);
+    }
+
+    /** POST /admin/payments/{id}/momo – _csrf: tra cứu lại khoản MoMo chưa rõ kết quả và ghi theo MoMo trả lời. */
+    public function momoCheck(string $id): void
+    {
+        $paymentId = self::parseUuid($id) ?? self::notFound();
+        if (!$this->csrfValid()) {
+            $this->redirect('/admin/payments?err=csrf');
+        }
+
+        $momo = new MomoPaymentModel();
+        $payment = $momo->queue(null, $paymentId)[0] ?? null;
+        if ($payment === null) {
+            $this->redirect('/admin/payments?err=not_payable');
+        }
+        $back = '/admin/bookings/' . $payment['booking_id'];
+        $config = require BASE_PATH . '/config/payment.php';
+        if (!MomoGateway::enabled($config)) {
+            $this->redirect($back . '?err=momo_unavailable#payments');
+        }
+
+        $status = MomoGateway::query($config, (string) $payment['order_id']);
+        if ($status === null) {
+            $this->redirect($back . '?err=momo_query#payments');
+        }
+        if ($status['outcome'] === 'pending') {
+            $this->redirect($back . '?err=momo_pending#payments');
+        }
+
+        try {
+            $row = $momo->result((string) $payment['order_id'], (int) $status['amount_vnd'], (string) $status['result_code'],
+                (string) $status['trans_id'], (string) $status['pay_type'], 'admin');
+        } catch (Throwable $exception) {
+            error_log('LocalTour: không ghi được kết quả tra cứu MoMo: ' . $exception->getMessage());
+            $this->redirect($back . '?err=momo_query#payments');
+        }
+
+        if ($row['result'] === 'ok' && $row['booking_status'] === 'confirmed') {
+            BookingMail::sendConfirmedForBooking((string) $payment['booking_id']);
+        }
+        match ((string) $row['result']) {
+            'ok' => $this->redirect($back . '?msg=momo_paid#payments'),
+            'failed' => $this->redirect($back . '?msg=momo_failed#payments'),
+            'invalid_amount' => $this->redirect($back . '?err=momo_amount#payments'),
+            default => $this->redirect($back . '?err=not_payable#payments'),
+        };
     }
 
     /**

@@ -3,9 +3,11 @@
 /*
  * Khoản chuyển khoản VietQR chờ đối chiếu (Sprint 4, 4.5.3.2 – Nguyễn Minh Thức, Nguyễn Tuấn Khôi).
  * Biến: $payments (NMT_sp_admin_payment_queue, báo trước lên trước), $error ('' = không có),
- *       $vnpayPayments (NTK_sp_admin_vnpay_queue: khoản VNPay chưa rõ kết quả, tạo trước lên trước).
+ *       $vnpayPayments (NTK_sp_admin_vnpay_queue: khoản VNPay chưa rõ kết quả, tạo trước lên trước),
+ *       $momoPayments (NTK_sp_admin_momo_queue: khoản MoMo chưa rõ kết quả, tạo trước lên trước).
  * Quản trị viên mở yêu cầu để so số tiền và nội dung chuyển khoản với sao kê rồi bấm "Đã nhận tiền" / "Không khớp";
- * khoản VNPay chưa rõ kết quả thì tra trên cổng VNPay rồi ghi "Có giao dịch thành công" / "Không có giao dịch".
+ * khoản VNPay chưa rõ kết quả thì tra trên cổng VNPay rồi ghi "Có giao dịch thành công" / "Không có giao dịch";
+ * khoản MoMo chưa rõ kết quả thì bấm "Tra cứu MoMo" ở trang yêu cầu (hệ thống hỏi lại MoMo và ghi kết quả).
  */
 ?>
 <div class="container-xl lt-container lt-page">
@@ -17,7 +19,7 @@
         <main id="main-content" class="col-12 col-lg lt-admin" tabindex="-1" aria-labelledby="admin-title">
             <header class="lt-admin__head">
                 <h1 class="lt-admin__title" id="admin-title">Đối chiếu thanh toán</h1>
-                <p class="lt-admin__subtitle">Chuyển khoản VietQR khách đã báo và giao dịch VNPay chưa rõ kết quả</p>
+                <p class="lt-admin__subtitle">Chuyển khoản VietQR khách đã báo và giao dịch VNPay, MoMo chưa rõ kết quả</p>
             </header>
 
 <?php if ($error !== ''): ?>
@@ -113,6 +115,52 @@
 <?php endif; ?>
                                 </td>
                                 <td class="text-right"><a class="lt-btn lt-btn--soft lt-btn--sm" href="<?= e(url('/admin/bookings/' . $payment['booking_id']) . '#payments') ?>">Đối chiếu</a></td>
+                            </tr>
+<?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+<?php endif; ?>
+            </section>
+
+            <section class="lt-panel" aria-labelledby="queue-momo-title">
+                <h2 class="lt-panel__title" id="queue-momo-title">Giao dịch MoMo chưa rõ kết quả</h2>
+<?php if ($momoPayments === []): ?>
+                <p class="lt-empty">Không có giao dịch MoMo nào chưa rõ kết quả.</p>
+<?php else: ?>
+                <p class="lt-panel__lead"><?= count($momoPayments) ?> khoản MoMo chưa nhận được kết quả sau 15 phút (khách đóng trang MoMo, IPN không tới được máy chủ), hoặc bị đóng khi đơn quá hạn / bị hủy. Mở yêu cầu rồi bấm “Tra cứu MoMo”.</p>
+                <div class="table-responsive">
+                    <table class="table lt-table mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Mã giao dịch MoMo</th>
+                                <th scope="col" class="text-right">Số tiền</th>
+                                <th scope="col">Đơn</th>
+                                <th scope="col" class="lt-table__grow">Tour</th>
+                                <th scope="col">Tạo lúc</th>
+                                <th scope="col"><span class="sr-only">Thao tác</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+<?php foreach ($momoPayments as $payment): ?>
+                            <tr>
+                                <td class="lt-nowrap"><code><?= e($payment['order_id']) ?></code></td>
+                                <td class="text-right lt-nowrap"><?= e(format_vnd($payment['amount_vnd'])) ?></td>
+                                <td class="lt-nowrap">
+                                    <strong><?= e($payment['code']) ?></strong>
+                                    <span class="lt-table__sub"><?= e(booking_status_label($payment['booking_status'])) ?> · <?= e($payment['contact_name']) ?></span>
+                                </td>
+                                <td>
+                                    <?= e($payment['tour_title']) ?>
+                                    <span class="lt-table__sub">Khởi hành <?= e(format_datetime($payment['starts_at'])) ?></span>
+                                </td>
+                                <td class="lt-nowrap">
+                                    <?= e(format_datetime($payment['created_at'])) ?>
+<?php if ($payment['hold_expires_at'] !== null): ?>
+                                    <span class="lt-table__sub">Hạn giữ chỗ <?= e(format_datetime($payment['hold_expires_at'])) ?></span>
+<?php endif; ?>
+                                </td>
+                                <td class="text-right"><a class="lt-btn lt-btn--soft lt-btn--sm" href="<?= e(url('/admin/bookings/' . $payment['booking_id']) . '#payments') ?>">Tra cứu</a></td>
                             </tr>
 <?php endforeach; ?>
                         </tbody>

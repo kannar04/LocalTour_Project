@@ -7,6 +7,7 @@ namespace App\Controllers;
 use App\Models\CustomerBookingModel;
 use App\Models\PaymentModel;
 use App\Models\PaymentResultModel;
+use App\Services\MomoGateway;
 use App\Services\VietQr;
 use App\Services\VnpayGateway;
 use Core\Auth;
@@ -30,6 +31,8 @@ final class PaymentController extends Controller
         'csrf' => 'Phiên làm việc đã hết hạn, vui lòng thử lại.',
         'unavailable' => 'Phương thức này đang tạm ngưng, vui lòng chọn phương thức khác.',
         'vnpay' => 'Chưa tạo được yêu cầu thanh toán VNPay, vui lòng thử lại.',
+        'momo' => 'Chưa tạo được yêu cầu thanh toán MoMo, vui lòng thử lại.',
+        'momo_amount' => 'MoMo chỉ nhận thanh toán từ 10.000đ đến 50.000.000đ, vui lòng chọn phương thức khác.',
     ];
 
     private CustomerBookingModel $bookings;
@@ -57,7 +60,7 @@ final class PaymentController extends Controller
         PaymentResultModel::expireHoldsQuietly();
     }
 
-    /** GET /bookings/{code}/pay – chọn VNPay hoặc VietQR. */
+    /** GET /bookings/{code}/pay – chọn VNPay, MoMo hoặc VietQR. */
     public function checkout(string $code): void
     {
         $booking = $this->findOrFail($code);
@@ -79,6 +82,8 @@ final class PaymentController extends Controller
             'extras' => $this->bookings->extras($this->user['user_id'], $code),
             'vnpayEnabled' => VnpayGateway::enabled($config),
             'vietqrEnabled' => VietQr::enabled($config),
+            'momoEnabled' => MomoGateway::enabled($config),
+            'momoAmountOk' => MomoGateway::amountAllowed((int) $booking['total_vnd']),
             'error' => self::ERRORS[$this->query('error')] ?? '',
             'pageStyles' => self::PAGE_STYLES,
         ]);

@@ -8,6 +8,7 @@
  *       $nextStatuses (trạng thái được chọn tiếp, [] = trạng thái cuối), $success / $error ('' = không có),
  *       $newStatus, $note, $totalInput (giữ lại lựa chọn khi có lỗi),
  *       $vnpayUnclear (payment_id của các khoản VNPay chưa rõ kết quả, NTK_sp_admin_vnpay_queue),
+ *       $momoUnclear (payment_id => orderId của các khoản MoMo chưa rõ kết quả, NTK_sp_admin_momo_queue),
  *       $changeRequests (yêu cầu đổi ngày / hủy tour của đơn, Sprint 5),
  *       $confirmMail (tình trạng email "Đặt tour thành công", BookingMail::adminStatusLine; null = không hiện).
  * Sprint 4: chốt tổng giá khi xác nhận chỗ (4.4.3.2), đối chiếu chuyển khoản VietQR ngay ở khoản thanh toán (4.5.3.2)
@@ -159,7 +160,8 @@ $canSetTotal = in_array('awaiting_payment', $nextStatuses, true);
 <?php foreach ($payments as $payment): ?>
 <?php $reconcile = $payment['method'] === 'vietqr' && $payment['status'] === 'awaiting_reconciliation'; ?>
 <?php $vnpayCheck = in_array($payment['payment_id'], $vnpayUnclear, true); ?>
-                            <li class="lt-pay-item<?= $reconcile || $vnpayCheck ? ' is-waiting' : '' ?>">
+<?php $momoCheck = isset($momoUnclear[$payment['payment_id']]); ?>
+                            <li class="lt-pay-item<?= $reconcile || $vnpayCheck || $momoCheck ? ' is-waiting' : '' ?>">
                                 <div class="lt-pay-item__head">
                                     <span><strong><?= e(payment_method_label($payment['method'])) ?></strong> · <?= e(format_vnd($payment['amount_vnd'])) ?></span>
                                     <span class="lt-badge lt-badge--<?= e($payment['status']) ?>"><?= e(payment_status_label($payment['status'])) ?></span>
@@ -168,6 +170,9 @@ $canSetTotal = in_array('awaiting_payment', $nextStatuses, true);
                                     <dt><?= $payment['method'] === 'vietqr' ? 'Nội dung CK' : 'Mã thanh toán' ?></dt><dd><code><?= e(or_missing($payment['reference'])) ?></code></dd>
 <?php if ($payment['method'] === 'vnpay' && $payment['provider_txn_id'] !== null): ?>
                                     <dt>Mã GD VNPay</dt><dd><?= e($payment['provider_txn_id']) ?><?= $payment['bank_code'] !== null ? ' · ' . e($payment['bank_code']) : '' ?></dd>
+<?php endif; ?>
+<?php if ($payment['method'] === 'momo' && $payment['provider_txn_id'] !== null): ?>
+                                    <dt>Mã GD MoMo</dt><dd><?= e($payment['provider_txn_id']) ?><?= $payment['bank_code'] !== null ? ' · ' . e($payment['bank_code']) : '' ?></dd>
 <?php endif; ?>
                                     <dt>Tạo lúc</dt><dd><?= e(format_datetime($payment['created_at'])) ?></dd>
 <?php if ($payment['submitted_at'] !== null): ?>
@@ -205,6 +210,17 @@ $canSetTotal = in_array('awaiting_payment', $nextStatuses, true);
                                     <div class="lt-pay-item__actions">
                                         <button class="lt-btn lt-btn--primary" type="submit" name="decision" value="confirm">Có giao dịch thành công</button>
                                         <button class="lt-btn lt-btn--danger" type="submit" name="decision" value="reject" formnovalidate>Không có giao dịch</button>
+                                    </div>
+                                </form>
+<?php elseif ($momoCheck): ?>
+                                <form action="<?= e(url('/admin/payments/' . $payment['payment_id'] . '/momo')) ?>" method="post" class="lt-admin-form lt-pay-item__form">
+                                    <?= csrf_field() ?>
+                                    <p class="lt-admin-hint">MoMo chưa báo kết quả cho khoản này (mã giao dịch gửi MoMo <strong><?= e($momoUnclear[$payment['payment_id']]) ?></strong>). “Tra cứu MoMo” hỏi lại MoMo rồi ghi đúng kết quả MoMo trả lời.</p>
+<?php if ($booking['status'] !== 'awaiting_payment'): ?>
+                                    <p class="lt-admin-hint">Đơn đang “<?= e(booking_status_label($booking['status'])) ?>”: nếu MoMo báo đã thanh toán, hệ thống tạo yêu cầu hoàn tiền cho khách, đơn không mở lại.</p>
+<?php endif; ?>
+                                    <div class="lt-pay-item__actions">
+                                        <button class="lt-btn lt-btn--primary" type="submit">Tra cứu MoMo</button>
                                     </div>
                                 </form>
 <?php endif; ?>
@@ -264,7 +280,7 @@ $canSetTotal = in_array('awaiting_payment', $nextStatuses, true);
 <?php elseif ($holdsSeats): ?>
                             <p class="lt-admin-hint">Hủy đơn này sẽ trả lại <?= e((int) $booking['people']) ?> chỗ cho lịch.</p>
 <?php endif; ?>
-                            <p class="lt-admin-hint">Bắt buộc khi từ chối, hủy hoặc đổi tổng giá. VNPay thành công tự xác nhận đơn; chuyển khoản VietQR nên đối chiếu ở mục “Thanh toán” bên trái.</p>
+                            <p class="lt-admin-hint">Bắt buộc khi từ chối, hủy hoặc đổi tổng giá. VNPay / MoMo thành công tự xác nhận đơn; chuyển khoản VietQR nên đối chiếu ở mục “Thanh toán” bên trái.</p>
                             <button class="lt-btn lt-btn--primary lt-btn--block" type="submit">Cập nhật trạng thái</button>
                         </form>
 <?php endif; ?>

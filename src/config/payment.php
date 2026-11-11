@@ -19,4 +19,13 @@ return [
     'vnpay_pay_url' => trim(Env::get('VNPAY_PAY_URL', 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html')),
     // Để trống: tự tính theo địa chỉ khách đang mở (chạy được cả localhost lẫn qua Radmin VPN).
     'vnpay_return_url' => trim(Env::get('VNPAY_RETURN_URL')),
+    // MoMo (API v2, môi trường thử – Nguyễn Tuấn Khôi): hiện khi có đủ partner code, access key, secret key.
+    'momo_partner_code' => trim(Env::get('MOMO_PARTNER_CODE')),
+    'momo_access_key' => trim(Env::get('MOMO_ACCESS_KEY')),
+    'momo_secret_key' => trim(Env::get('MOMO_SECRET_KEY')),
+    // Để trống: cổng thử https://test-payment.momo.vn.
+    'momo_endpoint' => trim(Env::get('MOMO_ENDPOINT')) ?: 'https://test-payment.momo.vn',
+    // Để trống: tự tính theo địa chỉ khách đang mở, như VNPAY_RETURN_URL.
+    'momo_return_url' => trim(Env::get('MOMO_RETURN_URL')),
+    'momo_ipn_url' => trim(Env::get('MOMO_IPN_URL')),
 ];

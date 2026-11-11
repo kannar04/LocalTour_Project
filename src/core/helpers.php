@@ -333,7 +333,7 @@ function payment_status_label(?string $status): string
 /** Phương thức thanh toán (payments.method) → nhãn. */
 function payment_method_label(?string $method): string
 {
-    $labels = ['vnpay' => 'VNPay', 'vietqr' => 'VietQR (chuyển khoản)'];
+    $labels = ['vnpay' => 'VNPay', 'vietqr' => 'VietQR (chuyển khoản)', 'momo' => 'MoMo'];
 
     return $labels[(string) $method] ?? (string) $method;
 }
@@ -356,6 +356,8 @@ function booking_history_title(array $event): string
         'vnpay_reconcile_none' => 'Đối chiếu: không có giao dịch VNPay',
         'vnpay_paid' => 'Thanh toán VNPay thành công',
         'vnpay_failed' => 'Thanh toán VNPay không thành công',
+        'momo_paid' => 'Thanh toán MoMo thành công',
+        'momo_failed' => 'Thanh toán MoMo không thành công',
         'hold_expired' => 'Quá hạn thanh toán, đơn tự hủy',
         'voucher_issued' => 'Cấp voucher',
         'refund_requested' => 'Tạo yêu cầu hoàn tiền',
@@ -379,7 +381,7 @@ function booking_history_title(array $event): string
 /** Người thực hiện một dòng lịch sử đơn (booking_events.actor hoặc 'admin') → nhãn. */
 function booking_history_actor(?string $actor): string
 {
-    $labels = ['customer' => 'Khách hàng', 'system' => 'Hệ thống', 'vnpay' => 'VNPay', 'admin' => 'LocalTour'];
+    $labels = ['customer' => 'Khách hàng', 'system' => 'Hệ thống', 'vnpay' => 'VNPay', 'momo' => 'MoMo', 'admin' => 'LocalTour'];
 
     return $labels[(string) $actor] ?? (string) $actor;
 }
