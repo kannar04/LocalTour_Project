@@ -119,7 +119,8 @@ src/
 │   ├── 23_map_places_NTK.sql
 │   ├── 24_social_login_NTK.sql
 │   ├── 25_email_NTK.sql
-│   ├── db_localtour.sql          # File gộp 01–25, sinh tự động
+│   ├── 26_procedures_NTK_setup.sql
+│   ├── db_localtour.sql          # File gộp 01–26, sinh tự động
 │   └── README.md
 ├── public/                       # Thư mục web duy nhất trình duyệt truy cập được
 │   ├── .htaccess                 # Chuyển mọi đường dẫn về index.php (Apache)
@@ -133,8 +134,13 @@ src/
 ├── routes/
 │   └── web.php                   # Khai báo route
 ├── scripts/
+│   ├── check_install.php         # Kiểm tra cài đặt: PHP, .env, database, thư mục ghi được (Sprint 6)
+│   ├── create_admin.php          # Tạo / đặt lại mật khẩu tài khoản quản trị viên (Sprint 6)
 │   ├── expire_holds.php          # Tự hủy đơn quá hạn thanh toán (chạy bằng Task Scheduler)
-│   └── register_expire_task.bat  # Đăng ký Task Scheduler chạy expire_holds.php mỗi 15 phút
+│   ├── install_database.bat      # Bấm đúp để chạy install_database.php
+│   ├── install_database.php      # Cài database: import mọi file database/NN_*.sql theo thứ tự (Sprint 6)
+│   ├── register_expire_task.bat  # Đăng ký Task Scheduler chạy expire_holds.php mỗi 15 phút
+│   └── setup_common.php          # Phần dùng chung của ba script cài đặt
 └── storage/
     └── logs/                     # app.log sinh khi chạy, không đưa lên Git
 ```
@@ -231,6 +237,8 @@ Trang đăng nhập và đăng ký có liên kết "Tiếp tục với tư cách
 
 ## Cài đặt trên máy mới
 
+Hướng dẫn cài đặt để chạy demo, dùng các script cài database, tạo tài khoản quản trị và kiểm tra cài đặt trong `src/scripts`, xem [Sprint 6 – Hướng dẫn cài đặt](../docs/sprint6/02-huong-dan-cai-dat.md). Các bước dưới đây là cách làm thủ công và các ca tự kiểm tra.
+
 ### Yêu cầu
 
 - XAMPP 8.2 cho Windows (PHP 8.2, Apache, MySQL/MariaDB, phpMyAdmin).
@@ -262,10 +270,12 @@ Chọn một trong hai cách.
 **Cách B – Import database trên máy mình.**
 
 1. Mở XAMPP Control Panel, bấm Start cho **MySQL**.
-2. Dùng file `src/database/db_localtour.sql` trong repo. File này được gộp từ `src/database/01_schema.sql` đến `25_email_NTK.sql`.
+2. Dùng file `src/database/db_localtour.sql` trong repo. File này được gộp từ `src/database/01_schema.sql` đến `26_procedures_NTK_setup.sql`.
 3. Mở `http://localhost/phpmyadmin`, chọn tab **Import**, chọn file `db_localtour.sql`, giữ **Character set of the file** là `utf-8`, bấm **Import** (hoặc **Go**). File tự tạo database `db_localtour` với `utf8mb4_unicode_ci`.
 
-Nếu không có file gộp: tạo database `db_localtour` với collation `utf8mb4_unicode_ci`, chọn database đó, rồi import lần lượt `01_schema.sql`, `02_seed.sql`, `03_procedures_LTP.sql`, `04_procedures_NMT.sql`, `05_procedures_NTK.sql`, `06_procedures_NTK_account.sql`, `07_procedures_NTK_admin.sql`, `08_migration_booking_NMT.sql`, `09_procedures_NMT_booking.sql`, `10_procedures_LTP_booking.sql`, `11_procedures_NTK_booking.sql`, `12_migration_sprint4_NMT.sql`, `13_procedures_NMT_catalog.sql`, `14_procedures_NMT_payment.sql`, `15_procedures_LTP_payment.sql`, `16_migration_sprint5_LTP.sql`, `17_procedures_NMT_compare.sql`, `18_procedures_LTP_package.sql`, `19_procedures_LTP_change.sql`, `20_procedures_LTP_change_admin.sql`, `21_procedures_NMT_tour_content.sql`, `22_payment_momo_NTK.sql`, `23_map_places_NTK.sql`, `24_social_login_NTK.sql`, `25_email_NTK.sql`.
+Cách nhanh hơn, không cần phpMyAdmin: sau khi tạo `.env` (Bước 3), đứng ở thư mục `src` chạy `scripts\install_database.bat`. Script import mọi file `NN_*.sql` theo thứ tự vào database ghi trong `.env` và đếm lại bảng / procedure; database đã có dữ liệu thì dừng, trừ khi thêm `--fresh`.
+
+Nếu không có file gộp: tạo database `db_localtour` với collation `utf8mb4_unicode_ci`, chọn database đó, rồi import lần lượt `01_schema.sql`, `02_seed.sql`, `03_procedures_LTP.sql`, `04_procedures_NMT.sql`, `05_procedures_NTK.sql`, `06_procedures_NTK_account.sql`, `07_procedures_NTK_admin.sql`, `08_migration_booking_NMT.sql`, `09_procedures_NMT_booking.sql`, `10_procedures_LTP_booking.sql`, `11_procedures_NTK_booking.sql`, `12_migration_sprint4_NMT.sql`, `13_procedures_NMT_catalog.sql`, `14_procedures_NMT_payment.sql`, `15_procedures_LTP_payment.sql`, `16_migration_sprint5_LTP.sql`, `17_procedures_NMT_compare.sql`, `18_procedures_LTP_package.sql`, `19_procedures_LTP_change.sql`, `20_procedures_LTP_change_admin.sql`, `21_procedures_NMT_tour_content.sql`, `22_payment_momo_NTK.sql`, `23_map_places_NTK.sql`, `24_social_login_NTK.sql`, `25_email_NTK.sql`, `26_procedures_NTK_setup.sql`.
 
 Import lại bất cứ lúc nào để đưa dữ liệu về trạng thái ban đầu: `01_schema.sql` xóa và tạo lại 27 bảng, đồng thời xóa 2 bảng đã bỏ (`post_comments`, `post_interactions`) và 7 bảng do các file sau thêm; `12_migration_sprint4_NMT.sql` thêm 2 bảng Sprint 4, `16_migration_sprint5_LTP.sql` thêm 2 bảng Sprint 5, `23`, `24`, `25` mỗi file thêm 1 bảng (tổng 34 bảng). Tài khoản đã đăng ký thử cũng bị xóa. Ngày khởi hành mẫu được tính theo ngày import, vì vậy nên import lại trước mỗi buổi kiểm thử hoặc demo. Chi tiết xem [02 – Lược đồ dữ liệu](../docs/sprint3/02-luoc-do-du-lieu.md) và `src/database/README.md`.
 
@@ -327,7 +337,7 @@ Mở `http://127.0.0.1:8080`. Giữ cửa sổ dòng lệnh mở trong lúc dùn
 
 ```sql
 SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'db_localtour';                                  -- 34
-SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = 'db_localtour' AND ROUTINE_TYPE = 'PROCEDURE'; -- 107
+SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = 'db_localtour' AND ROUTINE_TYPE = 'PROCEDURE'; -- 112
 ```
 
 Ra số khác thì xem mục "Cách 1" của `src/database/README.md` để so tên bảng và procedure. Với Cách A, tài khoản ứng dụng chỉ có quyền gọi procedure nên bỏ qua bước này; các đường dẫn dưới đây đã đủ để kiểm tra.
@@ -360,7 +370,9 @@ Không ghi email hay mật khẩu thử vào tài liệu, file commit hoặc nh�
 
 ### Bước 7. Thử trang quản trị
 
-Trang quản trị chỉ dành cho tài khoản `admin` đang `active`, đăng nhập ở `/admin/login` (khác trang đăng nhập của khách). Tài khoản quản trị viên mẫu có `password_hash = NULL` nên không đăng nhập được, và ứng dụng không có chức năng tự nâng quyền. Để thử trên database của mình (Cách B):
+Trang quản trị chỉ dành cho tài khoản `admin` đang `active`, đăng nhập ở `/admin/login` (khác trang đăng nhập của khách). Tài khoản quản trị viên mẫu có `password_hash = NULL` nên không đăng nhập được, và ứng dụng không có chức năng tự nâng quyền.
+
+Cách nhanh nhất trên database của mình: đứng ở thư mục `src`, chạy `C:\xampp\php\php.exe scripts\create_admin.php --email=admin@localtour.test --generate`. Script đặt mật khẩu cho tài khoản quản trị viên mẫu và in mật khẩu ra một lần (bỏ `--generate` để tự gõ mật khẩu). Hoặc làm thủ công trên database của mình (Cách B):
 
 1. Đăng ký một tài khoản mới ở `/register` như Bước 6, rồi bấm "Đăng xuất".
 2. Trong phpMyAdmin, bấm `db_localtour`, mở tab **SQL** và chạy câu dưới đây (thay bằng email vừa đăng ký):
@@ -489,7 +501,7 @@ GRANT EXECUTE ON db_localtour.* TO 'localtour_app'@'<tiền tố IP của VPN>.%
 | `http://localhost/LocalTour_Project/src/` báo 403 | Hành vi đúng: `src/.htaccess` chặn mọi thứ ngoài `public/`. | Mở `http://localhost/LocalTour_Project/src/public/`. |
 | Tiếng Việt hiển thị sai (`Ã¡`, `?`) | File SQL được import với bảng mã khác UTF-8, hoặc database tạo sai collation. | Import lại `db_localtour.sql`, chọn character set `utf-8`; database phải dùng `utf8mb4` và `utf8mb4_unicode_ci`. |
 | Trang lỗi 500, log có `PROCEDURE db_localtour.… does not exist` | Chưa import đủ các file procedure. | Import lại `db_localtour.sql`, hoặc import `03` đến `21` theo thứ tự. |
-| Trang lỗi 500, log có `Unknown column` (ví dụ `request_token`) hoặc `Table 'db_localtour.…' doesn't exist` | Database vẫn là lược đồ cũ (chưa chạy `08_migration_booking_NMT.sql` / `12_migration_sprint4_NMT.sql` / `16_migration_sprint5_LTP.sql`, hoặc trước lược đồ 27 bảng), hoặc file gộp được sinh từ bản cũ. | Sinh lại `db_localtour.sql` từ `01`–`25` mới nhất rồi import lại. |
+| Trang lỗi 500, log có `Unknown column` (ví dụ `request_token`) hoặc `Table 'db_localtour.…' doesn't exist` | Database vẫn là lược đồ cũ (chưa chạy `08_migration_booking_NMT.sql` / `12_migration_sprint4_NMT.sql` / `16_migration_sprint5_LTP.sql`, hoặc trước lược đồ 27 bảng), hoặc file gộp được sinh từ bản cũ. | Sinh lại `db_localtour.sql` từ `01`–`26` mới nhất rồi import lại. |
 | Tải ảnh tour báo "Chưa lưu được ảnh trên máy chủ" | PHP không tạo / ghi được thư mục `src/public/assets/uploads/tours/`. | Cho tài khoản chạy Apache / PHP quyền ghi vào `src/public/assets/uploads/` (repo có sẵn file `.gitkeep`). |
 | Ảnh tour chỉ hiện ô xám có biểu tượng ảnh | Database có ảnh tải lên ở máy khác, file ảnh không có trên máy này. | Chép thư mục `src/public/assets/uploads/tours/` từ máy đã tải ảnh lên. |
 | Gửi yêu cầu đặt tour báo "Giá vé vừa thay đổi" hoặc "Lịch này chỉ còn X chỗ" | Hành vi đúng: giá hoặc số chỗ đã đổi từ lúc mở trang (quản trị viên vừa xác nhận chỗ cho đơn khác, hoặc giá vé được sửa). | Xem lại tổng tiền / số khách mới trên form rồi bấm "Xem lại & xác nhận" lần nữa. |
@@ -500,10 +512,11 @@ GRANT EXECUTE ON db_localtour.* TO 'localtour_app'@'<tiền tố IP của VPN>.%
 | Mở `/admin` bị chuyển tới "Đăng nhập quản trị" hoặc nhận trang 403 | Chưa đăng nhập quản trị, hoặc đang đăng nhập bằng tài khoản khách hàng (kể cả tài khoản vừa được đổi `role` mà chưa đăng nhập lại). | Đăng xuất, rồi đăng nhập ở `/admin/login` bằng tài khoản `admin` (Bước 7). |
 | Gửi form báo "Phiên làm việc đã hết hạn, vui lòng thử lại." | Mã CSRF không khớp: phiên đã hết hoặc bị xóa (đăng xuất ở tab khác, import lại, khởi động lại server), hoặc trình duyệt chặn cookie. | Tải lại trang rồi gửi lại form; kiểm tra trình duyệt cho phép cookie của trang. |
 | Built-in server: trang không có CSS hoặc mọi đường dẫn đều về trang lỗi | Chạy lệnh sai thư mục hoặc thiếu `public/router.php`. | Chạy đúng lệnh ở Bước 4 từ thư mục `src/`. |
-| Built-in server không khởi động, báo cổng đang được dùng | Cổng 8080 đã bị chương trình khác chiếm. | Đổi sang cổng khác, ví dụ `127.0.0.1:8081`. |
+| Built-in server báo cổng đang được dùng, hoặc báo "started" nhưng trình duyệt mở ra trang cũ / trang của chương trình khác | Cổng 8080 đã bị chương trình khác chiếm (thường là cửa sổ built-in server mở từ trước). Trên Windows, built-in server có thể vẫn báo "started" khi cổng đã bị chiếm. | Chạy `netstat -ano \| findstr :8080` để xem cổng có đang bị giữ không (cột cuối là PID); đóng cửa sổ cũ, hoặc đổi sang cổng khác, ví dụ `127.0.0.1:8081`. |
 | Trang không có giao diện Bootstrap, nút không phản hồi | Máy không có Internet nên không tải được CSS/JS từ CDN. | Kiểm tra kết nối mạng rồi tải lại trang. |
 | Bản đồ chỉ có danh sách địa điểm, không có nền bản đồ | Mạng chặn tên miền `openstreetmap.org`. | Bật DNS bảo mật (Secure DNS) trong trình duyệt hoặc đổi mạng. |
 | Liên kết hoặc ảnh trỏ sai địa chỉ | `APP_URL` trong `.env` bị điền sai. | Để trống `APP_URL`. |
+| Không rõ máy còn thiếu bước cài đặt nào | — | Đứng ở thư mục `src`, chạy `C:\xampp\php\php.exe scripts\check_install.php`: mỗi dòng `LỖI` / `CẢNH BÁO` ghi kèm cách sửa. Bảng xử lý sự cố đầy đủ ở [Sprint 6 – Hướng dẫn cài đặt](../docs/sprint6/02-huong-dan-cai-dat.md). |
 | Trang lỗi 500 không rõ nguyên nhân | Lỗi PHP hoặc SQL. | Xem dòng cuối của `src/storage/logs/app.log`; nếu cần, bật `APP_DEBUG=true` tạm thời trên máy cá nhân rồi tắt lại. |
 
 ## Quy ước khi sửa mã
