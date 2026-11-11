@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Models\TourContentModel;
 use App\Models\TourDetailModel;
+use App\Models\TourLocationModel;
 use App\Models\TourPackageModel;
 use Core\Controller;
 
@@ -41,11 +42,16 @@ final class TourDetailController extends Controller
             return;
         }
 
+        // Bản đồ quanh điểm khởi hành (Nguyễn Tuấn Khôi): null = tour chưa có vị trí hoặc chưa chạy file 23 → không hiện bản đồ.
+        $mapPoint = (new TourLocationModel())->point($tourId);
+        $mapAssets = $mapPoint !== null;
+
         $this->render('tours/show', [
             'title' => $tour['title'],
             'tour' => $tour,
-            'pageStyles' => ['css/tour-detail.css', 'css/compare.css'],
-            'pageScripts' => ['js/compare.js', 'js/tour-detail.js'],
+            'mapPoint' => $mapPoint,
+            'pageStyles' => array_merge(['css/tour-detail.css', 'css/compare.css'], $mapAssets ? ['css/tour-map.css'] : []),
+            'pageScripts' => array_merge(['js/compare.js', 'js/tour-detail.js'], $mapAssets ? ['js/tour-map.js'] : []),
         ] + $this->sections($tourId, $tour));
     }
 

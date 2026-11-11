@@ -156,6 +156,9 @@ $focusField = array_key_first(array_diff_key($errors, ['form' => true])) ?? 'tit
 <?php endforeach; ?>
 
                 <p class="lt-admin-hint">Ảnh, lịch trình, dịch vụ bao gồm và chính sách hủy chưa sửa được ở trang này. Lịch khởi hành và giá vé sửa ở trang "Lịch khởi hành và giá vé" của tour.</p>
+<?php if (!$isNew): ?>
+                <p class="lt-admin-hint">Vị trí điểm hẹn / khu vực đón trên bản đồ (vĩ độ, kinh độ) đặt ở trang <a href="<?= e(url('/admin/tours/' . $tour['tour_id'] . '/location')) ?>">Điểm khởi hành trên bản đồ</a>; đổi điểm hẹn ở đây thì nhớ cập nhật lại vị trí.</p>
+<?php endif; ?>
                 <div class="lt-admin__actions">
                     <button class="lt-btn lt-btn--primary" type="submit"><?= $isNew ? 'Thêm tour' : 'Lưu thay đổi' ?></button>
                     <a class="lt-btn lt-btn--outline" href="<?= e(url($cancelHref)) ?>">Hủy</a>

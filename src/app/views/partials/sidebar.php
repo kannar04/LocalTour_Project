@@ -4,8 +4,8 @@
  * Thanh bên (Nguyễn Tuấn Khôi).
  * $sidebarMode = 'column' (mặc định, trang danh sách): cột trái trên desktop, panel thu gọn trên mobile;
  *                'mobile' (trang chi tiết / không tìm thấy): chỉ là panel thu gọn dưới 992px.
- * Mục: Bảng tin, "Đơn của tôi" (chỉ tài khoản khách hàng) và "So sánh tour" (FR-15, Sprint 5: compare.js gắn
- * các tour đã chọn vào link .js-compare-link).
+ * Mục: Bảng tin, "Đơn của tôi" (chỉ tài khoản khách hàng), "So sánh tour" (FR-15, Sprint 5: compare.js gắn
+ * các tour đã chọn vào link .js-compare-link) và "Bản đồ" (/ban-do, điểm khởi hành của các tour).
  * Danh sách #sidebar-destinations được JS điền từ /api/destinations
  * (tour-list.js ở chế độ 'column', app.js tải khi mở panel ở chế độ 'mobile').
  */
@@ -14,6 +14,7 @@ $isColumn = $sidebarMode === 'column';
 $isFeedActive = ($activeNav ?? 'feed') === 'feed';
 $isBookingsActive = ($activeNav ?? 'feed') === 'bookings';
 $isCompareActive = ($activeNav ?? 'feed') === 'compare';
+$isMapActive = ($activeNav ?? 'feed') === 'map';
 $isCustomer = (current_user()['role'] ?? '') === 'customer';
 ?>
 <?php if (!$isColumn): ?>
@@ -45,6 +46,12 @@ $isCustomer = (current_user()['role'] ?? '') === 'customer';
                 <a class="lt-nav__link js-compare-link<?= $isCompareActive ? ' is-active' : '' ?>" href="<?= e(url('/compare')) ?>"<?= $isCompareActive ? ' aria-current="page"' : '' ?>>
                     <span class="lt-icon lt-icon--columns" aria-hidden="true"></span>
                     <span class="lt-nav__label">So sánh tour</span>
+                </a>
+            </li>
+            <li>
+                <a class="lt-nav__link<?= $isMapActive ? ' is-active' : '' ?>" href="<?= e(url('/ban-do')) ?>"<?= $isMapActive ? ' aria-current="page"' : '' ?>>
+                    <span class="lt-icon lt-icon--map" aria-hidden="true"></span>
+                    <span class="lt-nav__label">Bản đồ</span>
                 </a>
             </li>
         </ul>
