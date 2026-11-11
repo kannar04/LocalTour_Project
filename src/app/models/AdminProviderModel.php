@@ -9,7 +9,7 @@ use Core\Database;
 /**
  * Đơn vị tổ chức (FR-13, Nguyễn Minh Thức): danh sách, thêm, sửa thông tin và trạng thái hợp tác.
  * Procedure: NMT_sp_admin_provider_list, NMT_sp_admin_provider_detail, NMT_sp_admin_provider_create,
- *            NMT_sp_admin_provider_update (file 13).
+ *            NMT_sp_admin_provider_update (file 13); NMT_sp_admin_provider_delete (file 21, Sprint 5).
  */
 final class AdminProviderModel
 {
@@ -55,5 +55,17 @@ final class AdminProviderModel
         ]);
 
         return $rows[0] ?? ['result' => 'not_found', 'field' => null];
+    }
+
+    /**
+     * Xóa đơn vị chưa có tour (Sprint 5, US07-S5-01).
+     *
+     * @return array<string, mixed> result (deleted, forbidden, not_found, has_tours), business_name, tour_count
+     */
+    public function delete(string $actorUserId, string $providerId): array
+    {
+        $rows = Database::call('NMT_sp_admin_provider_delete', [$actorUserId, $providerId]);
+
+        return $rows[0] ?? ['result' => 'not_found', 'business_name' => null, 'tour_count' => null];
     }
 }
