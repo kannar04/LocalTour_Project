@@ -1,4 +1,4 @@
--- File sinh tự động từ src/database/01..da, không sửa tay.
+-- File sinh tự động từ src/database/01..25, không sửa tay.
 CREATE DATABASE IF NOT EXISTS db_localtour CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE db_localtour;
 SET NAMES utf8mb4;
