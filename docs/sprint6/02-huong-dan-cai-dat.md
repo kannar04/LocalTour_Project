@@ -124,10 +124,10 @@ LocalTour – cài database
 OK        mysql: C:\xampp\mysql\bin\mysql.exe
 OK        Kết nối MySQL 127.0.0.1:3306 (tài khoản root, 10.4.32-MariaDB)
 OK        Tạo database db_localtour (utf8mb4_unicode_ci)
-          Import 22 file từ …\LocalTour_Project\src\database:
+          Import 26 file từ …\LocalTour_Project\src\database:
 OK        01_schema.sql (0,5 giây)
 …
-OK        Database db_localtour: 31 bảng, 97 procedure (đủ như các file 01_schema.sql → 26_procedures_NTK_setup.sql).
+OK        Database db_localtour: 34 bảng, 112 procedure (đủ như các file 01_schema.sql → 26_procedures_NTK_setup.sql).
 ```
 
 Số file, số bảng và số procedure thay đổi theo phiên bản mã nguồn; điều cần thấy là dòng `OK` cuối có chữ “đủ như các file”.
@@ -184,8 +184,8 @@ CẢNH BÁO  VNPay sandbox chưa có VNPAY_TMN_CODE / VNPAY_HASH_SECRET (tùy ch
 CẢNH BÁO  VietQR chưa có PAYMENT_BANK_ID / PAYMENT_ACCOUNT_NO hợp lệ (tùy chọn): trang thanh toán hiện "VietQR đang tạm ngưng".
 OK        Kết nối database db_localtour tại 127.0.0.1:3306 (tài khoản root), 10.4.32-MariaDB
 OK        Bảng mã database: utf8mb4_unicode_ci
-OK        Đủ 31 bảng của 22 file 01_schema.sql → 26_procedures_NTK_setup.sql
-OK        Đủ 97 procedure của 22 file 01_schema.sql → 26_procedures_NTK_setup.sql
+OK        Đủ 34 bảng của 26 file 01_schema.sql → 26_procedures_NTK_setup.sql
+OK        Đủ 112 procedure của 26 file 01_schema.sql → 26_procedures_NTK_setup.sql
 OK        1 tài khoản quản trị đăng nhập được
 OK        35 lịch khởi hành còn nhận khách
 …
