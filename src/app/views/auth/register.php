@@ -3,7 +3,8 @@
 /*
  * Trang đăng ký tài khoản khách hàng (Nguyễn Tuấn Khôi).
  * Biến: $next, $old (name, email, phone đã nhập), $errors (lỗi theo ô: name, email, phone, password,
- *       password_confirm; 'form' = lỗi chung như hết phiên). Không bao giờ in lại mật khẩu.
+ *       password_confirm; 'form' = lỗi chung như hết phiên, captcha, đăng nhập Facebook không có email),
+ *       $socialButtons (nút Google / Facebook), $recaptchaSiteKey ('' = không có captcha). Không bao giờ in lại mật khẩu.
  */
 $loginHref = url('/login') . ($next !== '/tours' ? '?next=' . rawurlencode($next) : '');
 $fields = [
@@ -36,6 +37,8 @@ $focusField = array_key_first(array_diff_key($errors, ['form' => true])) ?? 'nam
             </div>
 <?php endif; ?>
 
+<?php require __DIR__ . '/../partials/auth-social.php'; ?>
+
             <form class="lt-auth__form" action="<?= e(url('/register')) ?>" method="post" novalidate>
                 <?= csrf_field() ?>
                 <input type="hidden" name="next" value="<?= e($next) ?>">
@@ -64,6 +67,7 @@ $focusField = array_key_first(array_diff_key($errors, ['form' => true])) ?? 'nam
                 </div>
 <?php endforeach; ?>
 
+<?php require __DIR__ . '/../partials/auth-recaptcha.php'; ?>
                 <button class="lt-btn lt-btn--primary lt-btn--block" type="submit">Tạo tài khoản</button>
             </form>
 

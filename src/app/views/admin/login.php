@@ -2,7 +2,8 @@
 <?php
 /*
  * Trang "Đăng nhập quản trị" (/admin/login), dùng chung style với trang đăng nhập khách hàng (auth.css).
- * Biến: $next (trang quản trị quay lại sau khi đăng nhập), $email (giữ lại khi nhập sai), $error ('' = không lỗi).
+ * Biến: $next (trang quản trị quay lại sau khi đăng nhập), $email (giữ lại khi nhập sai), $error ('' = không lỗi),
+ *       $recaptchaSiteKey ('' = không có captcha).
  * Không bao giờ in lại mật khẩu.
  */
 ?>
@@ -37,6 +38,7 @@
                            maxlength="72" autocomplete="current-password" required<?= $email !== '' ? ' autofocus' : '' ?>>
                 </div>
 
+<?php require __DIR__ . '/../partials/auth-recaptcha.php'; ?>
                 <button class="lt-btn lt-btn--primary lt-btn--block" type="submit">Đăng nhập</button>
             </form>
 

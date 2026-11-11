@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Models\UserModel;
+use App\Services\Recaptcha;
+use App\Services\SocialLogin;
 use Core\Auth;
 use Core\Controller;
 
 /**
  * Đăng ký, đăng nhập và đăng xuất tài khoản khách hàng (WBS 3.2.8 – Nguyễn Tuấn Khôi).
  * Chỉ tài khoản role 'customer' đăng nhập ở đây. Chưa đăng nhập = chế độ khách: xem tour, không đặt được.
+ * Có thêm nút đăng nhập bằng Google / Facebook (SocialAuthController) và ô reCAPTCHA khi đã cấu hình trong .env.
  */
 final class AuthController extends Controller
 {
@@ -31,7 +34,8 @@ final class AuthController extends Controller
             $this->redirect(safe_next_path($this->query('next')));
         }
 
-        $this->renderLogin(safe_next_path($this->query('next')), '', '');
+        // Thông báo lỗi khi đăng nhập bằng Google / Facebook không thành công (nếu có).
+        $this->renderLogin(safe_next_path($this->query('next')), '', SocialLogin::pullFlash());
     }
 
     /** POST /login – email, password, next, _csrf */
@@ -53,6 +57,12 @@ final class AuthController extends Controller
             $this->renderLogin($next, $email, 'Vui lòng nhập email và mật khẩu.', 422);
             return;
         }
+        // Kiểm tra ô "không phải robot" (khi đã cấu hình reCAPTCHA) trước khi kiểm tra mật khẩu.
+        $captcha = Recaptcha::check();
+        if ($captcha !== null) {
+            $this->renderLogin($next, $email, $captcha['message'], $captcha['code']);
+            return;
+        }
 
         $user = mb_strlen($email) <= UserModel::EMAIL_MAX_LENGTH ? $this->users->findByEmail($email) : null;
         // Sai email, sai mật khẩu, tài khoản bị khóa hay không phải khách hàng đều cùng một thông báo.
@@ -72,7 +82,8 @@ final class AuthController extends Controller
             $this->redirect(safe_next_path($this->query('next')));
         }
 
-        $this->renderRegister(safe_next_path($this->query('next')), ['name' => '', 'email' => '', 'phone' => ''], []);
+        $flash = SocialLogin::pullFlash();
+        $this->renderRegister(safe_next_path($this->query('next')), ['name' => '', 'email' => '', 'phone' => ''], $flash !== '' ? ['form' => $flash] : []);
     }
 
     /** POST /register – name, email, phone (không bắt buộc), password, password_confirm, next, _csrf */
@@ -97,6 +108,11 @@ final class AuthController extends Controller
         $errors = self::validateRegistration($old, $password, $this->input('password_confirm', false));
         if ($errors !== []) {
             $this->renderRegister($next, $old, $errors, 422);
+            return;
+        }
+        $captcha = Recaptcha::check();
+        if ($captcha !== null) {
+            $this->renderRegister($next, $old, ['form' => $captcha['message']], $captcha['code']);
             return;
         }
 
@@ -179,6 +195,8 @@ final class AuthController extends Controller
             'next' => $next,
             'email' => $email,
             'error' => $error,
+            'socialButtons' => SocialLogin::buttons($next),
+            'recaptchaSiteKey' => Recaptcha::siteKey(),
             'pageStyles' => ['css/auth.css'],
         ], $status);
     }
@@ -194,6 +212,8 @@ final class AuthController extends Controller
             'next' => $next,
             'old' => $old,
             'errors' => $errors,
+            'socialButtons' => SocialLogin::buttons($next),
+            'recaptchaSiteKey' => Recaptcha::siteKey(),
             'pageStyles' => ['css/auth.css'],
         ], $status);
     }

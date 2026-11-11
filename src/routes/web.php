@@ -73,6 +73,12 @@ $router->get('/register', [AuthController::class, 'showRegister']);
 $router->post('/register', [AuthController::class, 'register']);
 $router->post('/logout', [AuthController::class, 'logout']);
 
+// Đăng nhập bằng Google / Facebook (OAuth 2.0) cho tài khoản khách hàng. Thiếu khóa trong .env thì nút bị ẩn.
+$router->get('/auth/google', [App\Controllers\SocialAuthController::class, 'google']);
+$router->get('/auth/google/callback', [App\Controllers\SocialAuthController::class, 'googleCallback']);
+$router->get('/auth/facebook', [App\Controllers\SocialAuthController::class, 'facebook']);
+$router->get('/auth/facebook/callback', [App\Controllers\SocialAuthController::class, 'facebookCallback']);
+
 // Trang quản trị (FR-19 → FR-25): đăng nhập riêng, chỉ tài khoản quản trị viên.
 $router->get('/admin/login', [AdminAuthController::class, 'showLogin']);
 $router->post('/admin/login', [AdminAuthController::class, 'login']);
