@@ -45,6 +45,12 @@
 SET @OLD_FOREIGN_KEY_CHECKS = @@FOREIGN_KEY_CHECKS;
 SET FOREIGN_KEY_CHECKS = 0;
 
+-- Bảng do migration thêm (12: Sprint 4, 16: Sprint 5): xóa luôn để chạy lại từ đầu không còn dữ liệu thử cũ.
+DROP TABLE IF EXISTS booking_change_requests;
+DROP TABLE IF EXISTS tour_packages;
+DROP TABLE IF EXISTS booking_events;
+DROP TABLE IF EXISTS booking_extras;
+
 -- Lược đồ hiện tại có 27 bảng: 17 bảng dưới đây và 10 bảng ở hai nhóm "triển khai lại".
 DROP TABLE IF EXISTS payment_events;
 DROP TABLE IF EXISTS refunds;
@@ -444,7 +450,7 @@ CREATE TABLE passengers (
 -- provider_txn_id: mã giao dịch phía cổng VNPay / VietQR (NULL khi chưa tạo giao dịch).
 -- status: pending = Chưa thanh toán, processing = Đang xử lý,
 --         awaiting_reconciliation = Chờ đối chiếu, paid = Thành công, failed = Thất bại.
---         Luồng VietQR kết thúc ở 'awaiting_reconciliation' (chờ nhân viên đối chiếu)
+--         Luồng VietQR kết thúc ở 'awaiting_reconciliation' (chờ quản trị viên đối chiếu)
 --         hoặc 'paid'.
 --         Không có trạng thái "đã hoàn tiền": tiền hoàn được ghi ở bảng refunds.
 -- paid_at: thời điểm ghi nhận thanh toán thành công (status chuyển sang 'paid'); NULL khi
