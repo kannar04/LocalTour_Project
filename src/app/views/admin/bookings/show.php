@@ -8,7 +8,8 @@
  *       $nextStatuses (trạng thái được chọn tiếp, [] = trạng thái cuối), $success / $error ('' = không có),
  *       $newStatus, $note, $totalInput (giữ lại lựa chọn khi có lỗi),
  *       $vnpayUnclear (payment_id của các khoản VNPay chưa rõ kết quả, NTK_sp_admin_vnpay_queue),
- *       $changeRequests (yêu cầu đổi ngày / hủy tour của đơn, Sprint 5).
+ *       $changeRequests (yêu cầu đổi ngày / hủy tour của đơn, Sprint 5),
+ *       $confirmMail (tình trạng email "Đặt tour thành công", BookingMail::adminStatusLine; null = không hiện).
  * Sprint 4: chốt tổng giá khi xác nhận chỗ (4.4.3.2), đối chiếu chuyển khoản VietQR ngay ở khoản thanh toán (4.5.3.2)
  * và đối chiếu khoản VNPay chưa rõ kết quả với cổng VNPay.
  * Sprint 5: gói tour khách chọn; yêu cầu đổi ngày / hủy tour của khách được xử lý ở trang "Đổi ngày / hủy tour"
@@ -141,6 +142,9 @@ $canSetTotal = in_array('awaiting_payment', $nextStatuses, true);
                         <h2 class="lt-panel__title" id="booking-payment-title">Thanh toán</h2>
 <?php if ($booking['voucher_code'] !== null): ?>
                         <p class="lt-admin-hint">Voucher <strong><?= e($booking['voucher_code']) ?></strong> · cấp lúc <?= e(format_datetime($booking['voucher_issued_at'])) ?></p>
+<?php endif; ?>
+<?php if (($confirmMail ?? null) !== null): ?>
+                        <p class="lt-admin-hint">Email xác nhận: <?= e($confirmMail) ?></p>
 <?php endif; ?>
 <?php if ($refund > 0): ?>
                         <p class="lt-admin-hint">Đã hoàn tiền <?= e(format_vnd($refund)) ?>.</p>

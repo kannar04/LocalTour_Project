@@ -9,6 +9,7 @@ use App\Models\AdminChangeRequestModel;
 use App\Models\AdminPaymentModel;
 use App\Models\BookingHistoryModel;
 use App\Models\PaymentResultModel;
+use App\Services\BookingMail;
 
 /**
  * Quản lý yêu cầu đặt tour (FR-25, Nguyễn Tuấn Khôi): danh sách lọc theo trạng thái / tìm theo mã hoặc khách,
@@ -122,6 +123,11 @@ final class AdminBookingController extends AdminController
         $bookingId = (string) $booking['booking_id'];
         $result = $this->bookings->setStatus($bookingId, $newStatus, $this->actorId(), $note, $totalVnd);
 
+        // Email "Đặt tour thành công" khi quản trị viên vừa chuyển "Chờ thanh toán" → "Đã xác nhận".
+        if ($result === 'ok' && $newStatus === 'confirmed') {
+            BookingMail::sendConfirmedForBooking($bookingId);
+        }
+
         match ($result) {
             'ok' => $this->redirect('/admin/bookings/' . $bookingId . '?msg=status'),
             'forbidden' => self::forbidden(),
@@ -161,6 +167,7 @@ final class AdminBookingController extends AdminController
             'history' => (new BookingHistoryModel())->forAdmin($bookingId),
             'changeRequests' => (new AdminChangeRequestModel())->list('', $bookingId),
             'nextStatuses' => AdminBookingModel::NEXT_STATUSES[$booking['status']] ?? [],
+            'confirmMail' => BookingMail::adminStatusLine($bookingId, (string) $booking['status']),
             'success' => $success,
             'error' => $error,
             'newStatus' => $form['newStatus'] ?? '',
