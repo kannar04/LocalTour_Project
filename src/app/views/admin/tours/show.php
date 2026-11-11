@@ -53,6 +53,7 @@ $actionLabels = [
     'image_add' => 'Thêm ảnh', 'image_delete' => 'Xóa ảnh', 'image_cover' => 'Đổi ảnh bìa',
     'itinerary_add' => 'Thêm lịch trình', 'itinerary_update' => 'Sửa lịch trình', 'itinerary_delete' => 'Xóa lịch trình',
     'inclusion_add' => 'Thêm dịch vụ', 'inclusion_delete' => 'Xóa dịch vụ', 'policy_add' => 'Thêm chính sách hủy',
+    'location_set' => 'Đặt vị trí điểm khởi hành', 'location_clear' => 'Xóa vị trí điểm khởi hành',
 ];
 $packageStatus = ['active' => 'Đang bán', 'inactive' => 'Ngừng bán'];
 // Thêm tour: to_status = trạng thái duyệt; sửa thông tin: from / to = trạng thái xác minh (NFR-07).
@@ -98,6 +99,7 @@ $historyText = static function (array $log) use ($actionLabels, $packageStatus):
                     <a class="lt-btn lt-btn--soft" href="<?= e(url('/admin/tours/' . $tour['tour_id'] . '/schedules')) ?>">Lịch khởi hành và giá vé</a>
                     <a class="lt-btn lt-btn--soft" href="<?= e(url('/admin/tours/' . $tour['tour_id'] . '/packages')) ?>">Gói tour</a>
                     <a class="lt-btn lt-btn--soft" href="<?= e(url('/admin/tours/' . $tour['tour_id'] . '/content')) ?>">Ảnh, lịch trình, dịch vụ, chính sách</a>
+                    <a class="lt-btn lt-btn--soft" href="<?= e(url('/admin/tours/' . $tour['tour_id'] . '/location')) ?>">Điểm khởi hành trên bản đồ</a>
 <?php if ((int) $tour['is_public'] === 1): ?>
                     <a class="lt-btn lt-btn--outline" href="<?= e(url('/tours/' . $tour['tour_id'])) ?>">Xem trang tour</a>
 <?php endif; ?>

@@ -1,0 +1,564 @@
+/*
+ * LocalTour – tour-map.css (Nguyễn Tuấn Khôi)
+ * Bản đồ Leaflet và địa điểm quanh điểm khởi hành: mục "Bản đồ" của trang chi tiết tour, trang /ban-do,
+ * ô chọn vị trí ở trang quản trị. Dùng biến màu của base.css; mỗi nhóm địa điểm một màu (chấm trên bản đồ,
+ * nút lọc, tiêu đề danh sách).
+ */
+
+.lt-map-chip--an_uong,
+.lt-map-group--an_uong {
+    --lt-map-color: #c2410c;
+    --lt-map-tint: #fdeee6;
+}
+
+.lt-map-chip--bar,
+.lt-map-group--bar {
+    --lt-map-color: #7048e8;
+    --lt-map-tint: #efeafd;
+}
+
+.lt-map-chip--giai_tri,
+.lt-map-group--giai_tri {
+    --lt-map-color: #1c6fb8;
+    --lt-map-tint: #e6f0fa;
+}
+
+.lt-map-chip--quan_nuoc,
+.lt-map-group--quan_nuoc {
+    --lt-map-color: #8a5a2b;
+    --lt-map-tint: #f5ede4;
+}
+
+/* ---------- Khung bản đồ ---------- */
+
+.lt-map {
+    margin: 12px 0 18px;
+}
+
+.lt-map__canvas {
+    position: relative;
+    z-index: 0; /* gom z-index của Leaflet (tới 1000) lại, không đè header / thanh mục dính */
+    isolation: isolate;
+    height: 320px;
+    border: 1px solid var(--lt-border);
+    border-radius: var(--lt-radius);
+    background: var(--lt-surface-alt);
+    overflow: hidden;
+}
+
+.lt-map__canvas.leaflet-container {
+    font-family: var(--lt-font);
+}
+
+.lt-map__canvas:focus-visible,
+.lt-map__canvas .leaflet-container:focus-visible {
+    outline: none;
+    box-shadow: var(--lt-focus-ring);
+}
+
+.lt-map.is-unavailable .lt-map__canvas {
+    display: none;
+}
+
+.lt-map__notice {
+    margin: 8px 0 0;
+    padding: 8px 12px;
+    border-radius: var(--lt-radius);
+    background: var(--lt-highlight);
+    color: var(--lt-highlight-text);
+    font-size: 0.8125rem;
+}
+
+.lt-map--tall {
+    margin: 0;
+}
+
+.lt-map--tall .lt-map__canvas {
+    height: 540px;
+    border: 0;
+    border-radius: var(--lt-radius-lg);
+}
+
+.lt-map--tall .lt-map__notice {
+    margin: 0;
+    border-radius: 0 0 var(--lt-radius-lg) var(--lt-radius-lg);
+}
+
+.lt-map--pick {
+    margin: 4px 0 8px;
+}
+
+.lt-map--pick .lt-map__canvas {
+    height: 360px;
+    cursor: crosshair;
+}
+
+/* Ghim điểm khởi hành (L.divIcon, 30 × 40, mũi ghim ở đáy giữa). */
+.lt-map-pin {
+    border: 0;
+    background: none;
+}
+
+.lt-map-pin__dot {
+    position: absolute;
+    top: 8px;
+    left: 3px;
+    width: 24px;
+    height: 24px;
+    border: 2px solid #ffffff;
+    border-radius: 50% 50% 50% 0;
+    background: var(--lt-teal);
+    box-shadow: 0 1px 4px rgba(16, 24, 40, 0.4);
+    transform: rotate(-45deg);
+}
+
+.lt-map-pin__dot::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    margin: -4px 0 0 -4px;
+    border-radius: 50%;
+    background: #ffffff;
+}
+
+.lt-map-pin.is-active .lt-map-pin__dot {
+    background: var(--lt-highlight-text);
+}
+
+.lt-map-pin:focus {
+    outline: none;
+}
+
+.lt-map-pin:focus-visible .lt-map-pin__dot {
+    box-shadow: 0 0 0 3px rgba(23, 107, 95, 0.55);
+}
+
+/* Popup */
+.lt-map-popup {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 160px;
+    color: var(--lt-text);
+    font-size: 0.8125rem;
+    line-height: 1.45;
+}
+
+.lt-map-popup__title {
+    font-size: 0.875rem;
+}
+
+.lt-map-popup__meta {
+    color: var(--lt-muted-strong);
+}
+
+.lt-map-popup__line {
+    color: var(--lt-text-soft);
+}
+
+.lt-map-popup__link {
+    margin-top: 4px;
+    font-weight: 600;
+}
+
+/* ---------- Nút lọc và danh sách địa điểm ---------- */
+
+.lt-map-departure {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0 0 8px;
+    color: var(--lt-text-soft);
+}
+
+.lt-map-departure .lt-icon {
+    margin-top: 3px;
+    color: var(--lt-teal);
+}
+
+.lt-map-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 4px 0 10px;
+}
+
+.lt-map-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 0 12px;
+    border: 1px solid var(--lt-border-strong);
+    border-radius: 999px;
+    background: var(--lt-surface);
+    color: var(--lt-muted-strong);
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.2;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.lt-map-chip[aria-pressed="true"] {
+    border-color: var(--lt-map-color);
+    background: var(--lt-map-tint);
+    color: var(--lt-text);
+}
+
+.lt-map-chip:hover:not(:disabled) {
+    border-color: var(--lt-map-color);
+}
+
+.lt-map-chip:focus {
+    outline: none;
+}
+
+.lt-map-chip:focus-visible {
+    box-shadow: var(--lt-focus-ring);
+}
+
+.lt-map-chip:disabled {
+    cursor: default;
+    opacity: 0.65;
+}
+
+.lt-map-chip__dot {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 10px;
+    height: 10px;
+    border: 2px solid var(--lt-map-color);
+    border-radius: 50%;
+    background: var(--lt-map-color);
+}
+
+.lt-map-chip[aria-pressed="false"] .lt-map-chip__dot {
+    background: transparent;
+}
+
+.lt-map-chip__count {
+    min-width: 22px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: rgba(16, 24, 40, 0.07);
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+
+.lt-map-status {
+    margin: 0 0 12px;
+    color: var(--lt-muted-strong);
+    font-size: 0.875rem;
+}
+
+.lt-map-status .lt-linklike,
+.lt-map-more {
+    color: var(--lt-teal);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.lt-map-lists {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 14px 24px;
+    margin-bottom: 14px;
+}
+
+.lt-map-lists:empty {
+    display: none;
+}
+
+.lt-map-group__title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 6px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+}
+
+.lt-map-group__count {
+    color: var(--lt-muted);
+    font-weight: 400;
+}
+
+.lt-map-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.lt-map-item + .lt-map-item {
+    border-top: 1px solid var(--lt-border);
+}
+
+.lt-map-item__body {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding: 6px 8px;
+    border: 0;
+    border-radius: var(--lt-radius);
+    background: none;
+    color: var(--lt-text);
+    font-family: inherit;
+    text-align: left;
+}
+
+button.lt-map-item__body:hover {
+    background: var(--lt-surface-alt);
+}
+
+button.lt-map-item__body:focus {
+    outline: none;
+}
+
+button.lt-map-item__body:focus-visible {
+    box-shadow: var(--lt-focus-ring);
+}
+
+.lt-map-item__name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.lt-map-item__meta {
+    color: var(--lt-muted);
+    font-size: 0.8125rem;
+}
+
+.lt-map-more {
+    margin: 4px 8px 0;
+    font-size: 0.8125rem;
+}
+
+.lt-map-credit {
+    margin: 0 0 14px;
+    color: var(--lt-muted);
+    font-size: 0.75rem;
+    line-height: 1.5;
+}
+
+/* ---------- Trang /ban-do ---------- */
+
+.lt-tmap-head {
+    margin-bottom: 16px;
+}
+
+.lt-tmap-head__title {
+    margin: 0 0 4px;
+    font-size: 1.5rem;
+}
+
+.lt-tmap-head__lead {
+    max-width: 760px;
+    margin: 0;
+    color: var(--lt-muted);
+    font-size: 0.875rem;
+}
+
+.lt-tmap-body {
+    row-gap: 16px;
+}
+
+.lt-tmap-main > * + * {
+    margin-top: 16px;
+}
+
+.lt-tmap .lt-map-places.lt-section {
+    padding: 20px 24px 6px;
+    border-top: 1px solid var(--lt-border);
+}
+
+.lt-tmap .lt-map-places .lt-section__title {
+    font-size: 1.125rem;
+}
+
+.lt-tmap .js-map-pick-hint {
+    margin-bottom: 14px;
+}
+
+.lt-tmap .js-map-tour-link {
+    margin-bottom: 16px;
+}
+
+.lt-tmap-list__title {
+    margin: 0;
+    padding: 16px 16px 12px;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.lt-tmap-list__items {
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--lt-border);
+    list-style: none;
+}
+
+.lt-tmap-tour {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid var(--lt-border);
+}
+
+.lt-tmap-tour:last-child {
+    border-bottom: 0;
+}
+
+.lt-tmap-tour__select {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: flex-start;
+    gap: 10px;
+    min-width: 0;
+    padding: 10px 8px 10px 16px;
+    border: 0;
+    background: none;
+    color: var(--lt-text);
+    font-family: inherit;
+    text-align: left;
+}
+
+.lt-tmap-tour__select:hover {
+    background: var(--lt-surface-alt);
+}
+
+.lt-tmap-tour__select:focus {
+    outline: none;
+}
+
+.lt-tmap-tour__select:focus-visible {
+    box-shadow: inset var(--lt-focus-ring);
+}
+
+.lt-tmap-tour__select[aria-pressed="true"] {
+    background: var(--lt-teal-50);
+    box-shadow: inset 3px 0 0 var(--lt-teal);
+}
+
+.lt-tmap-tour__image {
+    flex-shrink: 0;
+    width: 64px;
+    height: 48px;
+    border-radius: 4px;
+    background: var(--lt-placeholder);
+    object-fit: cover;
+}
+
+.lt-tmap-tour__image--empty {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--lt-muted);
+}
+
+.lt-tmap-tour__body {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.lt-tmap-tour__title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.lt-tmap-tour__meta {
+    color: var(--lt-muted);
+    font-size: 0.75rem;
+    line-height: 1.45;
+}
+
+.lt-tmap-tour__link {
+    flex-shrink: 0;
+    padding: 10px 16px 10px 8px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.lt-tmap-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 24px;
+    text-align: center;
+}
+
+.lt-tmap-empty__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    margin-bottom: 12px;
+    border-radius: 50%;
+    background: var(--lt-teal-50);
+    color: var(--lt-teal);
+}
+
+.lt-tmap-empty__title {
+    margin: 0 0 6px;
+    font-size: 1.125rem;
+}
+
+.lt-tmap-empty__text {
+    max-width: 520px;
+    margin: 0 0 16px;
+    color: var(--lt-muted);
+    font-size: 0.875rem;
+}
+
+/* ---------- Trang quản trị ---------- */
+
+.lt-map-pick-status:empty {
+    display: none;
+}
+
+.lt-map-pick-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+@media (min-width: 992px) {
+    .lt-tmap-list__items {
+        max-height: 640px;
+        overflow-y: auto;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .lt-map__canvas {
+        height: 260px;
+    }
+
+    .lt-map--tall .lt-map__canvas {
+        height: 380px;
+    }
+
+    .lt-map--pick .lt-map__canvas {
+        height: 300px;
+    }
+
+    .lt-tmap .lt-map-places.lt-section {
+        padding: 18px 16px 4px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lt-map-chip {
+        transition: none;
+    }
+}

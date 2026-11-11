@@ -10,7 +10,8 @@
  *       $itinerary (mục lịch trình theo sort_order: [{item_id, start_time, time_text, description}]),
  *       $inclusions (['included' => [...], 'excluded' => [...]]), $extras (phụ thu / hoạt động tùy chọn, phụ thu trước),
  *       $reviews (tối đa 5, mới nhất trước), $policy (null hoặc chính sách hủy mới nhất),
- *       $gallery (ảnh của chính tour: [{url, caption}], có thể rỗng), $title.
+ *       $gallery (ảnh của chính tour: [{url, caption}], có thể rỗng), $title,
+ *       $mapPoint (điểm khởi hành trên bản đồ, TourLocationModel::point(); null = tour chưa có vị trí → không hiện mục bản đồ).
  * Dữ liệu thiếu hiển thị "Chưa cập nhật" (FR-01..05), không lấy từ tour khác và không tự suy diễn.
  * Thẻ đặt tour là form GET tới /tours/{id}/book (trang "Hoàn tất thông tin đặt tour") kèm lịch và số khách đã chọn.
  * Chế độ khách: nút "Đăng nhập để đặt tour" (đăng nhập xong vào thẳng trang đặt tour với lựa chọn hiện tại).
@@ -191,8 +192,13 @@ $sections = ['thong-tin' => 'Thông tin tour'];
 if ($hasPackages) {
     $sections['goi-tour'] = 'Gói tour';
 }
+$sections['lich-trinh'] = 'Lịch trình';
+// Bản đồ quanh điểm khởi hành (Nguyễn Tuấn Khôi): chỉ khi tour có vị trí.
+$mapPoint = $mapPoint ?? null;
+if ($mapPoint !== null) {
+    $sections['ban-do'] = 'Bản đồ';
+}
 $sections += [
-    'lich-trinh' => 'Lịch trình',
     'lich-khoi-hanh' => 'Lịch khởi hành',
     'dich-vu' => 'Dịch vụ',
     'chinh-sach' => 'Chính sách',
@@ -358,6 +364,9 @@ $sections += [
 <?php endif; ?>
                 </section>
 
+<?php if ($mapPoint !== null): ?>
+<?php require __DIR__ . '/map-section.php'; ?>
+<?php endif; ?>
                 <section class="lt-section" id="lich-khoi-hanh" tabindex="-1" aria-labelledby="lich-khoi-hanh-title">
                     <h2 class="lt-section__title" id="lich-khoi-hanh-title">Lịch khởi hành</h2>
 <?php if (!$hasSchedules): ?>

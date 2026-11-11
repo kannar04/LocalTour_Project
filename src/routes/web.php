@@ -83,6 +83,11 @@ $router->get('/auth/google/callback', [App\Controllers\SocialAuthController::cla
 $router->get('/auth/facebook', [App\Controllers\SocialAuthController::class, 'facebook']);
 $router->get('/auth/facebook/callback', [App\Controllers\SocialAuthController::class, 'facebookCallback']);
 
+// Bản đồ và địa điểm quanh điểm khởi hành (Nguyễn Tuấn Khôi): trang /ban-do và quán ăn, bar, giải trí, quán nước
+// quanh điểm khởi hành của tour (Overpass API gọi từ máy chủ, lưu đệm 7 ngày).
+$router->get('/ban-do', [\App\Controllers\TourMapController::class, 'index']);
+$router->get('/api/tours/{id}/places', [\App\Controllers\TourMapController::class, 'apiPlaces']);
+
 // Trang quản trị (FR-19 → FR-25): đăng nhập riêng, chỉ tài khoản quản trị viên.
 $router->get('/admin/login', [AdminAuthController::class, 'showLogin']);
 $router->post('/admin/login', [AdminAuthController::class, 'login']);
@@ -137,5 +142,9 @@ $router->post('/admin/payments/{id}/decide', [AdminPaymentController::class, 'de
 $router->post('/admin/payments/{id}/vnpay', [AdminPaymentController::class, 'vnpayDecide']);
 // Thanh toán MoMo: quản trị viên tra cứu lại khoản MoMo chưa rõ kết quả.
 $router->post('/admin/payments/{id}/momo', [AdminPaymentController::class, 'momoCheck']);
+
+// Bản đồ (Nguyễn Tuấn Khôi): quản trị viên đặt / xóa vị trí điểm khởi hành của tour.
+$router->get('/admin/tours/{id}/location', [\App\Controllers\AdminTourLocationController::class, 'edit']);
+$router->post('/admin/tours/{id}/location', [\App\Controllers\AdminTourLocationController::class, 'update']);
 
 return $router;
