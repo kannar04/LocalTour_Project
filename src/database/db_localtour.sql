@@ -1,4 +1,4 @@
--- File sinh tự động từ src/database/01..21, không sửa tay.
+-- File sinh tự động từ src/database/01..da, không sửa tay.
 CREATE DATABASE IF NOT EXISTS db_localtour CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE db_localtour;
 SET NAMES utf8mb4;
@@ -49,7 +49,10 @@ SET NAMES utf8mb4;
 SET @OLD_FOREIGN_KEY_CHECKS = @@FOREIGN_KEY_CHECKS;
 SET FOREIGN_KEY_CHECKS = 0;
 
--- Bảng do migration thêm (12: Sprint 4, 16: Sprint 5): xóa luôn để chạy lại từ đầu không còn dữ liệu thử cũ.
+-- Bảng do các file sau thêm (12: Sprint 4, 16: Sprint 5, 23 - 25): xóa luôn để chạy lại từ đầu không còn dữ liệu thử cũ.
+DROP TABLE IF EXISTS email_logs;
+DROP TABLE IF EXISTS user_social_accounts;
+DROP TABLE IF EXISTS map_place_cache;
 DROP TABLE IF EXISTS booking_change_requests;
 DROP TABLE IF EXISTS tour_packages;
 DROP TABLE IF EXISTS booking_events;
@@ -9339,5 +9342,1096 @@ proc: BEGIN
 
     COMMIT;
     SELECT 'deleted' AS result, v_name AS business_name, 0 AS tour_count;
+END$$
+DELIMITER ;
+-- =====================================================================
+-- LocalTour v0.5 - 22_payment_momo_NTK.sql
+-- Mục đích  : Thêm MoMo (API v2, môi trường thử) làm phương thức thanh toán thứ ba bên cạnh
+--             VNPay và VietQR cho đơn "Chờ thanh toán".
+--   1. payments.method thêm 'momo'; booking_events.actor thêm 'momo' (kết quả MoMo).
+--      Giữ nguyên các giá trị đang có của hai ENUM (kể cả giá trị file khác thêm vào).
+--   2. NTK_sp_payment_momo_start : tạo khoản MoMo 'pending' mới cho đơn (như VNPay), trả
+--      orderId gửi MoMo = reference + '-' + 10 ký tự đầu MD5(payment_id), vd.
+--      LT518204P2-3f9a1c2b7d (orderId không trùng giữa các lần import lại database).
+--   3. NTK_sp_payment_momo_result: ghi kết quả MoMo đã xác minh (trang trả về sau khi tra
+--      cứu bằng API query có chữ ký, IPN, hoặc quản trị viên tra cứu). Idempotent như
+--      LTP_sp_payment_vnpay_result: lần đầu ghi, các lần sau trả 'already'.
+--   4. NTK_sp_admin_momo_queue   : khoản MoMo chưa rõ kết quả cho trang quản trị.
+-- Phụ trách : Nguyễn Tuấn Khôi (NTK)
+-- Quy tắc   : * Ứng dụng kiểm tra chữ ký MoMo (HMAC-SHA256) và tra cứu lại giao dịch TRƯỚC
+--               khi gọi NTK_sp_payment_momo_result; procedure chỉ nhận kết quả đã xác minh.
+--             * Số tiền MoMo báo phải bằng payments.amount_vnd, ngược lại không đổi gì.
+--             * MoMo thành công khi đơn còn 'awaiting_payment' -> đơn 'confirmed', cấp voucher,
+--               các khoản 'pending' khác -> 'failed'. Đơn đã hết hạn / đã hủy / đã thanh toán
+--               bằng khoản khác -> khoản vẫn 'paid' và tạo yêu cầu hoàn tiền ('requested').
+--             * Khoản bị hệ thống đóng ('failed', chưa có kết quả MoMo: response_code NULL)
+--               vẫn nhận kết quả MoMo tới muộn.
+--             Tham số chuỗi được so sánh với COLLATE utf8mb4_unicode_ci; không có DEFINER.
+-- Chạy sau  : 01 -> 21 (gọi LTP_sp_voucher_issue của file 15).
+--             Chạy lại được (ENUM đã có 'momo' thì bỏ qua, DROP PROCEDURE IF EXISTS).
+-- =====================================================================
+
+SET NAMES utf8mb4;
+
+-- ---------------------------------------------------------------------
+-- 1. Thêm 'momo' vào payments.method và booking_events.actor.
+--    Đọc ENUM hiện tại rồi nối thêm 'momo' (không ghi đè giá trị file khác đã thêm).
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_migrate_momo;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_migrate_momo()
+MODIFIES SQL DATA
+BEGIN
+    DECLARE v_type TEXT DEFAULT NULL;
+
+    SELECT c.COLUMN_TYPE INTO v_type
+      FROM information_schema.COLUMNS c
+     WHERE c.TABLE_SCHEMA = DATABASE() AND c.TABLE_NAME = 'payments' AND c.COLUMN_NAME = 'method';
+    IF v_type IS NOT NULL AND v_type NOT LIKE '%''momo''%' THEN
+        SET @ntk_momo_sql = CONCAT('ALTER TABLE payments MODIFY COLUMN method ',
+                                   LEFT(v_type, CHAR_LENGTH(v_type) - 1), ',''momo'') NOT NULL');
+        PREPARE ntk_momo_stmt FROM @ntk_momo_sql;
+        EXECUTE ntk_momo_stmt;
+        DEALLOCATE PREPARE ntk_momo_stmt;
+    END IF;
+
+    SET v_type = NULL;
+    SELECT c.COLUMN_TYPE INTO v_type
+      FROM information_schema.COLUMNS c
+     WHERE c.TABLE_SCHEMA = DATABASE() AND c.TABLE_NAME = 'booking_events' AND c.COLUMN_NAME = 'actor';
+    IF v_type IS NOT NULL AND v_type NOT LIKE '%''momo''%' THEN
+        SET @ntk_momo_sql = CONCAT('ALTER TABLE booking_events MODIFY COLUMN actor ',
+                                   LEFT(v_type, CHAR_LENGTH(v_type) - 1), ',''momo'') NOT NULL');
+        PREPARE ntk_momo_stmt FROM @ntk_momo_sql;
+        EXECUTE ntk_momo_stmt;
+        DEALLOCATE PREPARE ntk_momo_stmt;
+    END IF;
+END$$
+DELIMITER ;
+
+CALL NTK_sp_migrate_momo();
+DROP PROCEDURE IF EXISTS NTK_sp_migrate_momo;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_payment_momo_start(p_user_id, p_code, p_min_vnd, p_max_vnd)
+--   Bắt đầu thanh toán MoMo cho đơn p_code của tài khoản p_user_id: mỗi lần là một khoản
+--   'pending' mới (orderId MoMo chỉ dùng được một lần). p_min_vnd / p_max_vnd: giới hạn số
+--   tiền MoMo nhận (MomoGateway).
+--   1 dòng: result, payment_id, reference, order_id, amount_vnd, expires_at.
+--     result = 'ok'                      : khoản mới sẵn sàng gửi MoMo.
+--              'not_found'               : không có đơn này trong tài khoản.
+--              'not_payable'             : đơn không ở 'awaiting_payment' hoặc đã thanh toán.
+--              'expired'                 : đã quá hạn giữ chỗ (đơn sẽ bị tự hủy).
+--              'awaiting_reconciliation' : đã báo chuyển khoản VietQR, đang chờ đối chiếu.
+--              'invalid_amount'          : tổng tiền ngoài giới hạn của MoMo.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_payment_momo_start;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_payment_momo_start(
+    IN p_user_id CHAR(36),
+    IN p_code    VARCHAR(20),
+    IN p_min_vnd BIGINT,
+    IN p_max_vnd BIGINT
+)
+MODIFIES SQL DATA
+proc: BEGIN
+    DECLARE v_booking_id CHAR(36)    DEFAULT NULL;
+    DECLARE v_code       VARCHAR(20) DEFAULT NULL;
+    DECLARE v_status     VARCHAR(30) DEFAULT NULL;
+    DECLARE v_total      BIGINT      DEFAULT NULL;
+    DECLARE v_hold       DATETIME    DEFAULT NULL;
+    DECLARE v_payment_id CHAR(36)    DEFAULT NULL;
+    DECLARE v_reference  VARCHAR(32) DEFAULT NULL;
+    DECLARE v_count      INT         DEFAULT 0;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+
+    SELECT b.id, b.code, b.status, b.total_vnd, b.hold_expires_at
+      INTO v_booking_id, v_code, v_status, v_total, v_hold
+      FROM bookings b
+     WHERE b.user_id = (p_user_id COLLATE utf8mb4_unicode_ci)
+       AND b.code = (UPPER(TRIM(p_code)) COLLATE utf8mb4_unicode_ci)
+       FOR UPDATE;
+
+    IF v_booking_id IS NULL THEN
+        ROLLBACK;
+        SELECT 'not_found' AS result, NULL AS payment_id, NULL AS reference, NULL AS order_id, NULL AS amount_vnd, NULL AS expires_at;
+        LEAVE proc;
+    END IF;
+
+    IF v_status <> 'awaiting_payment'
+       OR EXISTS (SELECT 1 FROM payments p WHERE p.booking_id = v_booking_id AND p.status = 'paid') THEN
+        ROLLBACK;
+        SELECT 'not_payable' AS result, NULL AS payment_id, NULL AS reference, NULL AS order_id, NULL AS amount_vnd, NULL AS expires_at;
+        LEAVE proc;
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM payments p WHERE p.booking_id = v_booking_id AND p.status = 'awaiting_reconciliation') THEN
+        ROLLBACK;
+        SELECT 'awaiting_reconciliation' AS result, NULL AS payment_id, NULL AS reference, NULL AS order_id, NULL AS amount_vnd, NULL AS expires_at;
+        LEAVE proc;
+    END IF;
+
+    IF v_hold IS NULL OR v_hold <= NOW() THEN
+        ROLLBACK;
+        SELECT 'expired' AS result, NULL AS payment_id, NULL AS reference, NULL AS order_id, NULL AS amount_vnd, NULL AS expires_at;
+        LEAVE proc;
+    END IF;
+
+    IF v_total IS NULL OR v_total < p_min_vnd OR v_total > p_max_vnd THEN
+        ROLLBACK;
+        SELECT 'invalid_amount' AS result, NULL AS payment_id, NULL AS reference, NULL AS order_id, v_total AS amount_vnd, NULL AS expires_at;
+        LEAVE proc;
+    END IF;
+
+    SELECT COUNT(*) INTO v_count FROM payments p WHERE p.booking_id = v_booking_id;
+    SET v_payment_id = UUID();
+    SET v_reference = CONCAT(v_code, 'P', v_count + 1);
+
+    INSERT INTO payments (id, booking_id, method, reference, provider_txn_id, amount_vnd, status,
+                          expires_at, paid_at, created_at)
+    VALUES (v_payment_id, v_booking_id, 'momo', v_reference, NULL, v_total, 'pending',
+            v_hold, NULL, NOW());
+
+    COMMIT;
+    SELECT 'ok' AS result, v_payment_id AS payment_id, v_reference AS reference,
+           CONCAT(v_reference, '-', LEFT(MD5(v_payment_id), 10)) AS order_id,
+           v_total AS amount_vnd, v_hold AS expires_at;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_payment_momo_result(p_order_id, p_amount_vnd, p_result_code, p_trans_id,
+--                            p_pay_type, p_source)
+--   p_order_id   : orderId gửi MoMo (NTK_sp_payment_momo_start.order_id).
+--   p_amount_vnd : số tiền MoMo báo; -1 = sai dạng.
+--   p_result_code: resultCode của MoMo ('0' = thành công); p_trans_id: transId tại MoMo;
+--   p_pay_type   : payType (napas, credit, qr, webApp...).
+--   p_source     : 'return' (trang trả về), 'ipn', 'admin' (quản trị viên tra cứu),
+--                  'create' (MoMo từ chối tạo giao dịch). Chỉ ghi vào lịch sử đơn.
+--   1 dòng: result, booking_code, payment_status, booking_status.
+--     result = 'ok'             : lần đầu khoản này thành 'paid' (đơn 'confirmed', hoặc đơn đã
+--                                 hủy / hết hạn: tạo yêu cầu hoàn tiền).
+--              'failed'         : lần đầu ghi kết quả không thành công.
+--              'already'        : khoản đã có kết quả (trang trả về và IPN cùng báo).
+--              'not_found'      : không có khoản MoMo với orderId này.
+--              'invalid_amount' : số tiền MoMo báo khác số tiền của khoản; không đổi gì.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_payment_momo_result;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_payment_momo_result(
+    IN p_order_id    VARCHAR(64),
+    IN p_amount_vnd  BIGINT,
+    IN p_result_code VARCHAR(10),
+    IN p_trans_id    VARCHAR(100),
+    IN p_pay_type    VARCHAR(20),
+    IN p_source      VARCHAR(10)
+)
+MODIFIES SQL DATA
+proc: BEGIN
+    DECLARE v_payment_id CHAR(36)    DEFAULT NULL;
+    DECLARE v_booking_id CHAR(36)    DEFAULT NULL;
+    DECLARE v_reference  VARCHAR(32) DEFAULT NULL;
+    DECLARE v_amount     BIGINT      DEFAULT NULL;
+    DECLARE v_pay_status VARCHAR(30) DEFAULT NULL;
+    DECLARE v_pay_code   VARCHAR(10) DEFAULT NULL;
+    DECLARE v_code       VARCHAR(20) DEFAULT NULL;
+    DECLARE v_status     VARCHAR(30) DEFAULT NULL;
+    DECLARE v_order_id   VARCHAR(64) DEFAULT TRIM(p_order_id);
+    DECLARE v_result     VARCHAR(10) DEFAULT COALESCE(NULLIF(TRIM(p_result_code), ''), '??');
+    DECLARE v_trans_id   VARCHAR(100) DEFAULT NULLIF(NULLIF(TRIM(p_trans_id), ''), '0');
+    DECLARE v_source     VARCHAR(40) CHARACTER SET utf8mb4 DEFAULT
+        CASE p_source WHEN 'ipn' THEN 'qua IPN' WHEN 'admin' THEN 'quản trị viên tra cứu'
+                      WHEN 'create' THEN 'lúc tạo giao dịch' ELSE 'qua trang trả về' END;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+
+    SELECT p.id, p.booking_id, p.reference, p.amount_vnd, p.status, p.response_code
+      INTO v_payment_id, v_booking_id, v_reference, v_amount, v_pay_status, v_pay_code
+      FROM payments p
+     WHERE p.reference = (SUBSTRING_INDEX(v_order_id, '-', 1) COLLATE utf8mb4_unicode_ci)
+       AND p.method = 'momo'
+       FOR UPDATE;
+
+    -- orderId phải đúng khoản này (không nhận orderId của lần import database trước).
+    IF v_payment_id IS NULL
+       OR BINARY CONCAT(v_reference, '-', LEFT(MD5(v_payment_id), 10)) <> BINARY v_order_id THEN
+        ROLLBACK;
+        SELECT 'not_found' AS result, NULL AS booking_code, NULL AS payment_status, NULL AS booking_status;
+        LEAVE proc;
+    END IF;
+
+    -- Khóa đơn (cùng thứ tự khóa với các procedure khác: khoản rồi đơn).
+    SELECT b.code, b.status INTO v_code, v_status
+      FROM bookings b
+     WHERE b.id = v_booking_id
+       FOR UPDATE;
+
+    IF NOT (p_amount_vnd <=> v_amount) THEN
+        ROLLBACK;
+        SELECT 'invalid_amount' AS result, v_code AS booking_code, v_pay_status AS payment_status, v_status AS booking_status;
+        LEAVE proc;
+    END IF;
+
+    IF v_pay_status <> 'pending' AND NOT (v_pay_status = 'failed' AND v_pay_code IS NULL) THEN
+        ROLLBACK;
+        SELECT 'already' AS result, v_code AS booking_code, v_pay_status AS payment_status, v_status AS booking_status;
+        LEAVE proc;
+    END IF;
+
+    -- Một sự kiện cho mỗi khoản: khoản đã có kết quả thì không tới được đây lần thứ hai.
+    INSERT INTO payment_events (id, payment_id, provider_event_id, result_code, verified, received_at)
+    VALUES (UUID(), v_payment_id, CONCAT('MOMO-', v_order_id), v_result, TRUE, NOW());
+
+    IF v_result = '0' THEN
+        UPDATE payments
+           SET status = 'paid', paid_at = NOW(), provider_txn_id = v_trans_id,
+               response_code = v_result, bank_code = NULLIF(TRIM(p_pay_type), '')
+         WHERE id = v_payment_id;
+
+        IF v_status = 'awaiting_payment' THEN
+            UPDATE bookings SET status = 'confirmed', hold_expires_at = NULL WHERE id = v_booking_id;
+
+            INSERT INTO booking_events (id, booking_id, actor, actor_user_id, action, from_status, to_status, note, created_at)
+            VALUES (UUID(), v_booking_id, 'momo', NULL, 'momo_paid', 'awaiting_payment', 'confirmed',
+                    LEFT(CONCAT('Thanh toán MoMo thành công, mã giao dịch ', COALESCE(v_trans_id, v_reference),
+                                ' (', v_source, ')'), 255), NOW());
+
+            -- Các lần thanh toán khác chưa xong của đơn không dùng nữa.
+            UPDATE payments
+               SET status = 'failed', note = 'Đơn đã được thanh toán bằng khoản khác.'
+             WHERE booking_id = v_booking_id
+               AND id <> v_payment_id
+               AND status = 'pending';
+
+            CALL LTP_sp_voucher_issue(v_booking_id);
+            SET v_status = 'confirmed';
+        ELSE
+            -- Tiền đã trừ nhưng đơn không còn chờ thanh toán: tạo yêu cầu hoàn tiền.
+            INSERT INTO refunds (id, payment_id, amount_vnd, reason, status, requested_at)
+            VALUES (UUID(), v_payment_id, v_amount,
+                    LEFT(CONCAT('Thanh toán MoMo ', v_reference, ' tới khi đơn đang "', v_status, '"; cần hoàn tiền cho khách.'), 255),
+                    'requested', NOW());
+
+            INSERT INTO booking_events (id, booking_id, actor, actor_user_id, action, from_status, to_status, note, created_at)
+            VALUES (UUID(), v_booking_id, 'momo', NULL, 'refund_requested', NULL, NULL,
+                    CONCAT('Khoản MoMo ', v_reference, ' tới sau khi đơn không còn chờ thanh toán; đã tạo yêu cầu hoàn tiền.'), NOW());
+        END IF;
+
+        COMMIT;
+        SELECT 'ok' AS result, v_code AS booking_code, 'paid' AS payment_status, v_status AS booking_status;
+        LEAVE proc;
+    END IF;
+
+    UPDATE payments
+       SET status = 'failed', provider_txn_id = v_trans_id,
+           response_code = v_result, bank_code = NULLIF(TRIM(p_pay_type), '')
+     WHERE id = v_payment_id;
+
+    INSERT INTO booking_events (id, booking_id, actor, actor_user_id, action, from_status, to_status, note, created_at)
+    VALUES (UUID(), v_booking_id, 'momo', NULL, 'momo_failed', NULL, NULL,
+            LEFT(CONCAT('Thanh toán MoMo không thành công (mã ', v_result, ', ', v_source, ')'), 255), NOW());
+
+    COMMIT;
+    SELECT 'failed' AS result, v_code AS booking_code, 'failed' AS payment_status, v_status AS booking_status;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_admin_momo_queue(p_booking_id, p_payment_id)
+--   Khoản MoMo chưa rõ kết quả: MoMo chưa báo gì (không có payment_events, response_code
+--   NULL), vì khách đóng trang MoMo, IPN không tới được (chạy ở localhost) hoặc lúc trả về
+--   chưa tra cứu được. Gồm khoản 'pending' đã quá 15 phút (hết hạn đơn MoMo, MomoGateway) và
+--   khoản bị hệ thống đóng 'failed' khi đơn không được thanh toán bằng khoản khác.
+--   Quản trị viên bấm "Tra cứu MoMo": ứng dụng gọi API query rồi ghi qua
+--   NTK_sp_payment_momo_result.
+--   p_booking_id / p_payment_id: NULL = không lọc. Tối đa 200 dòng, tạo trước lên trước.
+--   Cột: payment_id, reference, order_id, amount_vnd, status, created_at, booking_id, code,
+--   booking_status, hold_expires_at, contact_name, contact_phone, tour_title, starts_at.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_admin_momo_queue;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_admin_momo_queue(
+    IN p_booking_id CHAR(36),
+    IN p_payment_id CHAR(36)
+)
+READS SQL DATA
+BEGIN
+    SELECT
+        p.id            AS payment_id,
+        p.reference,
+        CONCAT(p.reference, '-', LEFT(MD5(p.id), 10)) AS order_id,
+        p.amount_vnd,
+        p.status,
+        p.created_at,
+        b.id            AS booking_id,
+        b.code,
+        b.status        AS booking_status,
+        b.hold_expires_at,
+        b.contact_name,
+        b.contact_phone,
+        t.title         AS tour_title,
+        s.starts_at
+    FROM payments p
+    JOIN bookings b  ON b.id = p.booking_id
+    JOIN schedules s ON s.id = b.schedule_id
+    JOIN tours t     ON t.id = s.tour_id
+    WHERE p.method = 'momo'
+      AND p.reference IS NOT NULL
+      AND p.response_code IS NULL
+      AND NOT EXISTS (SELECT 1 FROM payment_events e WHERE e.payment_id = p.id)
+      AND ((p.status = 'pending' AND p.created_at <= NOW() - INTERVAL 15 MINUTE)
+           OR (p.status = 'failed' AND b.status NOT IN ('confirmed', 'completed')))
+      AND (p_booking_id IS NULL OR b.id = (p_booking_id COLLATE utf8mb4_unicode_ci))
+      AND (p_payment_id IS NULL OR p.id = (p_payment_id COLLATE utf8mb4_unicode_ci))
+    ORDER BY p.created_at, p.id
+    LIMIT 200;
+END$$
+DELIMITER ;
+-- =====================================================================
+-- LocalTour v0.5 - 23_map_places_NTK.sql
+-- Mục đích  : Bản đồ và địa điểm du lịch quanh điểm khởi hành của tour.
+--   1. tours.latitude / tours.longitude (DECIMAL(9,6), NULL = chưa có vị trí): tọa độ điểm
+--      khởi hành = điểm hẹn (meeting_point); tour đón tại khách sạn = khu vực đón. Có cả hai
+--      hoặc không có cả hai (ràng buộc chk_tours_location_pair).
+--   2. Tọa độ của 12 tour mẫu: tra một lần bằng OpenStreetMap Nominatim khi phát triển
+--      (11/11/2026) và ghi cố định bên dưới; trang web không gọi Nominatim. Chỉ điền khi tour
+--      chưa có tọa độ, chạy lại file không ghi đè vị trí quản trị viên đã sửa.
+--   3. map_place_cache: kết quả tra Overpass API (quán ăn, bar, giải trí, quán nước trong bán
+--      kính quanh một điểm), lưu dạng JSON theo điểm đã làm tròn 4 chữ số thập phân. Ứng dụng
+--      dùng lại kết quả trong 7 ngày; Overpass lỗi thì dùng kết quả cũ, và tạm không gọi lại
+--      trong vài phút (failed_at).
+-- Phụ trách : Nguyễn Tuấn Khôi (NTK)
+-- Procedures: NTK_sp_tour_location, NTK_sp_tour_location_list,
+--             NTK_sp_admin_tour_location, NTK_sp_admin_tour_set_location,
+--             NTK_sp_place_cache_get, NTK_sp_place_cache_save, NTK_sp_place_cache_fail
+-- Quy tắc   : * Trang khách chỉ đọc vị trí của tour đang hiển thị (tour 'approved', đơn vị tổ chức
+--               'approved', tài khoản đơn vị 'active'), giống NMT_sp_tour_detail.
+--             * Đặt / xóa vị trí: chỉ quản trị viên đang hoạt động; tọa độ phải nằm trong khung
+--               Việt Nam (vĩ độ 8 -> 23,5; kinh độ 102 -> 110); ghi admin_logs (target_type 'tour',
+--               action 'location_set' / 'location_clear').
+--             Tham số chuỗi được so sánh với COLLATE utf8mb4_unicode_ci; không có DEFINER.
+-- Tương thích: MariaDB 10.4 (XAMPP) / MySQL 8.
+-- Chạy sau  : 01 -> 21. Chạy lại được (ADD COLUMN IF NOT EXISTS, CREATE TABLE IF NOT EXISTS,
+--             DROP PROCEDURE IF EXISTS).
+-- =====================================================================
+
+SET NAMES utf8mb4;
+
+-- ---------------------------------------------------------------------
+-- 1. Tọa độ điểm khởi hành của tour
+-- ---------------------------------------------------------------------
+ALTER TABLE tours
+    ADD COLUMN IF NOT EXISTS latitude  DECIMAL(9,6) NULL AFTER meeting_point,
+    ADD COLUMN IF NOT EXISTS longitude DECIMAL(9,6) NULL AFTER latitude;
+
+ALTER TABLE tours
+    ADD CONSTRAINT IF NOT EXISTS chk_tours_location_pair
+        CHECK ((latitude IS NULL) = (longitude IS NULL)),
+    ADD CONSTRAINT IF NOT EXISTS chk_tours_location_range
+        CHECK (latitude IS NULL OR (latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180));
+
+-- ---------------------------------------------------------------------
+-- 2. Tọa độ tour mẫu (Nominatim, 11/11/2026). Ghi chú = đối tượng OSM khớp được.
+-- ---------------------------------------------------------------------
+-- Nhà hát Múa rối nước Thăng Long, 57B Đinh Tiên Hoàng (way 1190941789)
+UPDATE tours SET latitude = 21.031704, longitude = 105.853455
+ WHERE id = 'c0000000-0000-4000-8000-000000000001' AND latitude IS NULL AND longitude IS NULL;
+-- Chợ Đồng Xuân (way 1212230635)
+UPDATE tours SET latitude = 21.038256, longitude = 105.849671
+ WHERE id = 'c0000000-0000-4000-8000-000000000002' AND latitude IS NULL AND longitude IS NULL;
+-- Đền Bạch Mã, 76 Hàng Buồm / Hàng Giầy (way 700840711)
+UPDATE tours SET latitude = 21.035935, longitude = 105.850987
+ WHERE id = 'c0000000-0000-4000-8000-000000000003' AND latitude IS NULL AND longitude IS NULL;
+-- Đón tại khách sạn ở trung tâm Đà Nẵng: tâm Thành phố Đà Nẵng (relation 1891418, mức thành phố)
+UPDATE tours SET latitude = 16.068501, longitude = 108.224024
+ WHERE id = 'c0000000-0000-4000-8000-000000000004' AND latitude IS NULL AND longitude IS NULL;
+-- Đầu cầu Rồng phía đường Bạch Đằng: đầu phía tây của cầu (way 694831926)
+UPDATE tours SET latitude = 16.061136, longitude = 108.224342
+ WHERE id = 'c0000000-0000-4000-8000-000000000005' AND latitude IS NULL AND longitude IS NULL;
+-- Chùa Cầu, Hội An (way 631074476)
+UPDATE tours SET latitude = 15.877154, longitude = 108.326003
+ WHERE id = 'c0000000-0000-4000-8000-000000000006' AND latitude IS NULL AND longitude IS NULL;
+-- Bãi xe đạp cạnh chợ Hội An: Chợ Hội An (way 35952504)
+UPDATE tours SET latitude = 15.876818, longitude = 108.331344
+ WHERE id = 'c0000000-0000-4000-8000-000000000007' AND latitude IS NULL AND longitude IS NULL;
+-- Đón tại khách sạn ở quận 1 hoặc quận 3: tâm quận 1 cũ (relation 2587287, mức quận)
+UPDATE tours SET latitude = 10.775394, longitude = 106.699626
+ WHERE id = 'c0000000-0000-4000-8000-000000000008' AND latitude IS NULL AND longitude IS NULL;
+-- Chùa Bà Thiên Hậu = Hội quán Tuệ Thành, 710 Nguyễn Trãi (way 1497050780)
+UPDATE tours SET latitude = 10.753564, longitude = 106.661192
+ WHERE id = 'c0000000-0000-4000-8000-000000000009' AND latitude IS NULL AND longitude IS NULL;
+-- Đường Thanh Niên, đoạn thuộc phường Ba Đình (way 1290128836, mức con đường)
+UPDATE tours SET latitude = 21.043310, longitude = 105.836027
+ WHERE id = 'c0000000-0000-4000-8000-000000000010' AND latitude IS NULL AND longitude IS NULL;
+-- Cổng Ngọ Môn, Đại Nội Huế (way 172657562)
+UPDATE tours SET latitude = 16.467684, longitude = 107.579080
+ WHERE id = 'c0000000-0000-4000-8000-000000000011' AND latitude IS NULL AND longitude IS NULL;
+-- Đường Nguyễn Thị Minh Khai trong phố cổ Hội An (way 160628168, mức con đường)
+UPDATE tours SET latitude = 15.878491, longitude = 108.323320
+ WHERE id = 'c0000000-0000-4000-8000-000000000012' AND latitude IS NULL AND longitude IS NULL;
+
+-- ---------------------------------------------------------------------
+-- 3. Bộ nhớ đệm địa điểm quanh một điểm (Overpass API)
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS map_place_cache (
+    cache_key   VARCHAR(64)  NOT NULL,          -- "vĩ độ,kinh độ,bán kính" đã làm tròn, vd. "21.0317,105.8535,1500"
+    latitude    DECIMAL(9,6) NOT NULL,          -- tâm đã làm tròn
+    longitude   DECIMAL(9,6) NOT NULL,
+    radius_m    INT          NOT NULL,
+    payload     MEDIUMTEXT   NULL,              -- JSON địa điểm theo nhóm; NULL = chưa tải được lần nào
+    place_count INT          NOT NULL DEFAULT 0,
+    source      VARCHAR(100) NULL,              -- máy chủ Overpass đã trả kết quả
+    fetched_at  DATETIME     NULL,              -- lần tải thành công gần nhất
+    failed_at   DATETIME     NULL,              -- lần tải lỗi gần nhất (NULL sau khi tải lại thành công)
+    PRIMARY KEY (cache_key),
+    KEY idx_map_place_cache_fetched (fetched_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+DROP PROCEDURE IF EXISTS NTK_sp_tour_location;
+DROP PROCEDURE IF EXISTS NTK_sp_tour_location_list;
+DROP PROCEDURE IF EXISTS NTK_sp_admin_tour_location;
+DROP PROCEDURE IF EXISTS NTK_sp_admin_tour_set_location;
+DROP PROCEDURE IF EXISTS NTK_sp_place_cache_get;
+DROP PROCEDURE IF EXISTS NTK_sp_place_cache_save;
+DROP PROCEDURE IF EXISTS NTK_sp_place_cache_fail;
+
+DELIMITER $$
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_tour_location(p_tour_id)
+--   Điểm khởi hành của một tour đang hiển thị: tour_id, title, pickup_mode, meeting_point,
+--   latitude, longitude (NULL = tour chưa có vị trí). Không có dòng = tour không hiển thị.
+-- ---------------------------------------------------------------------
+CREATE PROCEDURE NTK_sp_tour_location(
+    IN p_tour_id CHAR(36)
+)
+READS SQL DATA
+BEGIN
+    SELECT
+        t.id            AS tour_id,
+        t.title,
+        t.pickup_mode,
+        t.meeting_point,
+        t.latitude,
+        t.longitude
+    FROM tours t
+    JOIN providers p ON p.id = t.provider_id
+    JOIN users     u ON u.id = p.user_id
+    WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci)
+      AND t.approval_status = 'approved'
+      AND p.approval_status = 'approved'
+      AND u.status = 'active';
+END$$
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_tour_location_list()
+--   Các tour đang hiển thị đã có vị trí, cho trang /ban-do: tour_id, title, destination_name,
+--   category_name, pickup_mode, meeting_point, duration_minutes, latitude, longitude,
+--   cover_image_url, cover_alt_text (ảnh bìa = sort_order nhỏ nhất). Sắp xếp theo điểm đến, tên tour.
+-- ---------------------------------------------------------------------
+CREATE PROCEDURE NTK_sp_tour_location_list()
+READS SQL DATA
+BEGIN
+    SELECT
+        t.id                            AS tour_id,
+        t.title,
+        COALESCE(d.name, t.destination) AS destination_name,
+        c.name                          AS category_name,
+        t.pickup_mode,
+        t.meeting_point,
+        t.duration_minutes,
+        t.latitude,
+        t.longitude,
+        ci.url                          AS cover_image_url,
+        ci.alt_text                     AS cover_alt_text
+    FROM tours t
+    JOIN providers p ON p.id = t.provider_id
+    JOIN users     u ON u.id = p.user_id
+    LEFT JOIN destinations d ON d.id = t.destination_id
+    LEFT JOIN categories   c ON c.id = t.category_id
+    LEFT JOIN tour_images ci
+           ON ci.id = (SELECT ti.id
+                         FROM tour_images ti
+                        WHERE ti.tour_id = t.id
+                        ORDER BY ti.sort_order ASC, ti.id ASC
+                        LIMIT 1)
+    WHERE t.approval_status = 'approved'
+      AND p.approval_status = 'approved'
+      AND u.status = 'active'
+      AND t.latitude IS NOT NULL
+      AND t.longitude IS NOT NULL
+    ORDER BY destination_name ASC, t.title ASC;
+END$$
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_admin_tour_location(p_tour_id)
+--   Vị trí của một tour ở mọi trạng thái (trang quản trị): tour_id, title, approval_status,
+--   destination_name, pickup_mode, meeting_point, latitude, longitude.
+-- ---------------------------------------------------------------------
+CREATE PROCEDURE NTK_sp_admin_tour_location(
+    IN p_tour_id CHAR(36)
+)
+READS SQL DATA
+BEGIN
+    SELECT
+        t.id                            AS tour_id,
+        t.title,
+        t.approval_status,
+        COALESCE(d.name, t.destination) AS destination_name,
+        t.pickup_mode,
+        t.meeting_point,
+        t.latitude,
+        t.longitude
+    FROM tours t
+    LEFT JOIN destinations d ON d.id = t.destination_id
+    WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci);
+END$$
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_admin_tour_set_location(p_actor_user_id, p_tour_id, p_latitude, p_longitude)
+--   Đặt (cả hai tọa độ) hoặc xóa (cả hai NULL) vị trí điểm khởi hành.
+--   Kết quả: result = 'ok' (đã đặt), 'cleared' (đã xóa), 'unchanged', 'forbidden', 'not_found',
+--   'invalid' (field = 'latitude' / 'longitude' / 'location').
+-- ---------------------------------------------------------------------
+CREATE PROCEDURE NTK_sp_admin_tour_set_location(
+    IN p_actor_user_id CHAR(36),
+    IN p_tour_id       CHAR(36),
+    IN p_latitude      DECIMAL(9,6),
+    IN p_longitude     DECIMAL(9,6)
+)
+MODIFIES SQL DATA
+proc: BEGIN
+    DECLARE v_found INT          DEFAULT 0;
+    DECLARE v_lat   DECIMAL(9,6) DEFAULT NULL;
+    DECLARE v_lng   DECIMAL(9,6) DEFAULT NULL;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM users
+                    WHERE id = (p_actor_user_id COLLATE utf8mb4_unicode_ci)
+                      AND role = 'admin' AND status = 'active') THEN
+        SELECT 'forbidden' AS result, NULL AS field;
+        LEAVE proc;
+    END IF;
+
+    -- Có cả hai hoặc không có cả hai; tọa độ trong khung Việt Nam.
+    IF (p_latitude IS NULL) <> (p_longitude IS NULL) THEN
+        SELECT 'invalid' AS result, 'location' AS field;
+        LEAVE proc;
+    END IF;
+    IF p_latitude IS NOT NULL AND (p_latitude < 8 OR p_latitude > 23.5) THEN
+        SELECT 'invalid' AS result, 'latitude' AS field;
+        LEAVE proc;
+    END IF;
+    IF p_longitude IS NOT NULL AND (p_longitude < 102 OR p_longitude > 110) THEN
+        SELECT 'invalid' AS result, 'longitude' AS field;
+        LEAVE proc;
+    END IF;
+
+    START TRANSACTION;
+
+    SELECT COUNT(*), MAX(latitude), MAX(longitude) INTO v_found, v_lat, v_lng
+      FROM tours
+     WHERE id = (p_tour_id COLLATE utf8mb4_unicode_ci)
+       FOR UPDATE;
+
+    IF v_found = 0 THEN
+        ROLLBACK;
+        SELECT 'not_found' AS result, NULL AS field;
+        LEAVE proc;
+    END IF;
+
+    IF (v_lat <=> p_latitude) AND (v_lng <=> p_longitude) THEN
+        ROLLBACK;
+        SELECT 'unchanged' AS result, NULL AS field;
+        LEAVE proc;
+    END IF;
+
+    UPDATE tours
+       SET latitude = p_latitude, longitude = p_longitude
+     WHERE id = (p_tour_id COLLATE utf8mb4_unicode_ci);
+
+    INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
+    VALUES (UUID(), p_actor_user_id, 'tour', p_tour_id,
+            IF(p_latitude IS NULL, 'location_clear', 'location_set'), NULL, NULL,
+            IF(p_latitude IS NULL,
+               CONCAT('Xóa vị trí điểm khởi hành (cũ: ', COALESCE(CONCAT(v_lat, ', ', v_lng), 'chưa có'), ')'),
+               CONCAT('Vị trí điểm khởi hành: ', p_latitude, ', ', p_longitude,
+                      ' (cũ: ', COALESCE(CONCAT(v_lat, ', ', v_lng), 'chưa có'), ')')),
+            NOW());
+
+    COMMIT;
+    SELECT IF(p_latitude IS NULL, 'cleared', 'ok') AS result, NULL AS field;
+END$$
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_place_cache_get(p_cache_key)
+--   Một dòng bộ nhớ đệm (hoặc không có dòng): payload, place_count, source, fetched_at, failed_at,
+--   age_seconds (giây từ lần tải thành công, NULL nếu chưa có), failed_seconds (giây từ lần lỗi gần nhất).
+-- ---------------------------------------------------------------------
+CREATE PROCEDURE NTK_sp_place_cache_get(
+    IN p_cache_key VARCHAR(64)
+)
+READS SQL DATA
+BEGIN
+    SELECT
+        cache_key,
+        latitude,
+        longitude,
+        radius_m,
+        payload,
+        place_count,
+        source,
+        fetched_at,
+        failed_at,
+        TIMESTAMPDIFF(SECOND, fetched_at, NOW()) AS age_seconds,
+        TIMESTAMPDIFF(SECOND, failed_at, NOW())  AS failed_seconds
+    FROM map_place_cache
+    WHERE cache_key = (p_cache_key COLLATE utf8mb4_unicode_ci);
+END$$
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_place_cache_save(p_cache_key, p_latitude, p_longitude, p_radius_m, p_payload, p_place_count, p_source)
+--   Lưu kết quả tải thành công (ghi đè kết quả cũ), fetched_at = NOW(), xóa failed_at.
+-- ---------------------------------------------------------------------
+CREATE PROCEDURE NTK_sp_place_cache_save(
+    IN p_cache_key   VARCHAR(64),
+    IN p_latitude    DECIMAL(9,6),
+    IN p_longitude   DECIMAL(9,6),
+    IN p_radius_m    INT,
+    IN p_payload     MEDIUMTEXT,
+    IN p_place_count INT,
+    IN p_source      VARCHAR(100)
+)
+MODIFIES SQL DATA
+BEGIN
+    INSERT INTO map_place_cache (cache_key, latitude, longitude, radius_m, payload, place_count, source, fetched_at, failed_at)
+    VALUES (p_cache_key, p_latitude, p_longitude, p_radius_m, p_payload, COALESCE(p_place_count, 0), p_source, NOW(), NULL)
+    ON DUPLICATE KEY UPDATE
+        payload     = VALUES(payload),
+        place_count = VALUES(place_count),
+        source      = VALUES(source),
+        fetched_at  = NOW(),
+        failed_at   = NULL;
+END$$
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_place_cache_fail(p_cache_key, p_latitude, p_longitude, p_radius_m)
+--   Ghi lần tải lỗi (failed_at = NOW()); giữ nguyên kết quả cũ nếu có.
+-- ---------------------------------------------------------------------
+CREATE PROCEDURE NTK_sp_place_cache_fail(
+    IN p_cache_key VARCHAR(64),
+    IN p_latitude  DECIMAL(9,6),
+    IN p_longitude DECIMAL(9,6),
+    IN p_radius_m  INT
+)
+MODIFIES SQL DATA
+BEGIN
+    INSERT INTO map_place_cache (cache_key, latitude, longitude, radius_m, payload, place_count, source, fetched_at, failed_at)
+    VALUES (p_cache_key, p_latitude, p_longitude, p_radius_m, NULL, 0, NULL, NULL, NOW())
+    ON DUPLICATE KEY UPDATE failed_at = NOW();
+END$$
+
+DELIMITER ;
+-- =====================================================================
+-- LocalTour v0.5 - 24_social_login_NTK.sql
+-- Mục đích  : Đăng nhập bằng Google / Facebook cho tài khoản khách hàng (OAuth 2.0).
+--   1. Bảng user_social_accounts: liên kết một tài khoản Google / Facebook (mã người dùng
+--      do nhà cung cấp cấp) với một tài khoản LocalTour. Mỗi tài khoản Google / Facebook
+--      chỉ gắn với một tài khoản LocalTour (UNIQUE provider + provider_user_id); một tài
+--      khoản LocalTour có thể gắn cả Google lẫn Facebook. Xóa tài khoản thì xóa liên kết.
+--   2. Procedure NTK_sp_social_login: tìm / liên kết / tạo tài khoản trong một transaction.
+-- Phụ trách : Nguyễn Tuấn Khôi (NTK) - Sprint 6
+-- Procedures: NTK_sp_social_login
+-- Quy tắc   : Ứng dụng đã đổi mã xác thực lấy thông tin tài khoản với Google / Facebook và
+--             kiểm tra email (Google: email đã xác minh) trước khi gọi procedure.
+--             Tài khoản tạo bằng Google / Facebook có password_hash NULL: chỉ đăng nhập lại
+--             bằng Google / Facebook, không đăng nhập bằng mật khẩu được.
+--             Tham số chuỗi được so sánh với COLLATE utf8mb4_unicode_ci; không có DEFINER.
+-- Tương thích: MariaDB 10.4 (XAMPP) / MySQL 8.
+-- Chạy sau  : 01_schema.sql. Chạy lại được (CREATE TABLE IF NOT EXISTS, DROP PROCEDURE IF EXISTS).
+-- =====================================================================
+
+SET NAMES utf8mb4;
+
+-- ---------------------------------------------------------------------
+-- 1. user_social_accounts
+--   provider_user_id: mã người dùng của nhà cung cấp (Google "sub", Facebook "id").
+--   email: email nhà cung cấp trả về ở lần đăng nhập gần nhất (chỉ để tra cứu).
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS user_social_accounts (
+    id               CHAR(36)      NOT NULL,
+    user_id          CHAR(36)      NOT NULL,
+    provider         ENUM('google','facebook') NOT NULL,
+    provider_user_id VARCHAR(255)  NOT NULL,
+    email            VARCHAR(150)  NULL,
+    created_at       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_social_accounts_provider_user (provider, provider_user_id),
+    KEY idx_social_accounts_user (user_id),
+    CONSTRAINT fk_social_accounts_user FOREIGN KEY (user_id)
+        REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------
+-- 2. NTK_sp_social_login(p_provider, p_provider_user_id, p_email, p_name)
+--   p_provider: 'google' / 'facebook'. p_email: email đã kiểm tra định dạng. p_name: tên
+--   hiển thị (NULL / '' = lấy phần trước @ của email).
+--   Thứ tự xử lý (một transaction, khóa dòng FOR UPDATE):
+--     a. Đã có liên kết (provider, provider_user_id) -> tài khoản đã liên kết.
+--     b. Chưa có liên kết, đã có tài khoản cùng email -> liên kết vào tài khoản đó.
+--     c. Chưa có tài khoản -> tạo tài khoản khách hàng (password_hash NULL) và liên kết.
+--     Tài khoản ở a / b không phải 'customer' -> 'not_customer' (không liên kết, không
+--     đăng nhập); đang bị khóa -> 'locked'.
+--   1 dòng, cột: result, user_id, name, email, role.
+--     result 'existing' / 'linked' / 'created': đăng nhập được, các cột còn lại là tài khoản.
+--     result 'not_customer' / 'locked' / 'invalid' (thiếu dữ liệu) / 'retry' (hai lần đăng
+--     nhập cùng lúc tạo trùng, thử lại): các cột còn lại NULL.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_social_login;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_social_login(
+    IN p_provider         VARCHAR(20),
+    IN p_provider_user_id VARCHAR(255),
+    IN p_email            VARCHAR(150),
+    IN p_name             VARCHAR(100) CHARACTER SET utf8mb4
+)
+MODIFIES SQL DATA
+proc: BEGIN
+    DECLARE v_provider VARCHAR(20)  CHARACTER SET utf8mb4 DEFAULT LOWER(TRIM(COALESCE(p_provider, '')));
+    DECLARE v_subject  VARCHAR(255) CHARACTER SET utf8mb4 DEFAULT TRIM(COALESCE(p_provider_user_id, ''));
+    DECLARE v_email    VARCHAR(150) CHARACTER SET utf8mb4 DEFAULT LOWER(TRIM(COALESCE(p_email, '')));
+    DECLARE v_name     VARCHAR(100) CHARACTER SET utf8mb4 DEFAULT NULLIF(TRIM(p_name), '');
+    DECLARE v_user_id  CHAR(36)     DEFAULT NULL;
+    DECLARE v_role     VARCHAR(20)  DEFAULT NULL;
+    DECLARE v_status   VARCHAR(20)  DEFAULT NULL;
+    DECLARE v_result   VARCHAR(20)  DEFAULT NULL;
+    -- 1062 = trùng khóa UNIQUE: lần đăng nhập khác vừa tạo cùng tài khoản / liên kết.
+    DECLARE EXIT HANDLER FOR 1062
+    BEGIN
+        ROLLBACK;
+        SELECT 'retry' AS result, NULL AS user_id, NULL AS name, NULL AS email, NULL AS role;
+    END;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    IF v_provider NOT IN ('google', 'facebook') OR v_subject = '' OR v_email = '' THEN
+        SELECT 'invalid' AS result, NULL AS user_id, NULL AS name, NULL AS email, NULL AS role;
+        LEAVE proc;
+    END IF;
+
+    START TRANSACTION;
+
+    -- a. Đã liên kết.
+    SELECT u.id, u.role, u.status
+      INTO v_user_id, v_role, v_status
+      FROM user_social_accounts s
+      JOIN users u ON u.id = s.user_id
+     WHERE s.provider = (v_provider COLLATE utf8mb4_unicode_ci)
+       AND s.provider_user_id = (v_subject COLLATE utf8mb4_unicode_ci)
+     LIMIT 1
+       FOR UPDATE;
+
+    IF v_user_id IS NOT NULL THEN
+        SET v_result = 'existing';
+    ELSE
+        -- b. Tài khoản cùng email.
+        SELECT u.id, u.role, u.status
+          INTO v_user_id, v_role, v_status
+          FROM users u
+         WHERE u.email = (v_email COLLATE utf8mb4_unicode_ci)
+         LIMIT 1
+           FOR UPDATE;
+
+        IF v_user_id IS NOT NULL THEN
+            SET v_result = 'linked';
+        ELSE
+            -- c. Tài khoản khách hàng mới, chưa có mật khẩu.
+            SET v_user_id = UUID();
+            SET v_role = 'customer';
+            SET v_status = 'active';
+            SET v_result = 'created';
+            INSERT INTO users (id, email, password_hash, name, phone, role, status)
+            VALUES (v_user_id, v_email, NULL, COALESCE(v_name, SUBSTRING_INDEX(v_email, '@', 1)),
+                    NULL, 'customer', 'active');
+        END IF;
+    END IF;
+
+    IF v_role <> 'customer' THEN
+        ROLLBACK;
+        SELECT 'not_customer' AS result, NULL AS user_id, NULL AS name, NULL AS email, NULL AS role;
+        LEAVE proc;
+    END IF;
+
+    IF v_status <> 'active' THEN
+        ROLLBACK;
+        SELECT 'locked' AS result, NULL AS user_id, NULL AS name, NULL AS email, NULL AS role;
+        LEAVE proc;
+    END IF;
+
+    IF v_result = 'existing' THEN
+        UPDATE user_social_accounts
+           SET email = v_email
+         WHERE provider = (v_provider COLLATE utf8mb4_unicode_ci)
+           AND provider_user_id = (v_subject COLLATE utf8mb4_unicode_ci);
+    ELSE
+        INSERT INTO user_social_accounts (id, user_id, provider, provider_user_id, email)
+        VALUES (UUID(), v_user_id, v_provider, v_subject, v_email);
+    END IF;
+
+    COMMIT;
+
+    SELECT v_result AS result, u.id AS user_id, u.name, u.email, u.role
+      FROM users u
+     WHERE u.id = v_user_id;
+END$$
+DELIMITER ;
+-- =====================================================================
+-- LocalTour - 25_email_NTK.sql
+-- Mục đích  : Email "Đặt tour thành công" gửi cho khách khi đơn chuyển sang "Đã xác nhận"
+--             (VNPay, đối chiếu VietQR, quản trị viên xác nhận, ...). Thêm:
+--   1. Bảng email_logs: nhật ký mỗi lượt gửi email của đơn (người nhận, kết quả, lỗi).
+--      Mỗi đơn có tối đa một email loại 'booking_confirmed' gửi thành công ('sent'):
+--      Return URL và IPN của VNPay, hay quản trị viên bấm lại, không làm khách nhận hai email.
+--   2. Procedure: NTK_sp_email_booking_get, NTK_sp_email_log_start,
+--      NTK_sp_email_log_finish, NTK_sp_email_log_latest.
+-- Phụ trách : Nguyễn Tuấn Khôi (NTK)
+-- Quy tắc   : status của email_logs:
+--               sending : đang gửi (giữ lượt trước khi kết nối SMTP, chống hai yêu cầu cùng
+--                         gửi một lúc); quá 2 phút vẫn 'sending' = lượt bị ngắt, coi như lỗi.
+--               sent    : máy chủ SMTP đã nhận email.
+--               failed  : gửi lỗi (error ghi lỗi SMTP / mạng); lần xác nhận sau gửi lại được.
+--               skipped : không gửi (chưa cấu hình MAIL_HOST, đơn không còn "Đã xác nhận"...).
+--             Dữ liệu trong email đọc bằng procedure có sẵn của trang "Đơn của tôi"
+--             (NTK_sp_customer_booking_detail, NTK_sp_customer_booking_line_list,
+--             NMT_sp_payment_list); NTK_sp_email_booking_get chỉ tìm tài khoản của đơn.
+--             Tham số chuỗi được so sánh với COLLATE utf8mb4_unicode_ci; không có DEFINER.
+-- Tương thích: MariaDB 10.4 (XAMPP) / MySQL 8.
+-- Chạy sau  : 01 -> 21. Chạy lại được: bảng đã có thì giữ nguyên dữ liệu, procedure tạo lại.
+-- =====================================================================
+
+SET NAMES utf8mb4;
+
+-- ---------------------------------------------------------------------
+-- 1. email_logs
+--   kind       : loại email, hiện có 'booking_confirmed' (Đặt tour thành công).
+--   to_email   : địa chỉ nhận (bookings.contact_email lúc gửi).
+--   error      : lỗi khi 'failed' / lý do khi 'skipped' (NULL khi 'sent').
+--   message_id : Message-ID của email đã gửi.
+--   finished_at: lúc có kết quả (NULL khi còn 'sending').
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS email_logs (
+    id          CHAR(36)      NOT NULL,
+    booking_id  CHAR(36)      NOT NULL,
+    kind        VARCHAR(30)   NOT NULL,
+    to_email    VARCHAR(150)  NOT NULL,
+    status      ENUM('sending','sent','failed','skipped') NOT NULL DEFAULT 'sending',
+    error       VARCHAR(1000) NULL,
+    message_id  VARCHAR(200)  NULL,
+    created_at  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    finished_at DATETIME      NULL,
+    PRIMARY KEY (id),
+    KEY idx_email_logs_booking (booking_id, kind, status),
+    KEY idx_email_logs_created (created_at),
+    CONSTRAINT fk_email_logs_booking FOREIGN KEY (booking_id)
+        REFERENCES bookings (id) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Import lại 01_schema.sql tạo lại bảng bookings nhưng không xóa email_logs: bỏ nhật ký của
+-- đơn không còn tồn tại.
+DELETE FROM email_logs
+ WHERE NOT EXISTS (SELECT 1 FROM bookings b WHERE b.id = email_logs.booking_id);
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_email_booking_get(p_booking_id, p_code)
+--   Tìm đơn cần gửi email theo booking_id (trang quản trị) hoặc theo mã đơn (VNPay, MoMo);
+--   truyền một trong hai, giá trị còn lại NULL.
+--   0 hoặc 1 dòng: booking_id, code, user_id, status, contact_name, contact_email.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_email_booking_get;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_email_booking_get(
+    IN p_booking_id CHAR(36),
+    IN p_code       VARCHAR(20)
+)
+READS SQL DATA
+BEGIN
+    IF NULLIF(TRIM(p_booking_id), '') IS NOT NULL THEN
+        SELECT b.id AS booking_id, b.code, b.user_id, b.status, b.contact_name, b.contact_email
+          FROM bookings b
+         WHERE b.id = (TRIM(p_booking_id) COLLATE utf8mb4_unicode_ci);
+    ELSE
+        SELECT b.id AS booking_id, b.code, b.user_id, b.status, b.contact_name, b.contact_email
+          FROM bookings b
+         WHERE b.code = (UPPER(TRIM(p_code)) COLLATE utf8mb4_unicode_ci);
+    END IF;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_email_log_start(p_booking_id, p_kind, p_to_email)
+--   Giữ lượt gửi email loại p_kind của đơn trước khi kết nối SMTP. Khóa dòng của đơn nên hai
+--   yêu cầu tới cùng lúc (vd. Return URL và IPN) chạy lần lượt.
+--   1 dòng: result, email_log_id.
+--     result = 'ok'        : đã thêm dòng 'sending' (email_log_id); ứng dụng gửi rồi gọi
+--                            NTK_sp_email_log_finish.
+--              'duplicate' : đơn đã có email loại này gửi thành công; không gửi lại.
+--              'busy'      : đang có lượt gửi khác của đơn (dòng 'sending' chưa quá 2 phút).
+--              'not_found' : không có đơn.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_email_log_start;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_email_log_start(
+    IN p_booking_id CHAR(36),
+    IN p_kind       VARCHAR(30),
+    IN p_to_email   VARCHAR(150) CHARACTER SET utf8mb4
+)
+MODIFIES SQL DATA
+proc: BEGIN
+    DECLARE v_booking_id CHAR(36) DEFAULT NULL;
+    DECLARE v_log_id     CHAR(36) DEFAULT UUID();
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+
+    SELECT b.id INTO v_booking_id
+      FROM bookings b
+     WHERE b.id = (p_booking_id COLLATE utf8mb4_unicode_ci)
+       FOR UPDATE;
+
+    IF v_booking_id IS NULL THEN
+        ROLLBACK;
+        SELECT 'not_found' AS result, NULL AS email_log_id;
+        LEAVE proc;
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM email_logs l
+                WHERE l.booking_id = v_booking_id
+                  AND l.kind = (p_kind COLLATE utf8mb4_unicode_ci)
+                  AND l.status = 'sent') THEN
+        ROLLBACK;
+        SELECT 'duplicate' AS result, NULL AS email_log_id;
+        LEAVE proc;
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM email_logs l
+                WHERE l.booking_id = v_booking_id
+                  AND l.kind = (p_kind COLLATE utf8mb4_unicode_ci)
+                  AND l.status = 'sending'
+                  AND l.created_at > NOW() - INTERVAL 2 MINUTE) THEN
+        ROLLBACK;
+        SELECT 'busy' AS result, NULL AS email_log_id;
+        LEAVE proc;
+    END IF;
+
+    -- Lượt cũ quá 2 phút chưa có kết quả (tiến trình PHP bị ngắt): ghi lỗi rồi cho gửi lại.
+    UPDATE email_logs
+       SET status = 'failed', error = 'Lượt gửi bị ngắt giữa chừng (quá 2 phút chưa có kết quả).', finished_at = NOW()
+     WHERE booking_id = v_booking_id
+       AND kind = (p_kind COLLATE utf8mb4_unicode_ci)
+       AND status = 'sending';
+
+    INSERT INTO email_logs (id, booking_id, kind, to_email, status, created_at)
+    VALUES (v_log_id, v_booking_id, p_kind, LEFT(COALESCE(p_to_email, ''), 150), 'sending', NOW());
+
+    COMMIT;
+    SELECT 'ok' AS result, v_log_id AS email_log_id;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_email_log_finish(p_email_log_id, p_status, p_error, p_message_id)
+--   Ghi kết quả của lượt gửi do NTK_sp_email_log_start tạo (chỉ đổi dòng còn 'sending').
+--   p_status = 'sent' | 'failed' | 'skipped'; p_error: lỗi / lý do (bỏ qua khi 'sent').
+--   1 dòng: result = 'ok' | 'invalid' (p_status sai) | 'not_found' (không có dòng 'sending').
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_email_log_finish;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_email_log_finish(
+    IN p_email_log_id CHAR(36),
+    IN p_status       VARCHAR(10),
+    IN p_error        VARCHAR(1000) CHARACTER SET utf8mb4,
+    IN p_message_id   VARCHAR(200)
+)
+MODIFIES SQL DATA
+proc: BEGIN
+    IF p_status IS NULL OR p_status NOT IN ('sent', 'failed', 'skipped') THEN
+        SELECT 'invalid' AS result;
+        LEAVE proc;
+    END IF;
+
+    UPDATE email_logs
+       SET status = p_status,
+           error = IF(p_status = 'sent', NULL, LEFT(NULLIF(TRIM(p_error), ''), 1000)),
+           message_id = IF(p_status = 'sent', LEFT(NULLIF(TRIM(p_message_id), ''), 200), NULL),
+           finished_at = NOW()
+     WHERE id = (p_email_log_id COLLATE utf8mb4_unicode_ci)
+       AND status = 'sending';
+
+    SELECT IF(ROW_COUNT() > 0, 'ok', 'not_found') AS result;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_email_log_latest(p_booking_id, p_kind)
+--   Tình trạng email loại p_kind của đơn cho trang quản trị: lượt gửi thành công nếu có,
+--   ngược lại lượt mới nhất.
+--   0 hoặc 1 dòng: email_log_id, to_email, status, error, created_at, finished_at,
+--   attempts (số lượt đã ghi của loại email này).
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_email_log_latest;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_email_log_latest(
+    IN p_booking_id CHAR(36),
+    IN p_kind       VARCHAR(30)
+)
+READS SQL DATA
+BEGIN
+    SELECT
+        l.id          AS email_log_id,
+        l.to_email,
+        l.status,
+        l.error,
+        l.created_at,
+        l.finished_at,
+        (SELECT COUNT(*)
+           FROM email_logs x
+          WHERE x.booking_id = l.booking_id
+            AND x.kind = l.kind) AS attempts
+    FROM email_logs l
+    WHERE l.booking_id = (p_booking_id COLLATE utf8mb4_unicode_ci)
+      AND l.kind = (p_kind COLLATE utf8mb4_unicode_ci)
+    ORDER BY l.status = 'sent' DESC, l.created_at DESC, l.id DESC
+    LIMIT 1;
 END$$
 DELIMITER ;

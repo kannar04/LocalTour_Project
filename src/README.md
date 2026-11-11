@@ -115,7 +115,11 @@ src/
 │   ├── 19_procedures_LTP_change.sql
 │   ├── 20_procedures_LTP_change_admin.sql
 │   ├── 21_procedures_NMT_tour_content.sql
-│   ├── db_localtour.sql          # File gộp 01–21, sinh tự động
+│   ├── 22_payment_momo_NTK.sql
+│   ├── 23_map_places_NTK.sql
+│   ├── 24_social_login_NTK.sql
+│   ├── 25_email_NTK.sql
+│   ├── db_localtour.sql          # File gộp 01–25, sinh tự động
 │   └── README.md
 ├── public/                       # Thư mục web duy nhất trình duyệt truy cập được
 │   ├── .htaccess                 # Chuyển mọi đường dẫn về index.php (Apache)
@@ -198,6 +202,14 @@ Tiền tố tên procedure cho biết người phụ trách: `LTP_` – Lê Trun
 | POST | `/admin/tours/{id}/content/inclusions`, `…/inclusions/{inclusionId}/delete` | `AdminTourContentController` | Thêm, xóa dịch vụ bao gồm / không bao gồm. |
 | POST | `/admin/tours/{id}/content/policy` | `AdminTourContentController@addPolicy` | Lưu chính sách hủy = thêm phiên bản mới; `policy_hours` (trống = không có mốc hủy miễn phí), `policy_percent`, `policy_terms` (bắt buộc). |
 | POST | `/admin/tours/{id}/delete`, `/admin/tours/{id}/restore` | `AdminTourContentController` | Xóa tour (`confirm=1`): chưa có đơn thì xóa hẳn, đã có đơn thì ngừng hiển thị, còn đơn đang xử lý → 409. Khôi phục tour ngừng hiển thị về "Chờ duyệt". |
+| GET | `/ban-do` | `TourMapController@index` | Bản đồ các tour (Leaflet 1.9.4, nền OpenStreetMap). Chưa chạy `23_map_places_NTK.sql` thì "đang tạm ngưng". |
+| GET | `/api/tours/{id}/places` | `TourMapController@apiPlaces` | JSON quán ăn, bar, giải trí, quán nước trong 1,5 km quanh điểm khởi hành (Overpass API gọi từ máy chủ, lưu đệm 7 ngày ở `map_place_cache`); lỗi thì dùng bản lưu cũ hoặc báo "Chưa tải được địa điểm, thử lại sau.". |
+| GET, POST | `/admin/tours/{id}/location` | `AdminTourLocationController` | Đặt / xóa tọa độ điểm khởi hành của tour (bấm trên bản đồ hoặc nhập số). |
+| GET | `/auth/google`, `/auth/google/callback`, `/auth/facebook`, `/auth/facebook/callback` | `SocialAuthController` | Đăng nhập / đăng ký khách hàng bằng Google hoặc Facebook (OAuth 2.0); tự liên kết với tài khoản khách hàng đang hoạt động cùng email. Nút chỉ hiện khi đã điền khóa. |
+| POST | `/payments/momo/{code}` | `MomoController@start` | Tạo khoản MoMo (10.000đ – 50.000.000đ) rồi chuyển sang cổng MoMo môi trường thử. |
+| GET | `/payments/momo/return` | `MomoController@result` | Kiểm tra chữ ký, tra cứu lại giao dịch với MoMo rồi mới ghi nhận; thành công thì đơn "Đã xác nhận" và có voucher. |
+| POST | `/payments/momo/ipn` | `MomoController@ipn` | JSON của MoMo, trả 204. Chỉ tới được khi máy chủ có địa chỉ HTTPS công khai. |
+| POST | `/admin/payments/{id}/momo` | `AdminPaymentController@momoCheck` | "Tra cứu MoMo": ghi đúng kết quả MoMo trả lời cho khoản quá 15 phút chưa rõ kết quả. |
 
 Mọi trang `/admin…` (trừ `/admin/login`): chưa đăng nhập thì chuyển tới `/admin/login`, đăng nhập bằng tài khoản không phải quản trị viên thì nhận trang 403.
 
@@ -250,12 +262,12 @@ Chọn một trong hai cách.
 **Cách B – Import database trên máy mình.**
 
 1. Mở XAMPP Control Panel, bấm Start cho **MySQL**.
-2. Dùng file `src/database/db_localtour.sql` trong repo. File này được gộp từ `src/database/01_schema.sql` đến `21_procedures_NMT_tour_content.sql`.
+2. Dùng file `src/database/db_localtour.sql` trong repo. File này được gộp từ `src/database/01_schema.sql` đến `25_email_NTK.sql`.
 3. Mở `http://localhost/phpmyadmin`, chọn tab **Import**, chọn file `db_localtour.sql`, giữ **Character set of the file** là `utf-8`, bấm **Import** (hoặc **Go**). File tự tạo database `db_localtour` với `utf8mb4_unicode_ci`.
 
-Nếu không có file gộp: tạo database `db_localtour` với collation `utf8mb4_unicode_ci`, chọn database đó, rồi import lần lượt `01_schema.sql`, `02_seed.sql`, `03_procedures_LTP.sql`, `04_procedures_NMT.sql`, `05_procedures_NTK.sql`, `06_procedures_NTK_account.sql`, `07_procedures_NTK_admin.sql`, `08_migration_booking_NMT.sql`, `09_procedures_NMT_booking.sql`, `10_procedures_LTP_booking.sql`, `11_procedures_NTK_booking.sql`, `12_migration_sprint4_NMT.sql`, `13_procedures_NMT_catalog.sql`, `14_procedures_NMT_payment.sql`, `15_procedures_LTP_payment.sql`, `16_migration_sprint5_LTP.sql`, `17_procedures_NMT_compare.sql`, `18_procedures_LTP_package.sql`, `19_procedures_LTP_change.sql`, `20_procedures_LTP_change_admin.sql`, `21_procedures_NMT_tour_content.sql`.
+Nếu không có file gộp: tạo database `db_localtour` với collation `utf8mb4_unicode_ci`, chọn database đó, rồi import lần lượt `01_schema.sql`, `02_seed.sql`, `03_procedures_LTP.sql`, `04_procedures_NMT.sql`, `05_procedures_NTK.sql`, `06_procedures_NTK_account.sql`, `07_procedures_NTK_admin.sql`, `08_migration_booking_NMT.sql`, `09_procedures_NMT_booking.sql`, `10_procedures_LTP_booking.sql`, `11_procedures_NTK_booking.sql`, `12_migration_sprint4_NMT.sql`, `13_procedures_NMT_catalog.sql`, `14_procedures_NMT_payment.sql`, `15_procedures_LTP_payment.sql`, `16_migration_sprint5_LTP.sql`, `17_procedures_NMT_compare.sql`, `18_procedures_LTP_package.sql`, `19_procedures_LTP_change.sql`, `20_procedures_LTP_change_admin.sql`, `21_procedures_NMT_tour_content.sql`, `22_payment_momo_NTK.sql`, `23_map_places_NTK.sql`, `24_social_login_NTK.sql`, `25_email_NTK.sql`.
 
-Import lại bất cứ lúc nào để đưa dữ liệu về trạng thái ban đầu: `01_schema.sql` xóa và tạo lại 27 bảng, đồng thời xóa 2 bảng đã bỏ (`post_comments`, `post_interactions`) và 4 bảng của hai migration; `12_migration_sprint4_NMT.sql` thêm 2 bảng Sprint 4 và `16_migration_sprint5_LTP.sql` thêm 2 bảng Sprint 5 (tổng 31 bảng). Tài khoản đã đăng ký thử cũng bị xóa. Ngày khởi hành mẫu được tính theo ngày import, vì vậy nên import lại trước mỗi buổi kiểm thử hoặc demo. Chi tiết xem [02 – Lược đồ dữ liệu](../docs/sprint3/02-luoc-do-du-lieu.md) và `src/database/README.md`.
+Import lại bất cứ lúc nào để đưa dữ liệu về trạng thái ban đầu: `01_schema.sql` xóa và tạo lại 27 bảng, đồng thời xóa 2 bảng đã bỏ (`post_comments`, `post_interactions`) và 7 bảng do các file sau thêm; `12_migration_sprint4_NMT.sql` thêm 2 bảng Sprint 4, `16_migration_sprint5_LTP.sql` thêm 2 bảng Sprint 5, `23`, `24`, `25` mỗi file thêm 1 bảng (tổng 34 bảng). Tài khoản đã đăng ký thử cũng bị xóa. Ngày khởi hành mẫu được tính theo ngày import, vì vậy nên import lại trước mỗi buổi kiểm thử hoặc demo. Chi tiết xem [02 – Lược đồ dữ liệu](../docs/sprint3/02-luoc-do-du-lieu.md) và `src/database/README.md`.
 
 ### Bước 3. Tạo file `.env`
 
@@ -282,6 +294,12 @@ copy .env.example .env
 | `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET` | Mã website và khóa bí mật VNPay sandbox. Để trống thì VNPay hiện "đang tạm ngưng". |
 | `VNPAY_PAY_URL` | Giữ mặc định (cổng sandbox). |
 | `VNPAY_RETURN_URL` | Để trống: ứng dụng tự tính theo địa chỉ đang mở. |
+| `MOMO_PARTNER_CODE`, `MOMO_ACCESS_KEY`, `MOMO_SECRET_KEY` | Khóa MoMo môi trường thử (<https://business.momo.vn> → Trung tâm tích hợp thanh toán → môi trường Test). Để trống thì MoMo hiện "đang tạm ngưng". |
+| `MOMO_ENDPOINT`, `MOMO_RETURN_URL`, `MOMO_IPN_URL` | Để trống (cổng thử `https://test-payment.momo.vn`, địa chỉ trả về tự tính). `MOMO_IPN_URL` chỉ điền khi có địa chỉ HTTPS công khai. |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` | OAuth client loại Web application ở Google Cloud. Để trống thì ẩn nút Google. Redirect để trống thì tự tính; phải khai báo đúng địa chỉ `…/auth/google/callback` ở Google (chỉ nhận `localhost`, không nhận địa chỉ IP). |
+| `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`, `FACEBOOK_REDIRECT_URI` | Ứng dụng Facebook Login. Để trống thì ẩn nút Facebook. Khai báo `…/auth/facebook/callback` ở Valid OAuth Redirect URIs. |
+| `RECAPTCHA_SITE_KEY`, `RECAPTCHA_SECRET_KEY` | reCAPTCHA v2 (ô "Tôi không phải người máy") ở `/login`, `/register`, `/admin/login`. Để trống thì không có captcha. |
+| `MAIL_HOST`, `MAIL_PORT`, `MAIL_ENCRYPTION`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME` | SMTP gửi email "Đặt tour thành công" khi đơn chuyển "Đã xác nhận" (mỗi đơn một lần, nhật ký ở `email_logs`). Gmail: `smtp.gmail.com`, `587`, `tls`, mật khẩu ứng dụng 16 ký tự. Để trống `MAIL_HOST` thì không gửi. Thử: `php src/scripts/mail_check.php` (đăng nhập SMTP), `php src/scripts/mail_check.php email@cua-ban` (gửi thử). |
 
 `.env` chứa thông tin kết nối thật và đã có trong `.gitignore`. Không commit file này và không sửa `.env.example` thành giá trị thật. Thông tin VNPay sandbox và tài khoản nhận VietQR dùng chung bộ của nhóm (đã dùng ở Home2Home); hỏi trong nhóm, không gửi vào nhóm chat chung.
 
@@ -308,8 +326,8 @@ Mở `http://127.0.0.1:8080`. Giữ cửa sổ dòng lệnh mở trong lúc dùn
 **Database (chỉ với Cách B).** Trong phpMyAdmin, bấm `db_localtour` ở cột trái, mở tab **SQL**, chạy lần lượt từng câu:
 
 ```sql
-SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'db_localtour';                                  -- 31
-SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = 'db_localtour' AND ROUTINE_TYPE = 'PROCEDURE'; -- 92
+SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'db_localtour';                                  -- 34
+SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = 'db_localtour' AND ROUTINE_TYPE = 'PROCEDURE'; -- 107
 ```
 
 Ra số khác thì xem mục "Cách 1" của `src/database/README.md` để so tên bảng và procedure. Với Cách A, tài khoản ứng dụng chỉ có quyền gọi procedure nên bỏ qua bước này; các đường dẫn dưới đây đã đủ để kiểm tra.
@@ -471,7 +489,7 @@ GRANT EXECUTE ON db_localtour.* TO 'localtour_app'@'<tiền tố IP của VPN>.%
 | `http://localhost/LocalTour_Project/src/` báo 403 | Hành vi đúng: `src/.htaccess` chặn mọi thứ ngoài `public/`. | Mở `http://localhost/LocalTour_Project/src/public/`. |
 | Tiếng Việt hiển thị sai (`Ã¡`, `?`) | File SQL được import với bảng mã khác UTF-8, hoặc database tạo sai collation. | Import lại `db_localtour.sql`, chọn character set `utf-8`; database phải dùng `utf8mb4` và `utf8mb4_unicode_ci`. |
 | Trang lỗi 500, log có `PROCEDURE db_localtour.… does not exist` | Chưa import đủ các file procedure. | Import lại `db_localtour.sql`, hoặc import `03` đến `21` theo thứ tự. |
-| Trang lỗi 500, log có `Unknown column` (ví dụ `request_token`) hoặc `Table 'db_localtour.…' doesn't exist` | Database vẫn là lược đồ cũ (chưa chạy `08_migration_booking_NMT.sql` / `12_migration_sprint4_NMT.sql` / `16_migration_sprint5_LTP.sql`, hoặc trước lược đồ 27 bảng), hoặc file gộp được sinh từ bản cũ. | Sinh lại `db_localtour.sql` từ `01`–`21` mới nhất rồi import lại. |
+| Trang lỗi 500, log có `Unknown column` (ví dụ `request_token`) hoặc `Table 'db_localtour.…' doesn't exist` | Database vẫn là lược đồ cũ (chưa chạy `08_migration_booking_NMT.sql` / `12_migration_sprint4_NMT.sql` / `16_migration_sprint5_LTP.sql`, hoặc trước lược đồ 27 bảng), hoặc file gộp được sinh từ bản cũ. | Sinh lại `db_localtour.sql` từ `01`–`25` mới nhất rồi import lại. |
 | Tải ảnh tour báo "Chưa lưu được ảnh trên máy chủ" | PHP không tạo / ghi được thư mục `src/public/assets/uploads/tours/`. | Cho tài khoản chạy Apache / PHP quyền ghi vào `src/public/assets/uploads/` (repo có sẵn file `.gitkeep`). |
 | Ảnh tour chỉ hiện ô xám có biểu tượng ảnh | Database có ảnh tải lên ở máy khác, file ảnh không có trên máy này. | Chép thư mục `src/public/assets/uploads/tours/` từ máy đã tải ảnh lên. |
 | Gửi yêu cầu đặt tour báo "Giá vé vừa thay đổi" hoặc "Lịch này chỉ còn X chỗ" | Hành vi đúng: giá hoặc số chỗ đã đổi từ lúc mở trang (quản trị viên vừa xác nhận chỗ cho đơn khác, hoặc giá vé được sửa). | Xem lại tổng tiền / số khách mới trên form rồi bấm "Xem lại & xác nhận" lần nữa. |
@@ -484,6 +502,7 @@ GRANT EXECUTE ON db_localtour.* TO 'localtour_app'@'<tiền tố IP của VPN>.%
 | Built-in server: trang không có CSS hoặc mọi đường dẫn đều về trang lỗi | Chạy lệnh sai thư mục hoặc thiếu `public/router.php`. | Chạy đúng lệnh ở Bước 4 từ thư mục `src/`. |
 | Built-in server không khởi động, báo cổng đang được dùng | Cổng 8080 đã bị chương trình khác chiếm. | Đổi sang cổng khác, ví dụ `127.0.0.1:8081`. |
 | Trang không có giao diện Bootstrap, nút không phản hồi | Máy không có Internet nên không tải được CSS/JS từ CDN. | Kiểm tra kết nối mạng rồi tải lại trang. |
+| Bản đồ chỉ có danh sách địa điểm, không có nền bản đồ | Mạng chặn tên miền `openstreetmap.org`. | Bật DNS bảo mật (Secure DNS) trong trình duyệt hoặc đổi mạng. |
 | Liên kết hoặc ảnh trỏ sai địa chỉ | `APP_URL` trong `.env` bị điền sai. | Để trống `APP_URL`. |
 | Trang lỗi 500 không rõ nguyên nhân | Lỗi PHP hoặc SQL. | Xem dòng cuối của `src/storage/logs/app.log`; nếu cần, bật `APP_DEBUG=true` tạm thời trên máy cá nhân rồi tắt lại. |
 
