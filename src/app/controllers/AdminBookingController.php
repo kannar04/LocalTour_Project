@@ -8,6 +8,7 @@ use App\Models\AdminBookingModel;
 use App\Models\AdminChangeRequestModel;
 use App\Models\AdminPaymentModel;
 use App\Models\BookingHistoryModel;
+use App\Models\MomoPaymentModel;
 use App\Models\PaymentResultModel;
 use App\Services\BookingMail;
 
@@ -23,7 +24,7 @@ final class AdminBookingController extends AdminController
     public const FILTERS = ['', 'pending', 'awaiting_payment', 'confirmed', 'completed', 'rejected', 'cancelled'];
     public const KEYWORD_MAX_LENGTH = 100;
 
-    /** Lỗi đối chiếu VietQR / VNPay (AdminPaymentController chuyển về với ?err=). */
+    /** Lỗi đối chiếu VietQR / VNPay / MoMo (AdminPaymentController chuyển về với ?err=). */
     public const PAYMENT_ERRORS = [
         'csrf' => self::CSRF_FAILED,
         'invalid' => 'Thao tác đối chiếu không hợp lệ.',
@@ -32,6 +33,10 @@ final class AdminBookingController extends AdminController
         'not_payable' => 'Khoản này không còn chờ đối chiếu hoặc đơn không còn chờ thanh toán. Trang đã tải lại trạng thái mới.',
         'txn_required' => '“Có giao dịch thành công” cần nhập mã giao dịch VNPay của giao dịch đó.',
         'txn_invalid' => 'Mã giao dịch VNPay chỉ gồm chữ số (tối đa 20 số).',
+        'momo_unavailable' => 'MoMo đang tạm ngưng (thiếu khóa MoMo trong .env), chưa tra cứu được.',
+        'momo_query' => 'Chưa tra cứu được giao dịch với MoMo, vui lòng thử lại sau ít phút.',
+        'momo_pending' => 'MoMo chưa có kết quả cuối cho giao dịch này, vui lòng tra cứu lại sau.',
+        'momo_amount' => 'Số tiền MoMo trả lời không khớp với khoản thanh toán nên chưa được ghi nhận.',
     ];
 
     private const MESSAGES = [
@@ -40,6 +45,8 @@ final class AdminBookingController extends AdminController
         'payment_reject' => 'Đã báo chuyển khoản không khớp. Đơn vẫn chờ thanh toán tới hết hạn giữ chỗ.',
         'vnpay_confirm' => 'Đã ghi giao dịch VNPay thành công. Đơn còn chờ thanh toán thì chuyển “Đã xác nhận” và khách nhận được voucher; đơn đã hủy thì tạo yêu cầu hoàn tiền.',
         'vnpay_reject' => 'Đã ghi “Không có giao dịch VNPay”. Đơn còn hạn giữ chỗ thì khách thanh toán lại được.',
+        'momo_paid' => 'MoMo báo giao dịch thành công. Đơn còn chờ thanh toán thì chuyển “Đã xác nhận” và khách nhận được voucher; đơn đã hủy thì tạo yêu cầu hoàn tiền.',
+        'momo_failed' => 'MoMo báo giao dịch không thành công, đã ghi nhận. Đơn còn hạn giữ chỗ thì khách thanh toán lại được.',
     ];
 
     private const ERRORS = [
@@ -163,6 +170,7 @@ final class AdminBookingController extends AdminController
             'extras' => $this->bookings->extras($bookingId),
             'payments' => $this->bookings->payments($bookingId),
             'vnpayUnclear' => array_column((new AdminPaymentModel())->vnpayQueue($bookingId), 'payment_id'),
+            'momoUnclear' => array_column((new MomoPaymentModel())->queue($bookingId), 'order_id', 'payment_id'),
             'passengers' => $this->bookings->passengers($bookingId),
             'history' => (new BookingHistoryModel())->forAdmin($bookingId),
             'changeRequests' => (new AdminChangeRequestModel())->list('', $bookingId),

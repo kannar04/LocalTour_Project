@@ -1,10 +1,10 @@
 <?php declare(strict_types=1); ?>
 <?php
 /*
- * Chọn phương thức thanh toán (Sprint 4, 4.5.1.1 – Nguyễn Minh Thức): VNPay (sandbox) hoặc chuyển khoản VietQR
- * cho đơn "Chờ thanh toán". Số tiền là tổng giá LocalTour đã chốt.
- * Biến: $booking (NTK_sp_customer_booking_detail), $lines, $extras, $vnpayEnabled, $vietqrEnabled,
- *       $error ('' = không có), $title.
+ * Chọn phương thức thanh toán (Sprint 4, 4.5.1.1 – Nguyễn Minh Thức): VNPay (sandbox), MoMo (môi trường thử –
+ * Nguyễn Tuấn Khôi) hoặc chuyển khoản VietQR cho đơn "Chờ thanh toán". Số tiền là tổng giá LocalTour đã chốt.
+ * Biến: $booking (NTK_sp_customer_booking_detail), $lines, $extras, $vnpayEnabled, $vietqrEnabled, $momoEnabled,
+ *       $momoAmountOk (tổng tiền nằm trong hạn mức MoMo), $error ('' = không có), $title.
  */
 $code = (string) $booking['code'];
 $holdUntil = format_datetime($booking['hold_expires_at'] === null ? null : (string) $booking['hold_expires_at']);
@@ -50,7 +50,7 @@ $adjustment = $totalVnd - (int) $booking['tickets_vnd'] - (int) $booking['extras
             <div class="col-12 col-lg-7 col-xl-8">
                 <section class="lt-book-card" aria-labelledby="pay-method-title">
                     <h2 class="lt-book-card__title" id="pay-method-title">Chọn phương thức thanh toán</h2>
-                    <p class="lt-field__hint">Môi trường thử nghiệm của đồ án: VNPay chạy sandbox, vui lòng không chuyển tiền thật.</p>
+                    <p class="lt-field__hint">Môi trường thử nghiệm của đồ án: VNPay và MoMo chạy môi trường thử, vui lòng không chuyển tiền thật.</p>
 
                     <div class="lt-pay-methods">
                         <form class="lt-pay-method" action="<?= e(url('/bookings/' . $code . '/pay/vnpay')) ?>" method="post">
@@ -61,6 +61,20 @@ $adjustment = $totalVnd - (int) $booking['tickets_vnd'] - (int) $booking['extras
                             <button class="lt-btn lt-btn--primary lt-btn--block" type="submit">Thanh toán qua VNPay</button>
 <?php else: ?>
                             <button class="lt-btn lt-btn--outline lt-btn--block" type="button" disabled>VNPay đang tạm ngưng</button>
+<?php endif; ?>
+                        </form>
+
+                        <form class="lt-pay-method" action="<?= e(url('/payments/momo/' . $code)) ?>" method="post">
+                            <?= csrf_field() ?>
+                            <h3 class="lt-pay-method__title">MoMo</h3>
+                            <p class="lt-pay-method__text">Ví MoMo, thẻ ATM nội địa hoặc thẻ quốc tế qua cổng MoMo. Đơn được xác nhận ngay khi thanh toán thành công.</p>
+<?php if (!$momoEnabled): ?>
+                            <button class="lt-btn lt-btn--outline lt-btn--block" type="button" disabled>MoMo đang tạm ngưng</button>
+<?php elseif (!$momoAmountOk): ?>
+                            <button class="lt-btn lt-btn--outline lt-btn--block" type="button" disabled aria-describedby="momo-limit">Không dùng được MoMo</button>
+                            <p class="lt-field__hint" id="momo-limit">MoMo chỉ nhận thanh toán từ 10.000đ đến 50.000.000đ.</p>
+<?php else: ?>
+                            <button class="lt-btn lt-btn--outline lt-btn--block" type="submit">Thanh toán qua MoMo</button>
 <?php endif; ?>
                         </form>
 

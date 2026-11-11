@@ -248,7 +248,7 @@ $contactFields = [
                         <h2 class="lt-book-card__title" id="book-terms-title"><span class="lt-book-card__num">4</span>Điều kiện đặt tour</h2>
                         <ul class="lt-book-terms">
                             <li>Yêu cầu được gửi tới LocalTour ở trạng thái <strong>Chờ xác nhận</strong>, chưa giữ chỗ và chưa thu tiền.</li>
-                            <li>Khi LocalTour xác nhận còn chỗ và chốt tổng giá, đơn chuyển sang <strong>Chờ thanh toán</strong>: bạn thanh toán bằng VNPay hoặc VietQR trong 24 giờ, quá hạn đơn tự hủy.</li>
+                            <li>Khi LocalTour xác nhận còn chỗ và chốt tổng giá, đơn chuyển sang <strong>Chờ thanh toán</strong>: bạn thanh toán bằng VNPay, MoMo hoặc VietQR trong 24 giờ, quá hạn đơn tự hủy.</li>
 <?php foreach ($policyLines as $policyLine): ?>
                             <li><?= e($policyLine) ?></li>
 <?php endforeach; ?>
@@ -295,7 +295,7 @@ $contactFields = [
                     </dl>
                     <p class="lt-booking__alert">
                         <span class="lt-icon lt-icon--info" aria-hidden="true"></span>
-                        Chưa thu tiền ở bước này. Sau khi gửi, đơn ở trạng thái "Chờ xác nhận"; LocalTour kiểm tra chỗ, chốt tổng giá rồi mở thanh toán VNPay / VietQR trong "Đơn của tôi".
+                        Chưa thu tiền ở bước này. Sau khi gửi, đơn ở trạng thái "Chờ xác nhận"; LocalTour kiểm tra chỗ, chốt tổng giá rồi mở thanh toán VNPay / MoMo / VietQR trong "Đơn của tôi".
                     </p>
                     <div class="lt-book-actions">
                         <button type="button" class="lt-btn lt-btn--outline" id="book-edit-btn">

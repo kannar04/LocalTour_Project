@@ -9,6 +9,7 @@ use App\Models\ChangeRequestModel;
 use App\Models\CustomerBookingModel;
 use App\Models\PaymentModel;
 use App\Models\PaymentResultModel;
+use App\Services\MomoGateway;
 use App\Services\VnpayGateway;
 use Core\Auth;
 use Core\Controller;
@@ -17,7 +18,7 @@ use Core\Router;
 /**
  * "Đơn của tôi" (M4 mục 7, 8 – Nguyễn Tuấn Khôi): khách hàng xem các yêu cầu đặt tour đã gửi, trạng thái xử lý,
  * lý do từ chối / hủy, danh sách khách và chính sách hủy đã áp dụng.
- * Sprint 4: phụ thu / tùy chọn đã chọn, hạn và nút thanh toán, kết quả VNPay / VietQR (?pay=), voucher và lịch sử đơn.
+ * Sprint 4: phụ thu / tùy chọn đã chọn, hạn và nút thanh toán, kết quả VNPay / VietQR / MoMo (?pay=), voucher và lịch sử đơn.
  * Sprint 5: gói tour đã chọn và lối vào "Đổi ngày / hủy tour" (ChangeRequestController).
  * Đơn quá hạn thanh toán được tự hủy trước khi mở trang (4.5.4.1).
  * Chế độ khách được chuyển tới đăng nhập; đơn của tài khoản khác hiện "Không tìm thấy đơn" (không lộ đơn).
@@ -31,6 +32,10 @@ final class CustomerBookingController extends Controller
         'late' => ['error', 'VNPay báo đã trừ tiền nhưng đơn không còn chờ thanh toán. LocalTour sẽ hoàn tiền cho bạn.'],
         'amount' => ['error', 'Số tiền VNPay trả về không khớp với đơn nên chưa được ghi nhận. Vui lòng liên hệ LocalTour.'],
         'expired' => ['error', 'Đơn đã quá hạn thanh toán nên không thanh toán được nữa.'],
+        'momo' => ['success', 'Thanh toán MoMo thành công. Đơn đã được xác nhận và voucher đã sẵn sàng.'],
+        'momo_late' => ['error', 'MoMo báo đã trừ tiền nhưng đơn không còn chờ thanh toán. LocalTour sẽ hoàn tiền cho bạn.'],
+        'momo_amount' => ['error', 'Số tiền MoMo trả về không khớp với đơn nên chưa được ghi nhận. Vui lòng liên hệ LocalTour.'],
+        'momo_pending' => ['error', 'MoMo chưa có kết quả cuối cho giao dịch này. Vui lòng mở lại đơn sau ít phút; nếu đã bị trừ tiền, LocalTour sẽ kiểm tra và xác nhận đơn.'],
     ];
 
     /** Thông báo trên "Đơn của tôi" khi không xác định được đơn (?pay=). */
@@ -38,6 +43,8 @@ final class CustomerBookingController extends Controller
         'invalid' => 'Kết quả thanh toán không hợp lệ (sai chữ ký VNPay) nên không được ghi nhận.',
         'notfound' => 'Không tìm thấy khoản thanh toán VNPay này.',
         'error' => 'Chưa ghi nhận được kết quả thanh toán. Vui lòng mở lại đơn sau ít phút.',
+        'momo_invalid' => 'Kết quả thanh toán không hợp lệ (sai chữ ký MoMo) nên không được ghi nhận.',
+        'momo_notfound' => 'Không tìm thấy khoản thanh toán MoMo này.',
     ];
 
     private CustomerBookingModel $bookings;
@@ -125,6 +132,12 @@ final class CustomerBookingController extends Controller
             $responseCode = $this->query('rc');
 
             return ['error', VnpayGateway::message(preg_match('/^\d{2}$/D', $responseCode) ? $responseCode : '99')
+                . ' Bạn có thể thanh toán lại trước hạn giữ chỗ.'];
+        }
+        if ($code === 'momo_failed') {
+            $resultCode = $this->query('rc');
+
+            return ['error', MomoGateway::message(preg_match('/^\d{1,4}$/D', $resultCode) ? $resultCode : '')
                 . ' Bạn có thể thanh toán lại trước hạn giữ chỗ.'];
         }
 
