@@ -6,7 +6,10 @@ Bạn là coding agent chịu trách nhiệm triển khai hoàn chỉnh hệ th�
 
 - Bạn được phép đọc, tạo và chỉnh sửa toàn bộ mã nguồn, migration, stored procedure, route, controller, model, view, CSS/JS, test và tài liệu cần thiết trong repository này để hoàn thành mục tiêu.
 - Triển khai liên tục tất cả các giai đoạn bên dưới. **Không dừng lại để xin duyệt từng giai đoạn, từng file, migration, schema, giao diện hoặc quyết định kỹ thuật thông thường.**
-- Tự phân tích code hiện có, chọn giải pháp tương thích với kiến trúc PHP 8.2 MVC thuần và MySQL/MariaDB hiện tại, sau đó thực hiện ngay.
+- Trước khi sửa, phải tự audit source hiện tại theo từng mục của kế hoạch và phân loại nội bộ thành: **đã làm đúng**, **đã có nhưng cần sửa/tối ưu**, **đang làm sai yêu cầu**, **chưa làm**. Không được chỉ dựa vào mô tả trong tài liệu; phải đối chiếu route, controller, model, view, CSS/JS, schema, stored procedure và test thực tế.
+- Không làm lại mù quáng những phần đã hoạt động đúng. Tái sử dụng và chuẩn hóa code hiện có, sửa phần lệch yêu cầu, tối ưu phần trùng lặp hoặc khó bảo trì, rồi tiếp tục triển khai các phần còn thiếu theo dependency.
+- Khi tài liệu và source mâu thuẫn, lấy yêu cầu nghiệp vụ trong file này làm chuẩn, đồng thời kiểm tra regression để không phá các luồng Admin/Customer đang hoạt động.
+- Tự chọn giải pháp tương thích với kiến trúc PHP 8.2 MVC thuần và MySQL/MariaDB hiện tại, sau đó thực hiện ngay.
 - Tự chạy các kiểm tra khả dụng trong môi trường, sửa lỗi phát hiện được và tiếp tục cho đến khi toàn bộ tiêu chí nghiệm thu đạt hoặc gặp blocker khách quan không thể giải quyết trong repository.
 - Nếu một chi tiết nhỏ chưa được quy định, tự chọn phương án an toàn, nhất quán với code hiện có và ghi lại quyết định trong tài liệu bàn giao; không hỏi lại.
 - Giữ nguyên các thay đổi có sẵn của người dùng. Không reset, checkout, xóa hoặc ghi đè thay đổi ngoài phạm vi.
@@ -45,6 +48,18 @@ Admin tạo và kích hoạt Host
 ```
 
 Khách hàng **không được tự đăng ký làm Host**. Không xây chức năng “Đăng ký Host”. Host liên hệ riêng và Admin cấp tài khoản.
+
+Source hiện tại có thể đã tồn tại `/host/register`, form, liên kết sidebar, controller và stored procedure tự đăng ký. Đây là phần **trái yêu cầu**, phải audit và loại bỏ hoặc vô hiệu hóa đầy đủ ở mọi lớp liên quan; không chỉ ẩn nút trên giao diện. Không để route công khai hoặc endpoint cũ tiếp tục tạo tài khoản `provider`.
+
+## Nguyên tắc giao diện và tái sử dụng
+
+- UI Host chỉ cần **tối thiểu, rõ ràng, responsive và dùng được**, không dành thời gian làm hiệu ứng hoặc thiết kế cầu kỳ khi nghiệp vụ, bảo mật và test chưa hoàn chỉnh.
+- Đồng bộ Host với giao diện Admin và Guest hiện có về container, grid, typography, màu sắc, button, form, table, alert, badge, modal, trạng thái loading/empty/error và responsive breakpoint.
+- Ưu tiên tái sử dụng partial, helper, component, utility class và CSS hiện có. Chỉ thêm CSS riêng cho Host khi thật sự cần; không sao chép nguyên khối `admin.css`, không tạo một design system thứ ba và không thêm framework frontend mới.
+- Có thể dùng layout/sidebar Admin làm nền cho khu Host nhưng phải tách đúng menu, quyền và nội dung. Các màn hình dùng chung form tour nên tái sử dụng controller/service/view partial phù hợp thay vì duy trì hai bản logic dễ lệch nhau.
+- Tên gọi trên UI phải nhất quán: dùng **Đơn vị tổ chức** hoặc **Host** theo đúng ngữ cảnh; trong code/database vẫn dùng `provider`.
+- Mọi trang mới phải có trạng thái rỗng, thông báo lỗi/thành công, focus hợp lý, label cho form và hoạt động được trên mobile ở mức tương đương các trang Admin/Guest hiện tại.
+- Sau khi triển khai, tự mở hoặc render các màn hình chính để kiểm tra trực quan; sửa lỗi vỡ layout, text tràn, bảng trên mobile và sự không đồng bộ rõ ràng trước khi bàn giao.
 
 ## Quy tắc phân quyền bắt buộc
 
@@ -502,10 +517,14 @@ Chỉ coi nhiệm vụ hoàn thành khi:
 
 1. Đọc cấu trúc repository, README, schema, migration, route, auth, các controller/model/procedure tour-booking-payment-refund hiện có.
 2. Kiểm tra trạng thái Git và bảo toàn thay đổi của người dùng.
-3. Lập checklist nội bộ theo tám giai đoạn, nhưng không dừng xin duyệt.
-4. Triển khai theo dependency: auth/ownership → tour → content/schedule → booking visibility → commission/ledger → payout → dashboard → notification/test/docs.
-5. Sau mỗi cụm thay đổi, chạy syntax check/test phù hợp và sửa ngay.
-6. Chạy kiểm tra tích hợp/regression cuối cùng.
-7. Rà lại bảo mật ownership và tính bất biến/idempotency của tài chính.
-8. Bàn giao một lần khi đã hoàn thành tối đa có thể.
+3. Tìm toàn bộ dấu vết triển khai Host hiện có; lập ma trận nội bộ theo tám giai đoạn với bốn trạng thái: đã đúng / cần tối ưu / sai yêu cầu / còn thiếu.
+4. Chạy baseline syntax check và test khả dụng trước khi sửa để phân biệt lỗi có sẵn với regression mới.
+5. Ưu tiên sửa các sai lệch nền tảng trước, đặc biệt là tự đăng ký Host, auth, role, ownership, route công khai và rò rỉ dữ liệu.
+6. Giữ và tái sử dụng phần đã đúng; refactor phần trùng lặp hoặc khó bảo trì khi việc đó giúp triển khai an toàn các mục tiếp theo, không mở rộng refactor ngoài phạm vi.
+7. Triển khai phần còn thiếu theo dependency: auth/ownership → tour → content/schedule → booking visibility → commission/ledger → payout → dashboard → notification/test/docs.
+8. Sau mỗi cụm thay đổi, chạy syntax check/test phù hợp và sửa ngay; không bỏ qua lỗi với lý do phần đó đã tồn tại trước nếu lỗi nằm trong phạm vi Host hoặc regression do thay đổi gây ra.
+9. Đồng bộ UI Host với component/pattern Admin và Guest, sau đó kiểm tra trực quan desktop/mobile cho các màn hình chính.
+10. Chạy kiểm tra tích hợp/regression cuối cùng.
+11. Rà lại bảo mật ownership và tính bất biến/idempotency của tài chính.
+12. Đối chiếu lại toàn bộ ma trận audit, cập nhật tài liệu theo source thực tế và bàn giao một lần khi đã hoàn thành tối đa có thể; báo cáo rõ phần giữ nguyên, phần tối ưu, phần sửa sai và phần mới triển khai.
 
