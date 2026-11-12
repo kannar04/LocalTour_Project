@@ -12,8 +12,10 @@ use App\Models\AdminTourFormModel;
  * Tour mới ở trạng thái "Chờ duyệt" (duyệt ở trang chi tiết tour); sửa thông tin giữ nguyên trạng thái duyệt.
  * "Đã xác minh" cần nguồn tham khảo; ngày xác minh = ngày chuyển sang "Đã xác minh".
  * Ảnh, lịch trình, dịch vụ bao gồm, dịch vụ thêm và chính sách hủy chưa sửa được ở đây.
+ * Khu /host (HostTourFormController): đơn vị tổ chức thêm / sửa tour của chính mình; nguồn tham khảo và
+ * trạng thái xác minh vẫn do quản trị viên quản lý; sửa tour đã duyệt thì tour quay về "Chờ duyệt".
  */
-final class AdminTourFormController extends AdminController
+class AdminTourFormController extends AdminController
 {
     /** Số ký tự tối đa của các ô chữ (ô 255 / 500 theo cột trong bảng tours). */
     public const MAX_LENGTHS = [
@@ -49,13 +51,13 @@ final class AdminTourFormController extends AdminController
     /** GET /admin/tours/new */
     public function create(): void
     {
-        $this->renderForm(null, self::DEFAULTS, []);
+        $this->renderForm(null, $this->lockHostFields(self::DEFAULTS, null), []);
     }
 
     /** POST /admin/tours/new – các ô trong AdminTourFormModel::FIELDS, _csrf */
     public function store(): void
     {
-        $old = $this->old();
+        $old = $this->lockHostFields($this->old(), null);
         if (!$this->csrfValid()) {
             $this->renderForm(null, $old, ['form' => self::CSRF_FAILED], 403);
             return;
@@ -70,7 +72,7 @@ final class AdminTourFormController extends AdminController
 
         $row = $this->tours->create($this->actorId(), $old);
         match ((string) $row['result']) {
-            'ok' => $this->redirect('/admin/tours/' . $row['tour_id'] . '?msg=created'),
+            'ok' => $this->redirect($this->base . '/tours/' . $row['tour_id'] . '?msg=created'),
             'forbidden' => self::forbidden(),
             default => $this->renderForm(null, $old, self::fieldError($row['field'] ?? null), 422, $options),
         };
@@ -92,7 +94,7 @@ final class AdminTourFormController extends AdminController
     public function update(string $id): void
     {
         $tour = $this->findOrFail($id);
-        $old = $this->old();
+        $old = $this->lockHostFields($this->old(), $tour);
         if (!$this->csrfValid()) {
             $this->renderForm($tour, $old, ['form' => self::CSRF_FAILED], 403);
             return;
@@ -108,8 +110,8 @@ final class AdminTourFormController extends AdminController
         $tourId = (string) $tour['tour_id'];
         $row = $this->tours->update($this->actorId(), $tourId, $old);
         match ((string) $row['result']) {
-            'ok' => $this->redirect('/admin/tours/' . $tourId . '?msg=updated'),
-            'unchanged' => $this->redirect('/admin/tours/' . $tourId . '?msg=unchanged'),
+            'ok' => $this->redirect($this->base . '/tours/' . $tourId . '?msg=updated'),
+            'unchanged' => $this->redirect($this->base . '/tours/' . $tourId . '?msg=unchanged'),
             'forbidden' => self::forbidden(),
             'not_found' => self::notFound(),
             default => $this->renderForm($tour, $old, self::fieldError($row['field'] ?? null), 422, $options),
@@ -133,6 +135,27 @@ final class AdminTourFormController extends AdminController
     }
 
     /**
+     * Khu /host: tour luôn thuộc đơn vị đang đăng nhập; nguồn tham khảo và trạng thái xác minh giữ như đang lưu
+     * (tour mới: chưa có nguồn, "Chưa xác minh"). Trang quản trị: giữ nguyên dữ liệu nhập.
+     *
+     * @param array<string, string> $old
+     * @param array<string, mixed>|null $tour null = thêm tour
+     * @return array<string, string>
+     */
+    private function lockHostFields(array $old, ?array $tour): array
+    {
+        if ($this->host === null) {
+            return $old;
+        }
+
+        $old['provider_id'] = (string) $this->host['provider_id'];
+        $old['source_url'] = (string) ($tour['source_url'] ?? '');
+        $old['verification_status'] = (string) ($tour['verification_status'] ?? 'unverified');
+
+        return $old;
+    }
+
+    /**
      * Danh sách chọn của form: mã → nhãn.
      *
      * @return array{providers: array<string, string>, destinations: array<string, string>, categories: array<string, string>}
@@ -140,7 +163,8 @@ final class AdminTourFormController extends AdminController
     private function options(): array
     {
         $providers = [];
-        foreach ((new AdminProviderModel())->list() as $provider) {
+        $list = $this->host === null ? (new AdminProviderModel())->list() : [$this->host];
+        foreach ($list as $provider) {
             $label = (string) $provider['business_name'];
             if ($provider['approval_status'] !== 'approved') {
                 $label .= ' (' . provider_status_label($provider['approval_status']) . ')';
@@ -248,8 +272,12 @@ final class AdminTourFormController extends AdminController
     {
         $tourId = self::parseUuid($id);
         $tour = $tourId === null ? null : $this->tours->find($tourId);
+        if ($tour === null) {
+            self::notFound();
+        }
+        $this->authorizeTour((string) $tour['tour_id']);
 
-        return $tour ?? self::notFound();
+        return $tour;
     }
 
     /**
@@ -264,7 +292,7 @@ final class AdminTourFormController extends AdminController
     {
         $this->render('admin/tours/form', [
             'title' => $tour === null ? 'Thêm tour' : 'Sửa thông tin tour',
-            'adminNav' => 'tours',
+            'adminNav' => $tour === null && $this->host !== null ? 'tour-new' : 'tours',
             'tour' => $tour,
             'old' => $old,
             'errors' => $errors,

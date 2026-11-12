@@ -48,7 +48,7 @@ $counts = [
 ];
 $actionLabels = [
     'tour_approve' => 'Phê duyệt', 'tour_reject' => 'Từ chối', 'tour_create' => 'Thêm tour', 'tour_update' => 'Sửa thông tin',
-    'tour_archive' => 'Ngừng hiển thị', 'tour_restore' => 'Hiển thị lại',
+    'tour_archive' => 'Ngừng hiển thị', 'tour_restore' => 'Hiển thị lại', 'tour_resubmit' => 'Đơn vị sửa tour',
     'package_create' => 'Thêm gói tour', 'package_update' => 'Sửa gói tour',
     'image_add' => 'Thêm ảnh', 'image_delete' => 'Xóa ảnh', 'image_cover' => 'Đổi ảnh bìa',
     'itinerary_add' => 'Thêm lịch trình', 'itinerary_update' => 'Sửa lịch trình', 'itinerary_delete' => 'Xóa lịch trình',

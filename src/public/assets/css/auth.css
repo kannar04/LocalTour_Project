@@ -57,6 +57,12 @@
     margin-top: 2px;
 }
 
+/* Thông báo thành công (vd. vừa gửi đăng ký đơn vị tổ chức). */
+.lt-auth__alert--success {
+    background: var(--lt-teal-50);
+    color: var(--lt-teal-800);
+}
+
 .lt-auth__field {
     margin-bottom: 16px;
 }

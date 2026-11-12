@@ -72,6 +72,7 @@ $focusField = array_key_first(array_diff_key($errors, ['form' => true])) ?? 'nam
             </form>
 
             <p class="lt-auth__switch">Đã có tài khoản? <a href="<?= e($loginHref) ?>">Đăng nhập</a></p>
+            <p class="lt-auth__switch">Muốn đăng tour của bạn? <a href="<?= e(url('/host/register')) ?>">Đăng ký đơn vị tổ chức</a></p>
 
             <div class="lt-auth__guest">
                 <p class="lt-auth__divider"><span>hoặc</span></p>

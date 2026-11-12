@@ -14,8 +14,9 @@ use DateTimeImmutable;
  * Số chỗ đang giữ = sức chứa - số chỗ còn nhận (đơn "Chờ xác nhận" chưa giữ chỗ).
  * Sửa lịch: chỉ đổi giờ khi lịch chưa khởi hành, sức chứa không nhỏ hơn số chỗ đang giữ,
  * không hủy lịch khi còn yêu cầu đặt tour đang xử lý. Đổi giá không đổi giá của đơn đã đặt.
+ * Khu /host (HostScheduleController): đơn vị tổ chức thêm / sửa lịch khởi hành và giá vé cho tour của chính mình.
  */
-final class AdminScheduleController extends AdminController
+class AdminScheduleController extends AdminController
 {
     private const MESSAGES = [
         'created' => 'Đã thêm lịch khởi hành.',
@@ -62,7 +63,7 @@ final class AdminScheduleController extends AdminController
         $tourId = (string) $tour['tour_id'];
         $row = $this->schedules->create($this->actorId(), $tourId, $data);
         match ((string) $row['result']) {
-            'ok' => $this->redirect('/admin/tours/' . $tourId . '/schedules?msg=created'),
+            'ok' => $this->redirect($this->base . '/tours/' . $tourId . '/schedules?msg=created'),
             'forbidden' => self::forbidden(),
             'not_found' => self::notFound(),
             default => $this->renderIndex($tour, $old, self::fieldError($row['field'] ?? null), '', 422),
@@ -102,7 +103,7 @@ final class AdminScheduleController extends AdminController
         }
 
         $scheduleId = (string) $schedule['schedule_id'];
-        $back = '/admin/tours/' . $schedule['tour_id'] . '/schedules';
+        $back = $this->base . '/tours/' . $schedule['tour_id'] . '/schedules';
         $row = $this->schedules->update($this->actorId(), $scheduleId, $data);
         match ((string) $row['result']) {
             'ok' => $this->redirect($back . '?msg=updated'),
@@ -320,8 +321,12 @@ final class AdminScheduleController extends AdminController
     {
         $tourId = self::parseUuid($id);
         $tour = $tourId === null ? null : (new AdminTourModel())->find($tourId);
+        if ($tour === null) {
+            self::notFound();
+        }
+        $this->authorizeTour((string) $tour['tour_id']);
 
-        return $tour ?? self::notFound();
+        return $tour;
     }
 
     /** @return array<string, mixed> */
@@ -329,8 +334,12 @@ final class AdminScheduleController extends AdminController
     {
         $scheduleId = self::parseUuid($id);
         $schedule = $scheduleId === null ? null : $this->schedules->find($scheduleId);
+        if ($schedule === null) {
+            self::notFound();
+        }
+        $this->authorizeTour((string) $schedule['tour_id']);
 
-        return $schedule ?? self::notFound();
+        return $schedule;
     }
 
     /**

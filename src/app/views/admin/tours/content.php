@@ -5,11 +5,14 @@
  * chính sách hủy theo phiên bản, xóa tour / ngừng hiển thị và hiển thị lại.
  * Biến: $tour (LTP_sp_admin_tour_detail), $images, $itinerary, $inclusions, $policies (NMT_sp_admin_*_list),
  *       $old (giá trị các form, AdminTourContentController::EMPTY_FORM), $errors (theo ô; 'form' = lỗi chung), $success.
+ *       $portal ('/admin' hoặc '/host'), $host (đơn vị tổ chức đang đăng nhập ở khu /host; null ở trang quản trị):
+ *       đơn vị không có phần xóa / hiển thị lại tour.
  */
 use App\Models\AdminTourContentModel;
 
 $tourId = (string) $tour['tour_id'];
-$base = '/admin/tours/' . $tourId . '/content';
+$isHost = $host !== null;
+$base = $portal . '/tours/' . $tourId . '/content';
 $isArchived = $tour['approval_status'] === 'archived';
 $isEditItem = $old['item_id'] !== '';
 $fieldError = static fn (string $field): string => $errors[$field] ?? '';
@@ -25,7 +28,7 @@ $maxMb = AdminTourContentModel::IMAGE_MAX_BYTES / 1024 / 1024;
         </div>
 
         <main id="main-content" class="col-12 col-lg lt-admin" tabindex="-1" aria-labelledby="admin-title">
-            <a class="lt-admin__back" href="<?= e(url('/admin/tours/' . $tourId)) ?>">
+            <a class="lt-admin__back" href="<?= e(url($portal . '/tours/' . $tourId)) ?>">
                 <span class="lt-icon lt-icon--arrow-left" aria-hidden="true"></span> Chi tiết tour
             </a>
             <header class="lt-admin__head">
@@ -34,6 +37,9 @@ $maxMb = AdminTourContentModel::IMAGE_MAX_BYTES / 1024 / 1024;
                     <span class="lt-badge lt-badge--<?= e($tour['approval_status']) ?>"><?= e(tour_status_label($tour['approval_status'])) ?></span>
                     <?= e($tour['title']) ?>
                 </p>
+<?php if ($isHost && $tour['approval_status'] === 'approved'): ?>
+                <p class="lt-admin-hint">Tour đang hiển thị cho khách. Mỗi thay đổi ở trang này đưa tour về "Chờ duyệt" cho tới khi quản trị viên duyệt lại.</p>
+<?php endif; ?>
             </header>
 
 <?php if ($success !== ''): ?>
@@ -50,7 +56,9 @@ $maxMb = AdminTourContentModel::IMAGE_MAX_BYTES / 1024 / 1024;
                 <a class="lt-tabs__link" href="#content-itinerary">Lịch trình (<?= e(count($itinerary)) ?>)</a>
                 <a class="lt-tabs__link" href="#content-inclusions">Dịch vụ (<?= e(count($inclusions)) ?>)</a>
                 <a class="lt-tabs__link" href="#content-policy">Chính sách hủy</a>
+<?php if (!$isHost): ?>
                 <a class="lt-tabs__link" href="#content-delete"><?= $isArchived ? 'Hiển thị lại' : 'Xóa tour' ?></a>
+<?php endif; ?>
             </nav>
 
             <!-- Ảnh -->
@@ -326,7 +334,8 @@ $maxMb = AdminTourContentModel::IMAGE_MAX_BYTES / 1024 / 1024;
                 </form>
             </section>
 
-            <!-- Xóa tour / ngừng hiển thị -->
+<?php if (!$isHost): ?>
+            <!-- Xóa tour / ngừng hiển thị (chỉ quản trị viên) -->
             <section class="lt-panel lt-panel--danger" id="content-delete" aria-labelledby="delete-title">
 <?php if ($isArchived): ?>
                 <h2 class="lt-panel__title" id="delete-title">Hiển thị lại tour</h2>
@@ -352,6 +361,7 @@ $maxMb = AdminTourContentModel::IMAGE_MAX_BYTES / 1024 / 1024;
                 </form>
 <?php endif; ?>
             </section>
+<?php endif; ?>
         </main>
     </div>
 </div>

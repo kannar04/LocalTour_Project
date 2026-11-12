@@ -15,8 +15,10 @@ use finfo;
  * của người dùng). Xóa ảnh tải lên thì xóa luôn file. Mỗi thao tác được ghi lịch sử (admin_logs, NFR-09).
  * Xóa tour: tour chưa có đơn thì xóa hẳn; đã có đơn thì chuyển "Ngừng hiển thị" để giữ lịch sử đơn;
  * còn đơn đang xử lý thì không xóa được.
+ * Khu /host (HostTourContentController): đơn vị tổ chức sửa ảnh, lịch trình, dịch vụ và chính sách hủy của tour
+ * của chính mình (sửa tour đã duyệt thì tour quay về "Chờ duyệt"); xóa / hiển thị lại tour chỉ dành cho quản trị viên.
  */
-final class AdminTourContentController extends AdminController
+class AdminTourContentController extends AdminController
 {
     private const MESSAGES = [
         'image_added' => 'Đã thêm ảnh.',
@@ -320,6 +322,7 @@ final class AdminTourContentController extends AdminController
     /** POST /admin/tours/{id}/delete – confirm=1, _csrf */
     public function deleteTour(string $id): void
     {
+        $this->adminOnly();
         $tour = $this->findTourOrFail($id);
         if (!$this->csrfValid()) {
             $this->renderContent($tour, self::EMPTY_FORM, ['form' => self::CSRF_FAILED], '', 403);
@@ -349,6 +352,7 @@ final class AdminTourContentController extends AdminController
     /** POST /admin/tours/{id}/restore – _csrf (tour "Ngừng hiển thị" → "Chờ duyệt") */
     public function restoreTour(string $id): void
     {
+        $this->adminOnly();
         $tour = $this->findTourOrFail($id);
         if (!$this->csrfValid()) {
             $this->renderContent($tour, self::EMPTY_FORM, ['form' => self::CSRF_FAILED], '', 403);
@@ -461,7 +465,15 @@ final class AdminTourContentController extends AdminController
 
     private function back(string $tourId, string $message): void
     {
-        $this->redirect('/admin/tours/' . $tourId . '/content?msg=' . $message);
+        $this->redirect($this->base . '/tours/' . $tourId . '/content?msg=' . $message);
+    }
+
+    /** Xóa / hiển thị lại tour: chỉ quản trị viên (khu /host không có đường dẫn này). */
+    private function adminOnly(): void
+    {
+        if ($this->host !== null) {
+            self::forbidden();
+        }
     }
 
     /** @return array<string, string> */
@@ -479,8 +491,12 @@ final class AdminTourContentController extends AdminController
     {
         $tourId = self::parseUuid($id);
         $tour = $tourId === null ? null : (new AdminTourModel())->find($tourId);
+        if ($tour === null) {
+            self::notFound();
+        }
+        $this->authorizeTour((string) $tour['tour_id']);
 
-        return $tour ?? self::notFound();
+        return $tour;
     }
 
     /**

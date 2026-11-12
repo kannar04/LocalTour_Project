@@ -43,6 +43,7 @@
             </form>
 
             <p class="lt-auth__switch">Bạn là khách hàng? <a href="<?= e(url('/login')) ?>">Đăng nhập tài khoản khách hàng</a></p>
+            <p class="lt-auth__switch">Bạn là đơn vị tổ chức tour? <a href="<?= e(url('/host/login')) ?>">Đăng nhập đơn vị tổ chức</a></p>
         </section>
     </div>
 </main>

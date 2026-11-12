@@ -6,12 +6,15 @@
  *       $errors (lỗi theo ô; 'form' = lỗi chung như hết phiên),
  *       $options (providers, destinations, categories: mã → nhãn).
  * Ảnh, lịch trình, dịch vụ bao gồm, dịch vụ thêm và chính sách hủy chưa sửa được ở trang này.
+ * $portal ('/admin' hoặc '/host'), $host (đơn vị tổ chức đang đăng nhập ở khu /host; null ở trang quản trị): đơn vị
+ * không chọn đơn vị tổ chức (luôn là chính mình) và không có nhóm "Nguồn và xác minh" (việc của quản trị viên).
  */
 use App\Controllers\AdminTourFormController;
 
 $isNew = $tour === null;
-$action = $isNew ? '/admin/tours/new' : '/admin/tours/' . $tour['tour_id'] . '/edit';
-$cancelHref = $isNew ? '/admin/tours' : '/admin/tours/' . $tour['tour_id'];
+$isHost = $host !== null;
+$action = $isNew ? $portal . '/tours/new' : $portal . '/tours/' . $tour['tour_id'] . '/edit';
+$cancelHref = $isNew ? $portal . '/tours' : $portal . '/tours/' . $tour['tour_id'];
 $max = AdminTourFormController::MAX_LENGTHS;
 $verifiedHint = 'Cần nguồn tham khảo; ngày xác minh là ngày lưu.';
 if (!$isNew && $tour['verification_status'] === 'verified' && $tour['verified_at'] !== null) {
@@ -59,6 +62,13 @@ $sections = [
             'options' => ['unverified' => 'Chưa xác minh', 'verified' => 'Đã xác minh'], 'hint' => $verifiedHint],
     ],
 ];
+if ($isHost) {
+    unset($sections['Nguồn và xác minh']);
+    $sections['Thông tin chính'] = array_values(array_filter(
+        $sections['Thông tin chính'],
+        static fn (array $field): bool => $field['name'] !== 'provider_id'
+    ));
+}
 $focusField = array_key_first(array_diff_key($errors, ['form' => true])) ?? 'title';
 ?>
 <div class="container-xl lt-container lt-page">
@@ -74,8 +84,13 @@ $focusField = array_key_first(array_diff_key($errors, ['form' => true])) ?? 'tit
             <header class="lt-admin__head">
                 <h1 class="lt-admin__title" id="admin-title"><?= $isNew ? 'Thêm tour' : 'Sửa thông tin tour' ?></h1>
                 <p class="lt-admin__subtitle">
-<?php if ($isNew): ?>
+<?php if ($isNew && $isHost): ?>
+                    Tour mới ở trạng thái "Chờ duyệt". Sau khi lưu, thêm lịch khởi hành, giá vé, ảnh và lịch trình; quản trị viên duyệt thì tour mới hiển thị cho khách.
+<?php elseif ($isNew): ?>
                     Tour mới ở trạng thái "Chờ duyệt". Sau khi lưu, thêm lịch khởi hành và giá vé rồi phê duyệt ở trang chi tiết tour.
+<?php elseif ($isHost): ?>
+                    <span class="lt-badge lt-badge--<?= e($tour['approval_status']) ?>"><?= e(tour_status_label($tour['approval_status'])) ?></span>
+                    Sửa thông tin tour đã duyệt hoặc bị từ chối sẽ đưa tour về "Chờ duyệt" để quản trị viên duyệt lại.
 <?php else: ?>
                     <span class="lt-badge lt-badge--<?= e($tour['approval_status']) ?>"><?= e(tour_status_label($tour['approval_status'])) ?></span>
                     Sửa thông tin không đổi trạng thái duyệt của tour.
@@ -156,7 +171,7 @@ $focusField = array_key_first(array_diff_key($errors, ['form' => true])) ?? 'tit
 <?php endforeach; ?>
 
                 <p class="lt-admin-hint">Ảnh, lịch trình, dịch vụ bao gồm và chính sách hủy chưa sửa được ở trang này. Lịch khởi hành và giá vé sửa ở trang "Lịch khởi hành và giá vé" của tour.</p>
-<?php if (!$isNew): ?>
+<?php if (!$isNew && !$isHost): ?>
                 <p class="lt-admin-hint">Vị trí điểm hẹn / khu vực đón trên bản đồ (vĩ độ, kinh độ) đặt ở trang <a href="<?= e(url('/admin/tours/' . $tour['tour_id'] . '/location')) ?>">Điểm khởi hành trên bản đồ</a>; đổi điểm hẹn ở đây thì nhớ cập nhật lại vị trí.</p>
 <?php endif; ?>
                 <div class="lt-admin__actions">

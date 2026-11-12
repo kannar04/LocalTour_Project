@@ -5,6 +5,7 @@
  * Biến: $tour (LTP_sp_admin_tour_detail), $schedules (NMT_sp_admin_schedule_list), $logs (lịch sử thêm / sửa lịch,
  *       mới nhất trước), $old / $errors (form thêm lịch; 'form' = lỗi chung), $success ('' = không có).
  * Đang giữ = sức chứa - còn nhận: chỗ của các yêu cầu đã xác nhận chỗ (yêu cầu "Chờ xác nhận" chưa giữ chỗ).
+ * $portal = '/admin' hoặc '/host' (đơn vị tổ chức dùng chung trang này cho tour của mình).
  */
 $tourId = (string) $tour['tour_id'];
 $logLabels = ['schedule_create' => 'Thêm lịch', 'schedule_update' => 'Sửa lịch'];
@@ -16,7 +17,7 @@ $logLabels = ['schedule_create' => 'Thêm lịch', 'schedule_update' => 'Sửa l
         </div>
 
         <main id="main-content" class="col-12 col-lg lt-admin" tabindex="-1" aria-labelledby="admin-title">
-            <a class="lt-admin__back" href="<?= e(url('/admin/tours/' . $tourId)) ?>">
+            <a class="lt-admin__back" href="<?= e(url($portal . '/tours/' . $tourId)) ?>">
                 <span class="lt-icon lt-icon--arrow-left" aria-hidden="true"></span> Chi tiết tour
             </a>
             <header class="lt-admin__head">
@@ -81,7 +82,7 @@ $logLabels = ['schedule_create' => 'Thêm lịch', 'schedule_update' => 'Sửa l
                                 </td>
                                 <td class="text-right">
 <?php if ($schedule['status'] !== 'completed'): ?>
-                                    <a class="lt-btn lt-btn--soft lt-btn--sm" href="<?= e(url('/admin/schedules/' . $schedule['schedule_id'] . '/edit')) ?>">Sửa<span class="sr-only"> lịch <?= e(format_datetime($schedule['starts_at'])) ?></span></a>
+                                    <a class="lt-btn lt-btn--soft lt-btn--sm" href="<?= e(url($portal . '/schedules/' . $schedule['schedule_id'] . '/edit')) ?>">Sửa<span class="sr-only"> lịch <?= e(format_datetime($schedule['starts_at'])) ?></span></a>
 <?php endif; ?>
                                 </td>
                             </tr>
@@ -96,7 +97,7 @@ $logLabels = ['schedule_create' => 'Thêm lịch', 'schedule_update' => 'Sửa l
                 <div class="col-12 col-xl-7">
                     <section class="lt-panel" aria-labelledby="schedule-new-title">
                         <h2 class="lt-panel__title" id="schedule-new-title">Thêm lịch khởi hành</h2>
-                        <form class="lt-admin-form" action="<?= e(url('/admin/tours/' . $tourId . '/schedules')) ?>" method="post" novalidate>
+                        <form class="lt-admin-form" action="<?= e(url($portal . '/tours/' . $tourId . '/schedules')) ?>" method="post" novalidate>
                             <?= csrf_field() ?>
 <?php
 $prefix = 'schedule-new';

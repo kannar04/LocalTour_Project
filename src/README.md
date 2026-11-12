@@ -120,7 +120,8 @@ src/
 │   ├── 24_social_login_NTK.sql
 │   ├── 25_email_NTK.sql
 │   ├── 26_procedures_NTK_setup.sql
-│   ├── db_localtour.sql          # File gộp 01–26, sinh tự động
+│   ├── 27_procedures_NTK_host.sql
+│   ├── db_localtour.sql          # File gộp 01–27, sinh tự động
 │   └── README.md
 ├── public/                       # Thư mục web duy nhất trình duyệt truy cập được
 │   ├── .htaccess                 # Chuyển mọi đường dẫn về index.php (Apache)
@@ -270,12 +271,12 @@ Chọn một trong hai cách.
 **Cách B – Import database trên máy mình.**
 
 1. Mở XAMPP Control Panel, bấm Start cho **MySQL**.
-2. Dùng file `src/database/db_localtour.sql` trong repo. File này được gộp từ `src/database/01_schema.sql` đến `26_procedures_NTK_setup.sql`.
+2. Dùng file `src/database/db_localtour.sql` trong repo. File này được gộp từ `src/database/01_schema.sql` đến `27_procedures_NTK_host.sql`.
 3. Mở `http://localhost/phpmyadmin`, chọn tab **Import**, chọn file `db_localtour.sql`, giữ **Character set of the file** là `utf-8`, bấm **Import** (hoặc **Go**). File tự tạo database `db_localtour` với `utf8mb4_unicode_ci`.
 
 Cách nhanh hơn, không cần phpMyAdmin: sau khi tạo `.env` (Bước 3), đứng ở thư mục `src` chạy `scripts\install_database.bat`. Script import mọi file `NN_*.sql` theo thứ tự vào database ghi trong `.env` và đếm lại bảng / procedure; database đã có dữ liệu thì dừng, trừ khi thêm `--fresh`.
 
-Nếu không có file gộp: tạo database `db_localtour` với collation `utf8mb4_unicode_ci`, chọn database đó, rồi import lần lượt `01_schema.sql`, `02_seed.sql`, `03_procedures_LTP.sql`, `04_procedures_NMT.sql`, `05_procedures_NTK.sql`, `06_procedures_NTK_account.sql`, `07_procedures_NTK_admin.sql`, `08_migration_booking_NMT.sql`, `09_procedures_NMT_booking.sql`, `10_procedures_LTP_booking.sql`, `11_procedures_NTK_booking.sql`, `12_migration_sprint4_NMT.sql`, `13_procedures_NMT_catalog.sql`, `14_procedures_NMT_payment.sql`, `15_procedures_LTP_payment.sql`, `16_migration_sprint5_LTP.sql`, `17_procedures_NMT_compare.sql`, `18_procedures_LTP_package.sql`, `19_procedures_LTP_change.sql`, `20_procedures_LTP_change_admin.sql`, `21_procedures_NMT_tour_content.sql`, `22_payment_momo_NTK.sql`, `23_map_places_NTK.sql`, `24_social_login_NTK.sql`, `25_email_NTK.sql`, `26_procedures_NTK_setup.sql`.
+Nếu không có file gộp: tạo database `db_localtour` với collation `utf8mb4_unicode_ci`, chọn database đó, rồi import lần lượt `01_schema.sql`, `02_seed.sql`, `03_procedures_LTP.sql`, `04_procedures_NMT.sql`, `05_procedures_NTK.sql`, `06_procedures_NTK_account.sql`, `07_procedures_NTK_admin.sql`, `08_migration_booking_NMT.sql`, `09_procedures_NMT_booking.sql`, `10_procedures_LTP_booking.sql`, `11_procedures_NTK_booking.sql`, `12_migration_sprint4_NMT.sql`, `13_procedures_NMT_catalog.sql`, `14_procedures_NMT_payment.sql`, `15_procedures_LTP_payment.sql`, `16_migration_sprint5_LTP.sql`, `17_procedures_NMT_compare.sql`, `18_procedures_LTP_package.sql`, `19_procedures_LTP_change.sql`, `20_procedures_LTP_change_admin.sql`, `21_procedures_NMT_tour_content.sql`, `22_payment_momo_NTK.sql`, `23_map_places_NTK.sql`, `24_social_login_NTK.sql`, `25_email_NTK.sql`, `26_procedures_NTK_setup.sql`, `27_procedures_NTK_host.sql`.
 
 Import lại bất cứ lúc nào để đưa dữ liệu về trạng thái ban đầu: `01_schema.sql` xóa và tạo lại 27 bảng, đồng thời xóa 2 bảng đã bỏ (`post_comments`, `post_interactions`) và 7 bảng do các file sau thêm; `12_migration_sprint4_NMT.sql` thêm 2 bảng Sprint 4, `16_migration_sprint5_LTP.sql` thêm 2 bảng Sprint 5, `23`, `24`, `25` mỗi file thêm 1 bảng (tổng 34 bảng). Tài khoản đã đăng ký thử cũng bị xóa. Ngày khởi hành mẫu được tính theo ngày import, vì vậy nên import lại trước mỗi buổi kiểm thử hoặc demo. Chi tiết xem [02 – Lược đồ dữ liệu](../docs/sprint3/02-luoc-do-du-lieu.md) và `src/database/README.md`.
 
@@ -337,7 +338,7 @@ Mở `http://127.0.0.1:8080`. Giữ cửa sổ dòng lệnh mở trong lúc dùn
 
 ```sql
 SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'db_localtour';                                  -- 34
-SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = 'db_localtour' AND ROUTINE_TYPE = 'PROCEDURE'; -- 112
+SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = 'db_localtour' AND ROUTINE_TYPE = 'PROCEDURE'; -- 124
 ```
 
 Ra số khác thì xem mục "Cách 1" của `src/database/README.md` để so tên bảng và procedure. Với Cách A, tài khoản ứng dụng chỉ có quyền gọi procedure nên bỏ qua bước này; các đường dẫn dưới đây đã đủ để kiểm tra.

@@ -6,6 +6,8 @@
  *       approval_status đang nhập), $errors (lỗi theo ô; 'form' = lỗi chung như hết phiên),
  *       $history (lịch sử thêm / sửa, cũ trước; [] khi thêm mới).
  * Sprint 5 (US07-S5-01, Nguyễn Tuấn Khôi): ô "Xóa đơn vị" khi sửa; chỉ xóa được đơn vị chưa có tour.
+ * Sprint 6 (Nguyễn Tuấn Khôi): ô "Tài khoản đăng nhập" khi sửa: cấp / đổi mật khẩu để đơn vị đăng nhập khu /host.
+ *       Thêm biến $account (NTK_sp_admin_provider_account: has_password; null khi thêm mới), $success ('' = không có).
  */
 use App\Models\AdminProviderModel;
 
@@ -21,8 +23,10 @@ $statusHints = [
     'pending' => 'Chưa hiển thị tour của đơn vị cho khách.',
     'rejected' => 'Ẩn mọi tour của đơn vị khỏi trang khách.',
 ];
-$historyLabels = ['provider_create' => 'Thêm đơn vị', 'provider_update' => 'Sửa thông tin'];
-$focusField = array_key_first(array_diff_key($errors, ['form' => true])) ?? 'business_name';
+$historyLabels = ['provider_create' => 'Thêm đơn vị', 'provider_register' => 'Đơn vị tự đăng ký', 'provider_update' => 'Sửa thông tin', 'provider_password' => 'Mật khẩu đăng nhập'];
+$hasPassword = (int) ($account['has_password'] ?? 0) === 1;
+$passwordError = $errors['password'] ?? '';
+$focusField = array_key_first(array_diff_key($errors, ['form' => true, 'password' => true, 'confirm' => true])) ?? 'business_name';
 $statusError = $errors['approval_status'] ?? '';
 ?>
 <div class="container-xl lt-container lt-page">
@@ -39,7 +43,7 @@ $statusError = $errors['approval_status'] ?? '';
                 <h1 class="lt-admin__title" id="admin-title"><?= $isNew ? 'Thêm đơn vị tổ chức' : e($provider['business_name']) ?></h1>
                 <p class="lt-admin__subtitle">
 <?php if ($isNew): ?>
-                    Đơn vị chưa có tài khoản đăng nhập riêng: LocalTour quản lý tour và lịch khởi hành thay cho đơn vị.
+                    Sau khi thêm, mở lại đơn vị để cấp mật khẩu nếu đơn vị tự đăng tour ở khu "Đơn vị tổ chức"; không cấp thì LocalTour quản lý tour và lịch khởi hành thay cho đơn vị.
 <?php else: ?>
                     <span class="lt-badge lt-badge--<?= e($provider['approval_status']) ?>"><?= e(provider_status_label($provider['approval_status'])) ?></span>
                     <?= e($provider['tour_count']) ?> tour
@@ -47,6 +51,9 @@ $statusError = $errors['approval_status'] ?? '';
                 </p>
             </header>
 
+<?php if ($success !== ''): ?>
+            <div class="lt-alert lt-alert--success" role="status"><span class="lt-icon lt-icon--check" aria-hidden="true"></span><span><?= e($success) ?></span></div>
+<?php endif; ?>
 <?php if (isset($errors['form'])): ?>
             <div class="lt-alert lt-alert--danger" role="alert"><span class="lt-icon lt-icon--alert" aria-hidden="true"></span><span><?= e($errors['form']) ?></span></div>
 <?php elseif ($errors !== []): ?>
@@ -102,6 +109,34 @@ $statusError = $errors['approval_status'] ?? '';
 
 <?php if (!$isNew): ?>
                 <div class="col-12 col-xl-5">
+                    <section class="lt-panel" aria-labelledby="provider-account-title">
+                        <h2 class="lt-panel__title" id="provider-account-title">Tài khoản đăng nhập</h2>
+                        <p class="lt-admin__text">
+<?php if ($hasPassword): ?>
+                            Đơn vị đã có mật khẩu và đăng nhập ở <a href="<?= e(url('/host/login')) ?>">trang đăng nhập đơn vị tổ chức</a> bằng email liên hệ.
+<?php else: ?>
+                            Đơn vị chưa có mật khẩu nên chưa đăng nhập được. Cấp mật khẩu để đơn vị tự đăng tour, lịch khởi hành và giá vé; tour của đơn vị vẫn do quản trị viên duyệt.
+<?php endif; ?>
+<?php if ($provider['approval_status'] !== 'approved'): ?>
+                            Đơn vị chỉ đăng nhập được khi ở trạng thái “<?= e(provider_status_label('approved')) ?>”.
+<?php endif; ?>
+                        </p>
+                        <form action="<?= e(url('/admin/providers/' . $provider['provider_id'] . '/password')) ?>" method="post" class="lt-admin-form" novalidate>
+                            <?= csrf_field() ?>
+                            <div class="lt-admin-field">
+                                <label class="lt-admin-label" for="provider-password"><?= $hasPassword ? 'Mật khẩu mới' : 'Mật khẩu' ?></label>
+                                <input class="lt-admin-input<?= $passwordError !== '' ? ' is-invalid' : '' ?>" type="password" id="provider-password" name="password"
+                                       minlength="8" maxlength="72" autocomplete="new-password" required
+                                       aria-describedby="provider-password-hint<?= $passwordError !== '' ? ' provider-password-error' : '' ?>"<?= $passwordError !== '' ? ' aria-invalid="true" autofocus' : '' ?>>
+                                <p class="lt-admin-hint" id="provider-password-hint">Tối thiểu 8 ký tự. Gửi mật khẩu cho đơn vị qua kênh riêng; LocalTour không hiển thị lại mật khẩu.</p>
+<?php if ($passwordError !== ''): ?>
+                                <p class="lt-admin-error" id="provider-password-error"><?= e($passwordError) ?></p>
+<?php endif; ?>
+                            </div>
+                            <button class="lt-btn lt-btn--primary" type="submit"><?= $hasPassword ? 'Đổi mật khẩu' : 'Cấp mật khẩu' ?></button>
+                        </form>
+                    </section>
+
                     <section class="lt-panel" aria-labelledby="provider-history-title">
                         <h2 class="lt-panel__title" id="provider-history-title">Lịch sử thay đổi</h2>
 <?php if ($history === []): ?>
@@ -133,7 +168,7 @@ $statusError = $errors['approval_status'] ?? '';
                         <p class="lt-admin__text">Đơn vị còn <?= e($provider['tour_count']) ?> tour nên không xóa được (đơn cũ cần giữ thông tin đơn vị).
                             Muốn ẩn mọi tour của đơn vị khỏi trang khách, chọn “<?= e(provider_status_label('rejected')) ?>” rồi lưu.</p>
 <?php else: ?>
-                        <p class="lt-admin__text">Đơn vị chưa có tour nào. Xóa sẽ xóa hẳn đơn vị và tài khoản không đăng nhập đi kèm; lịch sử thao tác vẫn được giữ.</p>
+                        <p class="lt-admin__text">Đơn vị chưa có tour nào. Xóa sẽ xóa hẳn đơn vị và tài khoản đăng nhập đi kèm; lịch sử thao tác vẫn được giữ.</p>
                         <form action="<?= e(url('/admin/providers/' . $provider['provider_id'] . '/delete')) ?>" method="post" class="lt-admin-form">
                             <?= csrf_field() ?>
                             <div class="custom-control custom-checkbox lt-admin-field">

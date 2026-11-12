@@ -50,6 +50,11 @@ $userInitial = $currentUser === null ? '' : mb_strtoupper(mb_substr(trim($curren
                 <span class="lt-icon lt-icon--clipboard" aria-hidden="true"></span>
                 <span class="d-none d-md-inline" aria-hidden="true">Đơn của tôi</span>
             </a>
+<?php elseif ($currentUser['role'] === 'provider'): ?>
+            <a class="lt-header-btn" href="<?= e(url('/host/tours')) ?>" aria-label="Tour của tôi"<?= str_starts_with($currentPath, '/host') ? ' aria-current="page"' : '' ?>>
+                <span class="lt-icon lt-icon--verified" aria-hidden="true"></span>
+                <span class="d-none d-md-inline" aria-hidden="true">Tour của tôi</span>
+            </a>
 <?php endif; ?>
             <span class="lt-header-user" title="<?= e($currentUser['email']) ?>">
                 <span class="lt-avatar lt-avatar--sm" aria-hidden="true"><?= e($userInitial) ?></span>

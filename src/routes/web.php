@@ -147,4 +147,39 @@ $router->post('/admin/payments/{id}/momo', [AdminPaymentController::class, 'momo
 $router->get('/admin/tours/{id}/location', [\App\Controllers\AdminTourLocationController::class, 'edit']);
 $router->post('/admin/tours/{id}/location', [\App\Controllers\AdminTourLocationController::class, 'update']);
 
+// Tài khoản đơn vị tổ chức (Nguyễn Tuấn Khôi): đơn vị tự đăng ký ở /host/register rồi chờ quản trị viên duyệt, hoặc
+// quản trị viên thêm đơn vị và cấp mật khẩu ở trang "Đơn vị tổ chức"; đơn vị đăng nhập ở /host/login và tự đăng tour,
+// lịch khởi hành, giá vé, ảnh, lịch trình, dịch vụ, chính sách hủy của tour của mình.
+// Tour mới và tour vừa sửa ở trạng thái "Chờ duyệt": quản trị viên vẫn là người duyệt (/admin/tours).
+// '/host/tours/new' đặt trước '/host/tours/{id}'.
+$router->post('/admin/providers/{id}/password', [AdminProviderController::class, 'password']);
+$router->get('/host/login', [\App\Controllers\HostAuthController::class, 'showLogin']);
+$router->post('/host/login', [\App\Controllers\HostAuthController::class, 'login']);
+$router->post('/host/logout', [\App\Controllers\HostAuthController::class, 'logout']);
+$router->get('/host/register', [\App\Controllers\HostAuthController::class, 'showRegister']);
+$router->post('/host/register', [\App\Controllers\HostAuthController::class, 'register']);
+$router->get('/host', [\App\Controllers\HostTourController::class, 'index']);
+$router->get('/host/tours', [\App\Controllers\HostTourController::class, 'index']);
+$router->get('/host/tours/new', [\App\Controllers\HostTourFormController::class, 'create']);
+$router->post('/host/tours/new', [\App\Controllers\HostTourFormController::class, 'store']);
+$router->get('/host/tours/{id}', [\App\Controllers\HostTourController::class, 'show']);
+$router->get('/host/tours/{id}/edit', [\App\Controllers\HostTourFormController::class, 'edit']);
+$router->post('/host/tours/{id}/edit', [\App\Controllers\HostTourFormController::class, 'update']);
+$router->get('/host/tours/{id}/schedules', [\App\Controllers\HostScheduleController::class, 'index']);
+$router->post('/host/tours/{id}/schedules', [\App\Controllers\HostScheduleController::class, 'store']);
+$router->get('/host/schedules/{id}/edit', [\App\Controllers\HostScheduleController::class, 'edit']);
+$router->post('/host/schedules/{id}/edit', [\App\Controllers\HostScheduleController::class, 'update']);
+$router->get('/host/tours/{id}/content', [\App\Controllers\HostTourContentController::class, 'index']);
+$router->post('/host/tours/{id}/content/images', [\App\Controllers\HostTourContentController::class, 'addImage']);
+$router->post('/host/tours/{id}/content/images/{imageId}/delete', [\App\Controllers\HostTourContentController::class, 'deleteImage']);
+$router->post('/host/tours/{id}/content/images/{imageId}/cover', [\App\Controllers\HostTourContentController::class, 'setCover']);
+$router->post('/host/tours/{id}/content/itinerary', [\App\Controllers\HostTourContentController::class, 'saveItinerary']);
+$router->post('/host/tours/{id}/content/itinerary/{itemId}/delete', [\App\Controllers\HostTourContentController::class, 'deleteItinerary']);
+$router->post('/host/tours/{id}/content/inclusions', [\App\Controllers\HostTourContentController::class, 'addInclusion']);
+$router->post('/host/tours/{id}/content/inclusions/{inclusionId}/delete', [\App\Controllers\HostTourContentController::class, 'deleteInclusion']);
+$router->post('/host/tours/{id}/content/policy', [\App\Controllers\HostTourContentController::class, 'addPolicy']);
+// Đơn vị xem đơn đặt trên tour của mình (chỉ đọc, không có route POST): xử lý đơn vẫn ở /admin.
+$router->get('/host/bookings', [\App\Controllers\HostBookingController::class, 'index']);
+$router->get('/host/bookings/{id}', [\App\Controllers\HostBookingController::class, 'show']);
+
 return $router;

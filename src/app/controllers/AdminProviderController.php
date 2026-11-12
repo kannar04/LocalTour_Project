@@ -6,12 +6,15 @@ namespace App\Controllers;
 
 use App\Models\AdminBookingModel;
 use App\Models\AdminProviderModel;
+use App\Models\HostModel;
+use App\Models\UserModel;
 
 /**
  * Đơn vị tổ chức (FR-13, Nguyễn Minh Thức): danh sách, thêm, sửa thông tin và trạng thái hợp tác.
- * Đơn vị chưa có tài khoản đăng nhập riêng: thêm đơn vị = thêm tài khoản 'provider' không có mật khẩu.
+ * Thêm đơn vị = thêm tài khoản 'provider' chưa có mật khẩu (chưa đăng nhập được).
  * Mỗi lần thêm / sửa được ghi lịch sử (admin_logs, target_type 'provider').
  * Sprint 5 (US07-S5-01, Nguyễn Tuấn Khôi): xóa đơn vị chưa có tour; đơn vị còn tour thì chuyển "Ngừng hợp tác".
+ * Sprint 6 (Nguyễn Tuấn Khôi): cấp / đổi mật khẩu để đơn vị đăng nhập khu /host và tự đăng tour của mình.
  */
 final class AdminProviderController extends AdminController
 {
@@ -20,6 +23,7 @@ final class AdminProviderController extends AdminController
         'updated' => 'Đã lưu thông tin đơn vị tổ chức.',
         'unchanged' => 'Không có thay đổi nào.',
         'deleted' => 'Đã xóa đơn vị tổ chức.',
+        'password_set' => 'Đã lưu mật khẩu đăng nhập của đơn vị.',
     ];
 
     /** Lỗi khi procedure báo ô sai (đã kiểm tra ở PHP trước, đây là lớp chặn cuối). */
@@ -86,7 +90,7 @@ final class AdminProviderController extends AdminController
     public function edit(string $id): void
     {
         $provider = $this->findOrFail($id);
-        $this->renderForm($provider, self::oldFrom($provider), []);
+        $this->renderForm($provider, self::oldFrom($provider), [], 200, $this->flash(self::MESSAGES));
     }
 
     /** POST /admin/providers/{id}/edit – business_name, contact_phone, email, approval_status, _csrf */
@@ -115,6 +119,42 @@ final class AdminProviderController extends AdminController
             // Email vừa được tài khoản khác dùng: tải lại thông tin mới nhất của đơn vị.
             'email_taken' => $this->renderForm($this->findOrFail($providerId), $old, ['email' => self::EMAIL_TAKEN], 409),
             default => $this->renderForm($provider, $old, self::fieldError($row['field'] ?? null), 422),
+        };
+    }
+
+    /**
+     * POST /admin/providers/{id}/password – password, _csrf (Sprint 6, Nguyễn Tuấn Khôi).
+     * Cấp / đổi mật khẩu để đơn vị đăng nhập khu /host bằng email liên hệ. Mật khẩu chỉ lưu dạng băm, không in lại.
+     */
+    public function password(string $id): void
+    {
+        $provider = $this->findOrFail($id);
+        $old = self::oldFrom($provider);
+        if (!$this->csrfValid()) {
+            $this->renderForm($provider, $old, ['form' => self::CSRF_FAILED], 403);
+            return;
+        }
+
+        // Cùng quy tắc với mật khẩu khách hàng (AuthController).
+        $password = $this->input('password', false);
+        $error = '';
+        if (mb_strlen($password) < UserModel::PASSWORD_MIN_LENGTH) {
+            $error = 'Mật khẩu tối thiểu ' . UserModel::PASSWORD_MIN_LENGTH . ' ký tự.';
+        } elseif (strlen($password) > UserModel::PASSWORD_MAX_LENGTH) {
+            $error = 'Mật khẩu quá dài (tối đa ' . UserModel::PASSWORD_MAX_LENGTH . ' byte, mỗi chữ có dấu tính 2–3 byte).';
+        }
+        if ($error !== '') {
+            $this->renderForm($provider, $old, ['password' => $error], 422);
+            return;
+        }
+
+        $providerId = (string) $provider['provider_id'];
+        $result = (new HostModel())->setPassword($this->actorId(), $providerId, password_hash($password, PASSWORD_DEFAULT));
+        match ($result) {
+            'ok' => $this->redirect('/admin/providers/' . $providerId . '/edit?msg=password_set'),
+            'forbidden' => self::forbidden(),
+            'not_found' => self::notFound(),
+            default => $this->renderForm($provider, $old, ['password' => 'Không lưu được mật khẩu, vui lòng thử lại.'], 422),
         };
     }
 
@@ -230,7 +270,7 @@ final class AdminProviderController extends AdminController
      * @param array<string, string> $old
      * @param array<string, string> $errors
      */
-    private function renderForm(?array $provider, array $old, array $errors, int $status = 200): void
+    private function renderForm(?array $provider, array $old, array $errors, int $status = 200, string $success = ''): void
     {
         $this->render('admin/providers/form', [
             'title' => $provider === null ? 'Thêm đơn vị tổ chức' : 'Sửa đơn vị tổ chức',
@@ -238,6 +278,9 @@ final class AdminProviderController extends AdminController
             'provider' => $provider,
             'old' => $old,
             'errors' => $errors,
+            'success' => $success,
+            // Tài khoản đăng nhập khu /host của đơn vị: đã được cấp mật khẩu chưa.
+            'account' => $provider === null ? null : (new HostModel())->account((string) $provider['provider_id']),
             'history' => $provider === null ? [] : (new AdminBookingModel())->history('provider', (string) $provider['provider_id']),
             'pageStyles' => ['css/admin.css'],
         ], $status);

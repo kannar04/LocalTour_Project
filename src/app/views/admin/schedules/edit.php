@@ -5,7 +5,8 @@
  * Biến: $schedule (NMT_sp_admin_schedule_detail), $old (giá trị đang nhập: starts_at, ends_at, capacity, adult_price,
  *       child_price, status), $errors (lỗi theo ô; 'form' = lỗi chung).
  */
-$backHref = '/admin/tours/' . $schedule['tour_id'] . '/schedules';
+// $portal = '/admin' hoặc '/host' (đơn vị tổ chức dùng chung trang này cho tour của mình).
+$backHref = $portal . '/tours/' . $schedule['tour_id'] . '/schedules';
 $isCompleted = $schedule['status'] === 'completed';
 $isDeparted = (int) $schedule['departed'] === 1;
 $held = (int) $schedule['held'];
@@ -56,7 +57,7 @@ $seatFacts = [
 <?php if ($isCompleted): ?>
                         <p class="lt-empty">Lịch đã hoàn thành nên không sửa được nữa.</p>
 <?php else: ?>
-                        <form class="lt-admin-form" action="<?= e(url('/admin/schedules/' . $schedule['schedule_id'] . '/edit')) ?>" method="post" novalidate>
+                        <form class="lt-admin-form" action="<?= e(url($portal . '/schedules/' . $schedule['schedule_id'] . '/edit')) ?>" method="post" novalidate>
                             <?= csrf_field() ?>
 <?php
 $prefix = 'schedule-edit';
