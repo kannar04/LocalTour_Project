@@ -102,7 +102,7 @@ $bankName = $bank['bank_name'] !== '' ? $bank['bank_name'] : $bank['bank_id'];
                     <div class="lt-booking__total">
                         <div class="lt-booking__total-main">
                             <span class="lt-booking__total-label">Cần chuyển</span>
-                            <span class="lt-booking__total-formula">Giá LocalTour đã chốt · VND</span>
+                            <span class="lt-booking__total-formula">Tổng tiền của đơn · VND</span>
                         </div>
                         <strong class="lt-booking__total-value"><?= e(format_vnd($amount)) ?></strong>
                     </div>

@@ -14,6 +14,13 @@ $barWidth = static fn (int $value, int $max): string => $max > 0 ? round($value 
 $maxStatus = max(array_map(static fn (array $row): int => (int) $row['booking_count'], $byStatus) ?: [0]);
 $maxTime = max(array_map(static fn (array $row): int => (int) $row['booking_count'], $byTime) ?: [0]);
 $maxRevenue = max(array_map(static fn (array $row): int => (int) $row['net_vnd'], $revenue) ?: [0]);
+// Đặt ngay: đơn mới bắt đầu ở "Chờ thanh toán"; ô nổi bật đếm các đơn đó từ thống kê theo trạng thái (FR-21).
+$awaitingPayment = 0;
+foreach ($byStatus as $row) {
+    if ($row['status'] === 'awaiting_payment') {
+        $awaitingPayment = (int) $row['booking_count'];
+    }
+}
 $timeTotal = array_sum(array_map(static fn (array $row): int => (int) $row['booking_count'], $byTime));
 $revenueTotal = ['paid_count' => 0, 'gross_vnd' => 0, 'refund_vnd' => 0, 'net_vnd' => 0];
 foreach ($revenue as $row) {
@@ -37,7 +44,7 @@ $rangeText = match (true) {
         <main id="main-content" class="col-12 col-lg lt-admin" tabindex="-1" aria-labelledby="admin-title">
             <header class="lt-admin__head">
                 <h1 class="lt-admin__title" id="admin-title">Tổng quan</h1>
-                <p class="lt-admin__subtitle">Số liệu tài khoản, tour, yêu cầu đặt tour và doanh thu của LocalTour</p>
+                <p class="lt-admin__subtitle">Số liệu tài khoản, tour, đơn đặt tour và doanh thu của LocalTour</p>
             </header>
 
             <section class="lt-tiles" aria-label="Số liệu chính">
@@ -57,21 +64,21 @@ $rangeText = match (true) {
 <?php endif; ?>
                 </article>
                 <article class="lt-tile lt-tile--accent">
-                    <h2 class="lt-tile__label">Yêu cầu chờ xác nhận</h2>
-                    <p class="lt-tile__value"><?= e($num($summary['booking_pending'] ?? 0)) ?></p>
-                    <p class="lt-tile__meta">Trên tổng <?= e($num($summary['booking_total'] ?? 0)) ?> yêu cầu đặt tour</p>
-<?php if ((int) ($summary['booking_pending'] ?? 0) > 0): ?>
-                    <a class="lt-tile__link" href="<?= e(url('/admin/bookings?status=pending')) ?>">Xử lý yêu cầu</a>
+                    <h2 class="lt-tile__label">Đơn chờ thanh toán</h2>
+                    <p class="lt-tile__value"><?= e($num($awaitingPayment)) ?></p>
+                    <p class="lt-tile__meta">Trên tổng <?= e($num($summary['booking_total'] ?? 0)) ?> đơn đặt tour</p>
+<?php if ($awaitingPayment > 0): ?>
+                    <a class="lt-tile__link" href="<?= e(url('/admin/bookings?status=awaiting_payment')) ?>">Xem đơn chờ thanh toán</a>
 <?php endif; ?>
                 </article>
             </section>
 
             <section class="lt-panel" aria-labelledby="stats-status-title">
-                <h2 class="lt-panel__title" id="stats-status-title">Yêu cầu đặt tour theo trạng thái</h2>
+                <h2 class="lt-panel__title" id="stats-status-title">Đơn đặt tour theo trạng thái</h2>
                 <div class="table-responsive">
                     <table class="table lt-table mb-0">
                         <thead>
-                            <tr><th scope="col">Trạng thái</th><th scope="col" class="text-right">Số yêu cầu</th><th scope="col" class="lt-table__bar-col"><span class="sr-only">Biểu đồ</span></th></tr>
+                            <tr><th scope="col">Trạng thái</th><th scope="col" class="text-right">Số đơn</th><th scope="col" class="lt-table__bar-col"><span class="sr-only">Biểu đồ</span></th></tr>
                         </thead>
                         <tbody>
 <?php foreach ($byStatus as $row): ?>
@@ -108,15 +115,15 @@ $rangeText = match (true) {
             </form>
 
             <section class="lt-panel" aria-labelledby="stats-time-title">
-                <h2 class="lt-panel__title" id="stats-time-title">Số yêu cầu đặt tour theo ngày tạo</h2>
-                <p class="lt-panel__lead"><?= e($rangeText) ?> · Tổng <?= e($num($timeTotal)) ?> yêu cầu</p>
+                <h2 class="lt-panel__title" id="stats-time-title">Số đơn đặt tour theo ngày tạo</h2>
+                <p class="lt-panel__lead"><?= e($rangeText) ?> · Tổng <?= e($num($timeTotal)) ?> đơn</p>
 <?php if ($byTime === []): ?>
                 <p class="lt-empty">Chưa có dữ liệu trong khoảng thời gian này.</p>
 <?php else: ?>
                 <div class="table-responsive">
                     <table class="table lt-table mb-0">
                         <thead>
-                            <tr><th scope="col">Kỳ</th><th scope="col" class="text-right">Số yêu cầu</th><th scope="col" class="lt-table__bar-col"><span class="sr-only">Biểu đồ</span></th></tr>
+                            <tr><th scope="col">Kỳ</th><th scope="col" class="text-right">Số đơn</th><th scope="col" class="lt-table__bar-col"><span class="sr-only">Biểu đồ</span></th></tr>
                         </thead>
                         <tbody>
 <?php foreach ($byTime as $row): ?>

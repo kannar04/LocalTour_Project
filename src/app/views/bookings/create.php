@@ -8,14 +8,20 @@
  *       $selectedScheduleId, $selectedTickets ([mã vé => số khách] chọn ở trang chi tiết),
  *       $scheduleNotice (lịch đã chọn không còn nhận khách), $contact (name, email, phone),
  *       $requestToken (mã một lần mở form), $loginUrl (đăng nhập lại khi hết phiên), $title,
+ *       $rules (BookingModel::rules(): hold_minutes, booking_cutoff_minutes, vietqr_cutoff_hours),
  *       $packages (gói đang bán, TourPackageModel::options(); [] = tour không chia gói), $selectedPackageId.
- * Hai bước trong cùng trang: điền thông tin → "Xem lại & xác nhận" → "Gửi yêu cầu đặt tour".
+ * Hai bước trong cùng trang: điền thông tin → "Xem lại & xác nhận" → "Đặt tour và thanh toán".
  * booking.js dựng hàng vé, danh sách khách, tạm tính và gửi POST /api/bookings; trang cần JavaScript.
  * Sprint 4 (4.3.2.3): khách chọn phụ thu / hoạt động tùy chọn; tổng tiền = tiền vé + các khoản đã chọn.
  * Sprint 5 (US06-S5-01): tour chia gói thì chọn một gói; giá người lớn / trẻ em theo gói, gói không có giá trẻ em
  * thì không bán vé trẻ em.
- * Chưa thu tiền ở bước này: đơn mới là "Chờ xác nhận", thanh toán làm sau khi LocalTour xác nhận chỗ và chốt tổng giá.
+ * Đặt ngay: bấm đặt là giữ chỗ luôn, đơn mới là "Chờ thanh toán" và khách được chuyển sang trang thanh toán; chưa
+ * thanh toán trong hạn giữ chỗ ($rules['hold_minutes'] phút, in bằng format_duration) thì đơn tự hủy. Không còn bước LocalTour xác nhận chỗ.
  */
+$holdText = format_duration((int) $rules['hold_minutes']);
+$cutoffMinutes = (int) $rules['booking_cutoff_minutes'];
+$cutoffText = format_duration($cutoffMinutes);
+$vietqrHours = (int) $rules['vietqr_cutoff_hours'];
 $missing = or_missing(null);
 $tourUrl = url('/tours/' . $tour['tour_id']);
 $maxGroup = max(1, (int) $tour['max_group_size']);
@@ -98,7 +104,7 @@ $contactFields = [
         </section>
 <?php else: ?>
         <noscript>
-            <p class="lt-book-alert">Trang đặt tour cần bật JavaScript để chọn số khách và gửi yêu cầu.</p>
+            <p class="lt-book-alert">Trang đặt tour cần bật JavaScript để chọn số khách và đặt tour.</p>
         </noscript>
 
         <form class="row lt-book-form" id="book-form" action="<?= e(url('/api/bookings')) ?>" method="post" novalidate
@@ -125,7 +131,7 @@ $contactFields = [
                 <div id="book-step-edit">
                     <section class="lt-book-card" aria-labelledby="book-contact-title">
                         <h2 class="lt-book-card__title" id="book-contact-title"><span class="lt-book-card__num">1</span>Thông tin liên hệ</h2>
-                        <p class="lt-book-card__lead">LocalTour dùng thông tin này để báo kết quả xác nhận chỗ và hướng dẫn thanh toán.</p>
+                        <p class="lt-book-card__lead">LocalTour dùng thông tin này để gửi xác nhận đặt tour và liên hệ với bạn khi cần.</p>
                         <div class="lt-book-grid">
 <?php foreach ($contactFields as $field): ?>
                             <div class="lt-field">
@@ -215,7 +221,7 @@ $contactFields = [
                                 </li>
 <?php endforeach; ?>
                             </ul>
-                            <p class="lt-field__hint" id="book-extras-hint">Khoản tính theo người nhân với số khách; các khoản khác tính một lần cho cả nhóm. Khoản chưa có giá sẽ được LocalTour báo khi xác nhận chỗ.</p>
+                            <p class="lt-field__hint" id="book-extras-hint">Khoản tính theo người nhân với số khách; các khoản khác tính một lần cho cả nhóm. Khoản chưa có giá hiện chưa chọn được.</p>
                         </fieldset>
 <?php endif; ?>
 
@@ -247,8 +253,14 @@ $contactFields = [
                     <section class="lt-book-card" aria-labelledby="book-terms-title">
                         <h2 class="lt-book-card__title" id="book-terms-title"><span class="lt-book-card__num">4</span>Điều kiện đặt tour</h2>
                         <ul class="lt-book-terms">
-                            <li>Yêu cầu được gửi tới LocalTour ở trạng thái <strong>Chờ xác nhận</strong>, chưa giữ chỗ và chưa thu tiền.</li>
-                            <li>Khi LocalTour xác nhận còn chỗ và chốt tổng giá, đơn chuyển sang <strong>Chờ thanh toán</strong>: bạn thanh toán bằng VNPay, MoMo hoặc VietQR trong 24 giờ, quá hạn đơn tự hủy.</li>
+                            <li>Khi bạn bấm đặt, LocalTour giữ chỗ ngay và đơn ở trạng thái <strong>Chờ thanh toán</strong>, không cần chờ duyệt.</li>
+                            <li>Bạn thanh toán bằng VNPay, MoMo hoặc VietQR trong <strong><?= e($holdText) ?></strong> kể từ lúc đặt (không muộn hơn giờ khởi hành); quá hạn đơn tự hủy và chỗ được trả lại cho lịch.</li>
+<?php if ($cutoffMinutes > 0): ?>
+                            <li>LocalTour nhận đặt tới trước giờ khởi hành <?= e($cutoffText) ?>.</li>
+<?php endif; ?>
+<?php if ($vietqrHours > 0): ?>
+                            <li>Chuyển khoản VietQR cần LocalTour đối chiếu nên chỉ nhận khi còn ít nhất <?= e($vietqrHours) ?> giờ tới giờ khởi hành; sát giờ hơn vui lòng dùng VNPay hoặc MoMo.</li>
+<?php endif; ?>
 <?php foreach ($policyLines as $policyLine): ?>
                             <li><?= e($policyLine) ?></li>
 <?php endforeach; ?>
@@ -275,8 +287,8 @@ $contactFields = [
                 </div>
 
                 <section class="lt-book-card lt-book-review" id="book-step-review" aria-labelledby="book-review-title" tabindex="-1" hidden>
-                    <h2 class="lt-book-card__title" id="book-review-title">Xem lại yêu cầu đặt tour</h2>
-                    <p class="lt-book-card__lead">Kiểm tra lại thông tin trước khi gửi. Bạn vẫn có thể quay lại để sửa.</p>
+                    <h2 class="lt-book-card__title" id="book-review-title">Xem lại đơn đặt tour</h2>
+                    <p class="lt-book-card__lead">Kiểm tra lại thông tin trước khi đặt. Bạn vẫn có thể quay lại để sửa.</p>
                     <dl class="lt-book-summary">
                         <div><dt>Tour</dt><dd><?= e($tour['title']) ?></dd></div>
 <?php if ($hasPackages): ?>
@@ -295,7 +307,7 @@ $contactFields = [
                     </dl>
                     <p class="lt-booking__alert">
                         <span class="lt-icon lt-icon--info" aria-hidden="true"></span>
-                        Chưa thu tiền ở bước này. Sau khi gửi, đơn ở trạng thái "Chờ xác nhận"; LocalTour kiểm tra chỗ, chốt tổng giá rồi mở thanh toán VNPay / MoMo / VietQR trong "Đơn của tôi".
+                        Bấm "Đặt tour và thanh toán" để giữ chỗ ngay. Bạn được chuyển sang trang thanh toán và có <?= e($holdText) ?> để thanh toán; quá hạn đơn tự hủy và chỗ được trả lại.
                     </p>
                     <div class="lt-book-actions">
                         <button type="button" class="lt-btn lt-btn--outline" id="book-edit-btn">
@@ -304,7 +316,7 @@ $contactFields = [
                         </button>
                         <button type="button" class="lt-btn lt-btn--primary" id="book-submit-btn">
                             <span class="lt-icon lt-icon--check" aria-hidden="true"></span>
-                            <span class="js-submit-label">Gửi yêu cầu đặt tour</span>
+                            <span class="js-submit-label">Đặt tour và thanh toán</span>
                         </button>
                     </div>
                 </section>
@@ -345,7 +357,7 @@ $contactFields = [
                         </div>
                         <strong class="lt-booking__total-value" id="book-sum-total">—</strong>
                     </div>
-                    <p class="lt-field__hint">Chưa thu tiền ở bước này. LocalTour chốt tổng giá khi xác nhận chỗ, rồi bạn thanh toán trong 24 giờ.</p>
+                    <p class="lt-field__hint">Chưa thu tiền ở bước này. Sau khi đặt, chỗ được giữ <?= e($holdText) ?> để bạn thanh toán.</p>
 
                     <div class="lt-booking__policy">
                         <span class="lt-icon lt-icon--shield" aria-hidden="true"></span>

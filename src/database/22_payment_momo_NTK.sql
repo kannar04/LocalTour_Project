@@ -277,7 +277,13 @@ proc: BEGIN
             -- Tiền đã trừ nhưng đơn không còn chờ thanh toán: tạo yêu cầu hoàn tiền.
             INSERT INTO refunds (id, payment_id, amount_vnd, reason, status, requested_at)
             VALUES (UUID(), v_payment_id, v_amount,
-                    LEFT(CONCAT('Thanh toán MoMo ', v_reference, ' tới khi đơn đang "', v_status, '"; cần hoàn tiền cho khách.'), 255),
+                    -- Lý do in nhãn trạng thái tiếng Việt (khách và quản trị viên đọc được).
+                    LEFT(CONCAT('Thanh toán MoMo ', v_reference, ' tới khi đơn đang "',
+                           CASE v_status WHEN 'cancelled' THEN 'Đã hủy' WHEN 'confirmed' THEN 'Đã xác nhận'
+                                          WHEN 'completed' THEN 'Đã hoàn thành' WHEN 'awaiting_payment' THEN 'Chờ thanh toán'
+                                          WHEN 'pending' THEN 'Chờ xác nhận' WHEN 'rejected' THEN 'Đã từ chối'
+                                          ELSE v_status END,
+                           '"; cần hoàn tiền cho khách.'), 255),
                     'requested', NOW());
 
             INSERT INTO booking_events (id, booking_id, actor, actor_user_id, action, from_status, to_status, note, created_at)

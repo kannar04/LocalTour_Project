@@ -43,12 +43,12 @@ $router->get('/api/tours/{id}', [TourDetailController::class, 'apiShow']);
 $router->get('/compare', [CompareController::class, 'index']);
 $router->get('/api/compare', [CompareController::class, 'apiIndex']);
 
-// Đặt tour (M4): trang hoàn tất thông tin, kiểm tra chỗ trống của lịch, lưu yêu cầu đặt tour.
+// Đặt tour (M4): trang hoàn tất thông tin, kiểm tra chỗ trống của lịch, tạo đơn đặt tour (giữ chỗ ngay).
 $router->get('/tours/{id}/book', [BookingController::class, 'create']);
 $router->get('/api/schedules/{id}/availability', [ScheduleController::class, 'apiAvailability']);
 $router->post('/api/bookings', [BookingController::class, 'store']);
 
-// Đơn của tôi (M4): yêu cầu đặt tour đã gửi của tài khoản đang đăng nhập.
+// Đơn của tôi (M4): đơn đặt tour của tài khoản đang đăng nhập.
 $router->get('/bookings', [CustomerBookingController::class, 'index']);
 $router->get('/bookings/{code}', [CustomerBookingController::class, 'show']);
 
@@ -143,6 +143,16 @@ $router->post('/admin/payments/{id}/vnpay', [AdminPaymentController::class, 'vnp
 // Thanh toán MoMo: quản trị viên tra cứu lại khoản MoMo chưa rõ kết quả.
 $router->post('/admin/payments/{id}/momo', [AdminPaymentController::class, 'momoCheck']);
 
+// Dòng tiền sau tour (Nguyễn Tuấn Khôi): khoản chi trả cho đơn vị tổ chức (hệ thống tự lập sau khi lịch khởi hành kết
+// thúc, quản trị viên chuyển khoản ngoài hệ thống rồi ghi nhận đã chi trả), ghi "Đã hoàn tiền" cho khoản hoàn của khách,
+// và thông số vận hành (% phí dịch vụ LocalTour, thời gian giữ chỗ, hạn nhận đặt, hạn nhận VietQR).
+$router->get('/admin/payouts', [\App\Controllers\AdminPayoutController::class, 'index']);
+$router->get('/admin/payouts/{id}', [\App\Controllers\AdminPayoutController::class, 'show']);
+$router->post('/admin/payouts/{id}/pay', [\App\Controllers\AdminPayoutController::class, 'pay']);
+$router->post('/admin/refunds/{id}/complete', [\App\Controllers\AdminPayoutController::class, 'completeRefund']);
+$router->get('/admin/settings', [\App\Controllers\AdminSettingController::class, 'index']);
+$router->post('/admin/settings', [\App\Controllers\AdminSettingController::class, 'save']);
+
 // Bản đồ (Nguyễn Tuấn Khôi): quản trị viên đặt / xóa vị trí điểm khởi hành của tour.
 $router->get('/admin/tours/{id}/location', [\App\Controllers\AdminTourLocationController::class, 'edit']);
 $router->post('/admin/tours/{id}/location', [\App\Controllers\AdminTourLocationController::class, 'update']);
@@ -181,5 +191,10 @@ $router->post('/host/tours/{id}/content/policy', [\App\Controllers\HostTourConte
 // Đơn vị xem đơn đặt trên tour của mình (chỉ đọc, không có route POST): xử lý đơn vẫn ở /admin.
 $router->get('/host/bookings', [\App\Controllers\HostBookingController::class, 'index']);
 $router->get('/host/bookings/{id}', [\App\Controllers\HostBookingController::class, 'show']);
+// Doanh thu & chi trả (Nguyễn Tuấn Khôi): đơn vị xem khoản chi trả của mình (chỉ đọc) và tự khai tài khoản nhận tiền.
+$router->get('/host/payouts', [\App\Controllers\HostPayoutController::class, 'index']);
+$router->get('/host/payouts/{id}', [\App\Controllers\HostPayoutController::class, 'show']);
+$router->get('/host/bank', [\App\Controllers\HostPayoutController::class, 'bank']);
+$router->post('/host/bank', [\App\Controllers\HostPayoutController::class, 'saveBank']);
 
 return $router;

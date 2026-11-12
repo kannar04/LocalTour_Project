@@ -85,7 +85,7 @@ require __DIR__ . '/fields.php';
 <?php endif; ?>
                             </fieldset>
 <?php endif; ?>
-                            <p class="lt-admin-hint">Giá mới chỉ áp dụng cho yêu cầu đặt tour gửi sau khi lưu; yêu cầu đã gửi giữ giá lúc đặt.</p>
+                            <p class="lt-admin-hint">Giá mới chỉ áp dụng cho đơn đặt sau khi lưu; đơn đã đặt giữ giá lúc đặt.</p>
                             <div class="lt-admin__actions">
                                 <button class="lt-btn lt-btn--primary" type="submit">Lưu thay đổi</button>
                                 <a class="lt-btn lt-btn--outline" href="<?= e(url($backHref)) ?>">Hủy</a>

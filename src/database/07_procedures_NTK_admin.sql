@@ -11,24 +11,37 @@
 -- Quy tắc   : Chỉ trang quản trị gọi các procedure này (ứng dụng kiểm tra tài khoản
 --             quản trị viên trước). Procedure ghi dữ liệu kiểm tra lại người thao tác là
 --             quản trị viên đang hoạt động, vì quyền trong session có thể đã cũ.
+--             Đặt ngay (file 10, 28): đơn mới được tạo thẳng ở 'awaiting_payment' và đã giữ chỗ,
+--             không còn bước quản trị viên xác nhận chỗ. 'pending' chỉ còn ở đơn tạo trước
+--             thay đổi này (database cũ); quản trị viên vẫn xử lý được các đơn đó như dưới đây.
 --             Chuyển trạng thái yêu cầu đặt tour (quản trị viên):
---               pending          -> awaiting_payment (xác nhận chỗ và chốt tổng giá; hạn thanh
---                                   toán 24 giờ), rejected (bắt buộc lý do), cancelled (bắt buộc lý do)
+--               pending          -> awaiting_payment (đơn cũ: xác nhận chỗ và chốt tổng giá; hạn
+--                                   thanh toán 24 giờ vì khách không có mặt lúc quản trị viên
+--                                   xác nhận, không muộn hơn giờ khởi hành; không dùng
+--                                   settings.hold_minutes), rejected (bắt buộc lý do),
+--                                   cancelled (bắt buộc lý do)
 --               awaiting_payment -> confirmed (cần thanh toán 'paid' hoặc chuyển khoản
 --                                   VietQR 'awaiting_reconciliation': khoản này được ghi
---                                   'paid' = quản trị viên đã đối chiếu), cancelled (bắt buộc lý do)
+--                                   'paid' = quản trị viên đã đối chiếu), cancelled (bắt buộc lý
+--                                   do; không hủy được khi còn khoản chuyển khoản
+--                                   'awaiting_reconciliation': quyết định khoản đó trước ở trang
+--                                   đối chiếu; khoản 'pending' của đơn chuyển 'failed')
 --               confirmed        -> completed (chỉ sau giờ khởi hành), cancelled (bắt buộc lý do)
 --               rejected, cancelled, completed: trạng thái cuối, không đổi được nữa.
 --             Đổi ngày hoặc số người không thuộc FR-25 (thuộc FR-12, phát triển sau).
---             Giữ chỗ (M4): đơn 'pending' chưa giữ chỗ. Xác nhận chỗ (pending ->
---             awaiting_payment) trừ schedules.remaining theo số khách của đơn, lịch về 0 chỗ
---             thì chuyển 'full'. Hủy đơn đang giữ chỗ (awaiting_payment / confirmed ->
+--             Giữ chỗ (M4): đơn 'awaiting_payment' / 'confirmed' đang giữ chỗ của lịch (đơn mới
+--             giữ ngay lúc đặt, file 10). Đơn 'pending' (đơn cũ) chưa giữ chỗ: xác nhận chỗ
+--             (pending -> awaiting_payment) trừ schedules.remaining theo số khách của đơn, lịch
+--             về 0 chỗ thì chuyển 'full'. Hủy đơn đang giữ chỗ (awaiting_payment / confirmed ->
 --             cancelled) cộng lại số chỗ (không vượt capacity), lịch 'full' mở lại 'open'.
 --             Từ chối / hủy đơn 'pending' và hoàn thành đơn không đổi số chỗ.
---             Chốt tổng giá (Sprint 4, 4.4.3.2): khi xác nhận chỗ, quản trị viên nhập lại tổng
---             giá nếu cần (vd. phụ thu ngày lễ, đón ngoài khu trung tâm). Đổi giá phải ghi lý do;
+--             Chốt tổng giá (Sprint 4, 4.4.3.2; chỉ còn với đơn cũ 'pending'): khi xác nhận chỗ,
+--             quản trị viên nhập lại tổng giá nếu cần (vd. phụ thu ngày lễ, đón ngoài khu trung tâm). Đổi giá phải ghi lý do;
 --             admin_logs ghi "Tổng giá: A -> B". Khách thanh toán đúng tổng giá đã chốt.
 --             Xác nhận đơn (-> confirmed) cấp voucher (LTP_sp_voucher_issue, file 15).
+--             Hủy đơn đã thanh toán (confirmed -> cancelled) tạo yêu cầu hoàn toàn bộ số tiền khách
+--             đã trả (refunds 'requested'); quản trị viên hoàn tiền thủ công rồi ghi nhận ở trang
+--             "Chi trả đơn vị" (file 30).
 --             Tham số chuỗi được so sánh với COLLATE utf8mb4_unicode_ci; không có DEFINER.
 -- Chạy sau  : 01_schema.sql (Sprint 5: cột bookings.package_name ở 16_migration_sprint5_LTP.sql).
 --             Chạy lại được (DROP PROCEDURE IF EXISTS).
@@ -311,8 +324,8 @@ DELIMITER ;
 -- NTK_sp_admin_booking_set_status(p_booking_id, p_new_status, p_actor_user_id, p_note, p_total_vnd)
 --   Đổi trạng thái theo bảng chuyển trạng thái ở đầu file và ghi admin_logs trong cùng
 --   một transaction. p_note: lý do / ghi chú (NULL / '' = không có), tối đa 255 ký tự.
---   p_total_vnd: tổng giá chốt khi xác nhận chỗ (pending -> awaiting_payment); NULL = giữ
---   tổng hiện tại. Bỏ qua với các chuyển trạng thái khác.
+--   p_total_vnd: tổng giá chốt khi xác nhận chỗ đơn cũ (pending -> awaiting_payment); NULL =
+--   giữ tổng hiện tại. Bỏ qua với các chuyển trạng thái khác.
 --   1 dòng: result, status.
 --     result = 'ok'                 : đã đổi; status = trạng thái mới.
 --              'forbidden'          : người thao tác không phải quản trị viên đang hoạt động.
@@ -320,6 +333,8 @@ DELIMITER ;
 --              'invalid_transition' : không được chuyển từ trạng thái hiện tại sang p_new_status.
 --              'note_required'      : từ chối / hủy mà không có lý do.
 --              'needs_payment'      : xác nhận khi chưa có thanh toán thành công / chờ đối chiếu.
+--              'payment_in_review'  : hủy đơn 'awaiting_payment' khi còn khoản chuyển khoản chờ
+--                                     đối chiếu ('awaiting_reconciliation').
 --              'not_departed'       : hoàn thành khi chưa tới giờ khởi hành.
 --              'schedule_closed'    : xác nhận chỗ khi lịch đã hủy, đã hoàn thành hoặc đã khởi hành.
 --              'no_seats'           : xác nhận chỗ khi lịch không còn đủ chỗ cho số khách của đơn.
@@ -348,6 +363,7 @@ proc: BEGIN
     DECLARE v_people     INT          DEFAULT 0;
     DECLARE v_payment_id CHAR(36)     DEFAULT NULL;
     DECLARE v_payment_st VARCHAR(30)  DEFAULT NULL;
+    DECLARE v_refund     BIGINT       DEFAULT 0;
     DECLARE v_new        VARCHAR(30)  DEFAULT COALESCE(p_new_status, '');
     DECLARE v_note       VARCHAR(255) CHARACTER SET utf8mb4 DEFAULT NULLIF(TRIM(p_note), '');
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
@@ -399,11 +415,23 @@ proc: BEGIN
         LEAVE proc;
     END IF;
 
+    -- Đơn chờ thanh toán còn khoản chuyển khoản chờ đối chiếu: khách có thể đã chuyển tiền, quản
+    -- trị viên phải quyết định khoản đó trước (trang đối chiếu, file 14).
+    IF v_new = 'cancelled' AND v_old = 'awaiting_payment'
+       AND EXISTS (SELECT 1 FROM payments p
+                    WHERE p.booking_id = (p_booking_id COLLATE utf8mb4_unicode_ci)
+                      AND p.status = 'awaiting_reconciliation') THEN
+        ROLLBACK;
+        SELECT 'payment_in_review' AS result, v_old AS status;
+        LEAVE proc;
+    END IF;
+
     SELECT COALESCE(SUM(bl.quantity), 0) INTO v_people
       FROM booking_lines bl
      WHERE bl.booking_id = (p_booking_id COLLATE utf8mb4_unicode_ci);
 
-    -- Xác nhận chỗ: tổng giá chốt hợp lệ, lịch phải còn nhận khách và còn đủ chỗ, rồi giữ chỗ.
+    -- Xác nhận chỗ (đơn cũ 'pending'): tổng giá chốt hợp lệ, lịch phải còn nhận khách và còn đủ
+    -- chỗ, rồi giữ chỗ.
     IF v_new = 'awaiting_payment' AND p_total_vnd IS NOT NULL AND NOT (p_total_vnd <=> v_total) THEN
         IF p_total_vnd <= 0 THEN
             ROLLBACK;
@@ -445,6 +473,44 @@ proc: BEGIN
          WHERE id = (v_schedule COLLATE utf8mb4_unicode_ci);
     END IF;
 
+    -- Hủy đơn chờ thanh toán: khoản thanh toán còn mở của đơn không dùng được nữa.
+    IF v_new = 'cancelled' AND v_old = 'awaiting_payment' THEN
+        UPDATE payments
+           SET status = 'failed', note = 'Đơn đã bị quản trị viên hủy.'
+         WHERE booking_id = (p_booking_id COLLATE utf8mb4_unicode_ci)
+           AND status = 'pending';
+    END IF;
+
+    -- Quản trị viên hủy đơn đã thanh toán: tạo yêu cầu hoàn toàn bộ số tiền khách đã trả mà chưa
+    -- có yêu cầu hoàn (mỗi khoản 'paid' một dòng), để tiền này không bị tính vào khoản chi trả
+    -- cho đơn vị tổ chức (file 30). Quản trị viên chuyển khoản rồi ghi "Đã hoàn tiền".
+    IF v_new = 'cancelled' AND v_old = 'confirmed' THEN
+        SELECT COALESCE(SUM(p.amount_vnd - COALESCE((SELECT SUM(r.amount_vnd) FROM refunds r
+                                                      WHERE r.payment_id = p.id AND r.status <> 'rejected'), 0)), 0)
+          INTO v_refund
+          FROM payments p
+         WHERE p.booking_id = (p_booking_id COLLATE utf8mb4_unicode_ci)
+           AND p.status = 'paid';
+
+        IF v_refund > 0 THEN
+            INSERT INTO refunds (id, payment_id, amount_vnd, reason, status, requested_at)
+            SELECT UUID(), p.id,
+                   p.amount_vnd - COALESCE((SELECT SUM(r.amount_vnd) FROM refunds r
+                                             WHERE r.payment_id = p.id AND r.status <> 'rejected'), 0),
+                   LEFT(CONCAT('Quản trị viên hủy đơn đã thanh toán: ', v_note), 255), 'requested', NOW()
+              FROM payments p
+             WHERE p.booking_id = (p_booking_id COLLATE utf8mb4_unicode_ci)
+               AND p.status = 'paid'
+               AND p.amount_vnd - COALESCE((SELECT SUM(r.amount_vnd) FROM refunds r
+                                             WHERE r.payment_id = p.id AND r.status <> 'rejected'), 0) > 0;
+
+            INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
+            VALUES (UUID(), p_actor_user_id, 'booking', p_booking_id, 'refund_requested', NULL, NULL,
+                    LEFT(CONCAT('Hoàn ', REPLACE(FORMAT(v_refund, 0), ',', '.'),
+                                ' VND cho khách vì quản trị viên hủy đơn, LocalTour hoàn tiền thủ công.'), 255), NOW());
+        END IF;
+    END IF;
+
     IF v_new = 'confirmed' THEN
         SELECT p.id, p.status
           INTO v_payment_id, v_payment_st
@@ -477,9 +543,12 @@ proc: BEGIN
                             REPLACE(FORMAT(p_total_vnd, 0), ',', '.'), ' VND'), 255), NOW());
     END IF;
 
+    -- Đơn cũ vừa được xác nhận chỗ: giữ chỗ 24 giờ (khách không có mặt lúc này), không muộn hơn
+    -- giờ khởi hành.
     UPDATE bookings
        SET status = v_new,
-           hold_expires_at = IF(v_new = 'awaiting_payment', NOW() + INTERVAL 24 HOUR, NULL)
+           hold_expires_at = IF(v_new = 'awaiting_payment',
+                                LEAST(NOW() + INTERVAL 24 HOUR, v_starts_at), NULL)
      WHERE id = (p_booking_id COLLATE utf8mb4_unicode_ci);
 
     INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
@@ -564,7 +633,8 @@ DELIMITER ;
 --                đơn không đổi (đơn còn hạn thì khách thanh toán lại được).
 --   Mỗi quyết định ghi một payment_events 'ADMIN-<reference>' (khoản rời hàng đợi) và
 --   admin_logs của đơn. VNPay báo kết quả muộn sau 'reject' vẫn được ghi (file 15).
---   1 dòng: result, booking_id.
+--   1 dòng: result, booking_id, confirmed (1 = chính lần này chuyển đơn sang 'confirmed', ứng
+--   dụng gửi email "Đặt tour thành công"; 0 = không).
 --     result = 'ok' | 'forbidden' | 'not_found' | 'invalid' (quyết định sai)
 --              'txn_required' (đã nhận tiền mà không có mã giao dịch VNPay)
 --              'note_required' (không có giao dịch mà không có lý do)
@@ -589,6 +659,7 @@ proc: BEGIN
     DECLARE v_created    DATETIME    DEFAULT NULL;
     DECLARE v_amount     BIGINT      DEFAULT NULL;
     DECLARE v_reference  VARCHAR(32) DEFAULT NULL;
+    DECLARE v_confirmed  TINYINT     DEFAULT 0;
     DECLARE v_txn_no     VARCHAR(100) DEFAULT NULLIF(TRIM(p_txn_no), '');
     DECLARE v_note       VARCHAR(255) CHARACTER SET utf8mb4 DEFAULT NULLIF(TRIM(p_note), '');
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
@@ -600,12 +671,12 @@ proc: BEGIN
     IF NOT EXISTS (SELECT 1 FROM users
                     WHERE id = (p_actor_user_id COLLATE utf8mb4_unicode_ci)
                       AND role = 'admin' AND status = 'active') THEN
-        SELECT 'forbidden' AS result, NULL AS booking_id;
+        SELECT 'forbidden' AS result, NULL AS booking_id, 0 AS confirmed;
         LEAVE proc;
     END IF;
 
     IF p_decision IS NULL OR p_decision NOT IN ('confirm', 'reject') THEN
-        SELECT 'invalid' AS result, NULL AS booking_id;
+        SELECT 'invalid' AS result, NULL AS booking_id, 0 AS confirmed;
         LEAVE proc;
     END IF;
 
@@ -620,7 +691,7 @@ proc: BEGIN
 
     IF v_booking_id IS NULL THEN
         ROLLBACK;
-        SELECT 'not_found' AS result, NULL AS booking_id;
+        SELECT 'not_found' AS result, NULL AS booking_id, 0 AS confirmed;
         LEAVE proc;
     END IF;
 
@@ -633,19 +704,19 @@ proc: BEGIN
        OR NOT ((v_pay_status = 'pending' AND v_created <= NOW() - INTERVAL 15 MINUTE)
                OR (v_pay_status = 'failed' AND v_status NOT IN ('confirmed', 'completed'))) THEN
         ROLLBACK;
-        SELECT 'not_payable' AS result, v_booking_id AS booking_id;
+        SELECT 'not_payable' AS result, v_booking_id AS booking_id, 0 AS confirmed;
         LEAVE proc;
     END IF;
 
     IF p_decision = 'confirm' AND v_txn_no IS NULL THEN
         ROLLBACK;
-        SELECT 'txn_required' AS result, v_booking_id AS booking_id;
+        SELECT 'txn_required' AS result, v_booking_id AS booking_id, 0 AS confirmed;
         LEAVE proc;
     END IF;
 
     IF p_decision = 'reject' AND v_note IS NULL THEN
         ROLLBACK;
-        SELECT 'note_required' AS result, v_booking_id AS booking_id;
+        SELECT 'note_required' AS result, v_booking_id AS booking_id, 0 AS confirmed;
         LEAVE proc;
     END IF;
 
@@ -674,11 +745,18 @@ proc: BEGIN
                                 IF(v_note IS NULL, '', CONCAT(': ', v_note))), 255), NOW());
 
             CALL LTP_sp_voucher_issue(v_booking_id);
+            SET v_confirmed = 1;
         ELSE
             -- Tiền đã trừ nhưng đơn không còn chờ thanh toán: tạo yêu cầu hoàn tiền (như file 15).
             INSERT INTO refunds (id, payment_id, amount_vnd, reason, status, requested_at)
             VALUES (UUID(), p_payment_id, v_amount,
-                    CONCAT('Thanh toán VNPay ', v_reference, ' đối chiếu khi đơn đang "', v_status, '"; cần hoàn tiền cho khách.'),
+                    -- Lý do in nhãn trạng thái tiếng Việt (khách và quản trị viên đọc được).
+                    CONCAT('Thanh toán VNPay ', v_reference, ' đối chiếu khi đơn đang "',
+                           CASE v_status WHEN 'cancelled' THEN 'Đã hủy' WHEN 'confirmed' THEN 'Đã xác nhận'
+                                          WHEN 'completed' THEN 'Đã hoàn thành' WHEN 'awaiting_payment' THEN 'Chờ thanh toán'
+                                          WHEN 'pending' THEN 'Chờ xác nhận' WHEN 'rejected' THEN 'Đã từ chối'
+                                          ELSE v_status END,
+                           '"; cần hoàn tiền cho khách.'),
                     'requested', NOW());
 
             INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
@@ -697,6 +775,6 @@ proc: BEGIN
     END IF;
 
     COMMIT;
-    SELECT 'ok' AS result, v_booking_id AS booking_id;
+    SELECT 'ok' AS result, v_booking_id AS booking_id, v_confirmed AS confirmed;
 END$$
 DELIMITER ;

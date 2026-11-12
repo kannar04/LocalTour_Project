@@ -13,10 +13,12 @@ use App\Models\PaymentResultModel;
 use App\Services\BookingMail;
 
 /**
- * Quản lý yêu cầu đặt tour (FR-25, Nguyễn Tuấn Khôi): danh sách lọc theo trạng thái / tìm theo mã hoặc khách,
+ * Quản lý đơn đặt tour (FR-25, Nguyễn Tuấn Khôi): danh sách lọc theo trạng thái / tìm theo mã hoặc khách,
  * chi tiết và cập nhật trạng thái kèm ghi chú. Mỗi lần đổi trạng thái được ghi lịch sử (NFR-09).
  * Sprint 4: chốt tổng giá khi xác nhận chỗ (4.4.3.2), xem phụ thu / tùy chọn khách chọn, các khoản thanh toán và
  * đối chiếu VietQR (4.5.3.2), lịch sử gồm cả thao tác của khách, hệ thống và VNPay (4.3.3.2).
+ * Đặt ngay: đơn mới đã giữ chỗ và bắt đầu ở "Chờ thanh toán", quản trị viên không còn xác nhận chỗ; việc duyệt tay còn lại
+ * là đối chiếu chuyển khoản VietQR. Xác nhận chỗ / từ chối chỉ còn dùng cho đơn "Chờ xác nhận" tạo theo quy trình cũ.
  * Đổi ngày hoặc số người không thuộc FR-25 (FR-12, phát triển sau).
  */
 final class AdminBookingController extends AdminController
@@ -30,7 +32,7 @@ final class AdminBookingController extends AdminController
         'invalid' => 'Thao tác đối chiếu không hợp lệ.',
         'note_too_long' => self::NOTE_TOO_LONG,
         'note_required' => '“Không khớp” / “Không có giao dịch” cần nhập lý do.',
-        'not_payable' => 'Khoản này không còn chờ đối chiếu hoặc đơn không còn chờ thanh toán. Trang đã tải lại trạng thái mới.',
+        'not_payable' => 'Khoản này không còn chờ đối chiếu (đã được xử lý hoặc đã có kết quả). Trang đã tải lại trạng thái mới.',
         'txn_required' => '“Có giao dịch thành công” cần nhập mã giao dịch VNPay của giao dịch đó.',
         'txn_invalid' => 'Mã giao dịch VNPay chỉ gồm chữ số (tối đa 20 số).',
         'momo_unavailable' => 'MoMo đang tạm ngưng (thiếu khóa MoMo trong .env), chưa tra cứu được.',
@@ -40,9 +42,9 @@ final class AdminBookingController extends AdminController
     ];
 
     private const MESSAGES = [
-        'status' => 'Đã cập nhật trạng thái yêu cầu.',
-        'payment_confirm' => 'Đã xác nhận nhận tiền: đơn chuyển “Đã xác nhận” và khách nhận được voucher.',
-        'payment_reject' => 'Đã báo chuyển khoản không khớp. Đơn vẫn chờ thanh toán tới hết hạn giữ chỗ.',
+        'status' => 'Đã cập nhật trạng thái đơn.',
+        'payment_confirm' => 'Đã xác nhận nhận tiền. Đơn còn chờ thanh toán thì chuyển “Đã xác nhận” và khách nhận được voucher; đơn đã hủy hoặc đã thanh toán bằng khoản khác thì tạo yêu cầu hoàn tiền.',
+        'payment_reject' => 'Đã báo chuyển khoản không khớp. Đơn còn hạn giữ chỗ thì khách thanh toán lại được; đã quá hạn thì đơn tự hủy và trả lại chỗ.',
         'vnpay_confirm' => 'Đã ghi giao dịch VNPay thành công. Đơn còn chờ thanh toán thì chuyển “Đã xác nhận” và khách nhận được voucher; đơn đã hủy thì tạo yêu cầu hoàn tiền.',
         'vnpay_reject' => 'Đã ghi “Không có giao dịch VNPay”. Đơn còn hạn giữ chỗ thì khách thanh toán lại được.',
         'momo_paid' => 'MoMo báo giao dịch thành công. Đơn còn chờ thanh toán thì chuyển “Đã xác nhận” và khách nhận được voucher; đơn đã hủy thì tạo yêu cầu hoàn tiền.',
@@ -50,14 +52,15 @@ final class AdminBookingController extends AdminController
     ];
 
     private const ERRORS = [
-        'note_required' => 'Từ chối hoặc hủy yêu cầu cần nhập lý do.',
-        'needs_payment' => 'Yêu cầu chưa có thanh toán thành công hoặc khoản chuyển khoản VietQR chờ đối chiếu, chưa xác nhận được.',
+        'note_required' => 'Từ chối hoặc hủy đơn cần nhập lý do.',
+        'needs_payment' => 'Đơn chưa có thanh toán thành công hoặc khoản chuyển khoản VietQR chờ đối chiếu, chưa xác nhận được.',
         'not_departed' => 'Tour chưa tới giờ khởi hành, chưa đánh dấu hoàn thành được.',
         'invalid_transition' => 'Không chuyển được sang trạng thái này từ trạng thái hiện tại.',
-        'no_seats' => 'Lịch khởi hành không còn đủ chỗ cho yêu cầu này, chưa xác nhận được. Hãy từ chối kèm lý do (vd. đề nghị khách chọn ngày khác).',
+        'no_seats' => 'Lịch khởi hành không còn đủ chỗ cho đơn này, chưa xác nhận được. Hãy từ chối kèm lý do (vd. đề nghị khách chọn ngày khác).',
         'schedule_closed' => 'Lịch khởi hành đã đóng hoặc đã tới giờ khởi hành, chưa xác nhận chỗ được.',
         'invalid_total' => 'Tổng giá phải là số tiền lớn hơn 0 và không quá 1.000.000.000đ.',
         'total_note_required' => 'Đổi tổng giá cần ghi lý do (vd. phụ thu đón khách sạn xa).',
+        'payment_in_review' => 'Đơn còn khoản chuyển khoản VietQR chờ đối chiếu nên chưa hủy được. Hãy quyết định khoản đó trước (“Đã nhận tiền” hoặc “Không khớp”) ở mục “Thanh toán” của đơn hoặc trang “Đối chiếu thanh toán”, rồi mới hủy đơn.',
     ];
 
     private AdminBookingModel $bookings;
@@ -79,7 +82,7 @@ final class AdminBookingController extends AdminController
         $keyword = mb_substr($this->query('q'), 0, self::KEYWORD_MAX_LENGTH);
 
         $this->render('admin/bookings/index', [
-            'title' => 'Yêu cầu đặt tour',
+            'title' => 'Đơn đặt tour',
             'adminNav' => 'bookings',
             'filter' => $status,
             'keyword' => $keyword,
@@ -140,7 +143,7 @@ final class AdminBookingController extends AdminController
             'forbidden' => self::forbidden(),
             'not_found' => self::notFound(),
             'note_required', 'invalid_total', 'total_note_required' => $this->renderShow($booking, '', self::ERRORS[$result], 422, $form),
-            // Trạng thái có thể vừa bị người khác đổi: tải lại yêu cầu.
+            // Trạng thái có thể vừa bị người khác đổi: tải lại đơn.
             default => $this->renderShow($this->findOrFail($id), '', self::ERRORS[$result] ?? self::ERRORS['invalid_transition'], 409, $form),
         };
     }
@@ -163,7 +166,7 @@ final class AdminBookingController extends AdminController
         $bookingId = (string) $booking['booking_id'];
 
         $this->render('admin/bookings/show', [
-            'title' => 'Yêu cầu ' . $booking['code'],
+            'title' => 'Đơn ' . $booking['code'],
             'adminNav' => 'bookings',
             'booking' => $booking,
             'lines' => $this->bookings->lines($bookingId),

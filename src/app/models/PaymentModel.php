@@ -9,7 +9,8 @@ use Core\Database;
 /**
  * Thanh toán của khách hàng (Sprint 4: 4.5.1.2, 4.5.3.1 – Nguyễn Minh Thức): bắt đầu khoản VNPay / VietQR,
  * xem các khoản của đơn và báo đã chuyển khoản VietQR. Mọi procedure nhận user_id từ session.
- * Procedure: NMT_sp_payment_list, NMT_sp_payment_start, NMT_sp_payment_get, NMT_sp_payment_transfer_submit.
+ * Procedure: NMT_sp_payment_list, NMT_sp_payment_start, NMT_sp_payment_get, NMT_sp_payment_transfer_submit,
+ * NTK_sp_booking_payment_options (VietQR còn nhận không: sát giờ khởi hành thì chỉ nhận cổng tự xác nhận).
  */
 final class PaymentModel
 {
@@ -27,13 +28,29 @@ final class PaymentModel
 
     /**
      * Bắt đầu thanh toán. Trả dòng kết quả: result (ok, not_found, not_payable, expired, awaiting_reconciliation,
-     * invalid), payment_id, reference, amount_vnd, expires_at.
+     * vietqr_closed, invalid), payment_id, reference, amount_vnd, expires_at.
      *
      * @return array<string, mixed>
      */
     public function start(string $userId, string $code, string $method): array
     {
         return Database::call('NMT_sp_payment_start', [$userId, $code, $method])[0] ?? ['result' => 'not_found'];
+    }
+
+    /**
+     * Đơn còn chuyển khoản VietQR được không: vietqr_open (true / false) và vietqr_cutoff_hours (số giờ trước giờ khởi
+     * hành ngừng nhận VietQR). Không tìm thấy đơn thì coi như không nhận.
+     *
+     * @return array{vietqr_open: bool, vietqr_cutoff_hours: int}
+     */
+    public function options(string $userId, string $code): array
+    {
+        $row = Database::call('NTK_sp_booking_payment_options', [$userId, $code])[0] ?? [];
+
+        return [
+            'vietqr_open' => (int) ($row['vietqr_open'] ?? 0) === 1,
+            'vietqr_cutoff_hours' => (int) ($row['vietqr_cutoff_hours'] ?? 24),
+        ];
     }
 
     /**

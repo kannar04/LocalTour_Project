@@ -1,7 +1,7 @@
 <?php declare(strict_types=1); ?>
 <?php
 /*
- * Đơn của tôi (M4, Nguyễn Tuấn Khôi): các yêu cầu đặt tour của tài khoản đang đăng nhập, mới đặt trước.
+ * Đơn của tôi (M4, Nguyễn Tuấn Khôi): các đơn đặt tour của tài khoản đang đăng nhập, mới đặt trước.
  * Biến: $bookings (NTK_sp_customer_booking_list), $notice (kết quả thanh toán không gắn được với đơn, '' = không có), $title.
  */
 ?>
@@ -18,7 +18,7 @@
 
         <div class="lt-book-head">
             <h1 class="lt-book-head__title">Đơn của tôi</h1>
-            <p class="lt-book-head__lead">Các yêu cầu đặt tour bạn đã gửi và trạng thái xử lý, mới nhất trước.</p>
+            <p class="lt-book-head__lead">Các đơn đặt tour của bạn và trạng thái từng đơn, mới nhất trước.</p>
         </div>
 
 <?php if ($notice !== ''): ?>
@@ -34,7 +34,7 @@
                 <span class="lt-icon lt-icon--clipboard"></span>
             </span>
             <h2 class="lt-book-card__title" id="orders-empty-title">Bạn chưa có đơn đặt tour nào</h2>
-            <p class="lt-book-card__lead">Chọn một tour, chọn ngày và số khách rồi bấm "Đặt tour" để gửi yêu cầu.</p>
+            <p class="lt-book-card__lead">Chọn một tour, chọn ngày và số khách rồi bấm "Đặt tour" để giữ chỗ và thanh toán.</p>
             <a class="lt-btn lt-btn--primary" href="<?= e(url('/tours')) ?>">
                 <span class="lt-icon lt-icon--compass" aria-hidden="true"></span>
                 Khám phá tour

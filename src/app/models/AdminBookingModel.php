@@ -11,8 +11,8 @@ use Core\Database;
  * Procedure: NTK_sp_admin_booking_list, NTK_sp_admin_booking_detail, NTK_sp_admin_booking_line_list,
  * NTK_sp_admin_booking_extra_list, NTK_sp_admin_booking_passenger_list, NTK_sp_admin_booking_payment_list,
  * NTK_sp_admin_booking_set_status, NTK_sp_admin_log_list.
- * Xác nhận chỗ (pending → awaiting_payment) giữ chỗ của lịch và chốt tổng giá (Sprint 4, 4.4.3.2);
- * hủy đơn đang giữ chỗ trả lại chỗ.
+ * Đơn mới đã giữ chỗ lúc đặt và bắt đầu ở awaiting_payment. Xác nhận chỗ (pending → awaiting_payment, chỉ còn với đơn
+ * tạo theo quy trình cũ) giữ chỗ của lịch và chốt tổng giá (Sprint 4, 4.4.3.2); hủy đơn đang giữ chỗ trả lại chỗ.
  */
 final class AdminBookingModel
 {

@@ -2,9 +2,11 @@
 <?php
 /*
  * Thanh bên của trang quản trị: cột trái trên desktop, panel thu gọn (nút "Menu" ở header) dưới 992px.
- * Biến: $adminNav = 'dashboard' | 'tours' | 'providers' | 'bookings' | 'change-requests' | 'payments' (mục đang mở).
- * Khu đơn vị tổ chức (/host): $host = đơn vị đang đăng nhập → chỉ có "Tour của tôi", "Thêm tour" và "Đơn đặt tour"
- * ($adminNav = 'tours' | 'tour-new' | 'bookings'), đăng xuất ở /host/logout.
+ * Biến: $adminNav = 'dashboard' | 'tours' | 'providers' | 'bookings' | 'change-requests' | 'payments' | 'payouts' |
+ *       'settings' (mục đang mở).
+ * Khu đơn vị tổ chức (/host): $host = đơn vị đang đăng nhập → chỉ có "Tour của tôi", "Thêm tour", "Đơn đặt tour",
+ * "Doanh thu & chi trả" và "Tài khoản nhận tiền" ($adminNav = 'tours' | 'tour-new' | 'bookings' | 'payouts' | 'bank'),
+ * đăng xuất ở /host/logout.
  */
 $adminNav = $adminNav ?? 'dashboard';
 $navHost = $host ?? null;
@@ -12,15 +14,19 @@ $adminItems = [
     ['key' => 'dashboard', 'href' => '/admin', 'icon' => 'home', 'label' => 'Tổng quan'],
     ['key' => 'tours', 'href' => '/admin/tours', 'icon' => 'verified', 'label' => 'Duyệt tour'],
     ['key' => 'providers', 'href' => '/admin/providers', 'icon' => 'user', 'label' => 'Đơn vị tổ chức'],
-    ['key' => 'bookings', 'href' => '/admin/bookings', 'icon' => 'calendar', 'label' => 'Yêu cầu đặt tour'],
+    ['key' => 'bookings', 'href' => '/admin/bookings', 'icon' => 'calendar', 'label' => 'Đơn đặt tour'],
     ['key' => 'change-requests', 'href' => '/admin/change-requests', 'icon' => 'message', 'label' => 'Đổi ngày / hủy tour'],
     ['key' => 'payments', 'href' => '/admin/payments', 'icon' => 'clipboard', 'label' => 'Đối chiếu thanh toán'],
+    ['key' => 'payouts', 'href' => '/admin/payouts', 'icon' => 'share', 'label' => 'Chi trả đơn vị tổ chức'],
+    ['key' => 'settings', 'href' => '/admin/settings', 'icon' => 'sliders', 'label' => 'Thông số vận hành'],
 ];
 if ($navHost !== null) {
     $adminItems = [
         ['key' => 'tours', 'href' => '/host/tours', 'icon' => 'verified', 'label' => 'Tour của tôi'],
         ['key' => 'tour-new', 'href' => '/host/tours/new', 'icon' => 'plus', 'label' => 'Thêm tour'],
         ['key' => 'bookings', 'href' => '/host/bookings', 'icon' => 'calendar', 'label' => 'Đơn đặt tour'],
+        ['key' => 'payouts', 'href' => '/host/payouts', 'icon' => 'clipboard', 'label' => 'Doanh thu & chi trả'],
+        ['key' => 'bank', 'href' => '/host/bank', 'icon' => 'shield', 'label' => 'Tài khoản nhận tiền'],
     ];
 }
 ?>

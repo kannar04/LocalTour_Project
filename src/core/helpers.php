@@ -347,7 +347,7 @@ function payment_method_label(?string $method): string
 function booking_history_title(array $event): string
 {
     $labels = [
-        'created' => 'Gửi yêu cầu đặt tour',
+        'created' => 'Tạo đơn đặt tour',
         'booking_total' => 'Chốt tổng giá',
         'transfer_submitted' => 'Báo đã chuyển khoản VietQR',
         'payment_confirm' => 'Đối chiếu: đã nhận tiền chuyển khoản',
@@ -361,6 +361,7 @@ function booking_history_title(array $event): string
         'hold_expired' => 'Quá hạn thanh toán, đơn tự hủy',
         'voucher_issued' => 'Cấp voucher',
         'refund_requested' => 'Tạo yêu cầu hoàn tiền',
+        'refund_completed' => 'Đã hoàn tiền cho khách',
         'cancel_requested' => 'Gửi yêu cầu hủy tour',
         'change_requested' => 'Gửi yêu cầu đổi ngày',
         'cancel_approved' => 'Đồng ý hủy tour',

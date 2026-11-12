@@ -9,8 +9,9 @@
 -- Quy tắc   : Trang khách: tour được hiển thị khi tours.approval_status = 'approved' VÀ
 --             providers.approval_status = 'approved' VÀ tài khoản của nhà cung cấp
 --             (users.status) = 'active'. Tour khác -> không bao giờ trả về.
---             Lịch đặt được: status = 'open', starts_at > NOW(), remaining > 0 và có
---             ít nhất một loại vé active.
+--             Lịch đặt được: status = 'open', remaining > 0, có ít nhất một loại vé active
+--             và còn hơn settings.booking_cutoff_minutes phút (mặc định 60) mới tới giờ khởi
+--             hành: starts_at > NOW() + số phút đó (giống LTP_sp_booking_create, file 10).
 --             Điểm đánh giá chỉ tính đánh giá moderation_status = 'approved'.
 --             Ảnh bìa: ảnh của chính tour có sort_order nhỏ nhất (rồi id nhỏ nhất).
 --             Tên điểm đến = destinations.name; tour chưa gán destination_id thì dùng
@@ -19,7 +20,8 @@
 --             "Illegal mix of collations" khi database mặc định dùng collation khác.
 --             Trang quản trị: xem mọi tour, quy tắc riêng ở phần "Trang quản trị" cuối file.
 --             Không có DEFINER.
--- Chạy sau  : 01_schema.sql, 16_migration_sprint5_LTP.sql (bảng tour_packages).
+-- Chạy sau  : 01_schema.sql, 16_migration_sprint5_LTP.sql (bảng tour_packages). Khi gọi cần
+--             bảng settings (28_migration_economy_NTK.sql).
 --             Chạy lại được (DROP PROCEDURE IF EXISTS).
 -- =====================================================================
 
@@ -69,6 +71,11 @@ BEGIN
     DECLARE v_destination_id CHAR(36) CHARACTER SET utf8mb4 DEFAULT NULL;
     DECLARE v_category_id    CHAR(36) CHARACTER SET utf8mb4 DEFAULT NULL;
     DECLARE v_sort           VARCHAR(20) DEFAULT 'recommended';
+    -- Ngừng nhận đặt trước giờ khởi hành bao nhiêu phút (file 28).
+    DECLARE v_cutoff_min INT DEFAULT 60;
+
+    SET v_cutoff_min = COALESCE((SELECT IF(st.value REGEXP '^[0-9]{1,5}$', CAST(st.value AS UNSIGNED), NULL)
+                                   FROM settings st WHERE st.name = 'booking_cutoff_minutes'), 60);
 
     -- Thoát ký tự đặc biệt của LIKE: '!' trước (vì là ký tự thoát), sau đó '%' và '_'.
     IF p_keyword IS NOT NULL AND TRIM(p_keyword) <> '' THEN
@@ -127,7 +134,7 @@ BEGIN
                              GROUP BY tp.tour_id) pk
                         ON pk.tour_id = s.tour_id
                 WHERE s.status = 'open'
-                  AND s.starts_at > NOW()
+                  AND s.starts_at > NOW() + INTERVAL v_cutoff_min MINUTE
                   AND s.remaining > 0
                 GROUP BY s.tour_id) bs
            ON bs.tour_id = t.id

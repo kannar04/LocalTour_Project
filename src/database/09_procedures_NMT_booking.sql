@@ -8,13 +8,16 @@
 -- Quy tắc   : Chỉ trả lịch của tour đang hiển thị: tours.approval_status = 'approved' VÀ
 --             providers.approval_status = 'approved' VÀ users.status = 'active' (tài khoản
 --             của nhà cung cấp). Lịch của tour khác hoặc không tồn tại -> 0 dòng.
---             Lịch đặt được (bookable): status = 'open', starts_at > NOW(), remaining > 0 và
---             có ít nhất một loại vé active (giống NMT_sp_tour_schedule_list, file 04).
+--             Lịch đặt được (bookable): status = 'open', remaining > 0, có ít nhất một loại vé
+--             active và còn hơn settings.booking_cutoff_minutes phút (mặc định 60; thiếu hoặc
+--             không phải số thì dùng 60) mới tới giờ khởi hành: starts_at > NOW() + số phút đó
+--             (giống NMT_sp_tour_schedule_list, file 04, và LTP_sp_booking_create, file 10).
 --             Đây chỉ là kiểm tra trước; LTP_sp_booking_create (file 10) kiểm tra lại trong
 --             transaction khi tạo đơn.
 --             p_schedule_id là UUID dạng chữ, so sánh với COLLATE utf8mb4_unicode_ci.
 --             Chỉ đọc dữ liệu (READS SQL DATA), không có DEFINER.
--- Chạy sau  : 01_schema.sql. Chạy lại được (DROP PROCEDURE IF EXISTS).
+-- Chạy sau  : 01_schema.sql. Khi gọi cần bảng settings (28_migration_economy_NTK.sql).
+--             Chạy lại được (DROP PROCEDURE IF EXISTS).
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
@@ -22,7 +25,8 @@
 --   0 hoặc 1 dòng. Cột: schedule_id, tour_id, starts_at, ends_at, capacity, remaining,
 --   status (open / full / cancelled / completed), max_group_size (của tour),
 --   active_ticket_count (số loại vé đang bán),
---   bookable (1 = lịch còn nhận đặt, 0 = không: đã hủy, đã qua, hết chỗ hoặc không có vé).
+--   bookable (1 = lịch còn nhận đặt, 0 = không: đã hủy, đã qua hoặc quá sát giờ khởi hành,
+--   hết chỗ hoặc không có vé).
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NMT_sp_schedule_availability;
 
@@ -32,6 +36,11 @@ CREATE PROCEDURE NMT_sp_schedule_availability(
 )
 READS SQL DATA
 BEGIN
+    -- Ngừng nhận đặt trước giờ khởi hành bao nhiêu phút (file 28).
+    DECLARE v_cutoff_min INT DEFAULT 60;
+    SET v_cutoff_min = COALESCE((SELECT IF(st.value REGEXP '^[0-9]{1,5}$', CAST(st.value AS UNSIGNED), NULL)
+                                   FROM settings st WHERE st.name = 'booking_cutoff_minutes'), 60);
+
     SELECT
         s.id            AS schedule_id,
         s.tour_id,
@@ -46,7 +55,7 @@ BEGIN
           WHERE tt.schedule_id = s.id
             AND tt.active = TRUE) AS active_ticket_count,
         (s.status = 'open'
-         AND s.starts_at > NOW()
+         AND s.starts_at > NOW() + INTERVAL v_cutoff_min MINUTE
          AND s.remaining > 0
          AND EXISTS (SELECT 1
                        FROM ticket_types tt

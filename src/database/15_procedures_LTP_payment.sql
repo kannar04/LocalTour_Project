@@ -16,9 +16,10 @@
 --               các khoản khác còn 'pending' của đơn -> 'failed'. Đơn đã hết hạn / đã hủy /
 --               đã thanh toán bằng khoản khác -> khoản vẫn ghi 'paid' và tạo yêu cầu hoàn tiền
 --               ('requested') để quản trị viên xử lý.
---             * Tự hủy (4.5.4.1): đơn 'awaiting_payment' quá hold_expires_at (24 giờ từ lúc
---               xác nhận chỗ) và KHÔNG có khoản VietQR đang chờ đối chiếu hay khoản đã thanh
---               toán -> 'cancelled', trả lại chỗ, khoản 'pending' -> 'failed'.
+--             * Tự hủy (4.5.4.1): đơn 'awaiting_payment' quá hold_expires_at (đặt lúc tạo đơn:
+--               settings.hold_minutes phút, mặc định 30, không muộn hơn giờ khởi hành; file 10)
+--               và KHÔNG có khoản VietQR đang chờ đối chiếu hay khoản đã thanh toán ->
+--               'cancelled', trả lại chỗ đã giữ lúc đặt, khoản 'pending' -> 'failed'.
 --             * Voucher (4.5.4.2): chỉ cấp cho đơn 'confirmed' / 'completed', mỗi đơn một mã
 --               LTV + 6 số của mã đơn + 4 số ngẫu nhiên (vd. LTV5182040427), không cấp lại.
 --             Tham số chuỗi được so sánh với COLLATE utf8mb4_unicode_ci; không có DEFINER.
@@ -163,7 +164,13 @@ proc: BEGIN
             -- Tiền đã trừ ở ngân hàng nhưng đơn không còn chờ thanh toán: tạo yêu cầu hoàn tiền.
             INSERT INTO refunds (id, payment_id, amount_vnd, reason, status, requested_at)
             VALUES (UUID(), v_payment_id, v_amount,
-                    CONCAT('Thanh toán VNPay ', p_reference, ' tới khi đơn đang "', v_status, '"; cần hoàn tiền cho khách.'),
+                    -- Lý do in nhãn trạng thái tiếng Việt (khách và quản trị viên đọc được).
+                    CONCAT('Thanh toán VNPay ', p_reference, ' tới khi đơn đang "',
+                           CASE v_status WHEN 'cancelled' THEN 'Đã hủy' WHEN 'confirmed' THEN 'Đã xác nhận'
+                                          WHEN 'completed' THEN 'Đã hoàn thành' WHEN 'awaiting_payment' THEN 'Chờ thanh toán'
+                                          WHEN 'pending' THEN 'Chờ xác nhận' WHEN 'rejected' THEN 'Đã từ chối'
+                                          ELSE v_status END,
+                           '"; cần hoàn tiền cho khách.'),
                     'requested', NOW());
 
             INSERT INTO booking_events (id, booking_id, actor, actor_user_id, action, from_status, to_status, note, created_at)
@@ -239,7 +246,8 @@ BEGIN
               FROM booking_lines bl
              WHERE bl.booking_id = v_booking_id;
 
-            -- Trả lại chỗ như khi hủy đơn đang giữ chỗ (07): không vượt capacity, 'full' mở lại.
+            -- Trả lại chỗ đơn đã giữ lúc đặt (10), như khi hủy đơn đang giữ chỗ (07): không vượt
+            -- capacity, 'full' mở lại.
             UPDATE schedules
                SET remaining = LEAST(capacity, remaining + v_people),
                    status = IF(status = 'full' AND remaining > 0, 'open', status)
@@ -254,7 +262,7 @@ BEGIN
 
             INSERT INTO booking_events (id, booking_id, actor, actor_user_id, action, from_status, to_status, note, created_at)
             VALUES (UUID(), v_booking_id, 'system', NULL, 'hold_expired', 'awaiting_payment', 'cancelled',
-                    'Quá hạn thanh toán 24 giờ: hệ thống tự hủy đơn và trả lại chỗ.', NOW());
+                    'Quá hạn giữ chỗ mà chưa thanh toán: hệ thống tự hủy đơn và trả lại chỗ.', NOW());
 
             COMMIT;
             SET v_expired = v_expired + 1;

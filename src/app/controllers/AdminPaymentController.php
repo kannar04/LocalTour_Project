@@ -149,8 +149,9 @@ final class AdminPaymentController extends AdminController
         $result = (string) $row['result'];
         $bookingId = (string) ($row['booking_id'] ?? '');
 
-        // Email "Đặt tour thành công" khi vừa ghi nhận tiền; BookingMail bỏ qua đơn không "Đã xác nhận" (tiền tới muộn).
-        if ($result === 'ok' && in_array($message, ['payment_confirm', 'vnpay_confirm'], true)) {
+        // Email "Đặt tour thành công" chỉ khi chính lần ghi nhận tiền này chuyển đơn sang "Đã xác nhận" (confirmed = 1).
+        // Tiền tới muộn cho đơn đã hủy hoặc đã được xác nhận từ trước: không gửi lại.
+        if ($result === 'ok' && (int) ($row['confirmed'] ?? 0) === 1) {
             BookingMail::sendConfirmedForBooking($bookingId);
         }
 

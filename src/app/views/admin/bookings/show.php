@@ -1,7 +1,7 @@
 <?php declare(strict_types=1); ?>
 <?php
 /*
- * Chi tiết yêu cầu đặt tour và form cập nhật trạng thái (FR-25, Nguyễn Tuấn Khôi).
+ * Chi tiết đơn đặt tour và form cập nhật trạng thái (FR-25, Nguyễn Tuấn Khôi).
  * Biến: $booking (NTK_sp_admin_booking_detail, gồm số chỗ của lịch), $lines (dòng vé), $extras (phụ thu / tùy chọn
  *       khách chọn), $payments (các khoản thanh toán), $passengers (danh sách khách),
  *       $history (LTP_sp_booking_history: thao tác của khách, hệ thống, VNPay và quản trị viên, NFR-09),
@@ -11,6 +11,7 @@
  *       $momoUnclear (payment_id => orderId của các khoản MoMo chưa rõ kết quả, NTK_sp_admin_momo_queue),
  *       $changeRequests (yêu cầu đổi ngày / hủy tour của đơn, Sprint 5),
  *       $confirmMail (tình trạng email "Đặt tour thành công", BookingMail::adminStatusLine; null = không hiện).
+ * Đặt ngay: đơn mới đã giữ chỗ lúc đặt và bắt đầu ở "Chờ thanh toán"; "Chờ xác nhận" chỉ còn ở đơn tạo theo quy trình cũ.
  * Sprint 4: chốt tổng giá khi xác nhận chỗ (4.4.3.2), đối chiếu chuyển khoản VietQR ngay ở khoản thanh toán (4.5.3.2)
  * và đối chiếu khoản VNPay chưa rõ kết quả với cổng VNPay.
  * Sprint 5: gói tour khách chọn; yêu cầu đổi ngày / hủy tour của khách được xử lý ở trang "Đổi ngày / hủy tour"
@@ -20,13 +21,13 @@ $actionLabels = [
     'awaiting_payment' => 'Xác nhận chỗ và giá (giữ chỗ, chuyển “Chờ thanh toán”, hạn 24 giờ)',
     'confirmed' => 'Xác nhận đã thanh toán (chuyển “Đã xác nhận”)',
     'completed' => 'Tour đã diễn ra (chuyển “Đã hoàn thành”)',
-    'rejected' => 'Từ chối yêu cầu',
-    'cancelled' => 'Hủy yêu cầu',
+    'rejected' => 'Từ chối đơn',
+    'cancelled' => 'Hủy đơn',
 ];
 $refund = (int) $booking['refund_completed_vnd'];
 $scheduleLabels = ['open' => 'đang mở', 'full' => 'hết chỗ', 'cancelled' => 'đã hủy', 'completed' => 'đã diễn ra'];
 $scheduleState = $scheduleLabels[(string) $booking['schedule_status']] ?? (string) $booking['schedule_status'];
-// Đơn đang giữ chỗ của lịch: đã xác nhận chỗ, chưa hủy và chưa hoàn thành.
+// Đơn đang giữ chỗ của lịch: chờ thanh toán hoặc đã xác nhận (chưa hủy, chưa hoàn thành).
 $holdsSeats = in_array($booking['status'], ['awaiting_payment', 'confirmed'], true);
 $ticketsVnd = (int) $booking['tickets_vnd'];
 $extrasVnd = (int) $booking['extras_vnd'];
@@ -42,10 +43,10 @@ $canSetTotal = in_array('awaiting_payment', $nextStatuses, true);
 
         <main id="main-content" class="col-12 col-lg lt-admin" tabindex="-1" aria-labelledby="admin-title">
             <a class="lt-admin__back" href="<?= e(url('/admin/bookings')) ?>">
-                <span class="lt-icon lt-icon--arrow-left" aria-hidden="true"></span> Danh sách yêu cầu
+                <span class="lt-icon lt-icon--arrow-left" aria-hidden="true"></span> Danh sách đơn
             </a>
             <header class="lt-admin__head">
-                <h1 class="lt-admin__title" id="admin-title">Yêu cầu <?= e($booking['code']) ?></h1>
+                <h1 class="lt-admin__title" id="admin-title">Đơn <?= e($booking['code']) ?></h1>
                 <p class="lt-admin__subtitle">
                     <span class="lt-badge lt-badge--<?= e($booking['status']) ?>"><?= e(booking_status_label($booking['status'])) ?></span>
                     Tạo lúc <?= e(format_datetime($booking['created_at'])) ?>
@@ -114,7 +115,7 @@ $canSetTotal = in_array('awaiting_payment', $nextStatuses, true);
 
                         <h3 class="lt-panel__subtitle">Danh sách khách</h3>
 <?php if ($passengers === []): ?>
-                        <p class="lt-empty">Yêu cầu chưa có danh sách khách.</p>
+                        <p class="lt-empty">Đơn chưa có danh sách khách.</p>
 <?php else: ?>
                         <ol class="lt-guest-list">
 <?php foreach ($passengers as $passenger): ?>
@@ -151,7 +152,7 @@ $canSetTotal = in_array('awaiting_payment', $nextStatuses, true);
                         <p class="lt-admin-hint">Đã hoàn tiền <?= e(format_vnd($refund)) ?>.</p>
 <?php endif; ?>
 <?php if ($refundRequested > 0): ?>
-                        <div class="lt-alert lt-alert--warning" role="note"><span class="lt-icon lt-icon--alert" aria-hidden="true"></span><span>Có khoản <?= e(format_vnd($refundRequested)) ?> cần hoàn tiền cho khách (khách trả sau khi đơn không còn chờ thanh toán, hoặc yêu cầu hủy tour đã được đồng ý). Chưa có hoàn tiền tự động: chuyển khoản tay cho khách.</span></div>
+                        <div class="lt-alert lt-alert--warning" role="note"><span class="lt-icon lt-icon--alert" aria-hidden="true"></span><span>Có khoản <?= e(format_vnd($refundRequested)) ?> cần hoàn tiền cho khách (khách trả sau khi đơn không còn chờ thanh toán, yêu cầu hủy tour đã được đồng ý, hoặc quản trị viên hủy đơn đã thanh toán). Chưa có hoàn tiền tự động: chuyển khoản tay cho khách rồi ghi “Đã hoàn tiền” ở trang <a href="<?= e(url('/admin/payouts')) ?>">Chi trả đơn vị tổ chức</a>.</span></div>
 <?php endif; ?>
 <?php if ($payments === []): ?>
                         <p class="lt-empty">Chưa có khoản thanh toán nào.</p>
@@ -254,7 +255,7 @@ $canSetTotal = in_array('awaiting_payment', $nextStatuses, true);
                     <section class="lt-panel" aria-labelledby="booking-action-title">
                         <h2 class="lt-panel__title" id="booking-action-title">Cập nhật trạng thái</h2>
 <?php if ($nextStatuses === []): ?>
-                        <p class="lt-empty">Yêu cầu đã ở trạng thái cuối (“<?= e(booking_status_label($booking['status'])) ?>”), không cập nhật được nữa.</p>
+                        <p class="lt-empty">Đơn đã ở trạng thái cuối (“<?= e(booking_status_label($booking['status'])) ?>”), không cập nhật được nữa.</p>
 <?php else: ?>
                         <form action="<?= e(url('/admin/bookings/' . $booking['booking_id'] . '/status')) ?>" method="post" class="lt-admin-form">
                             <?= csrf_field() ?>
@@ -276,9 +277,9 @@ $canSetTotal = in_array('awaiting_payment', $nextStatuses, true);
                             <label class="lt-admin-label" for="status-note">Lý do / ghi chú</label>
                             <textarea class="lt-admin-input" id="status-note" name="note" rows="3" maxlength="255"><?= e($note) ?></textarea>
 <?php if ($booking['status'] === 'pending'): ?>
-                            <p class="lt-admin-hint">Xác nhận chỗ sẽ giữ <?= e((int) $booking['people']) ?> chỗ của lịch (lịch còn <?= e((int) $booking['schedule_remaining']) ?> chỗ). Từ chối hoặc hủy yêu cầu chờ xác nhận không đổi số chỗ.</p>
+                            <p class="lt-admin-hint">Đơn này tạo theo quy trình cũ nên chưa giữ chỗ (đơn mới được giữ chỗ ngay lúc đặt). Xác nhận chỗ sẽ giữ <?= e((int) $booking['people']) ?> chỗ của lịch (lịch còn <?= e((int) $booking['schedule_remaining']) ?> chỗ) và khách có 24 giờ để thanh toán (không muộn hơn giờ khởi hành). Từ chối hoặc hủy đơn chờ xác nhận không đổi số chỗ.</p>
 <?php elseif ($holdsSeats): ?>
-                            <p class="lt-admin-hint">Hủy đơn này sẽ trả lại <?= e((int) $booking['people']) ?> chỗ cho lịch.</p>
+                            <p class="lt-admin-hint">Đơn đang giữ <?= e((int) $booking['people']) ?> chỗ của lịch<?= $booking['status'] === 'awaiting_payment' ? '; quá hạn thanh toán mà chưa trả tiền thì hệ thống tự hủy và trả chỗ' : '' ?>. Hủy đơn này sẽ trả lại <?= e((int) $booking['people']) ?> chỗ cho lịch<?= $booking['status'] === 'confirmed' ? ' và tạo yêu cầu hoàn toàn bộ số tiền khách đã trả (chuyển khoản lại cho khách rồi ghi “Đã hoàn tiền” ở trang Chi trả đơn vị tổ chức)' : '' ?>.</p>
 <?php endif; ?>
                             <p class="lt-admin-hint">Bắt buộc khi từ chối, hủy hoặc đổi tổng giá. VNPay / MoMo thành công tự xác nhận đơn; chuyển khoản VietQR nên đối chiếu ở mục “Thanh toán” bên trái.</p>
                             <button class="lt-btn lt-btn--primary lt-btn--block" type="submit">Cập nhật trạng thái</button>

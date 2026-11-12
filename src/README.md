@@ -1,6 +1,6 @@
 # LocalTour – Mã nguồn ứng dụng
 
-Thư mục `src/` chứa LocalTour Increment v0.4: trang danh sách tour, trang chi tiết tour, tài khoản khách hàng (đăng ký, đăng nhập, đăng xuất), trang quản trị (duyệt tour, xử lý yêu cầu đặt tour, thống kê) của Sprint 3; luồng đặt tour MVP (M4: chọn lịch và số khách, nhập danh sách khách, gửi yêu cầu đặt tour, trang "Đơn của tôi"); và Sprint 4: chọn phụ thu / hoạt động tùy chọn khi đặt, chốt giá, thanh toán VNPay (sandbox) và chuyển khoản VietQR, đối chiếu chuyển khoản, voucher, tự hủy đơn quá hạn, lịch sử đơn, quản lý đơn vị tổ chức, thêm / sửa tour và lịch khởi hành; Sprint 5: so sánh 2–3 tour, gói tour, yêu cầu đổi ngày / hủy tour và xử lý thủ công của quản trị viên, quản lý gói, ảnh, lịch trình, dịch vụ, chính sách hủy và xóa tour. Ứng dụng đọc và ghi dữ liệu MySQL qua stored procedure. Toàn bộ dữ liệu tour, giá, tài khoản và đánh giá là dữ liệu minh họa.
+Thư mục `src/` chứa LocalTour Increment v0.4: trang danh sách tour, trang chi tiết tour, tài khoản khách hàng (đăng ký, đăng nhập, đăng xuất), trang quản trị (duyệt tour, xử lý yêu cầu đặt tour, thống kê) của Sprint 3; luồng đặt tour MVP (M4: chọn lịch và số khách, nhập danh sách khách, gửi yêu cầu đặt tour, trang "Đơn của tôi"); và Sprint 4: chọn phụ thu / hoạt động tùy chọn khi đặt, chốt giá, thanh toán VNPay (sandbox) và chuyển khoản VietQR, đối chiếu chuyển khoản, voucher, tự hủy đơn quá hạn, lịch sử đơn, quản lý đơn vị tổ chức, thêm / sửa tour và lịch khởi hành; Sprint 5: so sánh 2–3 tour, gói tour, yêu cầu đổi ngày / hủy tour và xử lý thủ công của quản trị viên, quản lý gói, ảnh, lịch trình, dịch vụ, chính sách hủy và xóa tour. Từ file database `28`–`30`: đặt ngay (đơn mới giữ chỗ luôn ở "Chờ thanh toán", không chờ quản trị viên xác nhận chỗ), thông số vận hành, phí dịch vụ LocalTour và chi trả cho đơn vị tổ chức. Ứng dụng đọc và ghi dữ liệu MySQL qua stored procedure. Toàn bộ dữ liệu tour, giá, tài khoản và đánh giá là dữ liệu minh họa.
 
 Tài liệu thiết kế đi kèm:
 
@@ -121,7 +121,10 @@ src/
 │   ├── 25_email_NTK.sql
 │   ├── 26_procedures_NTK_setup.sql
 │   ├── 27_procedures_NTK_host.sql
-│   ├── db_localtour.sql          # File gộp 01–27, sinh tự động
+│   ├── 28_migration_economy_NTK.sql
+│   ├── 29_procedures_NTK_instant_booking.sql
+│   ├── 30_procedures_NTK_payout.sql
+│   ├── db_localtour.sql          # File gộp 01–30, sinh tự động
 │   └── README.md
 ├── public/                       # Thư mục web duy nhất trình duyệt truy cập được
 │   ├── .htaccess                 # Chuyển mọi đường dẫn về index.php (Apache)
@@ -137,7 +140,7 @@ src/
 ├── scripts/
 │   ├── check_install.php         # Kiểm tra cài đặt: PHP, .env, database, thư mục ghi được (Sprint 6)
 │   ├── create_admin.php          # Tạo / đặt lại mật khẩu tài khoản quản trị viên (Sprint 6)
-│   ├── expire_holds.php          # Tự hủy đơn quá hạn thanh toán (chạy bằng Task Scheduler)
+│   ├── expire_holds.php          # Tự hủy đơn quá hạn thanh toán, tự hoàn thành đơn của lịch đã kết thúc, lập khoản chi trả (chạy bằng Task Scheduler)
 │   ├── install_database.bat      # Bấm đúp để chạy install_database.php
 │   ├── install_database.php      # Cài database: import mọi file database/NN_*.sql theo thứ tự (Sprint 6)
 │   ├── register_expire_task.bat  # Đăng ký Task Scheduler chạy expire_holds.php mỗi 15 phút
@@ -174,7 +177,7 @@ Tiền tố tên procedure cho biết người phụ trách: `LTP_` – Lê Trun
 | POST | `/admin/tours/{id}/reject` | `AdminTourController@reject` | `note` (bắt buộc, tối đa 255 ký tự), `_csrf`. |
 | GET | `/admin/bookings` | `AdminBookingController@index` | `status` (trống = tất cả), `q` (mã, tên, email, số điện thoại; tối đa 100 ký tự). |
 | GET | `/admin/bookings/{id}` | `AdminBookingController@show` | 404 nếu UUID sai hoặc không tìm thấy. |
-| POST | `/admin/bookings/{id}/status` | `AdminBookingController@updateStatus` | `status`, `note` (bắt buộc khi từ chối hoặc hủy, hoặc khi đổi tổng giá), `total_vnd` (tổng giá chốt khi xác nhận chỗ, trống = giữ nguyên), `_csrf`; 409 nếu không chuyển được trạng thái hoặc lịch không còn đủ chỗ. |
+| POST | `/admin/bookings/{id}/status` | `AdminBookingController@updateStatus` | `status`, `note` (bắt buộc khi từ chối hoặc hủy, hoặc khi đổi tổng giá), `total_vnd` (tổng giá chốt khi xác nhận chỗ đơn cũ "Chờ xác nhận", trống = giữ nguyên), `_csrf`; 409 nếu không chuyển được trạng thái hoặc lịch không còn đủ chỗ. |
 | GET | `/admin/payments` | `AdminPaymentController@index` | Hàng đợi chuyển khoản VietQR chờ đối chiếu và khoản VNPay chưa rõ kết quả. |
 | POST | `/admin/payments/{id}/decide` | `AdminPaymentController@decide` | `decision` (`confirm` / `reject`), `note` (bắt buộc khi không khớp), `_csrf`; xong về trang yêu cầu `#payments`. |
 | POST | `/admin/payments/{id}/vnpay` | `AdminPaymentController@vnpayDecide` | Ghi kết quả khoản VNPay chưa rõ kết quả: `decision` (`confirm` / `reject`), `txn_no` (mã giao dịch VNPay, bắt buộc khi `confirm`), `note` (bắt buộc khi `reject`), `_csrf`; xong về trang yêu cầu `#payments`. |
@@ -184,10 +187,10 @@ Tiền tố tên procedure cho biết người phụ trách: `LTP_` – Lê Trun
 | GET, POST | `/admin/tours/{id}/schedules`, `/admin/schedules/{id}/edit` | `AdminScheduleController` | Lịch khởi hành, sức chứa, giá vé người lớn / trẻ em; 409 khi sức chứa thấp hơn số chỗ đang giữ hoặc hủy lịch còn đơn. |
 | GET | `/tours/{id}/book` | `BookingController@create` | Trang "Hoàn tất thông tin đặt tour"; `schedule_id`, `tickets[<mã vé>]`, `package_id` (tour có gói) – lịch, số khách và gói chọn ở trang chi tiết. Chưa đăng nhập → `/login?next=…`; tài khoản không phải khách hàng → 403. |
 | GET | `/api/schedules/{id}/availability` | `ScheduleController@apiAvailability` | `people` (1–50). JSON `{ remaining, max_group_size, bookable, enough, tickets, … }`; 400 UUID sai, 404 không tìm thấy, 422 `people` sai. |
-| POST | `/api/bookings` | `BookingController@store` | Form đặt tour + `_csrf`, `request_token`; 201 đã tạo đơn, 200 gửi trùng, 401, 403, 409 (lịch, chỗ, giá hoặc gói đã đổi), 422 (lỗi theo từng ô). |
+| POST | `/api/bookings` | `BookingController@store` | Form đặt tour + `_csrf`, `request_token`; 201 đã tạo đơn "Chờ thanh toán" và giữ chỗ (`data.url` là trang thanh toán của đơn), 200 gửi trùng, 401, 403, 409 (lịch, chỗ, giá hoặc gói đã đổi), 422 (lỗi theo từng ô). |
 | GET | `/bookings` | `CustomerBookingController@index` | "Đơn của tôi" của tài khoản đang đăng nhập. |
-| GET | `/bookings/{code}` | `CustomerBookingController@show` | Chi tiết đơn (`LTxxxxxx`); 404 khi mã sai hoặc đơn của tài khoản khác; `?new=1` hiện thông báo vừa gửi; `?pay=` hiện kết quả thanh toán. |
-| GET | `/bookings/{code}/pay` | `PaymentController@checkout` | Chọn VNPay hoặc VietQR; chỉ đơn "Chờ thanh toán" còn hạn. |
+| GET | `/bookings/{code}` | `CustomerBookingController@show` | Chi tiết đơn (`LTxxxxxx`); 404 khi mã sai hoặc đơn của tài khoản khác; `?new=1` hiện thông báo vừa giữ chỗ; `?pay=` hiện kết quả thanh toán. |
+| GET | `/bookings/{code}/pay` | `PaymentController@checkout` | Chọn VNPay, MoMo hoặc VietQR; chỉ đơn "Chờ thanh toán" còn hạn. Khách được chuyển tới đây ngay sau khi đặt (`?new=1` hiện thông báo đã giữ chỗ); VietQR không hiện nút khi còn dưới 24 giờ tới giờ khởi hành. |
 | POST | `/bookings/{code}/pay/vnpay` | `PaymentController@startVnpay` | `_csrf`; 303 sang cổng VNPay sandbox. |
 | POST | `/bookings/{code}/pay/vietqr` | `PaymentController@startVietqr` | `_csrf`; 303 sang trang chuyển khoản. |
 | GET | `/bookings/{code}/pay/vietqr` | `PaymentController@transfer` | Mã VietQR, số tiền, nội dung chuyển khoản. |
@@ -271,14 +274,14 @@ Chọn một trong hai cách.
 **Cách B – Import database trên máy mình.**
 
 1. Mở XAMPP Control Panel, bấm Start cho **MySQL**.
-2. Dùng file `src/database/db_localtour.sql` trong repo. File này được gộp từ `src/database/01_schema.sql` đến `27_procedures_NTK_host.sql`.
+2. Dùng file `src/database/db_localtour.sql` trong repo. File này được gộp từ `src/database/01_schema.sql` đến `30_procedures_NTK_payout.sql`.
 3. Mở `http://localhost/phpmyadmin`, chọn tab **Import**, chọn file `db_localtour.sql`, giữ **Character set of the file** là `utf-8`, bấm **Import** (hoặc **Go**). File tự tạo database `db_localtour` với `utf8mb4_unicode_ci`.
 
 Cách nhanh hơn, không cần phpMyAdmin: sau khi tạo `.env` (Bước 3), đứng ở thư mục `src` chạy `scripts\install_database.bat`. Script import mọi file `NN_*.sql` theo thứ tự vào database ghi trong `.env` và đếm lại bảng / procedure; database đã có dữ liệu thì dừng, trừ khi thêm `--fresh`.
 
-Nếu không có file gộp: tạo database `db_localtour` với collation `utf8mb4_unicode_ci`, chọn database đó, rồi import lần lượt `01_schema.sql`, `02_seed.sql`, `03_procedures_LTP.sql`, `04_procedures_NMT.sql`, `05_procedures_NTK.sql`, `06_procedures_NTK_account.sql`, `07_procedures_NTK_admin.sql`, `08_migration_booking_NMT.sql`, `09_procedures_NMT_booking.sql`, `10_procedures_LTP_booking.sql`, `11_procedures_NTK_booking.sql`, `12_migration_sprint4_NMT.sql`, `13_procedures_NMT_catalog.sql`, `14_procedures_NMT_payment.sql`, `15_procedures_LTP_payment.sql`, `16_migration_sprint5_LTP.sql`, `17_procedures_NMT_compare.sql`, `18_procedures_LTP_package.sql`, `19_procedures_LTP_change.sql`, `20_procedures_LTP_change_admin.sql`, `21_procedures_NMT_tour_content.sql`, `22_payment_momo_NTK.sql`, `23_map_places_NTK.sql`, `24_social_login_NTK.sql`, `25_email_NTK.sql`, `26_procedures_NTK_setup.sql`, `27_procedures_NTK_host.sql`.
+Nếu không có file gộp: tạo database `db_localtour` với collation `utf8mb4_unicode_ci`, chọn database đó, rồi import lần lượt `01_schema.sql`, `02_seed.sql`, `03_procedures_LTP.sql`, `04_procedures_NMT.sql`, `05_procedures_NTK.sql`, `06_procedures_NTK_account.sql`, `07_procedures_NTK_admin.sql`, `08_migration_booking_NMT.sql`, `09_procedures_NMT_booking.sql`, `10_procedures_LTP_booking.sql`, `11_procedures_NTK_booking.sql`, `12_migration_sprint4_NMT.sql`, `13_procedures_NMT_catalog.sql`, `14_procedures_NMT_payment.sql`, `15_procedures_LTP_payment.sql`, `16_migration_sprint5_LTP.sql`, `17_procedures_NMT_compare.sql`, `18_procedures_LTP_package.sql`, `19_procedures_LTP_change.sql`, `20_procedures_LTP_change_admin.sql`, `21_procedures_NMT_tour_content.sql`, `22_payment_momo_NTK.sql`, `23_map_places_NTK.sql`, `24_social_login_NTK.sql`, `25_email_NTK.sql`, `26_procedures_NTK_setup.sql`, `27_procedures_NTK_host.sql`, `28_migration_economy_NTK.sql`, `29_procedures_NTK_instant_booking.sql`, `30_procedures_NTK_payout.sql`.
 
-Import lại bất cứ lúc nào để đưa dữ liệu về trạng thái ban đầu: `01_schema.sql` xóa và tạo lại 27 bảng, đồng thời xóa 2 bảng đã bỏ (`post_comments`, `post_interactions`) và 7 bảng do các file sau thêm; `12_migration_sprint4_NMT.sql` thêm 2 bảng Sprint 4, `16_migration_sprint5_LTP.sql` thêm 2 bảng Sprint 5, `23`, `24`, `25` mỗi file thêm 1 bảng (tổng 34 bảng). Tài khoản đã đăng ký thử cũng bị xóa. Ngày khởi hành mẫu được tính theo ngày import, vì vậy nên import lại trước mỗi buổi kiểm thử hoặc demo. Chi tiết xem [02 – Lược đồ dữ liệu](../docs/sprint3/02-luoc-do-du-lieu.md) và `src/database/README.md`.
+Import lại bất cứ lúc nào để đưa dữ liệu về trạng thái ban đầu: `01_schema.sql` xóa và tạo lại 27 bảng, đồng thời xóa 2 bảng đã bỏ (`post_comments`, `post_interactions`) và 10 bảng do các file sau thêm; `12_migration_sprint4_NMT.sql` thêm 2 bảng Sprint 4, `16_migration_sprint5_LTP.sql` thêm 2 bảng Sprint 5, `23`, `24`, `25` mỗi file thêm 1 bảng, `28_migration_economy_NTK.sql` thêm 3 bảng `settings`, `host_payouts`, `host_payout_items` (27 + 2 + 2 + 3 + 3 = tổng 37 bảng). Tài khoản đã đăng ký thử cũng bị xóa. Ngày khởi hành mẫu được tính theo ngày import, vì vậy nên import lại trước mỗi buổi kiểm thử hoặc demo. Chi tiết xem [02 – Lược đồ dữ liệu](../docs/sprint3/02-luoc-do-du-lieu.md) và `src/database/README.md`.
 
 ### Bước 3. Tạo file `.env`
 
@@ -337,8 +340,8 @@ Mở `http://127.0.0.1:8080`. Giữ cửa sổ dòng lệnh mở trong lúc dùn
 **Database (chỉ với Cách B).** Trong phpMyAdmin, bấm `db_localtour` ở cột trái, mở tab **SQL**, chạy lần lượt từng câu:
 
 ```sql
-SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'db_localtour';                                  -- 34
-SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = 'db_localtour' AND ROUTINE_TYPE = 'PROCEDURE'; -- 124
+SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'db_localtour';                                  -- 37
+SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = 'db_localtour' AND ROUTINE_TYPE = 'PROCEDURE'; -- 147
 ```
 
 Ra số khác thì xem mục "Cách 1" của `src/database/README.md` để so tên bảng và procedure. Với Cách A, tài khoản ứng dụng chỉ có quyền gọi procedure nên bỏ qua bước này; các đường dẫn dưới đây đã đủ để kiểm tra.
@@ -386,9 +389,9 @@ Cách nhanh nhất trên database của mình: đứng ở thư mục `src`, ch�
 
 | Đường dẫn | Kết quả mong đợi |
 | --- | --- |
-| `/admin` | 40 tài khoản khách hàng (39 đang hoạt động, 1 bị khóa), 12 tour (2 chờ duyệt, 9 đã duyệt, 1 bị từ chối), 3 yêu cầu chờ xác nhận trên tổng 39; bảng yêu cầu theo trạng thái, theo thời gian và doanh thu. Bấm “Tháng 10/2026” trong bảng doanh thu → trang “Khoản thanh toán theo kỳ” có 20 khoản, tổng thuần 24.930.000đ, khớp dòng của kỳ. |
+| `/admin` | 40 tài khoản khách hàng (39 đang hoạt động, 1 bị khóa), 12 tour (2 chờ duyệt, 9 đã duyệt, 1 bị từ chối), ô "Đơn chờ thanh toán" ghi 2 trên tổng 39 đơn đặt tour; bảng "Đơn đặt tour theo trạng thái" (Chờ xác nhận 3 – đơn mẫu theo quy trình cũ), bảng số đơn theo ngày tạo và doanh thu. Bấm “Tháng 10/2026” trong bảng doanh thu → trang “Khoản thanh toán theo kỳ” có 20 khoản, tổng thuần 24.930.000đ, khớp dòng của kỳ. |
 | `/admin/tours` | 2 tour chờ duyệt. Mở "Một buổi chiều trong Đại Nội Huế", bấm "Phê duyệt tour" → "Đã phê duyệt tour."; `/tours` giờ có 10 tour và bộ lọc có Huế. |
-| `/admin/bookings` | 39 yêu cầu, tab "Chờ xác nhận" có 3. Mở yêu cầu `LT518204`, chọn "Xác nhận chỗ và giá" rồi bấm "Cập nhật trạng thái" → trạng thái "Chờ thanh toán", mục "Lịch sử xử lý" có thêm một dòng, "Chỗ của lịch" giảm 2. Yêu cầu `LT527716` cần 3 chỗ nhưng lịch chỉ còn 2 → báo "Lịch khởi hành không còn đủ chỗ…", trạng thái không đổi. |
+| `/admin/bookings` (menu "Đơn đặt tour") | 39 đơn. Đơn đặt mới bắt đầu ở "Chờ thanh toán" và đã giữ chỗ, không cần quản trị viên xác nhận chỗ. Tab "Chờ xác nhận" có 3 đơn mẫu tạo theo quy trình cũ, dùng để thử bước xác nhận chỗ của đơn cũ: mở đơn `LT518204`, chọn "Xác nhận chỗ và giá" rồi bấm "Cập nhật trạng thái" → trạng thái "Chờ thanh toán" (hạn 24 giờ), mục "Lịch sử xử lý" có thêm một dòng, "Chỗ của lịch" giảm 2. Đơn `LT527716` cần 3 chỗ nhưng lịch chỉ còn 2 → báo "Lịch khởi hành không còn đủ chỗ…", trạng thái không đổi. Mở trang này lần đầu sau khi import, đơn mẫu `LT574913` tự chuyển "Đã hoàn thành" vì lịch đã kết thúc (tab "Đã xác nhận" còn 1 đơn, "Đã hoàn thành" 30 đơn). |
 | `/admin` khi đăng nhập bằng tài khoản khách hàng | Trang 403 "Bạn không có quyền truy cập trang này." |
 
 Với Cách A, tài khoản ứng dụng chỉ có quyền gọi procedure nên không chạy được câu `UPDATE` ở bước 2. Không ghi email hay mật khẩu của tài khoản quản trị thử vào tài liệu, file commit hoặc nhóm chat chung. Import lại database sẽ xóa tài khoản này.
@@ -398,15 +401,16 @@ Với Cách A, tài khoản ứng dụng chỉ có quyền gọi procedure nên 
 Dùng tài khoản khách hàng tự tạo ở Bước 6 (tài khoản quản trị viên không đặt tour được).
 
 1. Mở `/tours/c0000000-0000-4000-8000-000000000001`, chọn ngày còn 6 chỗ, đặt 2 người lớn và 1 trẻ em (tạm tính 1.760.000đ), bấm "Đặt tour".
-2. Trang "Hoàn tất thông tin đặt tour" giữ đúng lịch và số khách vừa chọn, thông tin liên hệ điền sẵn từ tài khoản, có 3 ô họ tên khách. Nhập số điện thoại, họ tên 3 khách, tích ô đồng ý điều kiện rồi bấm "Xem lại & xác nhận".
-3. Bước xem lại hiện đủ ngày, giờ, danh sách khách và tổng tiền. Bấm "Gửi yêu cầu đặt tour" → trang đơn `LTxxxxxx` với thông báo "Đã gửi yêu cầu đặt tour", trạng thái "Chờ xác nhận". Đơn có trong "Đơn của tôi" ở header.
+2. Trang "Hoàn tất thông tin đặt tour" giữ đúng lịch và số khách vừa chọn, thông tin liên hệ điền sẵn từ tài khoản, có 3 ô họ tên khách. Mục "Điều kiện đặt tour" ghi: bấm đặt là giữ chỗ ngay, đơn ở trạng thái "Chờ thanh toán", thanh toán trong 30 phút kể từ lúc đặt, nhận đặt tới trước giờ khởi hành 1 giờ, VietQR chỉ nhận khi còn ít nhất 24 giờ tới giờ khởi hành (các số này lấy từ trang "Thông số vận hành"). Nhập số điện thoại, họ tên 3 khách, tích ô đồng ý điều kiện rồi bấm "Xem lại & xác nhận".
+3. Bước xem lại hiện đủ ngày, giờ, danh sách khách và tổng tiền. Bấm "Đặt tour và thanh toán" → trang "Thanh toán đơn `LTxxxxxx`" với thông báo "Đã giữ chỗ cho đơn `LTxxxxxx`" và hạn thanh toán. Đơn đã ở trạng thái "Chờ thanh toán" và lịch đã giảm 3 chỗ; không có bước chờ quản trị viên xác nhận chỗ. Đơn có trong "Đơn của tôi" ở header; trang đơn có nút "Thanh toán ngay" để quay lại trang thanh toán.
 
 | Thử thêm | Kết quả mong đợi |
 | --- | --- |
 | Bấm "Xem lại & xác nhận" khi để trống họ tên khách và chưa tích điều kiện | Báo lỗi ngay dưới từng ô, con trỏ nhảy tới ô lỗi đầu tiên; không gửi gì lên máy chủ. |
 | Tour "Hội An: phố cổ, đèn lồng và hoa đăng", lịch chỉ còn 1 chỗ, đặt 2 khách | Nút "+" dừng ở 1 khách, gợi ý "lịch này còn 1 chỗ". |
 | Đặt xong, mở lại `/bookings/<mã đơn>` bằng tài khoản khác | Trang "Không tìm thấy đơn" (404). |
-| Quản trị viên xác nhận chỗ cho đơn vừa đặt (Bước 7) | Khách thấy "Chờ thanh toán" và hạn giữ chỗ; lịch giảm đúng số khách. Quản trị viên hủy đơn kèm lý do → khách thấy "Đã hủy" và lý do, lịch được trả lại chỗ. |
+| Quản trị viên mở đơn vừa đặt ở `/admin/bookings`, tab "Chờ thanh toán" (Bước 7) | Dòng "Chỗ của lịch" ghi "đơn này đang giữ 3 chỗ"; mục "Cập nhật trạng thái" không có lựa chọn xác nhận chỗ. Chọn "Hủy đơn" kèm lý do → khách thấy "Đã hủy" và lý do, lịch được trả lại chỗ. |
+| Đặt xong nhưng không thanh toán, chờ quá hạn giữ chỗ (30 phút) rồi mở lại "Đơn của tôi" | Đơn thành "Đã hủy" với lý do quá hạn giữ chỗ, lịch được trả lại chỗ. |
 
 | Tour 1, tích "Thêm phần chè cuối tour" (35.000đ / người) ở mục phụ thu và hoạt động tùy chọn | Với 3 khách, tạm tính cộng thêm 105.000đ; khoản "Phụ thu đi riêng" (500.000đ / nhóm) chỉ cộng một lần. Bước xem lại và trang đơn có dòng phụ thu / tùy chọn. |
 
@@ -414,10 +418,10 @@ Dùng tài khoản khách hàng tự tạo ở Bước 6 (tài khoản quản tr
 
 Cần điền khóa VNPay sandbox và tài khoản VietQR trong `.env` (Bước 3). Đây là môi trường thử nghiệm: không chuyển tiền thật.
 
-1. Quản trị viên mở đơn vừa đặt (Bước 8), có thể sửa "Tổng giá chốt" (đổi giá phải ghi lý do), chọn "Xác nhận chỗ và giá" → đơn "Chờ thanh toán" trong 24 giờ.
-2. Khách mở đơn, bấm "Thanh toán ngay":
-   - **VNPay:** chuyển sang cổng sandbox; thanh toán bằng thẻ thử nghiệm NCB trong tài liệu VNPay sandbox. VNPay trả về trang đơn với thông báo "Thanh toán VNPay thành công", đơn "Đã xác nhận", có voucher. Chạy ở `localhost` thì VNPay không gọi được IPN; kết quả được ghi qua Return URL.
-   - **VietQR:** trang hiện mã QR đúng số tiền và nội dung `LTxxxxxxPn`; bấm "Tôi đã chuyển khoản" → khoản "Chờ đối chiếu". Quản trị viên mở "Đối chiếu thanh toán" ở menu quản trị, chọn "Đã nhận tiền" (đơn "Đã xác nhận", cấp voucher) hoặc "Không khớp" (bắt buộc lý do; khách thanh toán lại được).
+1. Đặt một đơn như Bước 8: đơn mới ở "Chờ thanh toán" ngay, không cần quản trị viên làm gì. Hạn thanh toán là 30 phút kể từ lúc đặt và không muộn hơn giờ khởi hành. (Chỉ đơn cũ "Chờ xác nhận" mới cần quản trị viên chọn "Xác nhận chỗ và giá", có thể sửa "Tổng giá chốt" kèm lý do; đơn đó được hạn 24 giờ.)
+2. Khách ở trang "Thanh toán đơn `LTxxxxxx`" mở ra ngay sau khi đặt, hoặc mở đơn rồi bấm "Thanh toán ngay". VNPay và MoMo tự xác nhận đơn; VietQR cần quản trị viên đối chiếu một lần:
+   - **VNPay:** bấm "Thanh toán qua VNPay", chuyển sang cổng sandbox; thanh toán bằng thẻ thử nghiệm NCB trong tài liệu VNPay sandbox. VNPay trả về trang đơn với thông báo "Thanh toán VNPay thành công", đơn "Đã xác nhận", có voucher. Chạy ở `localhost` thì VNPay không gọi được IPN; kết quả được ghi qua Return URL.
+   - **VietQR:** bấm "Lấy mã VietQR" (chỉ có khi còn ít nhất 24 giờ tới giờ khởi hành; sát giờ hơn trang ghi VietQR không dùng được cho đơn này, dùng VNPay hoặc MoMo); trang hiện mã QR đúng số tiền và nội dung `LTxxxxxxPn`; bấm "Tôi đã chuyển khoản" → khoản "Chờ đối chiếu". Quản trị viên mở "Đối chiếu thanh toán" ở menu quản trị, chọn "Đã nhận tiền" (đơn "Đã xác nhận", cấp voucher) hoặc "Không khớp" (bắt buộc lý do; khách thanh toán lại được).
 3. Đơn đã thanh toán có nút "Xem và in voucher"; trang voucher in được (Ctrl+P chỉ in phần voucher). Mục "Lịch sử đơn" ghi đủ các bước.
 
 | Thử thêm | Kết quả mong đợi |
@@ -427,13 +431,13 @@ Cần điền khóa VNPay sandbox và tài khoản VietQR trong `.env` (Bước 
 | VNPay báo thành công sau khi đơn đã tự hủy | Khoản vẫn được ghi "Đã thanh toán"; trang quản trị của đơn có cảnh báo cần hoàn tiền cho khách. |
 | Bấm "Thanh toán ngay" → VNPay rồi đóng tab cổng VNPay (không thanh toán, không bấm Hủy), chờ 15 phút | Khoản hiện ở mục "Giao dịch VNPay chưa rõ kết quả" của "Đối chiếu thanh toán". Ở trang yêu cầu, quản trị viên tra mã thanh toán trên cổng VNPay rồi chọn "Có giao dịch thành công" (nhập mã giao dịch VNPay; đơn còn hạn thì "Đã xác nhận" và có voucher, đơn đã hủy thì tạo yêu cầu hoàn tiền) hoặc "Không có giao dịch" (bắt buộc lý do; khách thanh toán lại được). |
 
-**Tự hủy định kỳ:** ngoài việc chạy mỗi lần mở trang, cài lịch chạy `expire_holds.php` mỗi 15 phút trên máy chạy demo. Khi đã có `src/.env` và MySQL đang chạy, mở Command Prompt ở thư mục `src\scripts` rồi chạy:
+**Tự hủy và việc sau tour định kỳ:** `expire_holds.php` hủy đơn quá hạn giữ chỗ, rồi chuyển đơn "Đã xác nhận" của lịch đã kết thúc sang "Đã hoàn thành" và lập khoản chi trả cho đơn vị tổ chức (Bước 12). Ngoài việc chạy mỗi lần mở trang đơn hoặc trang quản trị, cài lịch chạy `expire_holds.php` mỗi 15 phút trên máy chạy demo. Khi đã có `src/.env` và MySQL đang chạy, mở Command Prompt ở thư mục `src\scripts` rồi chạy:
 
 ```bat
 register_expire_task.bat
 ```
 
-Script chạy thử `expire_holds.php` một lần (in "đã hủy N đơn quá hạn thanh toán"; lỗi kết nối database thì dừng, không đăng ký), rồi tạo task "LocalTour - Tu huy don qua han" chạy mỗi 15 phút bằng `php-win.exe` (không hiện cửa sổ). PHP không nằm ở `C:\xampp\php` thì thêm thư mục PHP: `register_expire_task.bat D:\xampp\php`. Gỡ lịch: `register_expire_task.bat /delete`. Task chỉ chạy khi tài khoản Windows đó đang đăng nhập. `expire_holds.php` chỉ chạy được từ dòng lệnh.
+Script chạy thử `expire_holds.php` một lần (in "đã hủy N đơn quá hạn thanh toán" và "đã tự hoàn thành N đơn, N lịch khởi hành; đã lập N khoản chi trả"; lỗi kết nối database thì dừng, không đăng ký), rồi tạo task "LocalTour - Tu huy don qua han" chạy mỗi 15 phút bằng `php-win.exe` (không hiện cửa sổ). PHP không nằm ở `C:\xampp\php` thì thêm thư mục PHP: `register_expire_task.bat D:\xampp\php`. Gỡ lịch: `register_expire_task.bat /delete`. Task chỉ chạy khi tài khoản Windows đó đang đăng nhập. `expire_holds.php` chỉ chạy được từ dòng lệnh.
 
 ### Bước 10. Thử quản lý đơn vị tổ chức, tour và lịch
 
@@ -458,6 +462,19 @@ Script chạy thử `expire_holds.php` một lần (in "đã hủy N đơn quá 
 | Quản trị: chi tiết tour → "Ảnh, lịch trình, dịch vụ, chính sách" | Tải ảnh JPG / PNG / WebP tối đa 2 MB (file khác hoặc quá lớn báo lỗi), chọn ảnh bìa, xóa ảnh; thêm / sửa / xóa lịch trình và dịch vụ; lưu chính sách hủy tạo phiên bản mới. "Xóa tour": tour chưa có đơn bị xóa hẳn; tour đã có đơn chuyển "Ngừng hiển thị" (khách mở thì 404); còn đơn đang xử lý thì báo lỗi. |
 
 Ảnh tải lên nằm ở `src/public/assets/uploads/tours/` trên máy chạy web, không có trong Git. Khi đóng gói demo hoặc chép database sang máy khác, chép kèm thư mục này; ảnh nào không có file trên máy đang chạy thì trang hiện ảnh thay thế (`img/tour-placeholder.svg`), không hiện ảnh vỡ.
+
+### Bước 12. Thử thông số vận hành và chi trả đơn vị tổ chức
+
+Khách trả đúng giá niêm yết cho LocalTour. Sau khi lịch khởi hành kết thúc, LocalTour giữ phí dịch vụ (mặc định 10 %, chụp vào đơn lúc đặt) trên tiền thực thu của từng đơn và chi trả phần còn lại cho đơn vị tổ chức. Việc chuyển khoản làm ngoài hệ thống; ứng dụng chỉ ghi nhận.
+
+| Trang | Kết quả mong đợi |
+| --- | --- |
+| Quản trị: "Thông số vận hành" (`/admin/settings`) | Bốn ô: "Phí dịch vụ LocalTour" (%), "Thời gian giữ chỗ" (phút), hạn nhận đặt trước giờ khởi hành (phút), hạn nhận VietQR (giờ); mặc định 10, 30, 60, 24. Bấm "Lưu thông số" → "Đã lưu thông số vận hành."; nhập ngoài khoảng cho phép thì báo lỗi ở ô đó. Thông số mới áp dụng cho đơn đặt sau khi lưu và hiện ở mục "Điều kiện đặt tour" của trang đặt tour (Bước 8); đơn đã có giữ mức phí và hạn giữ chỗ cũ. |
+| Quản trị: "Chi trả đơn vị tổ chức" (`/admin/payouts`) | Ngay sau khi import chưa có khoản chi trả nào. Mỗi lịch khởi hành đã kết thúc, có tiền khách đã trả và không còn việc dang dở có một khoản chi trả: tiền thực thu (tiền khách đã trả trừ tiền đã hoàn), phí dịch vụ, thực nhận. Mở khoản "Chờ chi trả", nhập "Mã giao dịch chuyển khoản" rồi bấm "Ghi nhận đã chi trả" → khoản "Đã chi trả"; đơn vị chưa khai tài khoản nhận tiền thì chưa ghi nhận được. Mục "Hoàn tiền cho khách" liệt kê khoản hoàn còn phải chuyển lại cho khách (yêu cầu hủy được đồng ý, quản trị viên hủy đơn đã thanh toán, tiền tới sau khi đơn đã đóng): nhập mã giao dịch rồi bấm "Đã hoàn tiền". Mục "Lịch đã kết thúc, chưa lập được khoản chi trả" ghi việc còn dang dở của từng lịch (đơn chưa xong, chuyển khoản chờ đối chiếu, khoản hoàn chưa ghi, yêu cầu đổi ngày / hủy chờ xử lý). |
+| Đơn vị tổ chức: "Tài khoản nhận tiền" (`/host/bank`) | Đăng nhập ở `/host/login` bằng tài khoản đơn vị tổ chức. Nhập "Ngân hàng", "Số tài khoản" (6–20 chữ số), "Tên chủ tài khoản", bấm "Lưu tài khoản" → "Đã lưu tài khoản nhận tiền.". |
+| Đơn vị tổ chức: "Doanh thu & chi trả" (`/host/payouts`) | Chỉ có khoản chi trả của chính đơn vị: tiền thực thu, phí dịch vụ, thực nhận, trạng thái và mã giao dịch khi LocalTour đã chuyển khoản; chỉ đọc. Chưa khai tài khoản nhận tiền thì trang có cảnh báo kèm liên kết "Khai tài khoản nhận tiền". |
+
+Khoản chi trả chỉ được lập cho lịch kết thúc sau mốc bắt đầu (thời điểm `28_migration_economy_NTK.sql` chạy lần đầu, ghi ở hai trang quản trị trên), nên các lịch mẫu đã qua không có khoản chi trả. Đơn "Đã xác nhận" của lịch đã kết thúc tự chuyển "Đã hoàn thành", khoản chi trả được lập khi mở trang đơn, trang quản trị hoặc khi `scripts/expire_holds.php` chạy (task ở Bước 9); không cần bấm gì thêm. Route: `GET /admin/payouts`, `GET /admin/payouts/{id}`, `POST /admin/payouts/{id}/pay`, `POST /admin/refunds/{id}/complete`, `GET`, `POST /admin/settings`, `GET /host/payouts`, `GET /host/payouts/{id}`, `GET`, `POST /host/bank`.
 
 ## Bảo mật
 
@@ -501,11 +518,11 @@ GRANT EXECUTE ON db_localtour.* TO 'localtour_app'@'<tiền tố IP của VPN>.%
 | Dưới Apache, mọi trang (trừ trang chủ) đều 404 của Apache | `mod_rewrite` bị tắt hoặc `.htaccess` bị bỏ qua. | Trong `C:\xampp\apache\conf\httpd.conf`: bỏ dấu `#` trước `LoadModule rewrite_module modules/mod_rewrite.so`; trong khối `<Directory "C:/xampp/htdocs">` đặt `AllowOverride All`. Khởi động lại Apache. |
 | `http://localhost/LocalTour_Project/src/` báo 403 | Hành vi đúng: `src/.htaccess` chặn mọi thứ ngoài `public/`. | Mở `http://localhost/LocalTour_Project/src/public/`. |
 | Tiếng Việt hiển thị sai (`Ã¡`, `?`) | File SQL được import với bảng mã khác UTF-8, hoặc database tạo sai collation. | Import lại `db_localtour.sql`, chọn character set `utf-8`; database phải dùng `utf8mb4` và `utf8mb4_unicode_ci`. |
-| Trang lỗi 500, log có `PROCEDURE db_localtour.… does not exist` | Chưa import đủ các file procedure. | Import lại `db_localtour.sql`, hoặc import `03` đến `21` theo thứ tự. |
-| Trang lỗi 500, log có `Unknown column` (ví dụ `request_token`) hoặc `Table 'db_localtour.…' doesn't exist` | Database vẫn là lược đồ cũ (chưa chạy `08_migration_booking_NMT.sql` / `12_migration_sprint4_NMT.sql` / `16_migration_sprint5_LTP.sql`, hoặc trước lược đồ 27 bảng), hoặc file gộp được sinh từ bản cũ. | Sinh lại `db_localtour.sql` từ `01`–`26` mới nhất rồi import lại. |
+| Trang lỗi 500, log có `PROCEDURE db_localtour.… does not exist` | Chưa import đủ các file procedure. | Import lại `db_localtour.sql`, hoặc import `03` đến `30` theo thứ tự. |
+| Trang lỗi 500, log có `Unknown column` (ví dụ `request_token`) hoặc `Table 'db_localtour.…' doesn't exist` | Database vẫn là lược đồ cũ (chưa chạy `08_migration_booking_NMT.sql` / `12_migration_sprint4_NMT.sql` / `16_migration_sprint5_LTP.sql` / `28_migration_economy_NTK.sql` – thiếu bảng `settings` thì trang danh sách, chi tiết và đặt tour đều lỗi; hoặc trước lược đồ 27 bảng), hoặc file gộp được sinh từ bản cũ. | Sinh lại `db_localtour.sql` từ `01`–`30` mới nhất rồi import lại. Database dùng chung đang có dữ liệu: chạy `28` → `30` rồi chạy lại các file procedure đã đổi (danh sách ở `src/database/README.md`). |
 | Tải ảnh tour báo "Chưa lưu được ảnh trên máy chủ" | PHP không tạo / ghi được thư mục `src/public/assets/uploads/tours/`. | Cho tài khoản chạy Apache / PHP quyền ghi vào `src/public/assets/uploads/` (repo có sẵn file `.gitkeep`). |
 | Ảnh tour chỉ hiện ô xám có biểu tượng ảnh | Database có ảnh tải lên ở máy khác, file ảnh không có trên máy này. | Chép thư mục `src/public/assets/uploads/tours/` từ máy đã tải ảnh lên. |
-| Gửi yêu cầu đặt tour báo "Giá vé vừa thay đổi" hoặc "Lịch này chỉ còn X chỗ" | Hành vi đúng: giá hoặc số chỗ đã đổi từ lúc mở trang (quản trị viên vừa xác nhận chỗ cho đơn khác, hoặc giá vé được sửa). | Xem lại tổng tiền / số khách mới trên form rồi bấm "Xem lại & xác nhận" lần nữa. |
+| Bấm "Đặt tour và thanh toán" báo "Giá vừa thay đổi", "Lịch này chỉ còn X chỗ", "Lịch này vừa hết chỗ" hoặc "Lịch này không còn nhận đặt" | Hành vi đúng: giá, số chỗ hoặc lịch đã đổi từ lúc mở trang (đơn khác vừa giữ chỗ, giá vé được sửa, hoặc đã qua hạn nhận đặt trước giờ khởi hành). | Xem lại tổng tiền / số khách mới trên form (hoặc chọn ngày khác) rồi bấm "Xem lại & xác nhận" lần nữa. |
 | Trang thanh toán ghi VNPay hoặc VietQR "đang tạm ngưng" | Thiếu khóa trong `.env`. | Điền các khóa `VNPAY_…` / `PAYMENT_…` (Bước 3) rồi tải lại trang. |
 | Cổng VNPay báo lỗi chữ ký hoặc "Website không tồn tại" | `VNPAY_HASH_SECRET` / `VNPAY_TMN_CODE` sai, thừa khoảng trắng, hoặc lấy nhầm bộ khóa. | Chép lại đúng hai giá trị sandbox vào `.env`. |
 | Mọi tour đều "Chưa có lịch khởi hành sắp tới" | Dữ liệu mẫu đã import từ lâu, các ngày khởi hành đã qua. | Import lại `db_localtour.sql`. |
@@ -527,4 +544,4 @@ GRANT EXECUTE ON db_localtour.* TO 'localtour_app'@'<tiền tố IP của VPN>.%
 - Mọi form POST phải có `<?= csrf_field() ?>`; controller kiểm tra `Auth::verifyCsrf()` trước khi xử lý.
 - Thêm route trong `routes/web.php`, cập nhật [03 – Route và quy ước lỗi](../docs/sprint3/03-route-va-quy-uoc-loi.md) trong cùng lần thay đổi.
 - Không commit `.env`, mật khẩu, địa chỉ IP thật hay file log.
-- Sửa `src/database/01`–`21` thì sinh lại `src/database/db_localtour.sql` và commit cùng lúc (cách sinh xem [database/README.md](database/README.md)).
+- Sửa `src/database/01`–`30` thì sinh lại `src/database/db_localtour.sql` và commit cùng lúc (cách sinh xem [database/README.md](database/README.md)).

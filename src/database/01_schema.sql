@@ -2,7 +2,8 @@
 -- LocalTour v0.1 - 01_schema.sql
 -- Mục đích  : Tạo lược đồ CSDL db_localtour: lược đồ GỘP giữa ERD (trang 01 "Lõi đặt
 --             tour" + trang 02 "Khám phá & vận hành") và bảng yêu cầu chức năng (FR
---             board), tổng 27 bảng. Mỗi bảng / cột thêm mới có ghi chú FR mà nó phục vụ.
+--             board), tổng 27 bảng trong file này (các file migration sau thêm bảng: database
+--             đầy đủ sau file 28 có 37 bảng). Mỗi bảng / cột thêm mới có ghi chú FR mà nó phục vụ.
 --
 -- ĐÃ BỎ 2 bảng của ERD: post_comments, post_interactions (nút Thích / Bình luận /
 --   Chia sẻ trên giao diện chỉ hiện "Sắp có").
@@ -45,7 +46,10 @@
 SET @OLD_FOREIGN_KEY_CHECKS = @@FOREIGN_KEY_CHECKS;
 SET FOREIGN_KEY_CHECKS = 0;
 
--- Bảng do các file sau thêm (12: Sprint 4, 16: Sprint 5, 23 - 25): xóa luôn để chạy lại từ đầu không còn dữ liệu thử cũ.
+-- Bảng do các file sau thêm (12: Sprint 4, 16: Sprint 5, 23 - 25, 28): xóa luôn để chạy lại từ đầu không còn dữ liệu thử cũ.
+DROP TABLE IF EXISTS host_payout_items;
+DROP TABLE IF EXISTS host_payouts;
+DROP TABLE IF EXISTS settings;
 DROP TABLE IF EXISTS email_logs;
 DROP TABLE IF EXISTS user_social_accounts;
 DROP TABLE IF EXISTS map_place_cache;
@@ -54,7 +58,8 @@ DROP TABLE IF EXISTS tour_packages;
 DROP TABLE IF EXISTS booking_events;
 DROP TABLE IF EXISTS booking_extras;
 
--- Lược đồ hiện tại có 27 bảng: 17 bảng dưới đây và 10 bảng ở hai nhóm "triển khai lại".
+-- File này tạo 27 bảng: 17 bảng dưới đây và 10 bảng ở hai nhóm "triển khai lại" (bảng của các
+-- file migration sau, vd. settings / host_payouts ở file 28, không xóa ở đây).
 DROP TABLE IF EXISTS payment_events;
 DROP TABLE IF EXISTS refunds;
 DROP TABLE IF EXISTS reviews;
@@ -317,8 +322,8 @@ CREATE TABLE tour_schedules (
 
 -- LỊCH_KHỞI_HÀNH (FR-14 ngày khởi hành và sức chứa, FR-08 chọn ngày khi đặt).
 -- remaining = số chỗ còn nhận (không vượt quá capacity).
--- Lịch đặt được: status = 'open', starts_at sau thời điểm hiện tại, remaining > 0
--- và có ít nhất một loại vé đang bán.
+-- Lịch đặt được: status = 'open', còn hơn settings.booking_cutoff_minutes phút (mặc định 60,
+-- file 28) mới tới starts_at, remaining > 0 và có ít nhất một loại vé đang bán.
 CREATE TABLE schedules (
     id        CHAR(36)  NOT NULL,
     tour_id   CHAR(36)  NOT NULL,
@@ -379,7 +384,8 @@ CREATE TABLE cancellation_policies (
 -- contact_name / contact_email / contact_phone: người liên hệ của đơn, lưu lại lúc đặt
 --   (mặc định lấy từ tài khoản, khách có thể sửa khi đặt cho người khác).
 -- code: mã đơn đưa cho khách (vd. 'LT123456').
--- status: pending = Chờ xác nhận, awaiting_payment = Chờ thanh toán,
+-- status: pending = Chờ xác nhận (chỉ còn ở đơn tạo theo quy trình cũ; đơn mới được giữ chỗ
+--         ngay và bắt đầu ở awaiting_payment, file 10), awaiting_payment = Chờ thanh toán,
 --         confirmed = Đã xác nhận, rejected = Từ chối, cancelled = Đã hủy,
 --         completed = Đã hoàn thành (chỉ đơn completed mới được đánh giá).
 -- total_vnd = tổng line_total_vnd của các dòng đơn (không gồm tour_extras).

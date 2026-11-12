@@ -10,14 +10,14 @@
 $bookingStatus = (string) $booking['status'];
 $scheduleLabels = ['open' => 'đang mở bán', 'full' => 'hết chỗ', 'cancelled' => 'đã hủy', 'completed' => 'đã diễn ra'];
 $scheduleState = $scheduleLabels[(string) $booking['schedule_status']] ?? (string) $booking['schedule_status'];
-// Đơn đang giữ chỗ của lịch: đã được xác nhận chỗ, chưa hủy và chưa hoàn thành.
+// Đơn đang giữ chỗ của lịch: chờ thanh toán (giữ chỗ ngay lúc khách đặt) hoặc đã xác nhận, chưa hủy và chưa hoàn thành.
 $holdsSeats = in_array($bookingStatus, ['awaiting_payment', 'confirmed'], true);
 $ticketsVnd = (int) $booking['tickets_vnd'];
 $extrasVnd = (int) $booking['extras_vnd'];
 $totalVnd = (int) $booking['total_vnd'];
 $statusNotes = [
-    'pending' => 'Khách vừa gửi yêu cầu. Quản trị viên LocalTour sẽ xác nhận chỗ và giá; đơn chưa giữ chỗ của lịch.',
-    'awaiting_payment' => 'LocalTour đã xác nhận chỗ, đang chờ khách thanh toán. Đơn đang giữ chỗ của lịch tới hạn thanh toán.',
+    'pending' => 'Đơn tạo theo quy trình cũ, đang chờ quản trị viên LocalTour xác nhận chỗ và giá; đơn chưa giữ chỗ của lịch.',
+    'awaiting_payment' => 'Khách đã đặt và đang chờ thanh toán. Đơn giữ chỗ của lịch tới hạn thanh toán; quá hạn chưa thanh toán thì đơn tự hủy và chỗ được trả lại.',
     'confirmed' => 'Khách đã thanh toán và nhận voucher. Hãy chuẩn bị đón khách theo danh sách bên dưới.',
     'completed' => 'Tour đã diễn ra.',
     'rejected' => 'LocalTour đã từ chối yêu cầu này, khách không tham gia.',
