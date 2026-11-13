@@ -144,14 +144,17 @@ final class CustomerBookingController extends Controller
         return self::PAY_NOTICES[$code] ?? null;
     }
 
-    /** Tài khoản quản trị mở "Đơn của tôi": không có đơn khách hàng. */
+    /** Tài khoản quản trị viên hoặc đơn vị tổ chức mở "Đơn của tôi": không có đơn khách hàng. */
     private function renderNotCustomer(): void
     {
+        $where = $this->user['role'] === 'provider'
+            ? 'Đơn vị tổ chức xem đơn đặt tour của tour mình ở khu đơn vị tổ chức.'
+            : 'Đơn đặt tour được quản lý ở trang quản trị.';
         $this->render('bookings/message', [
             'title' => 'Không có đơn',
             'errorCode' => 'Lỗi 403',
             'heading' => 'Tài khoản này không có đơn đặt tour',
-            'text' => '"Đơn của tôi" chỉ dành cho tài khoản khách hàng. Yêu cầu đặt tour được quản lý ở trang quản trị.',
+            'text' => '"Đơn của tôi" chỉ dành cho tài khoản khách hàng. ' . $where,
             'pageStyles' => ['css/tour-detail.css', 'css/booking.css'],
         ], 403);
     }

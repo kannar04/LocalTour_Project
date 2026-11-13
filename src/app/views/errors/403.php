@@ -1,8 +1,10 @@
 <?php
 /*
- * Trang 403: đã đăng nhập nhưng không phải quản trị viên (hoặc quyền đã bị thu hồi) mà mở trang quản trị.
+ * Trang 403: đã đăng nhập nhưng không đúng loại tài khoản (hoặc quyền đã bị thu hồi) mà mở trang quản trị
+ * hoặc khu đơn vị tổ chức. $portal ('admin' | 'host', AdminController::forbidden()) chọn câu chữ và nút đăng nhập.
  * Độc lập với layout, giống trang 404.
  */
+$isHostArea = ($portal ?? 'admin') === 'host';
 ?><!doctype html>
 <html lang="vi">
 <head>
@@ -25,10 +27,18 @@
     <main class="error-card">
         <p class="error-code">403</p>
         <h1>Bạn không có quyền truy cập trang này.</h1>
+<?php if ($isHostArea): ?>
+        <p>Khu đơn vị tổ chức chỉ dành cho tài khoản đơn vị tổ chức tour.</p>
+<?php else: ?>
         <p>Trang quản trị chỉ dành cho tài khoản quản trị viên LocalTour.</p>
+<?php endif; ?>
         <div class="actions">
             <a class="primary" href="<?= e(url('/tours')) ?>">Về bảng tin du lịch</a>
+<?php if ($isHostArea): ?>
+            <a class="secondary" href="<?= e(url('/host/login')) ?>">Đăng nhập đơn vị tổ chức</a>
+<?php else: ?>
             <a class="secondary" href="<?= e(url('/admin/login')) ?>">Đăng nhập quản trị</a>
+<?php endif; ?>
         </div>
     </main>
 </body>

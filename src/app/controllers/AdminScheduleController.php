@@ -300,10 +300,13 @@ class AdminScheduleController extends AdminController
         return 'Sức chứa không được nhỏ hơn số chỗ đang giữ (' . $held . ' chỗ).';
     }
 
+    /** Khu đơn vị tổ chức: đơn vị chỉ xem đơn, không hủy được đơn, nên hướng dẫn liên hệ quản trị viên. */
     private static function hasBookings(int $count): string
     {
         return 'Không hủy được lịch: còn ' . $count . ' đơn đặt tour đang chờ xác nhận, chờ thanh toán hoặc đã xác nhận. '
-            . 'Hãy xử lý hoặc hủy các đơn này ở trang "Đơn đặt tour" trước.';
+            . (static::PORTAL === 'host'
+                ? 'Hãy liên hệ quản trị viên LocalTour để xử lý các đơn này trước.'
+                : 'Hãy xử lý hoặc hủy các đơn này ở trang "Đơn đặt tour" trước.');
     }
 
     /** @return array<string, string> */

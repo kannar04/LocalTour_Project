@@ -116,10 +116,12 @@ abstract class AdminController extends Controller
         return $messages[$this->query('msg')] ?? '';
     }
 
+    /** Trang 403; $portal cho trang biết đang ở trang quản trị hay khu đơn vị tổ chức. */
     protected static function forbidden(): never
     {
         http_response_code(403);
         header('Content-Type: text/html; charset=utf-8');
+        $portal = static::PORTAL;
         require BASE_PATH . '/app/views/errors/403.php';
         exit;
     }
