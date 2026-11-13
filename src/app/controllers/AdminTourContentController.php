@@ -351,7 +351,7 @@ class AdminTourContentController extends AdminController
             'not_found' => self::notFound(),
             'already_archived' => $this->renderContent($this->findTourOrFail($tourId), self::EMPTY_FORM, ['form' => 'Tour đã ở trạng thái "Ngừng hiển thị".'], '', 409),
             default => $this->renderContent($tour, self::EMPTY_FORM, ['form' => 'Không xóa được: tour còn ' . (int) ($row['active_bookings'] ?? 0)
-                . ' đơn đang chờ xác nhận, chờ thanh toán hoặc đã xác nhận. Hãy xử lý hoặc hủy các đơn này ở trang "Yêu cầu đặt tour" trước.'], '', 409),
+                . ' đơn đang chờ xác nhận, chờ thanh toán hoặc đã xác nhận. Hãy xử lý hoặc hủy các đơn này ở trang "Đơn đặt tour" trước.'], '', 409),
         };
     }
 

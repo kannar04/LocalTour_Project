@@ -302,8 +302,8 @@ class AdminScheduleController extends AdminController
 
     private static function hasBookings(int $count): string
     {
-        return 'Không hủy được lịch: còn ' . $count . ' yêu cầu đặt tour đang chờ xác nhận, chờ thanh toán hoặc đã xác nhận. '
-            . 'Hãy từ chối hoặc hủy các yêu cầu này ở trang "Yêu cầu đặt tour" trước.';
+        return 'Không hủy được lịch: còn ' . $count . ' đơn đặt tour đang chờ xác nhận, chờ thanh toán hoặc đã xác nhận. '
+            . 'Hãy xử lý hoặc hủy các đơn này ở trang "Đơn đặt tour" trước.';
     }
 
     /** @return array<string, string> */
