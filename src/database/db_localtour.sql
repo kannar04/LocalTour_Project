@@ -2922,6 +2922,8 @@ DELIMITER ;
 --   tour_rejected (FR-20), tour_archived (ngừng hiển thị, Sprint 5),
 --   tour_public (đang hiển thị cho khách), booking_total,
 --   booking_pending (yêu cầu chờ xác nhận, cần quản trị viên xử lý).
+--   Số tour không tính "bản sửa" (tours.revision_of khác NULL, file 32), trừ tour_pending:
+--   tour_pending tính cả bản sửa đang chờ duyệt vì quản trị viên cũng phải duyệt bản sửa.
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NMT_sp_admin_summary;
 
@@ -2948,13 +2950,14 @@ BEGIN
             FROM users
            WHERE role = 'customer') cu
     CROSS JOIN
-         (SELECT COUNT(*)                                     AS tour_total,
-                 COALESCE(SUM(t.approval_status = 'draft'), 0)    AS tour_draft,
-                 COALESCE(SUM(t.approval_status = 'pending'), 0)  AS tour_pending,
-                 COALESCE(SUM(t.approval_status = 'approved'), 0) AS tour_approved,
-                 COALESCE(SUM(t.approval_status = 'rejected'), 0) AS tour_rejected,
-                 COALESCE(SUM(t.approval_status = 'archived'), 0) AS tour_archived,
-                 COALESCE(SUM(t.approval_status = 'approved'
+         (SELECT COALESCE(SUM(t.revision_of IS NULL), 0)      AS tour_total,
+                 COALESCE(SUM(t.revision_of IS NULL AND t.approval_status = 'draft'), 0)    AS tour_draft,
+                 COALESCE(SUM(t.approval_status = 'pending'), 0)                            AS tour_pending,
+                 COALESCE(SUM(t.revision_of IS NULL AND t.approval_status = 'approved'), 0) AS tour_approved,
+                 COALESCE(SUM(t.revision_of IS NULL AND t.approval_status = 'rejected'), 0) AS tour_rejected,
+                 COALESCE(SUM(t.revision_of IS NULL AND t.approval_status = 'archived'), 0) AS tour_archived,
+                 COALESCE(SUM(t.revision_of IS NULL
+                              AND t.approval_status = 'approved'
                               AND p.approval_status = 'approved'
                               AND u.status = 'active'), 0)        AS tour_public
             FROM tours t
@@ -3436,7 +3439,8 @@ DELIMITER ;
 --                                   đối chiếu; khoản 'pending' của đơn chuyển 'failed')
 --               confirmed        -> completed (chỉ sau giờ khởi hành), cancelled (bắt buộc lý do)
 --               rejected, cancelled, completed: trạng thái cuối, không đổi được nữa.
---             Đổi ngày hoặc số người không thuộc FR-25 (thuộc FR-12, phát triển sau).
+--             Đổi ngày không thuộc FR-25 mà thuộc FR-12: khách gửi yêu cầu ở file 19, quản trị
+--             viên xử lý ở file 20. Đổi số người chưa có.
 --             Giữ chỗ (M4): đơn 'awaiting_payment' / 'confirmed' đang giữ chỗ của lịch (đơn mới
 --             giữ ngay lúc đặt, file 10). Đơn 'pending' (đơn cũ) chưa giữ chỗ: xác nhận chỗ
 --             (pending -> awaiting_payment) trừ schedules.remaining theo số khách của đơn, lịch

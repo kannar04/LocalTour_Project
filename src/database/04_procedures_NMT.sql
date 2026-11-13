@@ -250,6 +250,8 @@ DELIMITER ;
 --   tour_rejected (FR-20), tour_archived (ngừng hiển thị, Sprint 5),
 --   tour_public (đang hiển thị cho khách), booking_total,
 --   booking_pending (yêu cầu chờ xác nhận, cần quản trị viên xử lý).
+--   Số tour không tính "bản sửa" (tours.revision_of khác NULL, file 32), trừ tour_pending:
+--   tour_pending tính cả bản sửa đang chờ duyệt vì quản trị viên cũng phải duyệt bản sửa.
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NMT_sp_admin_summary;
 
@@ -276,13 +278,14 @@ BEGIN
             FROM users
            WHERE role = 'customer') cu
     CROSS JOIN
-         (SELECT COUNT(*)                                     AS tour_total,
-                 COALESCE(SUM(t.approval_status = 'draft'), 0)    AS tour_draft,
-                 COALESCE(SUM(t.approval_status = 'pending'), 0)  AS tour_pending,
-                 COALESCE(SUM(t.approval_status = 'approved'), 0) AS tour_approved,
-                 COALESCE(SUM(t.approval_status = 'rejected'), 0) AS tour_rejected,
-                 COALESCE(SUM(t.approval_status = 'archived'), 0) AS tour_archived,
-                 COALESCE(SUM(t.approval_status = 'approved'
+         (SELECT COALESCE(SUM(t.revision_of IS NULL), 0)      AS tour_total,
+                 COALESCE(SUM(t.revision_of IS NULL AND t.approval_status = 'draft'), 0)    AS tour_draft,
+                 COALESCE(SUM(t.approval_status = 'pending'), 0)                            AS tour_pending,
+                 COALESCE(SUM(t.revision_of IS NULL AND t.approval_status = 'approved'), 0) AS tour_approved,
+                 COALESCE(SUM(t.revision_of IS NULL AND t.approval_status = 'rejected'), 0) AS tour_rejected,
+                 COALESCE(SUM(t.revision_of IS NULL AND t.approval_status = 'archived'), 0) AS tour_archived,
+                 COALESCE(SUM(t.revision_of IS NULL
+                              AND t.approval_status = 'approved'
                               AND p.approval_status = 'approved'
                               AND u.status = 'active'), 0)        AS tour_public
             FROM tours t

@@ -28,7 +28,8 @@
 --                                   đối chiếu; khoản 'pending' của đơn chuyển 'failed')
 --               confirmed        -> completed (chỉ sau giờ khởi hành), cancelled (bắt buộc lý do)
 --               rejected, cancelled, completed: trạng thái cuối, không đổi được nữa.
---             Đổi ngày hoặc số người không thuộc FR-25 (thuộc FR-12, phát triển sau).
+--             Đổi ngày không thuộc FR-25 mà thuộc FR-12: khách gửi yêu cầu ở file 19, quản trị
+--             viên xử lý ở file 20. Đổi số người chưa có.
 --             Giữ chỗ (M4): đơn 'awaiting_payment' / 'confirmed' đang giữ chỗ của lịch (đơn mới
 --             giữ ngay lúc đặt, file 10). Đơn 'pending' (đơn cũ) chưa giữ chỗ: xác nhận chỗ
 --             (pending -> awaiting_payment) trừ schedules.remaining theo số khách của đơn, lịch
