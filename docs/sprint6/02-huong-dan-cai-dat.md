@@ -124,10 +124,10 @@ LocalTour – cài database
 OK        mysql: C:\xampp\mysql\bin\mysql.exe
 OK        Kết nối MySQL 127.0.0.1:3306 (tài khoản root, 10.4.32-MariaDB)
 OK        Tạo database db_localtour (utf8mb4_unicode_ci)
-          Import 26 file từ …\LocalTour_Project\src\database:
+          Import 32 file từ …\LocalTour_Project\src\database:
 OK        01_schema.sql (0,5 giây)
 …
-OK        Database db_localtour: 34 bảng, 112 procedure (đủ như các file 01_schema.sql → 26_procedures_NTK_setup.sql).
+OK        Database db_localtour: 37 bảng, 157 procedure (đủ như các file 01_schema.sql → 32_procedures_NTK_tour_revision.sql).
 ```
 
 Số file, số bảng và số procedure thay đổi theo phiên bản mã nguồn; điều cần thấy là dòng `OK` cuối có chữ “đủ như các file”.
@@ -184,8 +184,8 @@ CẢNH BÁO  VNPay sandbox chưa có VNPAY_TMN_CODE / VNPAY_HASH_SECRET (tùy ch
 CẢNH BÁO  VietQR chưa có PAYMENT_BANK_ID / PAYMENT_ACCOUNT_NO hợp lệ (tùy chọn): trang thanh toán hiện "VietQR đang tạm ngưng".
 OK        Kết nối database db_localtour tại 127.0.0.1:3306 (tài khoản root), 10.4.32-MariaDB
 OK        Bảng mã database: utf8mb4_unicode_ci
-OK        Đủ 34 bảng của 26 file 01_schema.sql → 26_procedures_NTK_setup.sql
-OK        Đủ 112 procedure của 26 file 01_schema.sql → 26_procedures_NTK_setup.sql
+OK        Đủ 37 bảng của 32 file 01_schema.sql → 32_procedures_NTK_tour_revision.sql
+OK        Đủ 157 procedure của 32 file 01_schema.sql → 32_procedures_NTK_tour_revision.sql
 OK        1 tài khoản quản trị đăng nhập được
 OK        35 lịch khởi hành còn nhận khách
 …
@@ -221,13 +221,13 @@ Màn hình hiện `PHP 8.2.12 Development Server (http://127.0.0.1:8080) started
 | `/tours` | Trang “Bảng tin du lịch” có 9 tour. |
 | `/tours/c0000000-0000-4000-8000-000000000001` | Trang chi tiết “Hà Nội qua những món ăn phố cổ”. |
 | `/admin/login`, đăng nhập bằng `admin@localtour.test` và mật khẩu ở mục 7 | Trang “Tổng quan” của quản trị viên. Mật khẩu sai → “Email hoặc mật khẩu không đúng.” |
-| `/register` tạo tài khoản khách hàng, đặt tour 1 cho 1 người lớn; quản trị viên mở đơn ở “Yêu cầu đặt tour”, chọn “Xác nhận chỗ và giá”; khách mở “Thanh toán ngay” | Đơn chuyển “Chờ thanh toán”. Khi `.env` chưa có khóa thanh toán thử, trang thanh toán hiện “VNPay đang tạm ngưng” và “VietQR đang tạm ngưng”. |
+| `/register` tạo tài khoản khách hàng, đặt tour 1 cho 1 người lớn | Đơn được giữ chỗ ngay, ở trạng thái “Chờ thanh toán”, và trang thanh toán của đơn mở ra. Khi `.env` chưa có khóa thanh toán thử, trang thanh toán hiện “VNPay đang tạm ngưng” và “VietQR đang tạm ngưng”. |
 
 Các ca kiểm tra chi tiết hơn (đăng nhập, quản trị, đặt tour, thanh toán, so sánh tour, đổi ngày / hủy tour) ở `src/README.md`, Bước 5–11.
 
-## 9. Lịch tự hủy đơn quá hạn thanh toán
+## 9. Lịch tự hủy đơn quá hạn thanh toán và việc sau tour
 
-Trên máy chạy demo, đăng ký Windows Task Scheduler chạy `expire_holds.php` mỗi 15 phút (cần có `.env`, database đã cài và MySQL đang chạy):
+Trên máy chạy demo, đăng ký Windows Task Scheduler chạy `expire_holds.php` mỗi 15 phút (cần có `.env`, database đã cài và MySQL đang chạy). Mỗi lần chạy, script hủy đơn “Chờ thanh toán” đã quá hạn giữ chỗ rồi làm việc sau tour: đơn đã xác nhận của lịch khởi hành đã kết thúc chuyển “Đã hoàn thành” và hệ thống lập khoản chi trả cho đơn vị tổ chức:
 
 ```bat
 scripts\register_expire_task.bat
@@ -235,6 +235,7 @@ scripts\register_expire_task.bat
 
 ```text
 2026-11-11 16:41:02 – đã hủy 0 đơn quá hạn thanh toán.
+2026-11-11 16:41:02 – đã tự hoàn thành 0 đơn, 0 lịch khởi hành; đã lập 0 khoản chi trả.
 SUCCESS: The scheduled task "LocalTour - Tu huy don qua han" has successfully been created.
 Đã đăng ký "LocalTour - Tu huy don qua han": chạy mỗi 15 phút. Gỡ bằng: register_expire_task.bat /delete
 ```

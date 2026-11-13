@@ -52,7 +52,16 @@ src/
 │   │   ├── ChangeRequestController.php   # Khách gửi yêu cầu đổi ngày / hủy tour
 │   │   ├── AdminChangeRequestController.php # Quản trị viên xử lý yêu cầu đổi ngày / hủy
 │   │   ├── AdminPackageController.php    # Gói tour
-│   │   └── AdminTourContentController.php   # Ảnh, lịch trình, dịch vụ, chính sách hủy, xóa tour
+│   │   ├── AdminTourContentController.php   # Ảnh, lịch trình, dịch vụ, chính sách hủy, xóa tour
+│   │   ├── AdminPayoutController.php     # Chi trả đơn vị tổ chức, xác minh tài khoản nhận tiền, ghi "Đã hoàn tiền"
+│   │   ├── AdminSettingController.php    # Thông số vận hành (phí dịch vụ, giữ chỗ, hạn nhận đặt, hạn VietQR)
+│   │   ├── HostAuthController.php        # Đăng nhập, đăng xuất khu đơn vị tổ chức (/host)
+│   │   ├── HostTourController.php        # Tour của tôi, gửi duyệt, ngừng hiển thị, bản sửa của tour đã duyệt
+│   │   ├── HostTourFormController.php    # Đơn vị thêm / sửa thông tin tour (lớp con của AdminTourFormController)
+│   │   ├── HostScheduleController.php    # Đơn vị quản lý lịch khởi hành, giá vé (lớp con của AdminScheduleController)
+│   │   ├── HostTourContentController.php # Đơn vị quản lý ảnh, lịch trình, dịch vụ, chính sách hủy
+│   │   ├── HostBookingController.php     # Đơn vị xem đơn đặt tour của tour mình (chỉ xem)
+│   │   └── HostPayoutController.php      # Đơn vị xem khoản chi trả, khai tài khoản nhận tiền
 │   ├── models/
 │   │   ├── TourListModel.php
 │   │   ├── TourDetailModel.php
@@ -76,14 +85,20 @@ src/
 │   │   ├── ChangeRequestModel.php
 │   │   ├── AdminChangeRequestModel.php
 │   │   ├── AdminPackageModel.php
-│   │   └── AdminTourContentModel.php
+│   │   ├── AdminTourContentModel.php
+│   │   ├── HostModel.php             # Đơn vị của tài khoản đang đăng nhập, tour và đơn đặt tour của đơn vị
+│   │   ├── TourRevisionModel.php     # Gửi duyệt, ngừng hiển thị, bản sửa của tour đã duyệt
+│   │   ├── PayoutModel.php           # Việc sau tour, khoản chi trả, tài khoản nhận tiền, hoàn tiền
+│   │   └── SettingModel.php          # Thông số vận hành
 │   ├── services/                 # VnpayGateway.php (tạo URL, kiểm tra chữ ký), VietQr.php (ảnh mã QR)
 │   └── views/
-│       ├── admin/                # login.php, dashboard.php, tours/ (có content.php), bookings/, payments/, providers/, schedules/,
-│       │                         # packages/, change-requests/, partials/nav.php
+│       ├── admin/                # login.php, dashboard.php, tours/ (có content.php, partials/revision_compare.php), bookings/, payments/,
+│       │                         # providers/, schedules/, packages/, change-requests/, payouts/, settings/, partials/nav.php
 │       ├── auth/                 # login.php, register.php
 │       ├── bookings/             # create.php (đặt tour), index.php, show.php (đơn của tôi), message.php, change.php (đổi ngày / hủy)
 │       ├── errors/               # 403.php, 404.php, 500.php
+│       ├── host/                 # login.php, tours/ (index.php, show.php), bookings/ (index.php, show.php),
+│       │                         # payouts/ (index.php, show.php, bank.php); form tour, lịch, nội dung dùng chung view của admin/
 │       ├── layouts/              # main.php
 │       ├── payments/             # checkout.php (chọn phương thức), transfer.php (VietQR)
 │       ├── partials/             # header.php (nút tài khoản, Đơn của tôi), sidebar.php, footer.php
@@ -214,6 +229,25 @@ Tiền tố tên procedure cho biết người phụ trách: `LTP_` – Lê Trun
 | POST | `/admin/tours/{id}/content/inclusions`, `…/inclusions/{inclusionId}/delete` | `AdminTourContentController` | Thêm, xóa dịch vụ bao gồm / không bao gồm. |
 | POST | `/admin/tours/{id}/content/policy` | `AdminTourContentController@addPolicy` | Lưu chính sách hủy = thêm phiên bản mới; `policy_hours` (trống = không có mốc hủy miễn phí), `policy_percent`, `policy_terms` (bắt buộc). |
 | POST | `/admin/tours/{id}/delete`, `/admin/tours/{id}/restore` | `AdminTourContentController` | Xóa tour (`confirm=1`): chưa có đơn thì xóa hẳn, đã có đơn thì ngừng hiển thị, còn đơn đang xử lý → 409. Khôi phục tour ngừng hiển thị về "Chờ duyệt". |
+| GET | `/admin/payouts` | `AdminPayoutController@index` | "Chi trả đơn vị tổ chức": khoản chi trả theo `status` (mặc định khoản chờ chi trả), lịch đã kết thúc còn chờ lập khoản và các khoản hoàn tiền chờ ghi nhận. |
+| GET | `/admin/payouts/{id}` | `AdminPayoutController@show` | Chi tiết khoản chi trả: từng đơn, tiền thực thu, phí dịch vụ, thực nhận, tài khoản nhận tiền của đơn vị. |
+| POST | `/admin/payouts/{id}/bank/verify` | `AdminPayoutController@verifyBank` | `bank_name`, `account_no`, `account_name` (tài khoản đang hiện trên trang), `_csrf`; đánh dấu tài khoản nhận tiền đã xác minh. |
+| POST | `/admin/payouts/{id}/pay` | `AdminPayoutController@pay` | `reference` (mã giao dịch chuyển khoản, bắt buộc), `note`, `account_no`, `_csrf`; 422 thiếu mã giao dịch, 409 khi khoản đã chi trả, đơn vị chưa khai đủ tài khoản, tài khoản vừa đổi hoặc chưa xác minh. |
+| POST | `/admin/refunds/{id}/complete` | `AdminPayoutController@completeRefund` | `reference`, `_csrf`; ghi "Đã hoàn tiền" cho khoản hoàn đã chuyển khoản lại cho khách. |
+| GET, POST | `/admin/settings` | `AdminSettingController` | "Thông số vận hành": % phí dịch vụ, số phút giữ chỗ, hạn nhận đặt trước giờ khởi hành, hạn nhận chuyển khoản VietQR; 422 lỗi theo ô. |
+| GET, POST | `/host/login` | `HostAuthController` | Đăng nhập khu đơn vị tổ chức: `email`, `password`, `next` (chỉ nhận đường dẫn `/host…`), `_csrf`; chỉ tài khoản `provider` đang `active` của đơn vị đang hợp tác. Đơn vị không tự đăng ký: quản trị viên cấp mật khẩu ở trang "Đơn vị tổ chức". |
+| POST | `/host/logout` | `HostAuthController@logout` | `_csrf`; xong chuyển về `/host/login`. |
+| GET | `/host`, `/host/tours` | `HostTourController@index` | "Tour của tôi": chỉ tour của đơn vị đang đăng nhập. |
+| GET | `/host/tours/{id}` | `HostTourController@show` | Tổng quan một tour của đơn vị: trạng thái duyệt, lý do bị từ chối, phần còn thiếu; 404 khi tour của đơn vị khác. |
+| GET, POST | `/host/tours/new`, `/host/tours/{id}/edit` | `HostTourFormController` | Thêm tour (bắt đầu ở "Nháp"), sửa thông tin tour đang "Nháp" hoặc "Bị từ chối". |
+| POST | `/host/tours/{id}/submit` | `HostTourController@submit` | `_csrf`; gửi duyệt: tour sang "Chờ duyệt" và bị khóa tới khi quản trị viên xử lý. |
+| POST | `/host/tours/{id}/revision`, `/host/tours/{id}/revision/discard` | `HostTourController` | `_csrf`; tạo hoặc hủy bản sửa của tour đã duyệt (mỗi tour tối đa một bản sửa đang mở). |
+| POST | `/host/tours/{id}/archive` | `HostTourController@archive` | `_csrf`; ngừng hiển thị tour đã duyệt khi tour không còn đơn đang xử lý. |
+| GET, POST | `/host/tours/{id}/schedules`, `/host/schedules/{id}/edit` | `HostScheduleController` | Lịch khởi hành, sức chứa, giá vé của tour mình; không cần duyệt. |
+| GET, POST | `/host/tours/{id}/content`, `…/content/images`, `…/content/itinerary`, `…/content/inclusions`, `…/content/policy` | `HostTourContentController` | Ảnh, lịch trình, dịch vụ, chính sách hủy của tour mình, như các route `/admin/tours/{id}/content…`. |
+| GET | `/host/bookings`, `/host/bookings/{id}` | `HostBookingController` | Đơn đặt tour của các tour mình, chỉ xem; lọc `status`, `tour`. |
+| GET | `/host/payouts`, `/host/payouts/{id}` | `HostPayoutController` | "Doanh thu & chi trả": khoản chi trả của chính đơn vị. |
+| GET, POST | `/host/bank` | `HostPayoutController` | "Tài khoản nhận tiền": `bank_name`, `bank_account_no`, `bank_account_name`, `_csrf`; đổi tài khoản thì phải được xác minh lại. |
 | GET | `/ban-do` | `TourMapController@index` | Bản đồ các tour (Leaflet 1.9.4, nền OpenStreetMap). Chưa chạy `23_map_places_NTK.sql` thì "đang tạm ngưng". |
 | GET | `/api/tours/{id}/places` | `TourMapController@apiPlaces` | JSON quán ăn, bar, giải trí, quán nước trong 1,5 km quanh điểm khởi hành (Overpass API gọi từ máy chủ, lưu đệm 7 ngày ở `map_place_cache`); lỗi thì dùng bản lưu cũ hoặc báo "Chưa tải được địa điểm, thử lại sau.". |
 | GET, POST | `/admin/tours/{id}/location` | `AdminTourLocationController` | Đặt / xóa tọa độ điểm khởi hành của tour (bấm trên bản đồ hoặc nhập số). |
@@ -223,7 +257,7 @@ Tiền tố tên procedure cho biết người phụ trách: `LTP_` – Lê Trun
 | POST | `/payments/momo/ipn` | `MomoController@ipn` | JSON của MoMo, trả 204. Chỉ tới được khi máy chủ có địa chỉ HTTPS công khai. |
 | POST | `/admin/payments/{id}/momo` | `AdminPaymentController@momoCheck` | "Tra cứu MoMo": ghi đúng kết quả MoMo trả lời cho khoản quá 15 phút chưa rõ kết quả. |
 
-Mọi trang `/admin…` (trừ `/admin/login`): chưa đăng nhập thì chuyển tới `/admin/login`, đăng nhập bằng tài khoản không phải quản trị viên thì nhận trang 403.
+Mọi trang `/admin…` (trừ `/admin/login`): chưa đăng nhập thì chuyển tới `/admin/login`, đăng nhập bằng tài khoản không phải quản trị viên thì nhận trang 403. Mọi trang `/host…` (trừ `/host/login`): chưa đăng nhập thì chuyển tới `/host/login`; đơn vị chỉ mở được tour, đơn đặt tour và khoản chi trả của chính mình.
 
 Đầu vào, đầu ra và mã lỗi chi tiết xem [03 – Route và quy ước lỗi](../docs/sprint3/03-route-va-quy-uoc-loi.md); các route đặt tour xem [02 – Yêu cầu và luồng đặt tour](../docs/sprint4/02-yeu-cau-va-luong-dat-tour.md); các route Sprint 5 xem [01 – Yêu cầu và luồng Sprint 5](../docs/sprint5/01-yeu-cau-va-luong-sprint5.md).
 
