@@ -7,7 +7,7 @@
 | Người phụ trách | Hồ Duy Hải, Đỗ Sơn Thành |
 | Căn cứ | Giao diện bản tích hợp Sprint 6, gồm yêu cầu thay đổi CR2 (đặt tour giữ chỗ ngay, tài khoản đơn vị tổ chức, phí dịch vụ và chi trả, thông số vận hành); Product Backlog (US-01 → US-29); [Sprint 5 – Yêu cầu và luồng](../sprint5/01-yeu-cau-va-luong-sprint5.md); [Sprint 4 – Yêu cầu và luồng đặt tour](../sprint4/02-yeu-cau-va-luong-dat-tour.md) |
 | Tài liệu liên quan | [01 – Kế hoạch Sprint 6](01-ke-hoach-sprint6.md), [02 – Hướng dẫn cài đặt](02-huong-dan-cai-dat.md), [04 – Kế hoạch và checklist UAT](04-uat-checklist.md) |
-| Trạng thái | Bản nháp; nội dung đã cập nhật theo CR2. Ảnh minh họa đã chụp lại trên bản tích hợp có CR2 (13/11/2026); đối chiếu với gói demo 6.3, chốt ngày 16/11/2026. |
+| Trạng thái | Bản nháp; nội dung đã cập nhật theo CR2. Ảnh minh họa đã chụp lại trên bản tích hợp có CR2 (13/11/2026); đối chiếu với gói demo 6.3, chốt ngày 15/11/2026 trước khi gửi nhóm PCG. |
 
 Tên nút, nhãn và thông báo trong tài liệu chép đúng như trên màn hình. Ảnh minh họa dùng dữ liệu thử (tài khoản `khach.a@localtour.test`, đơn LT577460, đơn vị tổ chức “Hà Nội Local”); tài khoản ngân hàng trong ảnh là số mẫu.
 

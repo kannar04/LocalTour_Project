@@ -4,11 +4,11 @@
 | --- | --- |
 | Sprint | Sprint 6 – Chuẩn bị demo, hướng dẫn và nghiệm thu UAT (13/11 – 19/11/2026) |
 | WBS | 6.5 – Thực hiện UAT; 6.6 – Sửa lỗi chặn UAT; 6.7 – Tổng hợp nghiệm thu demo |
-| Người phụ trách | Hồ Duy Hải, Đỗ Sơn Thành (QA / Documentation); sửa lỗi: Lê Trung Phong, Nguyễn Tuấn Khôi, Nguyễn Minh Thức |
+| Người phụ trách | Hồ Duy Hải, Đỗ Sơn Thành (QA / Documentation); chạy ca: nhóm PCG; sửa lỗi: Lê Trung Phong, Nguyễn Tuấn Khôi, Nguyễn Minh Thức |
 | Căn cứ | Product Backlog (USECASEPLAN): US-01 → US-29 và tiêu chí nghiệm thu; yêu cầu thay đổi CR2 (FR-26 → FR-30; điều chỉnh FR-08, FR-11, FR-17, FR-25); Báo cáo tổng hợp Sprint 5 (mục 3, 8.1); Test Plan và RTM Sprint 5 (mức độ lỗi, defect log) |
 | Tài liệu liên quan | [01 – Kế hoạch Sprint 6](01-ke-hoach-sprint6.md), [02 – Hướng dẫn cài đặt](02-huong-dan-cai-dat.md), [03 – Hướng dẫn sử dụng](03-huong-dan-su-dung.md), [05 – Biên bản thử cài đặt](05-bien-ban-thu-cai-dat.md) |
 | Bộ ca UAT | UAT-01 → UAT-54 (50 Must, 3 Should, 1 Could), phủ 29/29 User Story |
-| Trạng thái | Bản nháp; đã cập nhật theo CR2 (UAT-09 → UAT-37 viết lại theo đặt tour giữ chỗ ngay, thêm UAT-38 → UAT-54). Đã chạy thử đủ 54 ca trên bản tích hợp ngày 13/11/2026 và sửa câu chữ 6 ca cho khớp màn hình (UAT-03, 06, 28, 31, 37, 42). Nhóm rà soát và chốt trước khi chạy UAT ngày 17/11/2026. |
+| Trạng thái | Bản nháp; đã cập nhật theo CR2 (UAT-09 → UAT-37 viết lại theo đặt tour giữ chỗ ngay, thêm UAT-38 → UAT-54). Đã chạy thử đủ 54 ca trên bản tích hợp ngày 13/11/2026 và sửa câu chữ 6 ca cho khớp màn hình (UAT-03, 06, 28, 31, 37, 42). Nhóm rà soát và chốt trước khi nhóm PCG chạy UAT ngày 16/11/2026. |
 
 ## 1. Mục tiêu và phạm vi
 
@@ -34,9 +34,9 @@ Ngoài phạm vi (không ghi “Không đạt” cho các mục này):
 | Vai trò | Người | Việc |
 | --- | --- | --- |
 | Điều phối, ghi kết quả | Hồ Duy Hải, Đỗ Sơn Thành | Chạy ca theo thứ tự, ghi kết quả và minh chứng, ghi defect log, lập biên bản. |
-| Người dùng vai khách hàng | ……… (nhóm cử) | Thao tác các bước của KH-A, KH-B. |
-| Người dùng vai quản trị viên | ……… (nhóm cử) | Thao tác các bước của QTV. |
-| Người dùng vai đơn vị tổ chức | ……… (nhóm cử) | Thao tác các bước của ĐV-A, ĐV-B. |
+| Người dùng vai khách hàng | ……… (nhóm PCG) | Thao tác các bước của KH-A, KH-B. |
+| Người dùng vai quản trị viên | ……… (nhóm PCG) | Thao tác các bước của QTV. |
+| Người dùng vai đơn vị tổ chức | ……… (nhóm PCG) | Thao tác các bước của ĐV-A, ĐV-B. |
 | Hỗ trợ kỹ thuật, sửa lỗi chặn (6.6) | Lê Trung Phong, Nguyễn Tuấn Khôi, Nguyễn Minh Thức | Xem lỗi, sửa, cập nhật gói demo; không thao tác thay người dùng. |
 | Quyết định Go / No-go | Cả nhóm; PM Lê Trung Phong ký | Theo mục 4. |
 
@@ -44,11 +44,11 @@ Ngoài phạm vi (không ghi “Không đạt” cho các mục này):
 
 | Mục | Nội dung |
 | --- | --- |
-| Máy | Máy đã cài ở 6.4 ([05 – Biên bản thử cài đặt](05-bien-ban-thu-cai-dat.md)); ghi tên máy, Windows, XAMPP, PHP vào biên bản. |
+| Máy | Máy của nhóm PCG, cài ở 6.4 sáng 16/11 ([05 – Biên bản thử cài đặt](05-bien-ban-thu-cai-dat.md)); ghi tên máy, Windows, XAMPP, PHP vào biên bản. |
 | Gói demo | Gói 6.3 (hoặc gói cập nhật sau 6.6); ghi mã commit vào biên bản. |
-| Database | Cài mới theo 02 sáng 17/11. Không cài lại giữa hai ngày: ca ngày 18/11 dùng tiếp tài khoản và khoản hoàn tiền tạo ngày 17/11 (UAT-53). Không dùng database chung của nhóm. |
+| Database | Cài mới theo 02 sáng 16/11, chạy hết 54 ca trong ngày. Không cài lại giữa buổi: các ca sau dùng tiếp tài khoản, đơn và khoản hoàn tiền của các ca trước (UAT-53 dùng khoản của UAT-16, UAT-28). Không dùng database chung của nhóm. |
 | Tài khoản | QTV: tạo bằng `create_admin.php` theo 02. KH-A, KH-B: đăng ký ở `/register` (email `…@localtour.test`) trong UAT-07. ĐV-A, ĐV-B: QTV thêm ở trang “Đơn vị tổ chức” và cấp mật khẩu trong UAT-38 (email `…@localtour.test`). Không ghi mật khẩu vào tài liệu. |
-| Thanh toán | Khóa VNPay sandbox và VietQR đã điền trong `.env` của máy UAT. VietQR: không chuyển tiền thật, khách bấm “Tôi đã chuyển khoản”, QTV đối chiếu. VNPay: thẻ thử của VNPay sandbox. Hoàn tiền và chi trả: không chuyển tiền thật, nhập mã giao dịch thử. |
+| Thanh toán | Khóa VNPay sandbox và VietQR đã điền trong `.env` của máy UAT (thành viên nhóm điền khi cài; gói gửi nhóm PCG không có khóa). VietQR: không chuyển tiền thật, khách bấm “Tôi đã chuyển khoản”, QTV đối chiếu. VNPay: thẻ thử của VNPay sandbox. Hoàn tiền và chi trả: không chuyển tiền thật, nhập mã giao dịch thử. |
 | Tác vụ tự động | Đã chạy `src/scripts/register_expire_task.bat` (15 phút một lần: hủy đơn quá hạn giữ chỗ, tự hoàn thành đơn của lịch đã kết thúc, lập khoản chi trả). Các trang “Đơn của tôi”, “Đơn đặt tour”, “Đối chiếu thanh toán”, “Chi trả đơn vị tổ chức” cũng chạy các bước này khi mở. Cần chạy ngay: mở cửa sổ lệnh ở thư mục `src`, chạy `C:\xampp\php\php.exe scripts\expire_holds.php`. |
 | Thông số vận hành | Giá trị mặc định: phí dịch vụ 10 %, giữ chỗ 30 phút, ngừng nhận đặt 60 phút trước giờ khởi hành, ngừng nhận VietQR 24 giờ trước giờ khởi hành. Chỉ đổi trong UAT-48, UAT-51, UAT-52 và đặt lại như ca ghi. |
 | Trình duyệt | Chrome bản mới, desktop. Ba phiên, mỗi phiên một tài khoản: cửa sổ thường cho khách, cửa sổ ẩn danh cho QTV, một trình duyệt thứ hai cho đơn vị tổ chức (UAT-17 dùng trình duyệt thứ hai cho KH-B). |
@@ -85,7 +85,7 @@ Quy ước khi đặt đơn:
 
 ## 4. Tiêu chí vào / ra và quy tắc Go / No-go
 
-| Tiêu chí vào (trước khi chạy 17/11) |
+| Tiêu chí vào (trước khi chạy 16/11) |
 | --- |
 | 1. Gói demo cài được trên máy UAT chỉ theo 02; biên bản 05 không còn lỗi chặn. |
 | 2. Bước kiểm tra cài đặt của 02 đạt; `/tours` hiện 9 tour; QTV đăng nhập được `/admin/login`. |
@@ -112,8 +112,8 @@ Mức độ lỗi (giữ như Sprint 5):
 
 | Mức | Định nghĩa | Xử lý |
 | --- | --- | --- |
-| Critical | Sai / mất dữ liệu đơn, chỗ hoặc tiền; lộ đơn của khách khác; đơn vị tổ chức xem được tour, đơn hoặc khoản chi trả của đơn vị khác; khách hàng dùng được chức năng quản trị; lỗi PHP / trang trắng chặn cả một story. | Sửa 18/11 (6.6); còn mở → No-go |
-| High | Chức năng chính của một story sai hoặc không làm được, không có cách khác. | Sửa 18/11 (6.6); còn mở → No-go |
+| Critical | Sai / mất dữ liệu đơn, chỗ hoặc tiền; lộ đơn của khách khác; đơn vị tổ chức xem được tour, đơn hoặc khoản chi trả của đơn vị khác; khách hàng dùng được chức năng quản trị; lỗi PHP / trang trắng chặn cả một story. | Sửa 17/11 (6.6); còn mở → No-go |
+| High | Chức năng chính của một story sai hoặc không làm được, không có cách khác. | Sửa 17/11 (6.6); còn mở → No-go |
 | Medium | Chạy nhưng sai ở trường hợp phụ, thông báo sai / thiếu; có cách làm khác. | Sửa nếu kịp, không thì chuyển Sprint 7 |
 | Low | Câu chữ, căn lề, giao diện nhỏ; không ảnh hưởng nghiệp vụ. | Ghi nhận, chuyển Sprint 7 nếu chưa sửa |
 
@@ -123,10 +123,12 @@ Defect log dùng cột như Sprint 5 (Mã lỗi, Ca UAT, Tiêu đề, Mức đ�
 
 | Ngày | Việc | Người |
 | --- | --- | --- |
-| 17/11 | Kiểm tra tiêu chí vào; chạy UAT-01 → UAT-37 (UAT-25, UAT-26 chạy sau khi đơn hết thời gian giữ chỗ 30 phút); báo ngay lỗi chặn. | Hải, Thành, người dùng đại diện |
-| 18/11 | Chạy UAT-38 → UAT-54 (UAT-45 chạy cuối, sau UAT-54; UAT-52 chạy trong lúc chờ lịch của UAT-51 kết thúc). | Hải, Thành, người dùng đại diện |
-| 18/11 | Sửa lỗi Critical / High (6.6), cập nhật gói, chạy lại ca liên quan. | Phong, Thức, Khôi (người làm chức năng có lỗi); Hải, Thành chạy lại |
-| 18/11 | Ký biên bản UAT (mục 8). | Cả nhóm |
+| 16/11, sáng | Cài gói demo trên máy UAT theo 02 (6.4); kiểm tra tiêu chí vào. | Phong, Thức, Khôi; nhóm PCG |
+| 16/11, sáng | Chạy UAT-01 → UAT-37 (UAT-25, UAT-26 chạy sau khi đơn hết thời gian giữ chỗ 30 phút, trong lúc đó chạy tiếp các ca khác); báo ngay lỗi chặn. | Nhóm PCG; Hải, Thành điều phối |
+| 16/11, chiều | Chạy UAT-38 → UAT-54 (UAT-45 chạy cuối, sau UAT-54; UAT-52 chạy trong lúc chờ lịch của UAT-51 kết thúc). | Nhóm PCG; Hải, Thành điều phối |
+| 16/11, cuối buổi | Điền kết quả vào biên bản UAT (mục 8); nhóm PCG ký phần người dùng. | Nhóm PCG; Hải, Thành |
+| 17/11 | Sửa lỗi Critical / High (6.6), cập nhật gói. | Phong, Thức, Khôi (người làm chức năng có lỗi) |
+| 18/11 | Chạy lại ca liên quan trên gói đã cập nhật (và ca chưa chạy ngày 16/11); ghi lỗi đã sửa vào biên bản; ký biên bản. | Hải, Thành chạy lại; cả nhóm ký |
 | 19/11 | Tổng hợp nghiệm thu demo (mục 9), quyết định Go / No-go. | Hải, Thành lập; cả nhóm quyết định |
 
 ## 6. Checklist UAT
@@ -257,7 +259,7 @@ Cột Kết quả ghi **Đạt** hoặc **Không đạt**. Ca không chạy đư
 | US-14 | Should | UAT-27, 28, 29 | US-29 | Must | UAT-48, 51, 52 |
 | US-15 | Could | UAT-06 | | | |
 
-## 8. Biên bản nghiệm thu UAT (điền ngày 18/11)
+## 8. Biên bản nghiệm thu UAT (điền ngày 16/11; phần sửa lỗi 6.6 điền ngày 18/11)
 
 | Mục | Nội dung |
 | --- | --- |
@@ -275,9 +277,9 @@ Thành phần:
 | Nguyễn Minh Thức | Phát triển, hỗ trợ kỹ thuật | ☐ |
 | Hồ Duy Hải | QA, điều phối UAT | ☐ |
 | Đỗ Sơn Thành | QA, điều phối UAT | ☐ |
-| ……… | Người dùng vai khách hàng | ☐ |
-| ……… | Người dùng vai quản trị viên | ☐ |
-| ……… | Người dùng vai đơn vị tổ chức | ☐ |
+| ……… (nhóm PCG) | Người dùng vai khách hàng | ☐ |
+| ……… (nhóm PCG) | Người dùng vai quản trị viên | ☐ |
+| ……… (nhóm PCG) | Người dùng vai đơn vị tổ chức | ☐ |
 
 Tổng hợp kết quả:
 
