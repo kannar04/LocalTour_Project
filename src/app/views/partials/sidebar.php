@@ -6,7 +6,7 @@
  *                'mobile' (trang chi tiết / không tìm thấy): chỉ là panel thu gọn dưới 992px.
  * Mục: Bảng tin, "Đơn của tôi" (chỉ tài khoản khách hàng), "So sánh tour" (FR-15, Sprint 5: compare.js gắn
  * các tour đã chọn vào link .js-compare-link), "Bản đồ" (/ban-do, điểm khởi hành của các tour) và
- * "Đăng ký đơn vị tổ chức" (/host/register; ẩn với quản trị viên và đơn vị tổ chức đã đăng nhập).
+ * "Dành cho đơn vị tổ chức" (/host/login; chỉ hiện khi chưa đăng nhập).
  * Danh sách #sidebar-destinations được JS điền từ /api/destinations
  * (tour-list.js ở chế độ 'column', app.js tải khi mở panel ở chế độ 'mobile').
  */
@@ -17,8 +17,8 @@ $isBookingsActive = ($activeNav ?? 'feed') === 'bookings';
 $isCompareActive = ($activeNav ?? 'feed') === 'compare';
 $isMapActive = ($activeNav ?? 'feed') === 'map';
 $isCustomer = (current_user()['role'] ?? '') === 'customer';
-// "Đăng ký đơn vị tổ chức" (/host/register): cho khách chưa đăng nhập và tài khoản khách hàng.
-$canRegisterHost = !in_array(current_user()['role'] ?? '', ['admin', 'provider'], true);
+// "Dành cho đơn vị tổ chức" (/host/login): chỉ hiện khi chưa đăng nhập. Đơn vị không tự đăng ký, quản trị viên cấp tài khoản.
+$showHostLogin = current_user() === null;
 ?>
 <?php if (!$isColumn): ?>
 <div class="container-xl lt-container d-lg-none">
@@ -57,11 +57,11 @@ $canRegisterHost = !in_array(current_user()['role'] ?? '', ['admin', 'provider']
                     <span class="lt-nav__label">Bản đồ</span>
                 </a>
             </li>
-<?php if ($canRegisterHost): ?>
+<?php if ($showHostLogin): ?>
             <li>
-                <a class="lt-nav__link" href="<?= e(url('/host/register')) ?>">
-                    <span class="lt-icon lt-icon--plus" aria-hidden="true"></span>
-                    <span class="lt-nav__label">Đăng ký đơn vị tổ chức</span>
+                <a class="lt-nav__link" href="<?= e(url('/host/login')) ?>">
+                    <span class="lt-icon lt-icon--log-in" aria-hidden="true"></span>
+                    <span class="lt-nav__label">Dành cho đơn vị tổ chức</span>
                 </a>
             </li>
 <?php endif; ?>

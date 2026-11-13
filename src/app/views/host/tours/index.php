@@ -3,7 +3,7 @@
 /*
  * Khu đơn vị tổ chức: "Tour của tôi" (Nguyễn Tuấn Khôi).
  * Biến: $host (đơn vị đang đăng nhập, NTK_sp_host_profile), $tours (NTK_sp_host_tour_list: mọi tour của đơn vị,
- *       tour bị từ chối và chờ duyệt trước).
+ *       tour bị từ chối và bản nháp trước; revision_id / revision_status = bản sửa đang mở của tour đã duyệt).
  */
 ?>
 <div class="container-xl lt-container lt-page">
@@ -49,6 +49,9 @@
                                     <span class="lt-badge lt-badge--<?= e($tour['approval_status']) ?>"><?= e(tour_status_label($tour['approval_status'])) ?></span>
 <?php if ($tour['reject_note'] !== null): ?>
                                     <span class="lt-table__sub">Lý do: <?= e($tour['reject_note']) ?></span>
+<?php endif; ?>
+<?php if ($tour['revision_id'] !== null): ?>
+                                    <span class="lt-table__sub"><a href="<?= e(url('/host/tours/' . $tour['revision_id'])) ?>">Bản sửa: <?= e(tour_status_label($tour['revision_status'])) ?></a></span>
 <?php endif; ?>
                                 </td>
                                 <td><?= (int) $tour['is_public'] === 1 ? 'Có' : 'Không' ?></td>

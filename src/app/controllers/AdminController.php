@@ -17,6 +17,7 @@ use Core\Router;
  * Khu đơn vị tổ chức (/host/..., Sprint 6): các lớp Host...Controller kế thừa trang thêm / sửa tour, lịch khởi hành
  * và nội dung tour của quản trị, đặt PORTAL = 'host'. Khi đó chỉ tài khoản đơn vị tổ chức đang hợp tác vào được,
  * và chỉ thao tác trên tour của chính đơn vị (authorizeTour(); procedure kiểm tra lại, file 27).
+ * Đơn vị chỉ sửa nội dung tour đang "Nháp" hoặc "Bị từ chối" (tour đã duyệt sửa qua bản sửa, file 32).
  */
 abstract class AdminController extends Controller
 {
@@ -79,10 +80,12 @@ abstract class AdminController extends Controller
     }
 
     /**
-     * Khu /host: tour phải thuộc đơn vị đang đăng nhập (không thì 404 như tour không tồn tại); tour đang
-     * "Ngừng hiển thị" thì quay về trang tour của đơn vị, không sửa được. Trang quản trị: không giới hạn.
+     * Khu /host: tour phải thuộc đơn vị đang đăng nhập (không thì 404 như tour không tồn tại).
+     * $scope 'content' (thông tin, ảnh, lịch trình, dịch vụ, chính sách): chỉ tour "Nháp" hoặc "Bị từ chối";
+     * $scope 'schedule' (lịch khởi hành, giá vé): mọi tour chưa "Ngừng hiển thị", trừ bản sửa.
+     * Không được phép thì quay về trang tour của đơn vị. Trang quản trị: không giới hạn.
      */
-    protected function authorizeTour(string $tourId): void
+    protected function authorizeTour(string $tourId, string $scope = 'content'): void
     {
         if ($this->host === null) {
             return;
@@ -92,8 +95,8 @@ abstract class AdminController extends Controller
         if ($access === null) {
             self::notFound();
         }
-        if ((int) $access['can_edit'] !== 1) {
-            $this->redirect('/host/tours/' . $tourId . '?msg=locked');
+        if ((int) $access[$scope === 'schedule' ? 'can_schedule' : 'can_edit'] !== 1) {
+            $this->redirect('/host/tours/' . $tourId . '?msg=' . ($scope === 'schedule' ? 'schedule_locked' : 'locked'));
         }
     }
 

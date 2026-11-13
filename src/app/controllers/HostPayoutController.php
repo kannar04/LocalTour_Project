@@ -10,15 +10,17 @@ use App\Models\PayoutModel;
 /**
  * Khu đơn vị tổ chức (Nguyễn Tuấn Khôi): "Doanh thu & chi trả" – đơn vị xem các khoản chi trả của mình (tiền thực thu,
  * phí dịch vụ LocalTour, thực nhận, trạng thái, mã giao dịch chuyển khoản) và các đơn trong từng khoản; "Tài khoản nhận
- * tiền" – đơn vị tự khai tài khoản ngân hàng để LocalTour chuyển khoản. Khoản chi trả do hệ thống lập sau khi lịch khởi
- * hành kết thúc, quản trị viên chuyển khoản rồi ghi nhận đã chi trả: đơn vị chỉ xem. Khoản của đơn vị khác: 404 như khoản
- * không tồn tại (procedure cũng không trả, file 30).
+ * tiền" – đơn vị tự khai tài khoản ngân hàng để LocalTour chuyển khoản; tài khoản mới khai hoặc vừa đổi phải được quản trị
+ * viên LocalTour xác minh rồi mới nhận được chi trả (đổi tài khoản thì dấu xác minh bị xóa). Khoản chi trả do hệ thống lập
+ * sau khi lịch khởi hành kết thúc, quản trị viên chuyển khoản rồi ghi nhận đã chi trả: đơn vị chỉ xem. Khoản của đơn vị
+ * khác: 404 như khoản không tồn tại (procedure cũng không trả, file 30).
  */
 final class HostPayoutController extends AdminController
 {
     protected const PORTAL = 'host';
 
     private const MESSAGES = [
+        // Tài khoản vừa đổi: dấu xác minh cũ (nếu có) đã bị xóa, trang hiện "Chờ LocalTour xác minh" ngay bên dưới.
         'saved' => 'Đã lưu tài khoản nhận tiền.',
         'unchanged' => 'Không có thay đổi nào.',
     ];
@@ -74,7 +76,7 @@ final class HostPayoutController extends AdminController
             'bank_name' => (string) ($bank['bank_name'] ?? ''),
             'bank_account_no' => (string) ($bank['bank_account_no'] ?? ''),
             'bank_account_name' => (string) ($bank['bank_account_name'] ?? ''),
-        ], [], $this->flash(self::MESSAGES));
+        ], [], $this->flash(self::MESSAGES), 200, $bank);
     }
 
     /** POST /host/bank – bank_name, bank_account_no, bank_account_name, _csrf */
@@ -133,17 +135,29 @@ final class HostPayoutController extends AdminController
     }
 
     /**
+     * Trang còn hiện trạng thái xác minh của tài khoản ĐANG LƯU (không phải thông tin đang nhập dở): 'none' = chưa khai đủ,
+     * 'waiting' = chờ LocalTour xác minh, 'verified' = LocalTour đã xác minh.
+     *
      * @param array<string, string> $old
      * @param array<string, string> $errors
+     * @param array<string, mixed>|null $saved tài khoản đang lưu (NTK_sp_host_bank); null = đọc lại từ CSDL
      */
-    private function renderBank(array $old, array $errors, string $success, int $status = 200): void
+    private function renderBank(array $old, array $errors, string $success, int $status = 200, ?array $saved = null): void
     {
+        $saved ??= $this->payouts->hostBank($this->actorId()) ?? [];
+        $hasSaved = trim((string) ($saved['bank_name'] ?? '')) !== ''
+            && trim((string) ($saved['bank_account_no'] ?? '')) !== ''
+            && trim((string) ($saved['bank_account_name'] ?? '')) !== '';
+        $verifiedAt = $hasSaved ? ($saved['bank_verified_at'] ?? null) : null;
+
         $this->render('host/payouts/bank', [
             'title' => 'Tài khoản nhận tiền',
             'adminNav' => 'bank',
             'old' => $old,
             'errors' => $errors,
             'success' => $success,
+            'bankState' => !$hasSaved ? 'none' : ($verifiedAt !== null ? 'verified' : 'waiting'),
+            'bankVerifiedAt' => $verifiedAt !== null ? (string) $verifiedAt : null,
             'pageStyles' => ['css/admin.css'],
         ], $status);
     }

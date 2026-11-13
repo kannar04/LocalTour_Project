@@ -2,9 +2,12 @@
 <?php
 /*
  * Khu đơn vị tổ chức: "Tài khoản nhận tiền" (Nguyễn Tuấn Khôi) – đơn vị tự khai tài khoản ngân hàng để LocalTour chuyển
- * khoản các khoản chi trả.
+ * khoản các khoản chi trả. Tài khoản mới khai hoặc vừa đổi phải được LocalTour xác minh rồi mới nhận được chi trả; đổi tài
+ * khoản thì dấu xác minh bị xóa.
  * Biến: $host (đơn vị đang đăng nhập), $old (bank_name, bank_account_no, bank_account_name đang nhập),
- *       $errors (lỗi theo ô; 'form' = lỗi chung), $success ('' = không có).
+ *       $errors (lỗi theo ô; 'form' = lỗi chung), $success ('' = không có),
+ *       $bankState (tài khoản ĐANG LƯU: 'none' = chưa khai đủ, 'waiting' = chờ LocalTour xác minh, 'verified' = đã xác minh),
+ *       $bankVerifiedAt (lúc LocalTour xác minh 'Y-m-d H:i:s'; null = chưa xác minh).
  */
 use App\Models\PayoutModel;
 
@@ -38,6 +41,11 @@ $focusField = array_key_first(array_diff_key($errors, ['form' => true]));
 <?php elseif ($isEmpty): ?>
             <div class="lt-alert lt-alert--warning" role="note"><span class="lt-icon lt-icon--alert" aria-hidden="true"></span><span>Đơn vị chưa khai tài khoản nhận tiền. LocalTour chỉ chuyển khoản được sau khi đơn vị khai đủ 3 ô bên dưới.</span></div>
 <?php endif; ?>
+<?php if ($bankState === 'verified'): ?>
+            <div class="lt-alert lt-alert--success" role="note" id="bank-state"><span class="lt-icon lt-icon--check" aria-hidden="true"></span><span>Đã được LocalTour xác minh<?= $bankVerifiedAt !== null ? ' ngày ' . e(format_date($bankVerifiedAt)) : '' ?>. LocalTour chuyển các khoản chi trả vào tài khoản đang lưu.</span></div>
+<?php elseif ($bankState === 'waiting'): ?>
+            <div class="lt-alert lt-alert--warning" role="note" id="bank-state"><span class="lt-icon lt-icon--info" aria-hidden="true"></span><span>Chờ LocalTour xác minh: khoản chi trả chỉ được chuyển sau khi LocalTour xác minh tài khoản.</span></div>
+<?php endif; ?>
 
             <div class="row">
                 <div class="col-12 col-xl-7">
@@ -62,6 +70,9 @@ $focusField = array_key_first(array_diff_key($errors, ['form' => true]));
 <?php endif; ?>
                             </div>
 <?php endforeach; ?>
+<?php if ($bankState !== 'none'): ?>
+                            <p class="lt-admin-hint" id="bank-change-warning">Lưu ý: mỗi lần đổi tài khoản, dấu xác minh của LocalTour bị xóa. LocalTour phải xác minh lại tài khoản mới rồi mới chuyển các khoản chi trả.</p>
+<?php endif; ?>
                             <button class="lt-btn lt-btn--primary lt-btn--block" type="submit">Lưu tài khoản</button>
                         </form>
                     </section>
@@ -71,6 +82,7 @@ $focusField = array_key_first(array_diff_key($errors, ['form' => true]));
                     <section class="lt-panel" aria-labelledby="bank-note-title">
                         <h2 class="lt-panel__title" id="bank-note-title">Lưu ý</h2>
                         <p class="lt-admin__text">Kiểm tra kỹ số tài khoản và tên chủ tài khoản: LocalTour chuyển khoản theo đúng thông tin đơn vị khai ở đây.</p>
+                        <p class="lt-admin__text">Tài khoản mới khai hoặc vừa đổi phải được LocalTour xác minh trước: LocalTour kiểm tra lại với đơn vị rồi mới chuyển các khoản chi trả vào tài khoản đó.</p>
                         <p class="lt-admin__text">Đổi tài khoản chỉ áp dụng cho các khoản chưa chi trả. Khoản đã chi trả giữ nguyên tài khoản đã nhận tiền, xem ở <a href="<?= e(url('/host/payouts')) ?>">Doanh thu &amp; chi trả</a>.</p>
                     </section>
                 </div>

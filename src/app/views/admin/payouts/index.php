@@ -3,6 +3,8 @@
 /*
  * Chi trả đơn vị tổ chức (Nguyễn Tuấn Khôi): danh sách khoản chi trả theo trạng thái, tổng tiền thực thu / phí dịch vụ
  * LocalTour / thực nhận, lịch đã kết thúc chưa lập được khoản chi trả và khoản hoàn tiền còn phải chuyển cho khách.
+ * Khoản còn chờ được ghi chú khi đơn vị chưa khai tài khoản nhận tiền (has_bank = 0) hoặc tài khoản đang khai chưa được
+ * quản trị viên xác minh (bank_verified = 0).
  * Biến: $filter ('pending' | 'paid' | 'all'), $summary (NTK_sp_admin_payout_summary), $payouts (NTK_sp_admin_payout_list),
  *       $waiting (NTK_sp_admin_payout_waiting_list), $refunds (NTK_sp_admin_refund_open_list),
  *       $refundErrors (lỗi theo mã khoản hoàn; 'form' = lỗi chung), $oldReference (mã giao dịch hoàn tiền đang nhập),
@@ -90,6 +92,8 @@ $emptyTexts = [
                                     <?= e($payout['business_name']) ?>
 <?php if ($isPending && (int) $payout['has_bank'] !== 1): ?>
                                     <span class="lt-table__sub">Chưa khai tài khoản nhận tiền</span>
+<?php elseif ($isPending && (int) $payout['bank_verified'] !== 1): ?>
+                                    <span class="lt-table__sub">Tài khoản chưa xác minh</span>
 <?php endif; ?>
                                 </td>
                                 <td class="text-right lt-nowrap"><?= e(format_vnd($payout['gross_vnd'])) ?></td>

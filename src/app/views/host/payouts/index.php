@@ -3,12 +3,14 @@
 /*
  * Khu đơn vị tổ chức: "Doanh thu & chi trả" (Nguyễn Tuấn Khôi). Chỉ xem: khoản chi trả do hệ thống lập sau khi lịch
  * khởi hành kết thúc, LocalTour chuyển khoản rồi ghi "Đã chi trả".
- * Biến: $host (đơn vị đang đăng nhập), $summary (NTK_sp_host_payout_summary: commission_percent, has_bank, gross_vnd,
- *       commission_vnd, net_pending_vnd, net_paid_vnd), $payouts (NTK_sp_host_payout_list, lịch kết thúc gần đây trước).
+ * Biến: $host (đơn vị đang đăng nhập), $summary (NTK_sp_host_payout_summary: commission_percent, has_bank, bank_verified,
+ *       gross_vnd, commission_vnd, net_pending_vnd, net_paid_vnd), $payouts (NTK_sp_host_payout_list, lịch kết thúc gần đây trước).
  */
 use App\Models\PayoutModel;
 
 $hasBank = (int) ($summary['has_bank'] ?? 0) === 1;
+// Tài khoản mới khai hoặc vừa đổi: LocalTour phải xác minh rồi mới chuyển khoản chi trả.
+$bankVerified = (int) ($summary['bank_verified'] ?? 0) === 1;
 $percentText = PayoutModel::percentText($summary['commission_percent'] ?? 0);
 ?>
 <div class="container-xl lt-container lt-page">
@@ -25,6 +27,8 @@ $percentText = PayoutModel::percentText($summary['commission_percent'] ?? 0);
 
 <?php if (!$hasBank): ?>
             <div class="lt-alert lt-alert--warning" role="note"><span class="lt-icon lt-icon--alert" aria-hidden="true"></span><span>Đơn vị chưa khai tài khoản nhận tiền nên LocalTour chưa chuyển khoản được. <a href="<?= e(url('/host/bank')) ?>">Khai tài khoản nhận tiền</a>.</span></div>
+<?php elseif (!$bankVerified): ?>
+            <div class="lt-alert lt-alert--warning" role="note"><span class="lt-icon lt-icon--info" aria-hidden="true"></span><span>Tài khoản nhận tiền đang chờ LocalTour xác minh: khoản chi trả chỉ được chuyển sau khi LocalTour xác minh tài khoản. <a href="<?= e(url('/host/bank')) ?>">Xem tài khoản nhận tiền</a>.</span></div>
 <?php endif; ?>
 
             <section class="lt-tiles" aria-label="Tổng doanh thu và chi trả">

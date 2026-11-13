@@ -11,8 +11,10 @@ use App\Models\SettingModel;
 /**
  * Chi trả cho đơn vị tổ chức (Nguyễn Tuấn Khôi). Sau khi lịch khởi hành kết thúc và không còn gì dang dở, hệ thống tự
  * lập một khoản chi trả cho mỗi lịch: tiền thực thu, phí dịch vụ LocalTour, thực nhận. Quản trị viên chuyển khoản cho
- * đơn vị ngoài hệ thống rồi ghi nhận đã chi trả kèm mã giao dịch. Trang danh sách còn có các lịch chưa lập được khoản chi
- * trả (kèm lý do) và các khoản hoàn tiền còn phải chuyển lại cho khách: ghi "Đã hoàn tiền" xong thì lịch mới được chi trả.
+ * đơn vị ngoài hệ thống rồi ghi nhận đã chi trả kèm mã giao dịch. Trước đó quản trị viên phải xác minh tài khoản nhận tiền
+ * đơn vị đang khai (kiểm tra với đơn vị ngoài hệ thống rồi bấm xác minh); đơn vị đổi tài khoản thì phải xác minh lại.
+ * Trang danh sách còn có các lịch chưa lập được khoản chi trả (kèm lý do) và các khoản hoàn tiền còn phải chuyển lại cho
+ * khách: ghi "Đã hoàn tiền" xong thì lịch mới được chi trả.
  * Mọi thao tác ghi đều qua procedure (file 30), procedure kiểm tra lại quyền quản trị và ghi admin_logs.
  */
 final class AdminPayoutController extends AdminController
@@ -20,6 +22,7 @@ final class AdminPayoutController extends AdminController
     private const MESSAGES = [
         'paid' => 'Đã ghi nhận chuyển khoản. Khoản chi trả chuyển sang “Đã chi trả”.',
         'refunded' => 'Đã ghi nhận hoàn tiền cho khách.',
+        'bank_verified' => 'Đã xác minh tài khoản nhận tiền của đơn vị.',
     ];
 
     private const EMPTY_FORM = ['reference' => '', 'note' => ''];
@@ -81,7 +84,40 @@ final class AdminPayoutController extends AdminController
             'already_paid' => $this->renderShow($this->findOrFail($payoutId), $old, ['form' => 'Khoản chi trả này đã được ghi “Đã chi trả” trước đó.'], '', 409),
             'bank_missing' => $this->renderShow($this->findOrFail($payoutId), $old, ['form' => 'Đơn vị chưa khai đủ tài khoản nhận tiền nên chưa ghi nhận đã chi trả được. Hãy nhắc đơn vị khai ở mục “Tài khoản nhận tiền” của khu đơn vị tổ chức.'], '', 409),
             'bank_changed' => $this->renderShow($this->findOrFail($payoutId), $old, ['form' => 'Đơn vị vừa đổi tài khoản nhận tiền. Trang đã tải lại tài khoản mới: hãy kiểm tra bạn đã chuyển khoản tới đúng tài khoản này rồi mới ghi nhận đã chi trả.'], '', 409),
+            'bank_unverified' => $this->renderShow($this->findOrFail($payoutId), $old, ['form' => 'Tài khoản nhận tiền chưa được xác minh nên chưa ghi nhận đã chi trả được. Hãy kiểm tra tài khoản đang hiện trên trang với đơn vị và bấm xác minh trước.'], '', 409),
             default => $this->renderShow($payout, $old, ['form' => 'Không ghi nhận được, vui lòng thử lại.'], '', 409),
+        };
+    }
+
+    /**
+     * POST /admin/payouts/{id}/bank/verify – bank_name, account_no, account_name (ô ẩn: tài khoản đang hiện trên trang), _csrf.
+     * Xác minh tài khoản nhận tiền đơn vị của khoản chi trả đang khai; chưa xác minh thì không ghi nhận đã chi trả được.
+     */
+    public function verifyBank(string $id): void
+    {
+        $payout = $this->findOrFail($id);
+        if (!$this->csrfValid()) {
+            $this->renderShow($payout, self::EMPTY_FORM, ['form' => self::CSRF_FAILED], '', 403);
+            return;
+        }
+
+        $payoutId = (string) $payout['payout_id'];
+        $result = $this->payouts->verifyBank(
+            $this->actorId(),
+            (string) $payout['provider_id'],
+            $this->input('bank_name'),
+            $this->input('account_no'),
+            $this->input('account_name')
+        );
+        match ($result) {
+            // unchanged: quản trị viên khác vừa xác minh đúng tài khoản này.
+            'ok', 'unchanged' => $this->redirect('/admin/payouts/' . $payoutId . '?msg=bank_verified'),
+            'forbidden' => self::forbidden(),
+            'not_found' => self::notFound(),
+            // Tài khoản của đơn vị vừa thay đổi: tải lại số liệu mới nhất rồi báo lỗi.
+            'bank_changed' => $this->renderShow($this->findOrFail($payoutId), self::EMPTY_FORM, ['form' => 'Đơn vị vừa đổi tài khoản nhận tiền nên chưa xác minh được. Trang đã tải lại tài khoản mới: hãy kiểm tra lại thông tin mới với đơn vị rồi mới xác minh.'], '', 409),
+            'bank_missing' => $this->renderShow($this->findOrFail($payoutId), self::EMPTY_FORM, ['form' => 'Đơn vị chưa khai đủ tài khoản nhận tiền nên chưa có gì để xác minh. Hãy nhắc đơn vị khai ở mục “Tài khoản nhận tiền” của khu đơn vị tổ chức.'], '', 409),
+            default => $this->renderShow($payout, self::EMPTY_FORM, ['form' => 'Không xác minh được, vui lòng thử lại.'], '', 409),
         };
     }
 

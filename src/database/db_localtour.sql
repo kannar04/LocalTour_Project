@@ -1,4 +1,4 @@
--- File sinh tự động từ src/database/01..30, không sửa tay.
+-- File sinh tự động từ src/database/01..32, không sửa tay.
 CREATE DATABASE IF NOT EXISTS db_localtour CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE db_localtour;
 SET NAMES utf8mb4;
@@ -2456,7 +2456,9 @@ DELIMITER ;
 --   Cột trả về: tour_id, title, provider_name, provider_approval_status,
 --     provider_user_status, destination_name, category_name, approval_status,
 --     is_public (1 = đang hiển thị cho khách), schedule_count (mọi lịch của tour),
---     last_action_at (lần xử lý gần nhất trong admin_logs, NULL nếu chưa có).
+--     last_action_at (lần xử lý gần nhất trong admin_logs, NULL nếu chưa có),
+--     revision_of, revision_of_title (Sprint 6, file 32: dòng này là "bản sửa" của một tour đã
+--     duyệt; NULL = tour thường).
 --   Sắp xếp: tour chờ duyệt trước, rồi title, rồi id.
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS LTP_sp_admin_tour_list;
@@ -2485,12 +2487,15 @@ BEGIN
         (SELECT MAX(l.created_at)
            FROM admin_logs l
           WHERE l.target_type = 'tour'
-            AND l.target_id = t.id) AS last_action_at
+            AND l.target_id = t.id) AS last_action_at,
+        t.revision_of,
+        o.title             AS revision_of_title
     FROM tours t
     JOIN providers p ON p.id = t.provider_id
     JOIN users     u ON u.id = p.user_id
     LEFT JOIN destinations d ON d.id = t.destination_id
     LEFT JOIN categories   c ON c.id = t.category_id
+    LEFT JOIN tours        o ON o.id = t.revision_of
     WHERE NULLIF(p_approval_status, '') IS NULL
        OR t.approval_status = (p_approval_status COLLATE utf8mb4_unicode_ci)
     ORDER BY (t.approval_status = 'pending') DESC, t.title ASC, t.id ASC;
@@ -2506,7 +2511,9 @@ DELIMITER ;
 --   provider_name, provider_phone, provider_approval_status, provider_user_status,
 --   approval_status, is_public,
 --   schedule_count, ticket_count (loại vé active), image_count, itinerary_count,
---   inclusion_count, policy_count (số phiên bản chính sách hủy).
+--   inclusion_count, policy_count (số phiên bản chính sách hủy),
+--   revision_of (Sprint 6, file 32: mã tour gốc khi dòng này là "bản sửa"; NULL = tour thường),
+--   revision_id, revision_status (bản sửa đang mở của tour này; NULL = không có).
 --   Chỉ trả số lượng các phần con: trang quản trị dùng để xem tour đã đủ thông tin chưa.
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS LTP_sp_admin_tour_detail;
@@ -2551,12 +2558,16 @@ BEGIN
         (SELECT COUNT(*) FROM tour_images ti WHERE ti.tour_id = t.id) AS image_count,
         (SELECT COUNT(*) FROM tour_itinerary_items ii WHERE ii.tour_id = t.id) AS itinerary_count,
         (SELECT COUNT(*) FROM tour_inclusions tn WHERE tn.tour_id = t.id) AS inclusion_count,
-        (SELECT COUNT(*) FROM cancellation_policies cp WHERE cp.tour_id = t.id) AS policy_count
+        (SELECT COUNT(*) FROM cancellation_policies cp WHERE cp.tour_id = t.id) AS policy_count,
+        t.revision_of,
+        r.id                AS revision_id,
+        r.approval_status   AS revision_status
     FROM tours t
     JOIN providers p ON p.id = t.provider_id
     JOIN users     u ON u.id = p.user_id
     LEFT JOIN destinations d ON d.id = t.destination_id
     LEFT JOIN categories   c ON c.id = t.category_id
+    LEFT JOIN tours        r ON r.revision_of = t.id
     WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci);
 END$$
 DELIMITER ;
@@ -2566,8 +2577,13 @@ DELIMITER ;
 --   p_new_status: 'approved' (phê duyệt) | 'rejected' (từ chối, bắt buộc p_note).
 --   Đổi trạng thái và ghi admin_logs ('tour_approve' / 'tour_reject') trong cùng một
 --   transaction. p_note tối đa 255 ký tự (NULL / '' = không có).
+--   Sprint 6 (NTK, file 32): p_tour_id là "bản sửa" của một tour đã duyệt (tours.revision_of)
+--   thì phê duyệt = chép nội dung bản sửa vào tour gốc rồi xóa bản sửa
+--   (NTK_sp_tour_revision_apply, cùng transaction); bản sửa không bao giờ thành tour 'approved'
+--   riêng. Từ chối bản sửa: như tour thường (bản sửa sang 'rejected', tour gốc không đổi).
 --   1 dòng: result, approval_status.
 --     result = 'ok'                 : đã đổi; approval_status = trạng thái mới.
+--              'original_not_approved' : bản sửa của tour gốc không còn 'approved', chưa áp dụng được.
 --              'forbidden'          : người thao tác không phải quản trị viên đang hoạt động.
 --              'not_found'          : không có tour này.
 --              'invalid_transition' : tour không ở trạng thái 'pending', hoặc p_new_status sai.
@@ -2588,6 +2604,8 @@ proc: BEGIN
     DECLARE v_old  VARCHAR(20)  DEFAULT NULL;
     DECLARE v_new  VARCHAR(20)  DEFAULT COALESCE(p_new_status, '');
     DECLARE v_note VARCHAR(255) CHARACTER SET utf8mb4 DEFAULT NULLIF(TRIM(p_note), '');
+    DECLARE v_revision_of CHAR(36)    DEFAULT NULL;
+    DECLARE v_applied     VARCHAR(30) DEFAULT NULL;
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -2603,8 +2621,8 @@ proc: BEGIN
 
     START TRANSACTION;
 
-    SELECT approval_status
-      INTO v_old
+    SELECT approval_status, revision_of
+      INTO v_old, v_revision_of
       FROM tours
      WHERE id = (p_tour_id COLLATE utf8mb4_unicode_ci)
        FOR UPDATE;
@@ -2624,6 +2642,19 @@ proc: BEGIN
     IF v_new = 'rejected' AND v_note IS NULL THEN
         ROLLBACK;
         SELECT 'note_required' AS result, v_old AS approval_status;
+        LEAVE proc;
+    END IF;
+
+    -- Sprint 6 (NTK, file 32): phê duyệt "bản sửa" = áp dụng nội dung bản sửa vào tour gốc.
+    IF v_new = 'approved' AND v_revision_of IS NOT NULL THEN
+        CALL NTK_sp_tour_revision_apply(p_actor_user_id, p_tour_id, v_note, v_applied);
+        IF v_applied = 'ok' THEN
+            COMMIT;
+            SELECT 'ok' AS result, 'approved' AS approval_status;
+        ELSE
+            ROLLBACK;
+            SELECT v_applied AS result, v_old AS approval_status;
+        END IF;
         LEAVE proc;
     END IF;
 
@@ -5248,7 +5279,8 @@ BEGIN
         u.status          AS user_status,
         (SELECT COUNT(*)
            FROM tours t
-          WHERE t.provider_id = p.id) AS tour_count
+          WHERE t.provider_id = p.id
+            AND t.revision_of IS NULL) AS tour_count
     FROM providers p
     JOIN users u ON u.id = p.user_id
     ORDER BY p.business_name, p.id;
@@ -5277,7 +5309,8 @@ BEGIN
         u.status          AS user_status,
         (SELECT COUNT(*)
            FROM tours t
-          WHERE t.provider_id = p.id) AS tour_count
+          WHERE t.provider_id = p.id
+            AND t.revision_of IS NULL) AS tour_count
     FROM providers p
     JOIN users u ON u.id = p.user_id
     WHERE p.id = (p_provider_id COLLATE utf8mb4_unicode_ci);
@@ -5547,7 +5580,7 @@ DELIMITER ;
 --   destination, duration_minutes, max_group_size, language_codes, pickup_mode,
 --   meeting_point, transport, guide_info, dropoff_point, document_terms, meal_terms,
 --   voucher_terms, reschedule_terms, source_url, verification_status, verified_at,
---   approval_status.
+--   approval_status, revision_of (Sprint 6: khác NULL = "bản sửa" của một tour đã duyệt, file 32).
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NMT_sp_admin_tour_form;
 
@@ -5580,7 +5613,8 @@ BEGIN
         t.source_url,
         t.verification_status,
         t.verified_at,
-        t.approval_status
+        t.approval_status,
+        t.revision_of
     FROM tours t
     WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci);
 END$$
@@ -5679,6 +5713,8 @@ DELIMITER ;
 --   p_reschedule_terms, p_source_url, p_verification_status)
 --   Thêm tour ở trạng thái 'pending' (chờ duyệt), ghi admin_logs 'tour_create'
 --   (from NULL, to 'pending'). Ô không bắt buộc để trống = NULL.
+--   Sprint 6 (NTK): tour do đơn vị tổ chức tự thêm ở khu /host bắt đầu là 'draft' (bản nháp);
+--   đơn vị bấm "Gửi duyệt" thì tour mới sang 'pending' (NTK_sp_host_tour_submit, file 32).
 --   1 dòng: result, field, tour_id.
 --     result = 'ok'        : đã thêm; tour_id = mã tour mới.
 --              'forbidden' : người thao tác không phải quản trị viên đang hoạt động.
@@ -5769,10 +5805,10 @@ proc: BEGIN
             v_dropoff, NULL, NULLIF(TRIM(p_document_terms), ''), NULLIF(TRIM(p_meal_terms), ''),
             NULLIF(TRIM(p_voucher_terms), ''), NULLIF(TRIM(p_reschedule_terms), ''), v_source,
             IF(p_verification_status = 'verified', CURDATE(), NULL),
-            p_verification_status, 'pending');
+            p_verification_status, IF(COALESCE(v_host, FALSE), 'draft', 'pending'));
 
     INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
-    VALUES (UUID(), p_actor_user_id, 'tour', v_tour_id, 'tour_create', NULL, 'pending', NULL, NOW());
+    VALUES (UUID(), p_actor_user_id, 'tour', v_tour_id, 'tour_create', NULL, IF(COALESCE(v_host, FALSE), 'draft', 'pending'), NULL, NOW());
 
     COMMIT;
     SELECT 'ok' AS result, NULL AS field, v_tour_id AS tour_id;
@@ -5974,7 +6010,7 @@ proc: BEGIN
     VALUES (UUID(), p_actor_user_id, 'tour', p_tour_id, 'tour_update', o_verified, p_verification_status,
             IF(v_changes = '', NULL, LEFT(CONCAT('Sửa: ', v_changes), 255)), NOW());
 
-    -- Đơn vị tổ chức sửa tour đã duyệt / bị từ chối: tour quay về "Chờ duyệt".
+    -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
     IF v_host THEN
         CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
     END IF;
@@ -6134,7 +6170,8 @@ proc: BEGIN
                     WHERE id = (p_actor_user_id COLLATE utf8mb4_unicode_ci)
                       AND role = 'admin' AND status = 'active') THEN
         -- Không phải quản trị viên: chỉ nhận đơn vị tổ chức đang hợp tác thao tác trên tour của mình (file 27).
-        CALL NTK_sp_host_can_edit_tour(p_actor_user_id, p_tour_id, v_host);
+        -- Lịch khởi hành và giá vé không cần duyệt: làm được ở mọi trạng thái duyệt trừ 'archived'.
+        CALL NTK_sp_host_can_manage_schedule(p_actor_user_id, p_tour_id, v_host);
         IF NOT COALESCE(v_host, FALSE) THEN
             SELECT 'forbidden' AS result, NULL AS field, NULL AS schedule_id;
             LEAVE proc;
@@ -6265,7 +6302,7 @@ proc: BEGIN
         SELECT s.tour_id INTO v_host_tour
           FROM schedules s
          WHERE s.id = (p_schedule_id COLLATE utf8mb4_unicode_ci);
-        CALL NTK_sp_host_can_edit_tour(p_actor_user_id, v_host_tour, v_host);
+        CALL NTK_sp_host_can_manage_schedule(p_actor_user_id, v_host_tour, v_host);
         IF NOT COALESCE(v_host, FALSE) THEN
             SELECT 'forbidden' AS result, NULL AS field, NULL AS status, NULL AS held, NULL AS active_bookings;
             LEAVE proc;
@@ -8681,9 +8718,10 @@ DELIMITER ;
 --               admin_logs (target_type 'tour', target_id = mã tour).
 --             * Sprint 6: ảnh, lịch trình, dịch vụ và chính sách hủy còn nhận người thao tác là
 --               đơn vị tổ chức đang hợp tác, chỉ trên tour của chính đơn vị
---               (NTK_sp_host_can_edit_tour, file 27). Đơn vị sửa nội dung tour đã duyệt / bị từ
---               chối thì tour quay về 'pending' (NTK_sp_host_tour_resubmit). Xóa / khôi phục
---               tour và xóa đơn vị vẫn chỉ dành cho quản trị viên.
+--               (NTK_sp_host_can_edit_tour, file 27) và chỉ khi tour đang 'draft' / 'rejected'.
+--               Đơn vị sửa nội dung tour bị từ chối thì tour quay về 'draft'
+--               (NTK_sp_host_tour_resubmit); tour đã duyệt sửa qua "bản sửa" (file 32). Xóa / khôi
+--               phục tour và xóa đơn vị vẫn chỉ dành cho quản trị viên.
 --             * Chỉ sửa dữ liệu của đúng tour (mã mục phải thuộc tour đó): không ảnh hưởng tour khác.
 --             * Ảnh: tối đa 12 ảnh / tour; ảnh bìa = ảnh có sort_order nhỏ nhất. File ảnh do ứng
 --               dụng lưu (public/assets/uploads/tours); xóa ảnh trả url để ứng dụng xóa file.
@@ -8805,7 +8843,7 @@ proc: BEGIN
     VALUES (UUID(), p_actor_user_id, 'tour', p_tour_id, 'image_add', NULL, NULL,
             LEFT(CONCAT('Thêm ảnh', IF(v_alt IS NULL, '', CONCAT(' "', v_alt, '"'))), 255), NOW());
 
-    -- Đơn vị tổ chức sửa tour đã duyệt / bị từ chối: tour quay về "Chờ duyệt".
+    -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
     IF v_host THEN
         CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
     END IF;
@@ -8869,7 +8907,7 @@ proc: BEGIN
     VALUES (UUID(), p_actor_user_id, 'tour', p_tour_id, 'image_delete', NULL, NULL,
             LEFT(CONCAT('Xóa ảnh', IF(v_alt IS NULL, '', CONCAT(' "', v_alt, '"'))), 255), NOW());
 
-    -- Đơn vị tổ chức sửa tour đã duyệt / bị từ chối: tour quay về "Chờ duyệt".
+    -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
     IF v_host THEN
         CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
     END IF;
@@ -8946,7 +8984,7 @@ proc: BEGIN
     INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
     VALUES (UUID(), p_actor_user_id, 'tour', p_tour_id, 'image_cover', NULL, NULL, 'Đổi ảnh bìa', NOW());
 
-    -- Đơn vị tổ chức sửa tour đã duyệt / bị từ chối: tour quay về "Chờ duyệt".
+    -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
     IF v_host THEN
         CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
     END IF;
@@ -9062,7 +9100,7 @@ proc: BEGIN
                 LEFT(CONCAT('Thêm lịch trình: ', IF(p_start_time IS NULL, '', CONCAT(TIME_FORMAT(p_start_time, '%H:%i'), ' ')), v_desc), 255),
                 NOW());
 
-        -- Đơn vị tổ chức sửa tour đã duyệt / bị từ chối: tour quay về "Chờ duyệt".
+        -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
         IF v_host THEN
             CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
         END IF;
@@ -9100,7 +9138,7 @@ proc: BEGIN
             LEFT(CONCAT('Sửa lịch trình: ', IF(p_start_time IS NULL, '', CONCAT(TIME_FORMAT(p_start_time, '%H:%i'), ' ')), v_desc), 255),
             NOW());
 
-    -- Đơn vị tổ chức sửa tour đã duyệt / bị từ chối: tour quay về "Chờ duyệt".
+    -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
     IF v_host THEN
         CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
     END IF;
@@ -9163,7 +9201,7 @@ proc: BEGIN
     VALUES (UUID(), p_actor_user_id, 'tour', p_tour_id, 'itinerary_delete', NULL, NULL,
             LEFT(CONCAT('Xóa lịch trình: ', v_desc), 255), NOW());
 
-    -- Đơn vị tổ chức sửa tour đã duyệt / bị từ chối: tour quay về "Chờ duyệt".
+    -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
     IF v_host THEN
         CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
     END IF;
@@ -9268,7 +9306,7 @@ proc: BEGIN
     VALUES (UUID(), p_actor_user_id, 'tour', p_tour_id, 'inclusion_add', NULL, NULL,
             LEFT(CONCAT(IF(v_inc, 'Thêm mục bao gồm: ', 'Thêm mục không bao gồm: '), v_text), 255), NOW());
 
-    -- Đơn vị tổ chức sửa tour đã duyệt / bị từ chối: tour quay về "Chờ duyệt".
+    -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
     IF v_host THEN
         CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
     END IF;
@@ -9331,7 +9369,7 @@ proc: BEGIN
     VALUES (UUID(), p_actor_user_id, 'tour', p_tour_id, 'inclusion_delete', NULL, NULL,
             LEFT(CONCAT('Xóa mục: ', v_text), 255), NOW());
 
-    -- Đơn vị tổ chức sửa tour đã duyệt / bị từ chối: tour quay về "Chờ duyệt".
+    -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
     IF v_host THEN
         CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
     END IF;
@@ -9468,7 +9506,7 @@ proc: BEGIN
                            CONCAT('hủy miễn phí trước ', p_free_before_hours, ' giờ')),
                         ', hoàn ', p_refund_percent, '%'), 255), NOW());
 
-    -- Đơn vị tổ chức sửa tour đã duyệt / bị từ chối: tour quay về "Chờ duyệt".
+    -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
     IF v_host THEN
         CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
     END IF;
@@ -9587,6 +9625,8 @@ proc: BEGIN
     DELETE FROM tour_posts           WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
     DELETE FROM favorite_tours       WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
     DELETE FROM comparison_tours     WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
+    -- Sprint 6 (NTK, file 32): tour còn "bản sửa" đang mở thì xóa bản sửa trước (khóa ngoại tours.revision_of).
+    CALL NTK_sp_tour_revision_purge_of(p_tour_id);
     DELETE FROM tours                WHERE id = (p_tour_id COLLATE utf8mb4_unicode_ci);
 
     INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
@@ -11029,34 +11069,37 @@ DELIMITER ;
 --             vẫn là người duyệt tour trước khi tour hiển thị cho khách.
 -- Phụ trách : Nguyễn Tuấn Khôi (NTK) - Sprint 6
 -- Procedures: NTK_sp_host_profile, NTK_sp_host_tour_list, NTK_sp_host_tour_access,
---             NTK_sp_host_can_edit_tour, NTK_sp_host_can_use_provider, NTK_sp_host_tour_resubmit
---             (3 procedure sau dùng nội bộ, được các procedure ghi dữ liệu của file 13 và 21 gọi),
+--             NTK_sp_host_can_edit_tour, NTK_sp_host_can_manage_schedule,
+--             NTK_sp_host_can_use_provider, NTK_sp_host_tour_resubmit
+--             (4 procedure sau dùng nội bộ, được các procedure ghi dữ liệu của file 13 và 21 gọi),
 --             NTK_sp_admin_provider_set_password, NTK_sp_admin_provider_account,
---             NTK_sp_host_register,
 --             NTK_sp_host_booking_list, NTK_sp_host_booking_detail, NTK_sp_host_booking_change_list
 --             (đơn vị xem đơn đặt tour của tour mình, chỉ đọc)
 -- Quy tắc   : * Tài khoản đơn vị tổ chức = dòng users role 'provider' đi kèm dòng providers
---               (đã có từ Sprint 4). Có 2 cách có tài khoản: quản trị viên thêm đơn vị rồi cấp
---               mật khẩu ở trang "Đơn vị tổ chức", hoặc đơn vị tự đăng ký ở /host/register
---               (trạng thái 'pending', chờ quản trị viên duyệt). Đơn vị chỉ dùng được khu /host
---               khi tài khoản đang 'active' và trạng thái hợp tác là 'approved'.
+--               (đã có từ Sprint 4). Đơn vị KHÔNG tự đăng ký: quản trị viên thêm đơn vị rồi cấp
+--               mật khẩu ở trang "Đơn vị tổ chức". Đơn vị chỉ dùng được khu /host khi tài khoản
+--               đang 'active' và trạng thái hợp tác là 'approved'.
 --             * Tài khoản đơn vị tách riêng với tài khoản khách hàng: mỗi email chỉ thuộc một
 --               tài khoản, tài khoản khách hàng không chuyển thành tài khoản đơn vị.
---             * Đơn vị chỉ thao tác trên tour của chính mình, và không sửa được tour đang
---               "Ngừng hiển thị" ('archived'). Việc kiểm tra nằm ở đây (lớp chặn cuối), không chỉ
---               ở PHP: NMT_sp_admin_tour_create / _update, NMT_sp_admin_schedule_create / _update
---               và các procedure ảnh, lịch trình, dịch vụ, chính sách hủy gọi
---               NTK_sp_host_can_edit_tour / NTK_sp_host_can_use_provider khi người thao tác
---               không phải quản trị viên.
---             * Đơn vị sửa thông tin hoặc nội dung của tour đã duyệt / bị từ chối: tour quay về
---               'pending' (chờ duyệt lại), ghi admin_logs 'tour_resubmit'. Thêm / sửa lịch khởi
---               hành và giá vé không đổi trạng thái duyệt.
+--             * Đơn vị chỉ thao tác trên tour của chính mình. Việc kiểm tra nằm ở đây (lớp chặn
+--               cuối), không chỉ ở PHP: NMT_sp_admin_tour_create / _update và các procedure ảnh,
+--               lịch trình, dịch vụ, chính sách hủy gọi NTK_sp_host_can_edit_tour /
+--               NTK_sp_host_can_use_provider; NMT_sp_admin_schedule_create / _update gọi
+--               NTK_sp_host_can_manage_schedule khi người thao tác không phải quản trị viên.
+--             * Vòng duyệt tour của đơn vị: tour mới là "Bản nháp" ('draft'); đơn vị bấm "Gửi
+--               duyệt" thì tour sang 'pending' và bị khóa cho tới khi quản trị viên phê duyệt
+--               hoặc từ chối (kèm lý do). Đơn vị chỉ sửa thông tin và nội dung (ảnh, lịch trình,
+--               dịch vụ, chính sách hủy) khi tour đang 'draft' hoặc 'rejected'; sửa tour bị từ
+--               chối thì tour quay về 'draft' (admin_logs 'tour_redraft'). Tour đã duyệt không
+--               sửa trực tiếp: đơn vị tạo "bản sửa" (file 32), tour đang hiển thị giữ nguyên cho
+--               tới khi quản trị viên duyệt bản sửa. Thêm / sửa lịch khởi hành và giá vé không
+--               cần duyệt, làm được ở mọi trạng thái trừ 'archived'.
 --             * Đơn đặt tour: đơn vị chỉ XEM đơn của tour mình (ai đi, bao nhiêu khách, số điện
---               thoại liên hệ, đơn đã xác nhận / đã thanh toán chưa, khách có xin đổi ngày / hủy
---               không). Xác nhận, từ chối, hủy đơn, xử lý đổi ngày / hủy và đối chiếu thanh toán
---               vẫn là việc của quản trị viên. Các procedure NTK_sp_host_booking_* không trả
---               email của khách, mã giao dịch thanh toán hay số tiền hoàn, và chỉ trả dữ liệu khi
---               đơn vị đang hợp tác, tài khoản đang hoạt động.
+--               thoại và email liên hệ, đơn đã xác nhận / đã thanh toán chưa, khách có xin đổi
+--               ngày / hủy không). Hủy đơn, xử lý đổi ngày / hủy và đối chiếu thanh toán vẫn là
+--               việc của quản trị viên. Các procedure NTK_sp_host_booking_* không trả mã giao
+--               dịch thanh toán hay số tiền hoàn, và chỉ trả dữ liệu khi đơn vị đang hợp tác,
+--               tài khoản đang hoạt động.
 --             * Không có DEFINER.
 -- Chạy sau  : 01_schema.sql -> 21. Chạy lại được (DROP PROCEDURE IF EXISTS).
 -- =====================================================================
@@ -11083,7 +11126,8 @@ BEGIN
         u.status          AS user_status,
         (SELECT COUNT(*)
            FROM tours t
-          WHERE t.provider_id = p.id) AS tour_count
+          WHERE t.provider_id = p.id
+            AND t.revision_of IS NULL) AS tour_count
     FROM users u
     JOIN providers p ON p.user_id = u.id
     WHERE u.id = (p_user_id COLLATE utf8mb4_unicode_ci)
@@ -11093,10 +11137,13 @@ DELIMITER ;
 
 -- ---------------------------------------------------------------------
 -- NTK_sp_host_tour_list(p_user_id)
---   Mọi tour của đơn vị (mọi trạng thái duyệt): tour bị từ chối và chờ duyệt trước.
+--   Mọi tour của đơn vị (mọi trạng thái duyệt): tour bị từ chối, bản nháp và chờ duyệt trước.
+--   Bản sửa của tour đã duyệt (tours.revision_of, file 32) không thành dòng riêng: tour gốc
+--   mang revision_id / revision_status.
 --   Cột: tour_id, title, destination_name, category_name, approval_status, is_public,
 --        schedule_count, upcoming_count (lịch chưa khởi hành, đang mở bán hoặc hết chỗ),
---        next_starts_at, reject_note (lý do từ chối gần nhất, chỉ khi tour đang 'rejected').
+--        next_starts_at, reject_note (lý do từ chối gần nhất, chỉ khi tour đang 'rejected'),
+--        revision_id, revision_status (bản sửa đang mở của tour; NULL = không có).
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NTK_sp_host_tour_list;
 
@@ -11136,24 +11183,34 @@ BEGIN
                AND l.action = 'tour_reject'
              ORDER BY l.created_at DESC, l.id DESC
              LIMIT 1),
-           NULL) AS reject_note
+           NULL) AS reject_note,
+        r.id                AS revision_id,
+        r.approval_status   AS revision_status
     FROM tours t
     JOIN providers p ON p.id = t.provider_id
     JOIN users     u ON u.id = p.user_id
     LEFT JOIN destinations d ON d.id = t.destination_id
     LEFT JOIN categories   c ON c.id = t.category_id
+    LEFT JOIN tours        r ON r.revision_of = t.id
     WHERE u.id = (p_user_id COLLATE utf8mb4_unicode_ci)
       AND u.role = 'provider'
-    ORDER BY FIELD(t.approval_status, 'rejected', 'pending', 'approved', 'draft', 'archived'),
+      AND t.revision_of IS NULL
+    ORDER BY FIELD(t.approval_status, 'rejected', 'draft', 'pending', 'approved', 'archived'),
              t.title ASC, t.id ASC;
 END$$
 DELIMITER ;
 
 -- ---------------------------------------------------------------------
 -- NTK_sp_host_tour_access(p_user_id, p_tour_id)
---   Tour có thuộc đơn vị của tài khoản này không. 0 dòng = không phải tour của đơn vị.
---   1 dòng: tour_id, approval_status, can_edit (0 khi tour 'archived', đơn vị ngừng hợp tác
---   hoặc tài khoản bị khóa), reject_note (lý do từ chối gần nhất khi tour đang 'rejected').
+--   Tour (hoặc bản sửa) có thuộc đơn vị của tài khoản này không. 0 dòng = không phải của đơn vị.
+--   1 dòng: tour_id, approval_status,
+--     can_edit     : 1 = sửa được thông tin và nội dung (tour đang 'draft' / 'rejected', đơn vị
+--                    đang hợp tác, tài khoản đang hoạt động),
+--     can_schedule : 1 = thêm / sửa được lịch khởi hành và giá vé (không 'archived', không phải
+--                    bản sửa),
+--     reject_note  : lý do từ chối gần nhất khi đang 'rejected',
+--     revision_of, revision_of_title, revision_of_status : tour gốc khi dòng này là bản sửa,
+--     revision_id, revision_status : bản sửa đang mở của tour này (NULL = không có).
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NTK_sp_host_tour_access;
 
@@ -11167,9 +11224,13 @@ BEGIN
     SELECT
         t.id AS tour_id,
         t.approval_status,
-        (t.approval_status <> 'archived'
+        (t.approval_status IN ('draft', 'rejected')
          AND p.approval_status = 'approved'
          AND u.status = 'active') AS can_edit,
+        (t.approval_status <> 'archived'
+         AND t.revision_of IS NULL
+         AND p.approval_status = 'approved'
+         AND u.status = 'active') AS can_schedule,
         IF(t.approval_status = 'rejected',
            (SELECT l.note
               FROM admin_logs l
@@ -11178,10 +11239,17 @@ BEGIN
                AND l.action = 'tour_reject'
              ORDER BY l.created_at DESC, l.id DESC
              LIMIT 1),
-           NULL) AS reject_note
+           NULL) AS reject_note,
+        t.revision_of,
+        o.title             AS revision_of_title,
+        o.approval_status   AS revision_of_status,
+        r.id                AS revision_id,
+        r.approval_status   AS revision_status
     FROM tours t
     JOIN providers p ON p.id = t.provider_id
     JOIN users     u ON u.id = p.user_id
+    LEFT JOIN tours o ON o.id = t.revision_of
+    LEFT JOIN tours r ON r.revision_of = t.id
     WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci)
       AND u.id = (p_user_id COLLATE utf8mb4_unicode_ci)
       AND u.role = 'provider';
@@ -11190,8 +11258,10 @@ DELIMITER ;
 
 -- ---------------------------------------------------------------------
 -- NTK_sp_host_can_edit_tour(p_user_id, p_tour_id, OUT p_allowed)   (dùng nội bộ)
+--   Sửa thông tin và nội dung tour (ảnh, lịch trình, dịch vụ, chính sách hủy).
 --   p_allowed = TRUE khi p_user_id là tài khoản đơn vị tổ chức đang hoạt động, đơn vị đang
---   hợp tác, là chủ của tour và tour không ở trạng thái 'archived'.
+--   hợp tác, là chủ của tour và tour (hoặc bản sửa) đang 'draft' hoặc 'rejected'. Tour đang
+--   'pending' bị khóa chờ quản trị viên; tour 'approved' chỉ sửa qua bản sửa (file 32).
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NTK_sp_host_can_edit_tour;
 
@@ -11209,7 +11279,39 @@ BEGIN
           JOIN providers p ON p.id = t.provider_id
           JOIN users     u ON u.id = p.user_id
          WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci)
+           AND t.approval_status IN ('draft', 'rejected')
+           AND p.approval_status = 'approved'
+           AND u.id = (p_user_id COLLATE utf8mb4_unicode_ci)
+           AND u.role = 'provider'
+           AND u.status = 'active');
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_host_can_manage_schedule(p_user_id, p_tour_id, OUT p_allowed)   (dùng nội bộ)
+--   Thêm / sửa lịch khởi hành và giá vé: không cần duyệt nên làm được ở mọi trạng thái duyệt,
+--   trừ tour 'archived'. Bản sửa (tours.revision_of) không có lịch riêng: lịch nằm ở tour gốc.
+--   p_allowed = TRUE khi p_user_id là tài khoản đơn vị tổ chức đang hoạt động, đơn vị đang
+--   hợp tác và là chủ của tour.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_host_can_manage_schedule;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_host_can_manage_schedule(
+    IN  p_user_id CHAR(36),
+    IN  p_tour_id CHAR(36),
+    OUT p_allowed BOOLEAN
+)
+READS SQL DATA
+BEGIN
+    SET p_allowed = EXISTS (
+        SELECT 1
+          FROM tours t
+          JOIN providers p ON p.id = t.provider_id
+          JOIN users     u ON u.id = p.user_id
+         WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci)
            AND t.approval_status <> 'archived'
+           AND t.revision_of IS NULL
            AND p.approval_status = 'approved'
            AND u.id = (p_user_id COLLATE utf8mb4_unicode_ci)
            AND u.role = 'provider'
@@ -11247,8 +11349,9 @@ DELIMITER ;
 -- ---------------------------------------------------------------------
 -- NTK_sp_host_tour_resubmit(p_user_id, p_tour_id)   (dùng nội bộ)
 --   Gọi bên trong transaction của procedure vừa ghi thay đổi do đơn vị tổ chức thực hiện
---   (không tự START TRANSACTION / COMMIT, không trả dòng nào). Tour đang 'approved' hoặc
---   'rejected' quay về 'pending' và ghi admin_logs 'tour_resubmit'; các trạng thái khác giữ nguyên.
+--   (không tự START TRANSACTION / COMMIT, không trả dòng nào). Tour (hoặc bản sửa) đang
+--   'rejected' quay về 'draft' và ghi admin_logs 'tour_redraft'; đơn vị sửa xong thì bấm "Gửi
+--   duyệt" (NTK_sp_host_tour_submit, file 32). Các trạng thái khác giữ nguyên.
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NTK_sp_host_tour_resubmit;
 
@@ -11266,14 +11369,14 @@ BEGIN
      WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci)
        FOR UPDATE;
 
-    IF v_status IN ('approved', 'rejected') THEN
+    IF v_status = 'rejected' THEN
         UPDATE tours
-           SET approval_status = 'pending'
+           SET approval_status = 'draft'
          WHERE id = (p_tour_id COLLATE utf8mb4_unicode_ci);
 
         INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
-        VALUES (UUID(), p_user_id, 'tour', p_tour_id, 'tour_resubmit', v_status, 'pending',
-                'Đơn vị tổ chức sửa tour, chờ duyệt lại', NOW());
+        VALUES (UUID(), p_user_id, 'tour', p_tour_id, 'tour_redraft', v_status, 'draft',
+                'Đơn vị tổ chức sửa tour bị từ chối: tour về bản nháp', NOW());
     END IF;
 END$$
 DELIMITER ;
@@ -11367,89 +11470,10 @@ END$$
 DELIMITER ;
 
 -- ---------------------------------------------------------------------
--- NTK_sp_host_register(p_business_name, p_contact_phone, p_email, p_password_hash)
---   Đơn vị tự đăng ký ở /host/register: thêm tài khoản users (role 'provider', mật khẩu đã băm
---   bằng password_hash() của PHP) và dòng providers ở trạng thái 'pending', ghi admin_logs
---   'provider_register' (người thao tác = chính tài khoản vừa tạo). Đơn vị chỉ đăng nhập được
---   sau khi quản trị viên chuyển trạng thái hợp tác sang 'approved' ở trang "Đơn vị tổ chức".
---   1 dòng: result, field, provider_id.
---     result = 'ok'          : đã ghi nhận; provider_id = mã đơn vị mới.
---              'invalid'     : dữ liệu sai; field = ô sai đầu tiên (business_name,
---                              contact_phone, email, password). Quy tắc từng ô giống
---                              NMT_sp_admin_provider_create.
---              'email_taken' : email đã thuộc một tài khoản khác (kể cả tài khoản khách hàng).
+-- NTK_sp_host_register: đã bỏ. Đơn vị tổ chức không tự đăng ký; quản trị viên thêm đơn vị và
+--   cấp mật khẩu ở trang "Đơn vị tổ chức". Dòng DROP giữ lại để cơ sở dữ liệu cũ gỡ procedure này.
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NTK_sp_host_register;
-
-DELIMITER $$
-CREATE PROCEDURE NTK_sp_host_register(
-    IN p_business_name VARCHAR(300) CHARACTER SET utf8mb4,
-    IN p_contact_phone VARCHAR(50),
-    IN p_email         VARCHAR(300) CHARACTER SET utf8mb4,
-    IN p_password_hash VARCHAR(300)
-)
-MODIFIES SQL DATA
-proc: BEGIN
-    DECLARE v_name        VARCHAR(300) CHARACTER SET utf8mb4 DEFAULT TRIM(p_business_name);
-    DECLARE v_phone       VARCHAR(50)  DEFAULT TRIM(p_contact_phone);
-    DECLARE v_email       VARCHAR(300) CHARACTER SET utf8mb4 DEFAULT LOWER(TRIM(p_email));
-    DECLARE v_field       VARCHAR(30)  DEFAULT NULL;
-    DECLARE v_user_id     CHAR(36)     DEFAULT UUID();
-    DECLARE v_provider_id CHAR(36)     DEFAULT UUID();
-    DECLARE v_duplicate   BOOLEAN      DEFAULT FALSE;
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-    -- 1062 = trùng khóa UNIQUE (email vừa được tài khoản khác dùng)
-    DECLARE CONTINUE HANDLER FOR 1062 SET v_duplicate = TRUE;
-
-    IF v_name IS NULL OR v_name = '' OR CHAR_LENGTH(v_name) > 150 THEN
-        SET v_field = 'business_name';
-    ELSEIF v_phone IS NULL OR CHAR_LENGTH(v_phone) NOT BETWEEN 8 AND 20
-        OR v_phone NOT REGEXP '^[+]?[0-9 ]+$' THEN
-        SET v_field = 'contact_phone';
-    ELSEIF v_email IS NULL OR CHAR_LENGTH(v_email) > 150
-        OR v_email NOT REGEXP '^[^@ ]+@[^@ ]+[.][^@ ]+$' THEN
-        SET v_field = 'email';
-    ELSEIF p_password_hash IS NULL OR CHAR_LENGTH(p_password_hash) NOT BETWEEN 20 AND 255 THEN
-        SET v_field = 'password';
-    END IF;
-
-    IF v_field IS NOT NULL THEN
-        SELECT 'invalid' AS result, v_field AS field, NULL AS provider_id;
-        LEAVE proc;
-    END IF;
-
-    IF EXISTS (SELECT 1 FROM users WHERE email = (v_email COLLATE utf8mb4_unicode_ci)) THEN
-        SELECT 'email_taken' AS result, 'email' AS field, NULL AS provider_id;
-        LEAVE proc;
-    END IF;
-
-    START TRANSACTION;
-
-    -- users.name tối đa 100 ký tự; tên đầy đủ nằm ở providers.business_name.
-    INSERT INTO users (id, email, password_hash, name, phone, role, status)
-    VALUES (v_user_id, v_email, p_password_hash, LEFT(v_name, 100), NULL, 'provider', 'active');
-
-    IF v_duplicate THEN
-        ROLLBACK;
-        SELECT 'email_taken' AS result, 'email' AS field, NULL AS provider_id;
-        LEAVE proc;
-    END IF;
-
-    INSERT INTO providers (id, user_id, business_name, contact_phone, approval_status, approved_at)
-    VALUES (v_provider_id, v_user_id, v_name, v_phone, 'pending', NULL);
-
-    INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
-    VALUES (UUID(), v_user_id, 'provider', v_provider_id, 'provider_register', NULL, 'pending',
-            'Đơn vị tự đăng ký, chờ quản trị viên duyệt', NOW());
-
-    COMMIT;
-    SELECT 'ok' AS result, NULL AS field, v_provider_id AS provider_id;
-END$$
-DELIMITER ;
 
 -- ---------------------------------------------------------------------
 -- NTK_sp_host_booking_list(p_user_id, p_status, p_tour_id)
@@ -11518,6 +11542,7 @@ DELIMITER ;
 --   tour của đơn vị khác (ứng dụng trả 404).
 --   1 dòng: booking_id, code, status, created_at, hold_expires_at, total_vnd, tickets_vnd,
 --   extras_vnd, voucher_code (NULL = chưa cấp), package_name, contact_name, contact_phone,
+--   contact_email (người liên hệ của đơn, để đơn vị báo cho khách trước chuyến đi),
 --   tour_id, tour_title, starts_at, ends_at, schedule_capacity, schedule_remaining,
 --   schedule_status, people, payment_status (khoản thanh toán tiêu biểu, NULL = chưa có).
 --   Dòng vé, phụ thu và danh sách khách đọc bằng NTK_sp_admin_booking_line_list /
@@ -11549,6 +11574,7 @@ BEGIN
         b.package_name,
         b.contact_name,
         b.contact_phone,
+        b.contact_email,
         t.id                AS tour_id,
         t.title             AS tour_title,
         s.starts_at,
@@ -11814,7 +11840,7 @@ DELIMITER ;
 --             NTK_sp_admin_payout_item_list, NTK_sp_admin_payout_pay,
 --             NTK_sp_admin_payout_waiting_list, NTK_sp_admin_refund_open_list,
 --             NTK_sp_admin_refund_complete,
---             NTK_sp_host_bank, NTK_sp_host_bank_save,
+--             NTK_sp_admin_provider_bank_verify, NTK_sp_host_bank, NTK_sp_host_bank_save,
 --             NTK_sp_host_payout_summary, NTK_sp_host_payout_list, NTK_sp_host_payout_detail,
 --             NTK_sp_host_payout_item_list
 -- Quy tắc   : * Khách trả đúng giá niêm yết cho LocalTour. Phí dịch vụ LocalTour lấy từ phần của
@@ -11854,6 +11880,11 @@ DELIMITER ;
 --               dịch chuyển khoản, đơn vị đã khai đủ tài khoản nhận tiền và số tài khoản vẫn đúng
 --               số quản trị viên thấy trên trang lúc chuyển khoản (chụp vào khoản chi trả lúc đó).
 --               Ghi admin_logs 'payout_paid' (số tài khoản chỉ hiện 4 số cuối).
+--             * Xác minh tài khoản nhận tiền (cột providers.bank_verified_at / _by, file 31): tài
+--               khoản đơn vị mới khai hoặc vừa đổi ở trạng thái "chưa xác minh". Quản trị viên
+--               kiểm tra ngoài hệ thống rồi bấm "Xác minh" (NTK_sp_admin_provider_bank_verify);
+--               chưa xác minh thì không ghi nhận được khoản chi trả. Đơn vị sửa tài khoản thì dấu
+--               xác minh bị xóa. Không lưu lịch sử các tài khoản cũ ngoài admin_logs.
 --             * Đơn vị tổ chức chỉ thấy khoản chi trả của chính mình (kiểm tra trong SQL như file
 --               27), và chỉ khi đơn vị đang hợp tác, tài khoản đang hoạt động.
 --             * NTK_sp_payout_sweep gọi được nhiều lần và cùng lúc từ nhiều phiên: khóa dòng rồi
@@ -12365,7 +12396,8 @@ DELIMITER ;
 --   "Chờ chi trả" trước (lập trước lên trước), rồi "Đã chi trả" (mới chuyển lên trước).
 --   Cột: payout_id, status, created_at, paid_at, transfer_reference, booking_count, gross_vnd,
 --        commission_vnd, net_vnd, schedule_id, starts_at, ends_at, tour_id, tour_title,
---        provider_id, business_name, has_bank (1 = đơn vị đã khai đủ tài khoản nhận tiền).
+--        provider_id, business_name, has_bank (1 = đơn vị đã khai đủ tài khoản nhận tiền),
+--        bank_verified (1 = quản trị viên đã xác minh tài khoản đang khai).
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NTK_sp_admin_payout_list;
 
@@ -12394,7 +12426,8 @@ BEGIN
         pr.business_name,
         (COALESCE(pr.bank_name, '') <> ''
          AND COALESCE(pr.bank_account_no, '') <> ''
-         AND COALESCE(pr.bank_account_name, '') <> '') AS has_bank
+         AND COALESCE(pr.bank_account_name, '') <> '') AS has_bank,
+        (pr.bank_verified_at IS NOT NULL) AS bank_verified
     FROM host_payouts hp
     JOIN schedules s  ON s.id = hp.schedule_id
     JOIN tours t      ON t.id = s.tour_id
@@ -12439,7 +12472,8 @@ DELIMITER ;
 --   còn chờ), schedule_id, starts_at, ends_at, schedule_status, tour_id, tour_title,
 --   provider_id, business_name, contact_phone, provider_email, provider_status,
 --   provider_bank_name, provider_bank_account_no, provider_bank_account_name (tài khoản đơn vị
---   đang khai).
+--   đang khai), provider_bank_verified_at (NULL = quản trị viên chưa xác minh tài khoản đang
+--   khai), provider_bank_verified_by_name.
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NTK_sp_admin_payout_detail;
 
@@ -12477,13 +12511,16 @@ BEGIN
         pr.approval_status AS provider_status,
         pr.bank_name         AS provider_bank_name,
         pr.bank_account_no   AS provider_bank_account_no,
-        pr.bank_account_name AS provider_bank_account_name
+        pr.bank_account_name AS provider_bank_account_name,
+        pr.bank_verified_at  AS provider_bank_verified_at,
+        v.name               AS provider_bank_verified_by_name
     FROM host_payouts hp
     JOIN schedules s  ON s.id = hp.schedule_id
     JOIN tours t      ON t.id = s.tour_id
     JOIN providers pr ON pr.id = hp.provider_id
     JOIN users u      ON u.id = pr.user_id
     LEFT JOIN users a ON a.id = hp.paid_by
+    LEFT JOIN users v ON v.id = pr.bank_verified_by
     WHERE hp.id = (p_payout_id COLLATE utf8mb4_unicode_ci);
 END$$
 DELIMITER ;
@@ -12528,7 +12565,9 @@ DELIMITER ;
 --   Quản trị viên ghi nhận đã chi trả sau khi chuyển khoản cho đơn vị ngoài hệ thống. Khoản chi
 --   trả -> 'paid', lưu mã giao dịch, ghi chú, người ghi, giờ ghi và chụp tài khoản nhận tiền đơn
 --   vị đang khai. p_seen_account_no = số tài khoản quản trị viên thấy trên trang lúc chuyển khoản
---   (ô ẩn của form): đơn vị vừa đổi số tài khoản thì không ghi. Ghi admin_logs 'payout_paid'
+--   (ô ẩn của form): đơn vị vừa đổi số tài khoản thì không ghi. Tài khoản đang khai phải được
+--   quản trị viên xác minh trước (NTK_sp_admin_provider_bank_verify); đơn vị đổi tài khoản thì
+--   phải xác minh lại. Ghi admin_logs 'payout_paid'
 --   (target_type 'payout'; số tài khoản chỉ hiện 4 số cuối như 'provider_bank').
 --   1 dòng: result.
 --     result = 'ok'
@@ -12539,6 +12578,7 @@ DELIMITER ;
 --              'already_paid'       : khoản đã được ghi "Đã chi trả" trước đó.
 --              'bank_missing'       : đơn vị chưa khai đủ tài khoản nhận tiền.
 --              'bank_changed'       : số tài khoản đơn vị đang khai khác số quản trị viên đã thấy.
+--              'bank_unverified'    : quản trị viên chưa xác minh tài khoản đơn vị đang khai.
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NTK_sp_admin_payout_pay;
 
@@ -12558,6 +12598,7 @@ proc: BEGIN
     DECLARE v_bank_name   VARCHAR(100) CHARACTER SET utf8mb4 DEFAULT NULL;
     DECLARE v_bank_no     VARCHAR(30)  CHARACTER SET utf8mb4 DEFAULT NULL;
     DECLARE v_bank_holder VARCHAR(100) CHARACTER SET utf8mb4 DEFAULT NULL;
+    DECLARE v_verified_at DATETIME     DEFAULT NULL;
     DECLARE v_reference   VARCHAR(255) CHARACTER SET utf8mb4 DEFAULT NULLIF(TRIM(p_transfer_reference), '');
     DECLARE v_note        VARCHAR(500) CHARACTER SET utf8mb4 DEFAULT NULLIF(TRIM(p_note), '');
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
@@ -12603,10 +12644,14 @@ proc: BEGIN
         LEAVE proc;
     END IF;
 
-    SELECT MAX(NULLIF(TRIM(pr.bank_name), '')), MAX(NULLIF(TRIM(pr.bank_account_no), '')), MAX(NULLIF(TRIM(pr.bank_account_name), ''))
-      INTO v_bank_name, v_bank_no, v_bank_holder
-      FROM providers pr
-     WHERE pr.id = v_provider_id;
+    -- Khóa dòng đơn vị: đơn vị không đổi được tài khoản trong lúc khoản chi trả đang được ghi.
+    SELECT MAX(NULLIF(TRIM(x.bank_name), '')), MAX(NULLIF(TRIM(x.bank_account_no), '')),
+           MAX(NULLIF(TRIM(x.bank_account_name), '')), MAX(x.bank_verified_at)
+      INTO v_bank_name, v_bank_no, v_bank_holder, v_verified_at
+      FROM (SELECT pr.bank_name, pr.bank_account_no, pr.bank_account_name, pr.bank_verified_at
+              FROM providers pr
+             WHERE pr.id = v_provider_id
+               FOR UPDATE) x;
 
     IF v_bank_name IS NULL OR v_bank_no IS NULL OR v_bank_holder IS NULL THEN
         ROLLBACK;
@@ -12618,6 +12663,13 @@ proc: BEGIN
     IF v_bank_no <> TRIM(COALESCE(p_seen_account_no, '')) THEN
         ROLLBACK;
         SELECT 'bank_changed' AS result;
+        LEAVE proc;
+    END IF;
+
+    -- Tài khoản mới khai hoặc vừa đổi: quản trị viên phải xác minh trước khi ghi nhận chi trả.
+    IF v_verified_at IS NULL THEN
+        ROLLBACK;
+        SELECT 'bank_unverified' AS result;
         LEAVE proc;
     END IF;
 
@@ -12636,6 +12688,104 @@ proc: BEGIN
     VALUES (UUID(), p_actor_user_id, 'payout', p_payout_id, 'payout_paid', 'pending', 'paid',
             LEFT(CONCAT('Đã chuyển ', REPLACE(FORMAT(v_net, 0), ',', '.'), ' VND tới ', v_bank_name, ', số tài khoản ****', RIGHT(v_bank_no, 4),
                         ', mã giao dịch ', v_reference, IF(v_note IS NULL, '', CONCAT(': ', v_note))), 255), NOW());
+
+    COMMIT;
+    SELECT 'ok' AS result;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_admin_provider_bank_verify(p_actor_user_id, p_provider_id, p_seen_bank_name,
+--                                   p_seen_account_no, p_seen_account_name)
+--   Quản trị viên xác minh tài khoản nhận tiền đơn vị đang khai (kiểm tra ngoài hệ thống, ví dụ
+--   gọi điện cho đơn vị hoặc đối chiếu giấy tờ, rồi bấm "Xác minh"). p_seen_* = đúng thông tin
+--   quản trị viên thấy trên trang (ô ẩn của form): đơn vị vừa đổi tài khoản thì không ghi.
+--   Đơn vị sửa tài khoản (NTK_sp_host_bank_save) thì dấu xác minh bị xóa, phải xác minh lại.
+--   Chưa xác minh thì không ghi nhận được khoản chi trả (NTK_sp_admin_payout_pay).
+--   Ghi admin_logs 'provider_bank_verify' (target_type 'provider_bank', target_id = mã đơn vị;
+--   số tài khoản chỉ hiện 4 số cuối).
+--   1 dòng: result.
+--     result = 'ok'
+--              'unchanged'    : tài khoản này đã được xác minh trước đó.
+--              'forbidden'    : không phải quản trị viên đang hoạt động.
+--              'not_found'    : không có đơn vị này.
+--              'bank_missing' : đơn vị chưa khai đủ tài khoản nhận tiền.
+--              'bank_changed' : tài khoản đơn vị đang khai khác thông tin quản trị viên đã thấy.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_admin_provider_bank_verify;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_admin_provider_bank_verify(
+    IN p_actor_user_id     CHAR(36),
+    IN p_provider_id       CHAR(36),
+    IN p_seen_bank_name    VARCHAR(255) CHARACTER SET utf8mb4,
+    IN p_seen_account_no   VARCHAR(255) CHARACTER SET utf8mb4,
+    IN p_seen_account_name VARCHAR(255) CHARACTER SET utf8mb4
+)
+MODIFIES SQL DATA
+proc: BEGIN
+    DECLARE v_provider_id CHAR(36)     CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL;
+    DECLARE v_bank_name   VARCHAR(100) CHARACTER SET utf8mb4 DEFAULT NULL;
+    DECLARE v_bank_no     VARCHAR(30)  CHARACTER SET utf8mb4 DEFAULT NULL;
+    DECLARE v_bank_holder VARCHAR(100) CHARACTER SET utf8mb4 DEFAULT NULL;
+    DECLARE v_verified_at DATETIME     DEFAULT NULL;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM users
+                    WHERE id = (p_actor_user_id COLLATE utf8mb4_unicode_ci)
+                      AND role = 'admin' AND status = 'active') THEN
+        SELECT 'forbidden' AS result;
+        LEAVE proc;
+    END IF;
+
+    START TRANSACTION;
+
+    SELECT MAX(x.id), MAX(NULLIF(TRIM(x.bank_name), '')), MAX(NULLIF(TRIM(x.bank_account_no), '')),
+           MAX(NULLIF(TRIM(x.bank_account_name), '')), MAX(x.bank_verified_at)
+      INTO v_provider_id, v_bank_name, v_bank_no, v_bank_holder, v_verified_at
+      FROM (SELECT pr.id, pr.bank_name, pr.bank_account_no, pr.bank_account_name, pr.bank_verified_at
+              FROM providers pr
+             WHERE pr.id = (p_provider_id COLLATE utf8mb4_unicode_ci)
+               FOR UPDATE) x;
+
+    IF v_provider_id IS NULL THEN
+        ROLLBACK;
+        SELECT 'not_found' AS result;
+        LEAVE proc;
+    END IF;
+
+    IF v_bank_name IS NULL OR v_bank_no IS NULL OR v_bank_holder IS NULL THEN
+        ROLLBACK;
+        SELECT 'bank_missing' AS result;
+        LEAVE proc;
+    END IF;
+
+    -- Đơn vị đổi tài khoản sau khi quản trị viên mở trang: thông tin đã kiểm tra không còn đúng.
+    IF BINARY v_bank_name <> BINARY TRIM(COALESCE(p_seen_bank_name, ''))
+       OR v_bank_no <> TRIM(COALESCE(p_seen_account_no, ''))
+       OR BINARY v_bank_holder <> BINARY TRIM(COALESCE(p_seen_account_name, '')) THEN
+        ROLLBACK;
+        SELECT 'bank_changed' AS result;
+        LEAVE proc;
+    END IF;
+
+    IF v_verified_at IS NOT NULL THEN
+        ROLLBACK;
+        SELECT 'unchanged' AS result;
+        LEAVE proc;
+    END IF;
+
+    UPDATE providers
+       SET bank_verified_at = NOW(), bank_verified_by = p_actor_user_id
+     WHERE id = v_provider_id;
+
+    INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
+    VALUES (UUID(), p_actor_user_id, 'provider_bank', v_provider_id, 'provider_bank_verify', 'unverified', 'verified',
+            LEFT(CONCAT('Đã xác minh tài khoản nhận tiền: ', v_bank_name, ', số tài khoản ****', RIGHT(v_bank_no, 4), ', ', v_bank_holder), 255), NOW());
 
     COMMIT;
     SELECT 'ok' AS result;
@@ -12839,7 +12989,8 @@ DELIMITER ;
 -- ---------------------------------------------------------------------
 -- NTK_sp_host_bank(p_user_id)
 --   Tài khoản nhận tiền chi trả của đơn vị đang đăng nhập. 0 hoặc 1 dòng: provider_id,
---   bank_name, bank_account_no, bank_account_name (NULL = chưa khai).
+--   bank_name, bank_account_no, bank_account_name (NULL = chưa khai), bank_verified_at
+--   (NULL = LocalTour chưa xác minh tài khoản đang khai).
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NTK_sp_host_bank;
 
@@ -12849,7 +13000,7 @@ CREATE PROCEDURE NTK_sp_host_bank(
 )
 READS SQL DATA
 BEGIN
-    SELECT pr.id AS provider_id, pr.bank_name, pr.bank_account_no, pr.bank_account_name
+    SELECT pr.id AS provider_id, pr.bank_name, pr.bank_account_no, pr.bank_account_name, pr.bank_verified_at
       FROM providers pr
       JOIN users u ON u.id = pr.user_id
      WHERE u.id = (p_user_id COLLATE utf8mb4_unicode_ci)
@@ -12867,6 +13018,8 @@ DELIMITER ;
 --     p_bank_account_name : tên chủ tài khoản, 2 - 100 ký tự.
 --   Ghi admin_logs 'provider_bank' (target_type 'provider_bank', target_id = mã đơn vị; số tài
 --   khoản trong ghi chú chỉ hiện 4 số cuối). Khoản đã "Đã chi trả" giữ tài khoản đã chụp.
+--   Mỗi lần tài khoản đổi, dấu xác minh của quản trị viên bị xóa (bank_verified_at = NULL):
+--   quản trị viên xác minh lại thì khoản chi trả mới ghi nhận được.
 --   1 dòng: result, field.
 --     result = 'ok' | 'unchanged'
 --              'forbidden' (không phải tài khoản đơn vị đang hoạt động, đơn vị đang hợp tác)
@@ -12935,7 +13088,8 @@ proc: BEGIN
     END IF;
 
     UPDATE providers
-       SET bank_name = v_name, bank_account_no = v_no, bank_account_name = v_holder
+       SET bank_name = v_name, bank_account_no = v_no, bank_account_name = v_holder,
+           bank_verified_at = NULL, bank_verified_by = NULL
      WHERE id = v_provider_id;
 
     INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
@@ -12952,8 +13106,8 @@ DELIMITER ;
 -- NTK_sp_host_payout_summary(p_user_id)
 --   Số liệu đầu trang "Doanh thu & chi trả" của đơn vị đang đăng nhập. 0 hoặc 1 dòng:
 --   commission_percent (% phí dịch vụ hiện tại, áp dụng cho đơn đặt từ lúc này),
---   has_bank (1 = đã khai đủ tài khoản nhận tiền), payout_count, gross_vnd, commission_vnd,
---   net_pending_vnd, net_paid_vnd.
+--   has_bank (1 = đã khai đủ tài khoản nhận tiền), bank_verified (1 = LocalTour đã xác minh tài
+--   khoản đang khai), payout_count, gross_vnd, commission_vnd, net_pending_vnd, net_paid_vnd.
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NTK_sp_host_payout_summary;
 
@@ -12972,6 +13126,7 @@ BEGIN
         (COALESCE(pr.bank_name, '') <> ''
          AND COALESCE(pr.bank_account_no, '') <> ''
          AND COALESCE(pr.bank_account_name, '') <> '') AS has_bank,
+        (pr.bank_verified_at IS NOT NULL) AS bank_verified,
         (SELECT COUNT(*) FROM host_payouts hp WHERE hp.provider_id = pr.id) AS payout_count,
         (SELECT COALESCE(SUM(hp.gross_vnd), 0) FROM host_payouts hp WHERE hp.provider_id = pr.id) AS gross_vnd,
         (SELECT COALESCE(SUM(hp.commission_vnd), 0) FROM host_payouts hp WHERE hp.provider_id = pr.id) AS commission_vnd,
@@ -13117,5 +13272,758 @@ BEGIN
       AND u.status = 'active'
       AND pr.approval_status = 'approved'
     ORDER BY b.code, i.id;
+END$$
+DELIMITER ;
+-- =====================================================================
+-- LocalTour v0.6 - 31_migration_host_rules_NTK.sql
+-- Mục đích  : Cột mới cho quy tắc của khu đơn vị tổ chức (Sprint 6):
+--   1. providers.bank_verified_at / bank_verified_by : dấu "đã xác minh" trên tài khoản nhận tiền
+--        đơn vị đang khai. NULL = chưa xác minh (tài khoản mới khai hoặc vừa đổi). Quản trị viên
+--        kiểm tra ngoài hệ thống rồi bấm "Xác minh"; chưa xác minh thì không ghi nhận được khoản
+--        chi trả (file 30). Tài khoản đã khai trước file này bắt đầu ở trạng thái chưa xác minh.
+--   2. tours.revision_of : "bản sửa" của tour đã duyệt (file 32). Đơn vị không sửa trực tiếp
+--        tour đang hiển thị: hệ thống chép tour thành một dòng tours mới (approval_status
+--        'draft', revision_of = mã tour gốc), đơn vị sửa trên dòng đó rồi gửi duyệt. Tour gốc
+--        giữ nguyên cho khách cho tới khi quản trị viên duyệt bản sửa; lúc đó nội dung bản sửa
+--        được chép vào tour gốc và dòng bản sửa bị xóa. NULL = tour thường.
+--        UNIQUE: mỗi tour tối đa một bản sửa đang mở. Bản sửa không bao giờ ở trạng thái
+--        'approved' nên không hiện ở trang khách.
+-- Phụ trách : Nguyễn Tuấn Khôi (NTK)
+-- Chạy sau  : 01 -> 30. Chạy lại được (ADD COLUMN IF NOT EXISTS, ADD UNIQUE KEY IF NOT EXISTS,
+--             khóa ngoại kiểm tra trong information_schema trước khi thêm).
+-- =====================================================================
+
+SET NAMES utf8mb4;
+
+ALTER TABLE providers
+    ADD COLUMN IF NOT EXISTS bank_verified_at DATETIME NULL,
+    ADD COLUMN IF NOT EXISTS bank_verified_by CHAR(36) NULL;
+
+ALTER TABLE tours
+    ADD COLUMN IF NOT EXISTS revision_of CHAR(36) NULL;
+
+ALTER TABLE tours
+    ADD UNIQUE KEY IF NOT EXISTS uq_tours_revision_of (revision_of);
+
+-- Khóa ngoại đã có thì MariaDB báo lỗi 1005 (không phải "trùng tên"): kiểm tra trước (như file 16).
+DROP PROCEDURE IF EXISTS NTK_sp_migrate_host_rules;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_migrate_host_rules()
+MODIFIES SQL DATA
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.TABLE_CONSTRAINTS
+                    WHERE CONSTRAINT_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'tours'
+                      AND CONSTRAINT_NAME = 'fk_tours_revision_of') THEN
+        ALTER TABLE tours
+            ADD CONSTRAINT fk_tours_revision_of FOREIGN KEY (revision_of)
+                REFERENCES tours (id) ON DELETE RESTRICT ON UPDATE CASCADE;
+    END IF;
+END$$
+DELIMITER ;
+
+CALL NTK_sp_migrate_host_rules();
+DROP PROCEDURE IF EXISTS NTK_sp_migrate_host_rules;
+-- =====================================================================
+-- LocalTour v0.6 - 32_procedures_NTK_tour_revision.sql
+-- Mục đích  : Vòng duyệt tour của đơn vị tổ chức (khu /host): gửi duyệt, ngừng hiển thị và
+--             "bản sửa" của tour đã duyệt.
+-- Phụ trách : Nguyễn Tuấn Khôi (NTK) - Sprint 6
+-- Procedures: NTK_sp_host_tour_submit, NTK_sp_host_tour_archive,
+--             NTK_sp_host_tour_revision_start, NTK_sp_host_tour_revision_discard,
+--             NTK_sp_admin_tour_revision_compare, NTK_sp_tour_image_in_use,
+--             NTK_sp_tour_revision_purge, NTK_sp_tour_revision_purge_of,
+--             NTK_sp_tour_revision_apply (3 procedure sau dùng nội bộ)
+-- Quy tắc   : * Trạng thái tour của đơn vị:
+--                 draft -> pending -> approved            (đơn vị gửi duyệt, quản trị viên duyệt)
+--                 pending -> rejected -> draft -> pending (từ chối kèm lý do, đơn vị sửa rồi gửi lại)
+--                 approved -> archived                    (đơn vị hoặc quản trị viên ngừng hiển thị)
+--               Đơn vị chỉ sửa thông tin và nội dung khi tour đang 'draft' / 'rejected' (file 27);
+--               tour 'pending' bị khóa cho tới khi quản trị viên xử lý. Đơn vị không tự duyệt,
+--               không đổi đơn vị tổ chức của tour, không tự đánh dấu "Đã xác minh".
+--             * Bản sửa (tours.revision_of, file 31): đơn vị muốn sửa tour ĐÃ DUYỆT thì tạo bản
+--               sửa = một dòng tours ẩn chép từ tour gốc (thông tin, ảnh, lịch trình, dịch vụ,
+--               chính sách hủy mới nhất), trạng thái 'draft'. Đơn vị sửa bản đó bằng chính các
+--               trang sửa tour, rồi gửi duyệt như một tour thường. Tour gốc vẫn hiển thị nguyên
+--               nội dung cũ cho khách. Quản trị viên xem phần khác nhau giữa bản đang hiển thị và
+--               bản sửa rồi:
+--                 - phê duyệt: LTP_sp_admin_tour_set_approval (file 03) gọi
+--                   NTK_sp_tour_revision_apply, trong MỘT transaction chép nội dung bản sửa vào
+--                   tour gốc rồi xóa dòng bản sửa; tour gốc vẫn 'approved'.
+--                 - từ chối (kèm lý do): bản sửa sang 'rejected', tour gốc không đổi; đơn vị xem
+--                   lý do, sửa tiếp (bản sửa về 'draft') rồi gửi lại, hoặc hủy bản sửa.
+--               Mỗi tour tối đa một bản sửa đang mở. Bản sửa không bao giờ 'approved' nên không
+--               hiện ở trang khách; bản sửa không có lịch khởi hành, giá vé hay đơn đặt tour (lịch
+--               và giá của tour gốc không cần duyệt, sửa thẳng trên tour gốc).
+--             * Áp dụng bản sửa chỉ chép các ô đơn vị sửa được. Đơn vị tổ chức, nguồn tham khảo,
+--               trạng thái xác minh, tọa độ bản đồ và trạng thái duyệt của tour gốc giữ nguyên.
+--               Chính sách hủy: bản sửa có chính sách khác chính sách mới nhất của tour gốc thì
+--               thêm thành phiên bản mới của tour gốc (đơn đã đặt giữ phiên bản lúc đặt).
+--             * Ngừng hiển thị: đơn vị chỉ ngừng được tour đang 'approved' và không còn đơn đang
+--               chờ / đã xác nhận (như quy tắc của quản trị viên, file 21). Tour không bị xóa.
+--               Hiển thị lại vẫn do quản trị viên làm (NMT_sp_admin_tour_restore).
+--             * Mọi procedure kiểm tra lại trong SQL: người thao tác là tài khoản đơn vị đang
+--               hoạt động, đơn vị đang hợp tác và là chủ của tour. Không có DEFINER.
+-- Chạy sau  : 01 -> 31. Chạy lại được (DROP PROCEDURE IF EXISTS).
+-- =====================================================================
+
+SET NAMES utf8mb4;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_host_tour_submit(p_user_id, p_tour_id)
+--   Đơn vị gửi tour (hoặc bản sửa) cho quản trị viên duyệt: 'draft' / 'rejected' -> 'pending'.
+--   Từ lúc này đơn vị không sửa được thông tin, nội dung cho tới khi quản trị viên xử lý.
+--   Ghi admin_logs 'tour_submit'.
+--   1 dòng: result.
+--     result = 'ok'
+--              'forbidden'             : không phải tài khoản đơn vị đang hoạt động, đang hợp tác.
+--              'not_found'             : không có tour này hoặc tour của đơn vị khác.
+--              'invalid_transition'    : tour không ở trạng thái 'draft' / 'rejected'.
+--              'original_not_approved' : bản sửa của tour gốc không còn 'approved' (tour gốc đang
+--                                        ngừng hiển thị hoặc chờ duyệt lại).
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_host_tour_submit;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_host_tour_submit(
+    IN p_user_id CHAR(36),
+    IN p_tour_id CHAR(36)
+)
+MODIFIES SQL DATA
+proc: BEGIN
+    DECLARE v_status   VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL;
+    DECLARE v_original CHAR(36)    CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL;
+    DECLARE v_owner    BOOLEAN     DEFAULT FALSE;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    IF NOT EXISTS (SELECT 1
+                     FROM users u
+                     JOIN providers p ON p.user_id = u.id
+                    WHERE u.id = (p_user_id COLLATE utf8mb4_unicode_ci)
+                      AND u.role = 'provider' AND u.status = 'active'
+                      AND p.approval_status = 'approved') THEN
+        SELECT 'forbidden' AS result;
+        LEAVE proc;
+    END IF;
+
+    START TRANSACTION;
+
+    SELECT t.approval_status, t.revision_of INTO v_status, v_original
+      FROM tours t
+     WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci)
+       FOR UPDATE;
+
+    SET v_owner = EXISTS (SELECT 1
+                            FROM tours t
+                            JOIN providers p ON p.id = t.provider_id
+                           WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci)
+                             AND p.user_id = (p_user_id COLLATE utf8mb4_unicode_ci));
+
+    IF v_status IS NULL OR NOT v_owner THEN
+        ROLLBACK;
+        SELECT 'not_found' AS result;
+        LEAVE proc;
+    END IF;
+
+    IF v_status NOT IN ('draft', 'rejected') THEN
+        ROLLBACK;
+        SELECT 'invalid_transition' AS result;
+        LEAVE proc;
+    END IF;
+
+    IF v_original IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM tours o WHERE o.id = v_original AND o.approval_status = 'approved') THEN
+        ROLLBACK;
+        SELECT 'original_not_approved' AS result;
+        LEAVE proc;
+    END IF;
+
+    UPDATE tours
+       SET approval_status = 'pending'
+     WHERE id = (p_tour_id COLLATE utf8mb4_unicode_ci);
+
+    INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
+    VALUES (UUID(), p_user_id, 'tour', p_tour_id, 'tour_submit', v_status, 'pending',
+            IF(v_original IS NULL, 'Đơn vị tổ chức gửi duyệt tour', 'Đơn vị tổ chức gửi duyệt bản sửa'), NOW());
+
+    COMMIT;
+    SELECT 'ok' AS result;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_host_tour_archive(p_user_id, p_tour_id)
+--   Đơn vị ngừng hiển thị tour của mình: 'approved' -> 'archived' (ghi admin_logs
+--   'tour_archive'). Tour không bị xóa; đơn và lịch sử giữ nguyên. Quản trị viên hiển thị lại.
+--   1 dòng: result, active_bookings.
+--     result = 'ok'
+--              'forbidden'          : không phải tài khoản đơn vị đang hoạt động, đang hợp tác.
+--              'not_found'          : không có tour này hoặc tour của đơn vị khác.
+--              'invalid_transition' : tour không ở trạng thái 'approved' (hoặc là bản sửa).
+--              'has_bookings'       : còn đơn pending / awaiting_payment / confirmed
+--                                     (active_bookings = số đơn đó).
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_host_tour_archive;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_host_tour_archive(
+    IN p_user_id CHAR(36),
+    IN p_tour_id CHAR(36)
+)
+MODIFIES SQL DATA
+proc: BEGIN
+    DECLARE v_status   VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL;
+    DECLARE v_original CHAR(36)    CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL;
+    DECLARE v_owner    BOOLEAN     DEFAULT FALSE;
+    DECLARE v_locked   INT         DEFAULT 0;
+    DECLARE v_active   INT         DEFAULT 0;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    IF NOT EXISTS (SELECT 1
+                     FROM users u
+                     JOIN providers p ON p.user_id = u.id
+                    WHERE u.id = (p_user_id COLLATE utf8mb4_unicode_ci)
+                      AND u.role = 'provider' AND u.status = 'active'
+                      AND p.approval_status = 'approved') THEN
+        SELECT 'forbidden' AS result, NULL AS active_bookings;
+        LEAVE proc;
+    END IF;
+
+    START TRANSACTION;
+
+    SELECT t.approval_status, t.revision_of INTO v_status, v_original
+      FROM tours t
+     WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci)
+       FOR UPDATE;
+
+    SET v_owner = EXISTS (SELECT 1
+                            FROM tours t
+                            JOIN providers p ON p.id = t.provider_id
+                           WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci)
+                             AND p.user_id = (p_user_id COLLATE utf8mb4_unicode_ci));
+
+    IF v_status IS NULL OR NOT v_owner THEN
+        ROLLBACK;
+        SELECT 'not_found' AS result, NULL AS active_bookings;
+        LEAVE proc;
+    END IF;
+
+    IF v_status <> 'approved' OR v_original IS NOT NULL THEN
+        ROLLBACK;
+        SELECT 'invalid_transition' AS result, 0 AS active_bookings;
+        LEAVE proc;
+    END IF;
+
+    -- Khóa các lịch của tour: không có đơn mới được tạo trong lúc kiểm tra (như file 21).
+    SELECT COUNT(*) INTO v_locked
+      FROM schedules s
+     WHERE s.tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci)
+       FOR UPDATE;
+
+    SELECT COUNT(*) INTO v_active
+      FROM bookings b
+      JOIN schedules s ON s.id = b.schedule_id
+     WHERE s.tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci)
+       AND b.status IN ('pending', 'awaiting_payment', 'confirmed');
+
+    IF v_active > 0 THEN
+        ROLLBACK;
+        SELECT 'has_bookings' AS result, v_active AS active_bookings;
+        LEAVE proc;
+    END IF;
+
+    UPDATE tours
+       SET approval_status = 'archived'
+     WHERE id = (p_tour_id COLLATE utf8mb4_unicode_ci);
+
+    INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
+    VALUES (UUID(), p_user_id, 'tour', p_tour_id, 'tour_archive', v_status, 'archived',
+            'Đơn vị tổ chức ngừng hiển thị tour', NOW());
+
+    COMMIT;
+    SELECT 'ok' AS result, 0 AS active_bookings;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_host_tour_revision_start(p_user_id, p_tour_id)
+--   Đơn vị tạo bản sửa của một tour đã duyệt: chép tour thành một dòng tours ẩn ('draft',
+--   revision_of = p_tour_id) cùng ảnh, lịch trình, dịch vụ bao gồm / không bao gồm và chính sách
+--   hủy mới nhất. Ảnh của bản sửa lúc đầu trỏ tới cùng file với tour gốc (file chỉ bị xóa khi
+--   không còn dòng ảnh nào dùng, xem NTK_sp_tour_image_in_use). Lịch khởi hành, giá vé, gói tour,
+--   phụ thu và vị trí bản đồ không chép: vẫn nằm ở tour gốc.
+--   Ghi admin_logs 'tour_revision_start' (ở tour gốc và ở bản sửa).
+--   1 dòng: result, revision_id.
+--     result = 'ok'                 : revision_id = mã bản sửa mới.
+--              'exists'             : tour đã có bản sửa đang mở; revision_id = mã bản sửa đó.
+--              'forbidden'          : không phải tài khoản đơn vị đang hoạt động, đang hợp tác.
+--              'not_found'          : không có tour này hoặc tour của đơn vị khác.
+--              'invalid_transition' : tour không ở trạng thái 'approved', hoặc chính nó là bản sửa.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_host_tour_revision_start;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_host_tour_revision_start(
+    IN p_user_id CHAR(36),
+    IN p_tour_id CHAR(36)
+)
+MODIFIES SQL DATA
+proc: BEGIN
+    DECLARE v_status   VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL;
+    DECLARE v_original CHAR(36)    CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL;
+    DECLARE v_existing CHAR(36)    CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL;
+    DECLARE v_new_id   CHAR(36)    CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT UUID();
+    DECLARE v_owner    BOOLEAN     DEFAULT FALSE;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    IF NOT EXISTS (SELECT 1
+                     FROM users u
+                     JOIN providers p ON p.user_id = u.id
+                    WHERE u.id = (p_user_id COLLATE utf8mb4_unicode_ci)
+                      AND u.role = 'provider' AND u.status = 'active'
+                      AND p.approval_status = 'approved') THEN
+        SELECT 'forbidden' AS result, NULL AS revision_id;
+        LEAVE proc;
+    END IF;
+
+    START TRANSACTION;
+
+    -- Khóa tour gốc: hai lần bấm cùng lúc không tạo ra hai bản sửa.
+    SELECT t.approval_status, t.revision_of INTO v_status, v_original
+      FROM tours t
+     WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci)
+       FOR UPDATE;
+
+    SET v_owner = EXISTS (SELECT 1
+                            FROM tours t
+                            JOIN providers p ON p.id = t.provider_id
+                           WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci)
+                             AND p.user_id = (p_user_id COLLATE utf8mb4_unicode_ci));
+
+    IF v_status IS NULL OR NOT v_owner THEN
+        ROLLBACK;
+        SELECT 'not_found' AS result, NULL AS revision_id;
+        LEAVE proc;
+    END IF;
+
+    SELECT r.id INTO v_existing
+      FROM tours r
+     WHERE r.revision_of = (p_tour_id COLLATE utf8mb4_unicode_ci);
+
+    IF v_existing IS NOT NULL THEN
+        ROLLBACK;
+        SELECT 'exists' AS result, v_existing AS revision_id;
+        LEAVE proc;
+    END IF;
+
+    IF v_status <> 'approved' OR v_original IS NOT NULL THEN
+        ROLLBACK;
+        SELECT 'invalid_transition' AS result, NULL AS revision_id;
+        LEAVE proc;
+    END IF;
+
+    INSERT INTO tours (id, provider_id, destination_id, category_id, title, description,
+                       destination, duration_minutes, max_group_size, language_codes,
+                       pickup_mode, meeting_point, latitude, longitude, included_summary,
+                       transport, guide_info, dropoff_point, excluded_summary, document_terms,
+                       meal_terms, voucher_terms, reschedule_terms, source_url, verified_at,
+                       verification_status, approval_status, revision_of)
+    SELECT v_new_id, t.provider_id, t.destination_id, t.category_id, t.title, t.description,
+           t.destination, t.duration_minutes, t.max_group_size, t.language_codes,
+           t.pickup_mode, t.meeting_point, NULL, NULL, t.included_summary,
+           t.transport, t.guide_info, t.dropoff_point, t.excluded_summary, t.document_terms,
+           t.meal_terms, t.voucher_terms, t.reschedule_terms, t.source_url, t.verified_at,
+           t.verification_status, 'draft', t.id
+      FROM tours t
+     WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci);
+
+    INSERT INTO tour_images (id, tour_id, url, alt_text, sort_order)
+    SELECT UUID(), v_new_id, i.url, i.alt_text, i.sort_order
+      FROM tour_images i
+     WHERE i.tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
+
+    INSERT INTO tour_itinerary_items (id, tour_id, start_time, description, sort_order)
+    SELECT UUID(), v_new_id, i.start_time, i.description, i.sort_order
+      FROM tour_itinerary_items i
+     WHERE i.tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
+
+    INSERT INTO tour_inclusions (id, tour_id, item_text, is_included, sort_order)
+    SELECT UUID(), v_new_id, i.item_text, i.is_included, i.sort_order
+      FROM tour_inclusions i
+     WHERE i.tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
+
+    -- Chỉ chép chính sách hủy mới nhất (thành phiên bản 1 của bản sửa).
+    INSERT INTO cancellation_policies (id, tour_id, free_before_hours, refund_percent, terms, version)
+    SELECT UUID(), v_new_id, cp.free_before_hours, cp.refund_percent, cp.terms, 1
+      FROM cancellation_policies cp
+     WHERE cp.tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci)
+     ORDER BY cp.version DESC
+     LIMIT 1;
+
+    INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
+    VALUES (UUID(), p_user_id, 'tour', p_tour_id, 'tour_revision_start', 'approved', 'approved',
+            'Đơn vị tổ chức tạo bản sửa; tour đang hiển thị giữ nguyên', NOW()),
+           (UUID(), p_user_id, 'tour', v_new_id, 'tour_revision_start', NULL, 'draft',
+            'Bản sửa của tour đã duyệt', NOW());
+
+    COMMIT;
+    SELECT 'ok' AS result, v_new_id AS revision_id;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_tour_revision_purge(p_revision_id)   (dùng nội bộ)
+--   Xóa dòng bản sửa và mọi dữ liệu con của nó. Gọi bên trong transaction của procedure khác
+--   (không tự START TRANSACTION / COMMIT, không trả dòng nào). Không làm gì khi p_revision_id
+--   không phải bản sửa (tours.revision_of IS NULL): không bao giờ xóa tour thường.
+--   Bản sửa không có đơn đặt tour (không bao giờ hiển thị cho khách) nên xóa được mọi bảng con.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_tour_revision_purge;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_tour_revision_purge(
+    IN p_revision_id CHAR(36)
+)
+MODIFIES SQL DATA
+BEGIN
+    DECLARE v_id CHAR(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL;
+
+    SELECT t.id INTO v_id
+      FROM tours t
+     WHERE t.id = (p_revision_id COLLATE utf8mb4_unicode_ci)
+       AND t.revision_of IS NOT NULL;
+
+    IF v_id IS NOT NULL THEN
+        DELETE tt FROM ticket_types tt
+          JOIN schedules s ON s.id = tt.schedule_id
+         WHERE s.tour_id = v_id;
+        DELETE FROM schedules             WHERE tour_id = v_id;
+        DELETE FROM tour_schedules        WHERE tour_id = v_id;
+        DELETE FROM tour_images           WHERE tour_id = v_id;
+        DELETE FROM itinerary_stops       WHERE tour_id = v_id;
+        DELETE FROM tour_itinerary_items  WHERE tour_id = v_id;
+        DELETE FROM tour_inclusions       WHERE tour_id = v_id;
+        DELETE FROM tour_extras           WHERE tour_id = v_id;
+        DELETE FROM cancellation_policies WHERE tour_id = v_id;
+        DELETE FROM tour_packages         WHERE tour_id = v_id;
+        DELETE FROM tour_posts            WHERE tour_id = v_id;
+        DELETE FROM favorite_tours        WHERE tour_id = v_id;
+        DELETE FROM comparison_tours      WHERE tour_id = v_id;
+        DELETE FROM reviews               WHERE tour_id = v_id;
+        DELETE FROM tours                 WHERE id = v_id;
+    END IF;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_tour_revision_purge_of(p_tour_id)   (dùng nội bộ)
+--   Xóa bản sửa đang mở (nếu có) của tour p_tour_id. NMT_sp_admin_tour_delete (file 21) gọi
+--   trước khi xóa hẳn một tour: khóa ngoại tours.revision_of không cho xóa tour còn bản sửa.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_tour_revision_purge_of;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_tour_revision_purge_of(
+    IN p_tour_id CHAR(36)
+)
+MODIFIES SQL DATA
+BEGIN
+    DECLARE v_revision CHAR(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL;
+
+    SELECT r.id INTO v_revision
+      FROM tours r
+     WHERE r.revision_of = (p_tour_id COLLATE utf8mb4_unicode_ci)
+       FOR UPDATE;
+
+    IF v_revision IS NOT NULL THEN
+        CALL NTK_sp_tour_revision_purge(v_revision);
+    END IF;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_host_tour_revision_discard(p_user_id, p_revision_id)
+--   Đơn vị hủy bản sửa của mình (đang 'draft' hoặc 'rejected'): xóa bản sửa, tour gốc không đổi.
+--   Bản sửa đang 'pending' bị khóa chờ quản trị viên nên không hủy được.
+--   Ghi admin_logs 'tour_revision_discard' ở tour gốc.
+--   1 dòng: result, original_id.
+--     result = 'ok'                 : original_id = mã tour gốc.
+--              'forbidden'          : không phải tài khoản đơn vị đang hoạt động, đang hợp tác.
+--              'not_found'          : không có bản sửa này hoặc của đơn vị khác.
+--              'invalid_transition' : bản sửa đang chờ duyệt.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_host_tour_revision_discard;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_host_tour_revision_discard(
+    IN p_user_id     CHAR(36),
+    IN p_revision_id CHAR(36)
+)
+MODIFIES SQL DATA
+proc: BEGIN
+    DECLARE v_status   VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL;
+    DECLARE v_original CHAR(36)    CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL;
+    DECLARE v_owner    BOOLEAN     DEFAULT FALSE;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    IF NOT EXISTS (SELECT 1
+                     FROM users u
+                     JOIN providers p ON p.user_id = u.id
+                    WHERE u.id = (p_user_id COLLATE utf8mb4_unicode_ci)
+                      AND u.role = 'provider' AND u.status = 'active'
+                      AND p.approval_status = 'approved') THEN
+        SELECT 'forbidden' AS result, NULL AS original_id;
+        LEAVE proc;
+    END IF;
+
+    START TRANSACTION;
+
+    SELECT t.approval_status, t.revision_of INTO v_status, v_original
+      FROM tours t
+     WHERE t.id = (p_revision_id COLLATE utf8mb4_unicode_ci)
+       FOR UPDATE;
+
+    SET v_owner = EXISTS (SELECT 1
+                            FROM tours t
+                            JOIN providers p ON p.id = t.provider_id
+                           WHERE t.id = (p_revision_id COLLATE utf8mb4_unicode_ci)
+                             AND p.user_id = (p_user_id COLLATE utf8mb4_unicode_ci));
+
+    IF v_status IS NULL OR v_original IS NULL OR NOT v_owner THEN
+        ROLLBACK;
+        SELECT 'not_found' AS result, NULL AS original_id;
+        LEAVE proc;
+    END IF;
+
+    IF v_status NOT IN ('draft', 'rejected') THEN
+        ROLLBACK;
+        SELECT 'invalid_transition' AS result, v_original AS original_id;
+        LEAVE proc;
+    END IF;
+
+    CALL NTK_sp_tour_revision_purge(p_revision_id);
+
+    INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
+    VALUES (UUID(), p_user_id, 'tour', v_original, 'tour_revision_discard', NULL, NULL,
+            'Đơn vị tổ chức hủy bản sửa; tour đang hiển thị giữ nguyên', NOW());
+
+    COMMIT;
+    SELECT 'ok' AS result, v_original AS original_id;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_tour_revision_apply(p_actor_user_id, p_revision_id, p_note, OUT p_result)   (dùng nội bộ)
+--   Áp dụng bản sửa vào tour gốc. LTP_sp_admin_tour_set_approval (file 03) gọi khi quản trị viên
+--   phê duyệt một bản sửa đang 'pending', BÊN TRONG transaction của nó (procedure này không tự
+--   START TRANSACTION / COMMIT, không trả dòng nào; người gọi đã kiểm tra quản trị viên và đã
+--   khóa dòng bản sửa). Mọi thay đổi nằm trong một transaction: hoặc áp dụng hết, hoặc không gì.
+--     1. Chép các ô đơn vị sửa được từ bản sửa vào tour gốc (đơn vị tổ chức, nguồn tham khảo,
+--        trạng thái xác minh, tọa độ và trạng thái duyệt của tour gốc giữ nguyên).
+--     2. Ảnh, lịch trình, dịch vụ bao gồm / không bao gồm: bỏ các dòng của tour gốc, chuyển các
+--        dòng của bản sửa sang tour gốc.
+--     3. Chính sách hủy mới nhất của bản sửa khác chính sách mới nhất của tour gốc: thêm thành
+--        phiên bản mới của tour gốc.
+--     4. Xóa dòng bản sửa. Ghi admin_logs 'tour_revision_approve' ở tour gốc.
+--   p_result = 'ok'
+--              'not_revision'          : p_revision_id không phải bản sửa.
+--              'original_not_approved' : tour gốc không còn 'approved' (không áp dụng gì).
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_tour_revision_apply;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_tour_revision_apply(
+    IN  p_actor_user_id CHAR(36),
+    IN  p_revision_id   CHAR(36),
+    IN  p_note          VARCHAR(255) CHARACTER SET utf8mb4,
+    OUT p_result        VARCHAR(30)
+)
+MODIFIES SQL DATA
+proc: BEGIN
+    DECLARE v_original    CHAR(36)    CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL;
+    DECLARE v_status      VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL;
+    DECLARE v_new_policy  CHAR(36)    CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL;
+    DECLARE v_old_policy  CHAR(36)    CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL;
+    DECLARE v_old_version INT         DEFAULT 0;
+    DECLARE v_same_policy BOOLEAN     DEFAULT FALSE;
+
+    SET p_result = 'not_revision';
+
+    SELECT t.revision_of INTO v_original
+      FROM tours t
+     WHERE t.id = (p_revision_id COLLATE utf8mb4_unicode_ci);
+
+    IF v_original IS NULL THEN
+        LEAVE proc;
+    END IF;
+
+    -- Khóa tour gốc cho tới khi transaction của người gọi kết thúc.
+    SELECT o.approval_status INTO v_status
+      FROM tours o
+     WHERE o.id = v_original
+       FOR UPDATE;
+
+    IF v_status IS NULL OR v_status <> 'approved' THEN
+        SET p_result = 'original_not_approved';
+        LEAVE proc;
+    END IF;
+
+    -- 1. Thông tin tour
+    UPDATE tours o
+      JOIN tours r ON r.id = (p_revision_id COLLATE utf8mb4_unicode_ci)
+       SET o.destination_id   = r.destination_id,
+           o.category_id      = r.category_id,
+           o.title            = r.title,
+           o.description      = r.description,
+           o.destination      = r.destination,
+           o.duration_minutes = r.duration_minutes,
+           o.max_group_size   = r.max_group_size,
+           o.language_codes   = r.language_codes,
+           o.pickup_mode      = r.pickup_mode,
+           o.meeting_point    = r.meeting_point,
+           o.transport        = r.transport,
+           o.guide_info       = r.guide_info,
+           o.dropoff_point    = r.dropoff_point,
+           o.document_terms   = r.document_terms,
+           o.meal_terms       = r.meal_terms,
+           o.voucher_terms    = r.voucher_terms,
+           o.reschedule_terms = r.reschedule_terms
+     WHERE o.id = v_original;
+
+    -- 2. Ảnh, lịch trình, dịch vụ: không bảng nào khác trỏ tới các dòng này nên thay cả bộ.
+    DELETE FROM tour_images WHERE tour_id = v_original;
+    UPDATE tour_images SET tour_id = v_original WHERE tour_id = (p_revision_id COLLATE utf8mb4_unicode_ci);
+
+    DELETE FROM tour_itinerary_items WHERE tour_id = v_original;
+    UPDATE tour_itinerary_items SET tour_id = v_original WHERE tour_id = (p_revision_id COLLATE utf8mb4_unicode_ci);
+
+    DELETE FROM tour_inclusions WHERE tour_id = v_original;
+    UPDATE tour_inclusions SET tour_id = v_original WHERE tour_id = (p_revision_id COLLATE utf8mb4_unicode_ci);
+
+    -- 3. Chính sách hủy: giữ mọi phiên bản cũ của tour gốc, chỉ thêm phiên bản mới khi nội dung khác.
+    SELECT cp.id INTO v_new_policy
+      FROM cancellation_policies cp
+     WHERE cp.tour_id = (p_revision_id COLLATE utf8mb4_unicode_ci)
+     ORDER BY cp.version DESC
+     LIMIT 1;
+
+    SELECT cp.id, cp.version INTO v_old_policy, v_old_version
+      FROM cancellation_policies cp
+     WHERE cp.tour_id = v_original
+     ORDER BY cp.version DESC
+     LIMIT 1;
+
+    IF v_new_policy IS NOT NULL THEN
+        SET v_same_policy = v_old_policy IS NOT NULL AND EXISTS (
+            SELECT 1
+              FROM cancellation_policies n
+              JOIN cancellation_policies o ON o.id = v_old_policy
+             WHERE n.id = v_new_policy
+               AND n.free_before_hours <=> o.free_before_hours
+               AND n.refund_percent = o.refund_percent
+               AND BINARY n.terms = BINARY o.terms);
+
+        IF NOT v_same_policy THEN
+            INSERT INTO cancellation_policies (id, tour_id, free_before_hours, refund_percent, terms, version)
+            SELECT UUID(), v_original, n.free_before_hours, n.refund_percent, n.terms, COALESCE(v_old_version, 0) + 1
+              FROM cancellation_policies n
+             WHERE n.id = v_new_policy;
+        END IF;
+    END IF;
+
+    -- 4. Xóa bản sửa (và phần còn lại của nó)
+    CALL NTK_sp_tour_revision_purge(p_revision_id);
+
+    INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
+    VALUES (UUID(), p_actor_user_id, 'tour', v_original, 'tour_revision_approve', 'approved', 'approved',
+            COALESCE(NULLIF(TRIM(p_note), ''), 'Đã duyệt bản sửa: nội dung mới được áp dụng cho tour'), NOW());
+
+    SET p_result = 'ok';
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_admin_tour_revision_compare(p_revision_id)
+--   Dữ liệu để quản trị viên (và đơn vị) so bản sửa với tour đang hiển thị. 0 dòng khi
+--   p_revision_id không phải bản sửa; ngược lại 2 dòng, side = 'current' (tour gốc) rồi
+--   'proposed' (bản sửa). Cột: side, tour_id, title, description, destination_name,
+--   category_name, duration_minutes, max_group_size, language_codes, pickup_mode,
+--   meeting_point, transport, guide_info, dropoff_point, document_terms, meal_terms,
+--   voucher_terms, reschedule_terms, approval_status.
+--   Ảnh, lịch trình, dịch vụ và chính sách hủy của hai bên đọc bằng các procedure danh sách
+--   của file 21 (NMT_sp_admin_image_list ...).
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_admin_tour_revision_compare;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_admin_tour_revision_compare(
+    IN p_revision_id CHAR(36)
+)
+READS SQL DATA
+BEGIN
+    SELECT
+        IF(t.id = r.id, 'proposed', 'current') AS side,
+        t.id                AS tour_id,
+        t.title,
+        t.description,
+        COALESCE(d.name, t.destination) AS destination_name,
+        c.name              AS category_name,
+        t.duration_minutes,
+        t.max_group_size,
+        t.language_codes,
+        t.pickup_mode,
+        t.meeting_point,
+        t.transport,
+        t.guide_info,
+        t.dropoff_point,
+        t.document_terms,
+        t.meal_terms,
+        t.voucher_terms,
+        t.reschedule_terms,
+        t.approval_status
+    FROM tours r
+    JOIN tours t ON t.id IN (r.id, r.revision_of)
+    LEFT JOIN destinations d ON d.id = t.destination_id
+    LEFT JOIN categories   c ON c.id = t.category_id
+    WHERE r.id = (p_revision_id COLLATE utf8mb4_unicode_ci)
+      AND r.revision_of IS NOT NULL
+    ORDER BY (t.id = r.id) ASC;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_tour_image_in_use(p_url)
+--   File ảnh p_url còn được dòng tour_images nào dùng không. Bản sửa lúc đầu trỏ tới cùng file
+--   ảnh với tour gốc, nên ứng dụng chỉ xóa file trên đĩa khi không còn dòng nào dùng.
+--   1 dòng: in_use (0 / 1).
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_tour_image_in_use;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_tour_image_in_use(
+    IN p_url VARCHAR(255) CHARACTER SET utf8mb4
+)
+READS SQL DATA
+BEGIN
+    SELECT EXISTS (SELECT 1
+                     FROM tour_images i
+                    WHERE i.url = (p_url COLLATE utf8mb4_unicode_ci)) AS in_use;
 END$$
 DELIMITER ;

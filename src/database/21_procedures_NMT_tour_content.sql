@@ -15,9 +15,10 @@
 --               admin_logs (target_type 'tour', target_id = mã tour).
 --             * Sprint 6: ảnh, lịch trình, dịch vụ và chính sách hủy còn nhận người thao tác là
 --               đơn vị tổ chức đang hợp tác, chỉ trên tour của chính đơn vị
---               (NTK_sp_host_can_edit_tour, file 27). Đơn vị sửa nội dung tour đã duyệt / bị từ
---               chối thì tour quay về 'pending' (NTK_sp_host_tour_resubmit). Xóa / khôi phục
---               tour và xóa đơn vị vẫn chỉ dành cho quản trị viên.
+--               (NTK_sp_host_can_edit_tour, file 27) và chỉ khi tour đang 'draft' / 'rejected'.
+--               Đơn vị sửa nội dung tour bị từ chối thì tour quay về 'draft'
+--               (NTK_sp_host_tour_resubmit); tour đã duyệt sửa qua "bản sửa" (file 32). Xóa / khôi
+--               phục tour và xóa đơn vị vẫn chỉ dành cho quản trị viên.
 --             * Chỉ sửa dữ liệu của đúng tour (mã mục phải thuộc tour đó): không ảnh hưởng tour khác.
 --             * Ảnh: tối đa 12 ảnh / tour; ảnh bìa = ảnh có sort_order nhỏ nhất. File ảnh do ứng
 --               dụng lưu (public/assets/uploads/tours); xóa ảnh trả url để ứng dụng xóa file.
@@ -139,7 +140,7 @@ proc: BEGIN
     VALUES (UUID(), p_actor_user_id, 'tour', p_tour_id, 'image_add', NULL, NULL,
             LEFT(CONCAT('Thêm ảnh', IF(v_alt IS NULL, '', CONCAT(' "', v_alt, '"'))), 255), NOW());
 
-    -- Đơn vị tổ chức sửa tour đã duyệt / bị từ chối: tour quay về "Chờ duyệt".
+    -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
     IF v_host THEN
         CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
     END IF;
@@ -203,7 +204,7 @@ proc: BEGIN
     VALUES (UUID(), p_actor_user_id, 'tour', p_tour_id, 'image_delete', NULL, NULL,
             LEFT(CONCAT('Xóa ảnh', IF(v_alt IS NULL, '', CONCAT(' "', v_alt, '"'))), 255), NOW());
 
-    -- Đơn vị tổ chức sửa tour đã duyệt / bị từ chối: tour quay về "Chờ duyệt".
+    -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
     IF v_host THEN
         CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
     END IF;
@@ -280,7 +281,7 @@ proc: BEGIN
     INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
     VALUES (UUID(), p_actor_user_id, 'tour', p_tour_id, 'image_cover', NULL, NULL, 'Đổi ảnh bìa', NOW());
 
-    -- Đơn vị tổ chức sửa tour đã duyệt / bị từ chối: tour quay về "Chờ duyệt".
+    -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
     IF v_host THEN
         CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
     END IF;
@@ -396,7 +397,7 @@ proc: BEGIN
                 LEFT(CONCAT('Thêm lịch trình: ', IF(p_start_time IS NULL, '', CONCAT(TIME_FORMAT(p_start_time, '%H:%i'), ' ')), v_desc), 255),
                 NOW());
 
-        -- Đơn vị tổ chức sửa tour đã duyệt / bị từ chối: tour quay về "Chờ duyệt".
+        -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
         IF v_host THEN
             CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
         END IF;
@@ -434,7 +435,7 @@ proc: BEGIN
             LEFT(CONCAT('Sửa lịch trình: ', IF(p_start_time IS NULL, '', CONCAT(TIME_FORMAT(p_start_time, '%H:%i'), ' ')), v_desc), 255),
             NOW());
 
-    -- Đơn vị tổ chức sửa tour đã duyệt / bị từ chối: tour quay về "Chờ duyệt".
+    -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
     IF v_host THEN
         CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
     END IF;
@@ -497,7 +498,7 @@ proc: BEGIN
     VALUES (UUID(), p_actor_user_id, 'tour', p_tour_id, 'itinerary_delete', NULL, NULL,
             LEFT(CONCAT('Xóa lịch trình: ', v_desc), 255), NOW());
 
-    -- Đơn vị tổ chức sửa tour đã duyệt / bị từ chối: tour quay về "Chờ duyệt".
+    -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
     IF v_host THEN
         CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
     END IF;
@@ -602,7 +603,7 @@ proc: BEGIN
     VALUES (UUID(), p_actor_user_id, 'tour', p_tour_id, 'inclusion_add', NULL, NULL,
             LEFT(CONCAT(IF(v_inc, 'Thêm mục bao gồm: ', 'Thêm mục không bao gồm: '), v_text), 255), NOW());
 
-    -- Đơn vị tổ chức sửa tour đã duyệt / bị từ chối: tour quay về "Chờ duyệt".
+    -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
     IF v_host THEN
         CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
     END IF;
@@ -665,7 +666,7 @@ proc: BEGIN
     VALUES (UUID(), p_actor_user_id, 'tour', p_tour_id, 'inclusion_delete', NULL, NULL,
             LEFT(CONCAT('Xóa mục: ', v_text), 255), NOW());
 
-    -- Đơn vị tổ chức sửa tour đã duyệt / bị từ chối: tour quay về "Chờ duyệt".
+    -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
     IF v_host THEN
         CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
     END IF;
@@ -802,7 +803,7 @@ proc: BEGIN
                            CONCAT('hủy miễn phí trước ', p_free_before_hours, ' giờ')),
                         ', hoàn ', p_refund_percent, '%'), 255), NOW());
 
-    -- Đơn vị tổ chức sửa tour đã duyệt / bị từ chối: tour quay về "Chờ duyệt".
+    -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
     IF v_host THEN
         CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
     END IF;
@@ -921,6 +922,8 @@ proc: BEGIN
     DELETE FROM tour_posts           WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
     DELETE FROM favorite_tours       WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
     DELETE FROM comparison_tours     WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
+    -- Sprint 6 (NTK, file 32): tour còn "bản sửa" đang mở thì xóa bản sửa trước (khóa ngoại tours.revision_of).
+    CALL NTK_sp_tour_revision_purge_of(p_tour_id);
     DELETE FROM tours                WHERE id = (p_tour_id COLLATE utf8mb4_unicode_ci);
 
     INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)

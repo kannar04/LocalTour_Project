@@ -7,8 +7,11 @@
  * Form "Phê duyệt" và "Từ chối" chỉ hiện khi tour đang "Chờ duyệt".
  * Sprint 5 (Nguyễn Tuấn Khôi): nút "Gói tour" (US06-S5-01) và "Ảnh, lịch trình, dịch vụ, chính sách" (US07-S5-01,
  * gồm cả xóa tour / ngừng hiển thị); lịch sử ghi thêm các thao tác đó.
+ * Sprint 6 (Nguyễn Tuấn Khôi): $revision khác null = tour này là "bản sửa" của một tour đã duyệt; trang hiện thêm
+ * bảng so sánh nội dung đang hiển thị với nội dung đề xuất (partials/revision_compare.php). Phê duyệt = áp dụng bản sửa.
  */
 $isPending = $tour['approval_status'] === 'pending';
+$isRevision = $tour['revision_of'] !== null;
 $isArchived = $tour['approval_status'] === 'archived';
 $providerOk = $tour['provider_approval_status'] === 'approved' && $tour['provider_user_status'] === 'active';
 $missing = [];
@@ -49,6 +52,8 @@ $counts = [
 $actionLabels = [
     'tour_approve' => 'Phê duyệt', 'tour_reject' => 'Từ chối', 'tour_create' => 'Thêm tour', 'tour_update' => 'Sửa thông tin',
     'tour_archive' => 'Ngừng hiển thị', 'tour_restore' => 'Hiển thị lại', 'tour_resubmit' => 'Đơn vị sửa tour',
+    'tour_submit' => 'Đơn vị gửi duyệt', 'tour_redraft' => 'Đơn vị sửa tour bị từ chối',
+    'tour_revision_start' => 'Tạo bản sửa', 'tour_revision_approve' => 'Duyệt bản sửa', 'tour_revision_discard' => 'Hủy bản sửa',
     'package_create' => 'Thêm gói tour', 'package_update' => 'Sửa gói tour',
     'image_add' => 'Thêm ảnh', 'image_delete' => 'Xóa ảnh', 'image_cover' => 'Đổi ảnh bìa',
     'itinerary_add' => 'Thêm lịch trình', 'itinerary_update' => 'Sửa lịch trình', 'itinerary_delete' => 'Xóa lịch trình',
@@ -69,6 +74,7 @@ $historyText = static function (array $log) use ($actionLabels, $packageStatus):
             ? $label
             : $label . ': ' . ($packageStatus[$log['from_status']] ?? $log['from_status']) . ' → ' . ($packageStatus[$log['to_status']] ?? $log['to_status']),
         'tour_create' => $label . ': ' . tour_status_label($log['to_status']),
+        'tour_revision_start', 'tour_revision_approve' => $label,
         'tour_update' => $log['from_status'] === $log['to_status']
             ? $label
             : $label . ': ' . verification_status_label($log['from_status']) . ' → ' . verification_status_label($log['to_status']),
@@ -91,15 +97,23 @@ $historyText = static function (array $log) use ($actionLabels, $packageStatus):
                     <h1 class="lt-admin__title" id="admin-title"><?= e($tour['title']) ?></h1>
                     <p class="lt-admin__subtitle">
                         <span class="lt-badge lt-badge--<?= e($tour['approval_status']) ?>"><?= e(tour_status_label($tour['approval_status'])) ?></span>
+<?php if ($isRevision): ?>
+                        Bản sửa của một tour đã duyệt
+<?php else: ?>
                         <?= (int) $tour['is_public'] === 1 ? 'Đang hiển thị cho khách' : 'Chưa hiển thị cho khách' ?>
+<?php endif; ?>
                     </p>
                 </div>
                 <div class="lt-admin__actions">
+<?php if ($isRevision): ?>
+                    <a class="lt-btn lt-btn--soft" href="<?= e(url('/admin/tours/' . $tour['revision_of'])) ?>">Xem tour đang hiển thị</a>
+<?php else: ?>
                     <a class="lt-btn lt-btn--soft" href="<?= e(url('/admin/tours/' . $tour['tour_id'] . '/edit')) ?>">Sửa thông tin</a>
                     <a class="lt-btn lt-btn--soft" href="<?= e(url('/admin/tours/' . $tour['tour_id'] . '/schedules')) ?>">Lịch khởi hành và giá vé</a>
                     <a class="lt-btn lt-btn--soft" href="<?= e(url('/admin/tours/' . $tour['tour_id'] . '/packages')) ?>">Gói tour</a>
                     <a class="lt-btn lt-btn--soft" href="<?= e(url('/admin/tours/' . $tour['tour_id'] . '/content')) ?>">Ảnh, lịch trình, dịch vụ, chính sách</a>
                     <a class="lt-btn lt-btn--soft" href="<?= e(url('/admin/tours/' . $tour['tour_id'] . '/location')) ?>">Điểm khởi hành trên bản đồ</a>
+<?php endif; ?>
 <?php if ((int) $tour['is_public'] === 1): ?>
                     <a class="lt-btn lt-btn--outline" href="<?= e(url('/tours/' . $tour['tour_id'])) ?>">Xem trang tour</a>
 <?php endif; ?>
@@ -119,14 +133,21 @@ $historyText = static function (array $log) use ($actionLabels, $packageStatus):
 <?php if (!$providerOk): ?>
             <div class="lt-alert lt-alert--warning"><span class="lt-icon lt-icon--info" aria-hidden="true"></span><span>Đơn vị tổ chức chưa được duyệt hoặc đang bị khóa: tour sẽ chưa hiển thị cho khách dù đã phê duyệt.</span></div>
 <?php endif; ?>
-<?php if ($isPending && $missing !== []): ?>
+<?php if ($isPending && !$isRevision && $missing !== []): ?>
             <div class="lt-alert lt-alert--warning"><span class="lt-icon lt-icon--info" aria-hidden="true"></span><span>Tour còn thiếu: <?= e(implode(', ', $missing)) ?>.</span></div>
+<?php endif; ?>
+<?php if (!$isRevision && $tour['revision_id'] !== null): ?>
+            <div class="lt-alert lt-alert--warning"><span class="lt-icon lt-icon--info" aria-hidden="true"></span><span>Đơn vị tổ chức đang có một bản sửa của tour này (<?= e(tour_status_label($tour['revision_status'])) ?>). Khách vẫn thấy nội dung hiện tại cho tới khi bản sửa được duyệt.
+                <a href="<?= e(url('/admin/tours/' . $tour['revision_id'])) ?>">Xem bản sửa</a></span></div>
+<?php endif; ?>
+<?php if ($revision !== null): ?>
+<?php require __DIR__ . '/partials/revision_compare.php'; ?>
 <?php endif; ?>
 
             <div class="row">
                 <div class="col-12 col-xl-7">
                     <section class="lt-panel" aria-labelledby="tour-info-title">
-                        <h2 class="lt-panel__title" id="tour-info-title">Thông tin tour</h2>
+                        <h2 class="lt-panel__title" id="tour-info-title"><?= $isRevision ? 'Thông tin trong bản sửa' : 'Thông tin tour' ?></h2>
 <?php foreach (text_paragraphs($tour['description']) as $paragraph): ?>
                         <p class="lt-admin__text"><?= nl2br(e($paragraph)) ?></p>
 <?php endforeach; ?>
@@ -144,6 +165,7 @@ $historyText = static function (array $log) use ($actionLabels, $packageStatus):
                         <h2 class="lt-panel__title" id="tour-counts-title">Nội dung đã nhập</h2>
                         <dl class="lt-fields lt-fields--compact">
 <?php foreach ($counts as $label => $value): ?>
+<?php if ($isRevision && in_array($label, ['Lịch khởi hành', 'Loại vé đang bán'], true)) { continue; } // lịch và giá vé nằm ở tour gốc ?>
                             <dt><?= e($label) ?></dt>
                             <dd><?= e($value) ?></dd>
 <?php endforeach; ?>
@@ -155,8 +177,11 @@ $historyText = static function (array $log) use ($actionLabels, $packageStatus):
                         <h2 class="lt-panel__title" id="tour-decide-title">Xử lý</h2>
                         <form action="<?= e(url('/admin/tours/' . $tour['tour_id'] . '/approve')) ?>" method="post" class="lt-admin-form">
                             <?= csrf_field() ?>
+<?php if ($isRevision): ?>
+                            <p class="lt-admin__text">Phê duyệt sẽ áp dụng nội dung bản sửa cho tour đang hiển thị. Từ chối thì tour đang hiển thị giữ nguyên.</p>
+<?php endif; ?>
                             <button class="lt-btn lt-btn--primary lt-btn--block" type="submit">
-                                <span class="lt-icon lt-icon--check" aria-hidden="true"></span> Phê duyệt tour
+                                <span class="lt-icon lt-icon--check" aria-hidden="true"></span> <?= $isRevision ? 'Phê duyệt bản sửa' : 'Phê duyệt tour' ?>
                             </button>
                         </form>
                         <form action="<?= e(url('/admin/tours/' . $tour['tour_id'] . '/reject')) ?>" method="post" class="lt-admin-form lt-admin-form--split">
@@ -164,7 +189,7 @@ $historyText = static function (array $log) use ($actionLabels, $packageStatus):
                             <label class="lt-admin-label" for="reject-note">Lý do từ chối (bắt buộc)</label>
                             <textarea class="lt-admin-input" id="reject-note" name="note" rows="3" maxlength="255" required><?= e($note) ?></textarea>
                             <button class="lt-btn lt-btn--danger lt-btn--block" type="submit">
-                                <span class="lt-icon lt-icon--x" aria-hidden="true"></span> Từ chối tour
+                                <span class="lt-icon lt-icon--x" aria-hidden="true"></span> <?= $isRevision ? 'Từ chối bản sửa' : 'Từ chối tour' ?>
                             </button>
                         </form>
                     </section>

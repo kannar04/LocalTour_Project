@@ -5,34 +5,37 @@
 --             vẫn là người duyệt tour trước khi tour hiển thị cho khách.
 -- Phụ trách : Nguyễn Tuấn Khôi (NTK) - Sprint 6
 -- Procedures: NTK_sp_host_profile, NTK_sp_host_tour_list, NTK_sp_host_tour_access,
---             NTK_sp_host_can_edit_tour, NTK_sp_host_can_use_provider, NTK_sp_host_tour_resubmit
---             (3 procedure sau dùng nội bộ, được các procedure ghi dữ liệu của file 13 và 21 gọi),
+--             NTK_sp_host_can_edit_tour, NTK_sp_host_can_manage_schedule,
+--             NTK_sp_host_can_use_provider, NTK_sp_host_tour_resubmit
+--             (4 procedure sau dùng nội bộ, được các procedure ghi dữ liệu của file 13 và 21 gọi),
 --             NTK_sp_admin_provider_set_password, NTK_sp_admin_provider_account,
---             NTK_sp_host_register,
 --             NTK_sp_host_booking_list, NTK_sp_host_booking_detail, NTK_sp_host_booking_change_list
 --             (đơn vị xem đơn đặt tour của tour mình, chỉ đọc)
 -- Quy tắc   : * Tài khoản đơn vị tổ chức = dòng users role 'provider' đi kèm dòng providers
---               (đã có từ Sprint 4). Có 2 cách có tài khoản: quản trị viên thêm đơn vị rồi cấp
---               mật khẩu ở trang "Đơn vị tổ chức", hoặc đơn vị tự đăng ký ở /host/register
---               (trạng thái 'pending', chờ quản trị viên duyệt). Đơn vị chỉ dùng được khu /host
---               khi tài khoản đang 'active' và trạng thái hợp tác là 'approved'.
+--               (đã có từ Sprint 4). Đơn vị KHÔNG tự đăng ký: quản trị viên thêm đơn vị rồi cấp
+--               mật khẩu ở trang "Đơn vị tổ chức". Đơn vị chỉ dùng được khu /host khi tài khoản
+--               đang 'active' và trạng thái hợp tác là 'approved'.
 --             * Tài khoản đơn vị tách riêng với tài khoản khách hàng: mỗi email chỉ thuộc một
 --               tài khoản, tài khoản khách hàng không chuyển thành tài khoản đơn vị.
---             * Đơn vị chỉ thao tác trên tour của chính mình, và không sửa được tour đang
---               "Ngừng hiển thị" ('archived'). Việc kiểm tra nằm ở đây (lớp chặn cuối), không chỉ
---               ở PHP: NMT_sp_admin_tour_create / _update, NMT_sp_admin_schedule_create / _update
---               và các procedure ảnh, lịch trình, dịch vụ, chính sách hủy gọi
---               NTK_sp_host_can_edit_tour / NTK_sp_host_can_use_provider khi người thao tác
---               không phải quản trị viên.
---             * Đơn vị sửa thông tin hoặc nội dung của tour đã duyệt / bị từ chối: tour quay về
---               'pending' (chờ duyệt lại), ghi admin_logs 'tour_resubmit'. Thêm / sửa lịch khởi
---               hành và giá vé không đổi trạng thái duyệt.
+--             * Đơn vị chỉ thao tác trên tour của chính mình. Việc kiểm tra nằm ở đây (lớp chặn
+--               cuối), không chỉ ở PHP: NMT_sp_admin_tour_create / _update và các procedure ảnh,
+--               lịch trình, dịch vụ, chính sách hủy gọi NTK_sp_host_can_edit_tour /
+--               NTK_sp_host_can_use_provider; NMT_sp_admin_schedule_create / _update gọi
+--               NTK_sp_host_can_manage_schedule khi người thao tác không phải quản trị viên.
+--             * Vòng duyệt tour của đơn vị: tour mới là "Bản nháp" ('draft'); đơn vị bấm "Gửi
+--               duyệt" thì tour sang 'pending' và bị khóa cho tới khi quản trị viên phê duyệt
+--               hoặc từ chối (kèm lý do). Đơn vị chỉ sửa thông tin và nội dung (ảnh, lịch trình,
+--               dịch vụ, chính sách hủy) khi tour đang 'draft' hoặc 'rejected'; sửa tour bị từ
+--               chối thì tour quay về 'draft' (admin_logs 'tour_redraft'). Tour đã duyệt không
+--               sửa trực tiếp: đơn vị tạo "bản sửa" (file 32), tour đang hiển thị giữ nguyên cho
+--               tới khi quản trị viên duyệt bản sửa. Thêm / sửa lịch khởi hành và giá vé không
+--               cần duyệt, làm được ở mọi trạng thái trừ 'archived'.
 --             * Đơn đặt tour: đơn vị chỉ XEM đơn của tour mình (ai đi, bao nhiêu khách, số điện
---               thoại liên hệ, đơn đã xác nhận / đã thanh toán chưa, khách có xin đổi ngày / hủy
---               không). Xác nhận, từ chối, hủy đơn, xử lý đổi ngày / hủy và đối chiếu thanh toán
---               vẫn là việc của quản trị viên. Các procedure NTK_sp_host_booking_* không trả
---               email của khách, mã giao dịch thanh toán hay số tiền hoàn, và chỉ trả dữ liệu khi
---               đơn vị đang hợp tác, tài khoản đang hoạt động.
+--               thoại và email liên hệ, đơn đã xác nhận / đã thanh toán chưa, khách có xin đổi
+--               ngày / hủy không). Hủy đơn, xử lý đổi ngày / hủy và đối chiếu thanh toán vẫn là
+--               việc của quản trị viên. Các procedure NTK_sp_host_booking_* không trả mã giao
+--               dịch thanh toán hay số tiền hoàn, và chỉ trả dữ liệu khi đơn vị đang hợp tác,
+--               tài khoản đang hoạt động.
 --             * Không có DEFINER.
 -- Chạy sau  : 01_schema.sql -> 21. Chạy lại được (DROP PROCEDURE IF EXISTS).
 -- =====================================================================
@@ -59,7 +62,8 @@ BEGIN
         u.status          AS user_status,
         (SELECT COUNT(*)
            FROM tours t
-          WHERE t.provider_id = p.id) AS tour_count
+          WHERE t.provider_id = p.id
+            AND t.revision_of IS NULL) AS tour_count
     FROM users u
     JOIN providers p ON p.user_id = u.id
     WHERE u.id = (p_user_id COLLATE utf8mb4_unicode_ci)
@@ -69,10 +73,13 @@ DELIMITER ;
 
 -- ---------------------------------------------------------------------
 -- NTK_sp_host_tour_list(p_user_id)
---   Mọi tour của đơn vị (mọi trạng thái duyệt): tour bị từ chối và chờ duyệt trước.
+--   Mọi tour của đơn vị (mọi trạng thái duyệt): tour bị từ chối, bản nháp và chờ duyệt trước.
+--   Bản sửa của tour đã duyệt (tours.revision_of, file 32) không thành dòng riêng: tour gốc
+--   mang revision_id / revision_status.
 --   Cột: tour_id, title, destination_name, category_name, approval_status, is_public,
 --        schedule_count, upcoming_count (lịch chưa khởi hành, đang mở bán hoặc hết chỗ),
---        next_starts_at, reject_note (lý do từ chối gần nhất, chỉ khi tour đang 'rejected').
+--        next_starts_at, reject_note (lý do từ chối gần nhất, chỉ khi tour đang 'rejected'),
+--        revision_id, revision_status (bản sửa đang mở của tour; NULL = không có).
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NTK_sp_host_tour_list;
 
@@ -112,24 +119,34 @@ BEGIN
                AND l.action = 'tour_reject'
              ORDER BY l.created_at DESC, l.id DESC
              LIMIT 1),
-           NULL) AS reject_note
+           NULL) AS reject_note,
+        r.id                AS revision_id,
+        r.approval_status   AS revision_status
     FROM tours t
     JOIN providers p ON p.id = t.provider_id
     JOIN users     u ON u.id = p.user_id
     LEFT JOIN destinations d ON d.id = t.destination_id
     LEFT JOIN categories   c ON c.id = t.category_id
+    LEFT JOIN tours        r ON r.revision_of = t.id
     WHERE u.id = (p_user_id COLLATE utf8mb4_unicode_ci)
       AND u.role = 'provider'
-    ORDER BY FIELD(t.approval_status, 'rejected', 'pending', 'approved', 'draft', 'archived'),
+      AND t.revision_of IS NULL
+    ORDER BY FIELD(t.approval_status, 'rejected', 'draft', 'pending', 'approved', 'archived'),
              t.title ASC, t.id ASC;
 END$$
 DELIMITER ;
 
 -- ---------------------------------------------------------------------
 -- NTK_sp_host_tour_access(p_user_id, p_tour_id)
---   Tour có thuộc đơn vị của tài khoản này không. 0 dòng = không phải tour của đơn vị.
---   1 dòng: tour_id, approval_status, can_edit (0 khi tour 'archived', đơn vị ngừng hợp tác
---   hoặc tài khoản bị khóa), reject_note (lý do từ chối gần nhất khi tour đang 'rejected').
+--   Tour (hoặc bản sửa) có thuộc đơn vị của tài khoản này không. 0 dòng = không phải của đơn vị.
+--   1 dòng: tour_id, approval_status,
+--     can_edit     : 1 = sửa được thông tin và nội dung (tour đang 'draft' / 'rejected', đơn vị
+--                    đang hợp tác, tài khoản đang hoạt động),
+--     can_schedule : 1 = thêm / sửa được lịch khởi hành và giá vé (không 'archived', không phải
+--                    bản sửa),
+--     reject_note  : lý do từ chối gần nhất khi đang 'rejected',
+--     revision_of, revision_of_title, revision_of_status : tour gốc khi dòng này là bản sửa,
+--     revision_id, revision_status : bản sửa đang mở của tour này (NULL = không có).
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NTK_sp_host_tour_access;
 
@@ -143,9 +160,13 @@ BEGIN
     SELECT
         t.id AS tour_id,
         t.approval_status,
-        (t.approval_status <> 'archived'
+        (t.approval_status IN ('draft', 'rejected')
          AND p.approval_status = 'approved'
          AND u.status = 'active') AS can_edit,
+        (t.approval_status <> 'archived'
+         AND t.revision_of IS NULL
+         AND p.approval_status = 'approved'
+         AND u.status = 'active') AS can_schedule,
         IF(t.approval_status = 'rejected',
            (SELECT l.note
               FROM admin_logs l
@@ -154,10 +175,17 @@ BEGIN
                AND l.action = 'tour_reject'
              ORDER BY l.created_at DESC, l.id DESC
              LIMIT 1),
-           NULL) AS reject_note
+           NULL) AS reject_note,
+        t.revision_of,
+        o.title             AS revision_of_title,
+        o.approval_status   AS revision_of_status,
+        r.id                AS revision_id,
+        r.approval_status   AS revision_status
     FROM tours t
     JOIN providers p ON p.id = t.provider_id
     JOIN users     u ON u.id = p.user_id
+    LEFT JOIN tours o ON o.id = t.revision_of
+    LEFT JOIN tours r ON r.revision_of = t.id
     WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci)
       AND u.id = (p_user_id COLLATE utf8mb4_unicode_ci)
       AND u.role = 'provider';
@@ -166,8 +194,10 @@ DELIMITER ;
 
 -- ---------------------------------------------------------------------
 -- NTK_sp_host_can_edit_tour(p_user_id, p_tour_id, OUT p_allowed)   (dùng nội bộ)
+--   Sửa thông tin và nội dung tour (ảnh, lịch trình, dịch vụ, chính sách hủy).
 --   p_allowed = TRUE khi p_user_id là tài khoản đơn vị tổ chức đang hoạt động, đơn vị đang
---   hợp tác, là chủ của tour và tour không ở trạng thái 'archived'.
+--   hợp tác, là chủ của tour và tour (hoặc bản sửa) đang 'draft' hoặc 'rejected'. Tour đang
+--   'pending' bị khóa chờ quản trị viên; tour 'approved' chỉ sửa qua bản sửa (file 32).
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NTK_sp_host_can_edit_tour;
 
@@ -185,7 +215,39 @@ BEGIN
           JOIN providers p ON p.id = t.provider_id
           JOIN users     u ON u.id = p.user_id
          WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci)
+           AND t.approval_status IN ('draft', 'rejected')
+           AND p.approval_status = 'approved'
+           AND u.id = (p_user_id COLLATE utf8mb4_unicode_ci)
+           AND u.role = 'provider'
+           AND u.status = 'active');
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_host_can_manage_schedule(p_user_id, p_tour_id, OUT p_allowed)   (dùng nội bộ)
+--   Thêm / sửa lịch khởi hành và giá vé: không cần duyệt nên làm được ở mọi trạng thái duyệt,
+--   trừ tour 'archived'. Bản sửa (tours.revision_of) không có lịch riêng: lịch nằm ở tour gốc.
+--   p_allowed = TRUE khi p_user_id là tài khoản đơn vị tổ chức đang hoạt động, đơn vị đang
+--   hợp tác và là chủ của tour.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_host_can_manage_schedule;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_host_can_manage_schedule(
+    IN  p_user_id CHAR(36),
+    IN  p_tour_id CHAR(36),
+    OUT p_allowed BOOLEAN
+)
+READS SQL DATA
+BEGIN
+    SET p_allowed = EXISTS (
+        SELECT 1
+          FROM tours t
+          JOIN providers p ON p.id = t.provider_id
+          JOIN users     u ON u.id = p.user_id
+         WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci)
            AND t.approval_status <> 'archived'
+           AND t.revision_of IS NULL
            AND p.approval_status = 'approved'
            AND u.id = (p_user_id COLLATE utf8mb4_unicode_ci)
            AND u.role = 'provider'
@@ -223,8 +285,9 @@ DELIMITER ;
 -- ---------------------------------------------------------------------
 -- NTK_sp_host_tour_resubmit(p_user_id, p_tour_id)   (dùng nội bộ)
 --   Gọi bên trong transaction của procedure vừa ghi thay đổi do đơn vị tổ chức thực hiện
---   (không tự START TRANSACTION / COMMIT, không trả dòng nào). Tour đang 'approved' hoặc
---   'rejected' quay về 'pending' và ghi admin_logs 'tour_resubmit'; các trạng thái khác giữ nguyên.
+--   (không tự START TRANSACTION / COMMIT, không trả dòng nào). Tour (hoặc bản sửa) đang
+--   'rejected' quay về 'draft' và ghi admin_logs 'tour_redraft'; đơn vị sửa xong thì bấm "Gửi
+--   duyệt" (NTK_sp_host_tour_submit, file 32). Các trạng thái khác giữ nguyên.
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NTK_sp_host_tour_resubmit;
 
@@ -242,14 +305,14 @@ BEGIN
      WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci)
        FOR UPDATE;
 
-    IF v_status IN ('approved', 'rejected') THEN
+    IF v_status = 'rejected' THEN
         UPDATE tours
-           SET approval_status = 'pending'
+           SET approval_status = 'draft'
          WHERE id = (p_tour_id COLLATE utf8mb4_unicode_ci);
 
         INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
-        VALUES (UUID(), p_user_id, 'tour', p_tour_id, 'tour_resubmit', v_status, 'pending',
-                'Đơn vị tổ chức sửa tour, chờ duyệt lại', NOW());
+        VALUES (UUID(), p_user_id, 'tour', p_tour_id, 'tour_redraft', v_status, 'draft',
+                'Đơn vị tổ chức sửa tour bị từ chối: tour về bản nháp', NOW());
     END IF;
 END$$
 DELIMITER ;
@@ -343,89 +406,10 @@ END$$
 DELIMITER ;
 
 -- ---------------------------------------------------------------------
--- NTK_sp_host_register(p_business_name, p_contact_phone, p_email, p_password_hash)
---   Đơn vị tự đăng ký ở /host/register: thêm tài khoản users (role 'provider', mật khẩu đã băm
---   bằng password_hash() của PHP) và dòng providers ở trạng thái 'pending', ghi admin_logs
---   'provider_register' (người thao tác = chính tài khoản vừa tạo). Đơn vị chỉ đăng nhập được
---   sau khi quản trị viên chuyển trạng thái hợp tác sang 'approved' ở trang "Đơn vị tổ chức".
---   1 dòng: result, field, provider_id.
---     result = 'ok'          : đã ghi nhận; provider_id = mã đơn vị mới.
---              'invalid'     : dữ liệu sai; field = ô sai đầu tiên (business_name,
---                              contact_phone, email, password). Quy tắc từng ô giống
---                              NMT_sp_admin_provider_create.
---              'email_taken' : email đã thuộc một tài khoản khác (kể cả tài khoản khách hàng).
+-- NTK_sp_host_register: đã bỏ. Đơn vị tổ chức không tự đăng ký; quản trị viên thêm đơn vị và
+--   cấp mật khẩu ở trang "Đơn vị tổ chức". Dòng DROP giữ lại để cơ sở dữ liệu cũ gỡ procedure này.
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NTK_sp_host_register;
-
-DELIMITER $$
-CREATE PROCEDURE NTK_sp_host_register(
-    IN p_business_name VARCHAR(300) CHARACTER SET utf8mb4,
-    IN p_contact_phone VARCHAR(50),
-    IN p_email         VARCHAR(300) CHARACTER SET utf8mb4,
-    IN p_password_hash VARCHAR(300)
-)
-MODIFIES SQL DATA
-proc: BEGIN
-    DECLARE v_name        VARCHAR(300) CHARACTER SET utf8mb4 DEFAULT TRIM(p_business_name);
-    DECLARE v_phone       VARCHAR(50)  DEFAULT TRIM(p_contact_phone);
-    DECLARE v_email       VARCHAR(300) CHARACTER SET utf8mb4 DEFAULT LOWER(TRIM(p_email));
-    DECLARE v_field       VARCHAR(30)  DEFAULT NULL;
-    DECLARE v_user_id     CHAR(36)     DEFAULT UUID();
-    DECLARE v_provider_id CHAR(36)     DEFAULT UUID();
-    DECLARE v_duplicate   BOOLEAN      DEFAULT FALSE;
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-    -- 1062 = trùng khóa UNIQUE (email vừa được tài khoản khác dùng)
-    DECLARE CONTINUE HANDLER FOR 1062 SET v_duplicate = TRUE;
-
-    IF v_name IS NULL OR v_name = '' OR CHAR_LENGTH(v_name) > 150 THEN
-        SET v_field = 'business_name';
-    ELSEIF v_phone IS NULL OR CHAR_LENGTH(v_phone) NOT BETWEEN 8 AND 20
-        OR v_phone NOT REGEXP '^[+]?[0-9 ]+$' THEN
-        SET v_field = 'contact_phone';
-    ELSEIF v_email IS NULL OR CHAR_LENGTH(v_email) > 150
-        OR v_email NOT REGEXP '^[^@ ]+@[^@ ]+[.][^@ ]+$' THEN
-        SET v_field = 'email';
-    ELSEIF p_password_hash IS NULL OR CHAR_LENGTH(p_password_hash) NOT BETWEEN 20 AND 255 THEN
-        SET v_field = 'password';
-    END IF;
-
-    IF v_field IS NOT NULL THEN
-        SELECT 'invalid' AS result, v_field AS field, NULL AS provider_id;
-        LEAVE proc;
-    END IF;
-
-    IF EXISTS (SELECT 1 FROM users WHERE email = (v_email COLLATE utf8mb4_unicode_ci)) THEN
-        SELECT 'email_taken' AS result, 'email' AS field, NULL AS provider_id;
-        LEAVE proc;
-    END IF;
-
-    START TRANSACTION;
-
-    -- users.name tối đa 100 ký tự; tên đầy đủ nằm ở providers.business_name.
-    INSERT INTO users (id, email, password_hash, name, phone, role, status)
-    VALUES (v_user_id, v_email, p_password_hash, LEFT(v_name, 100), NULL, 'provider', 'active');
-
-    IF v_duplicate THEN
-        ROLLBACK;
-        SELECT 'email_taken' AS result, 'email' AS field, NULL AS provider_id;
-        LEAVE proc;
-    END IF;
-
-    INSERT INTO providers (id, user_id, business_name, contact_phone, approval_status, approved_at)
-    VALUES (v_provider_id, v_user_id, v_name, v_phone, 'pending', NULL);
-
-    INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
-    VALUES (UUID(), v_user_id, 'provider', v_provider_id, 'provider_register', NULL, 'pending',
-            'Đơn vị tự đăng ký, chờ quản trị viên duyệt', NOW());
-
-    COMMIT;
-    SELECT 'ok' AS result, NULL AS field, v_provider_id AS provider_id;
-END$$
-DELIMITER ;
 
 -- ---------------------------------------------------------------------
 -- NTK_sp_host_booking_list(p_user_id, p_status, p_tour_id)
@@ -494,6 +478,7 @@ DELIMITER ;
 --   tour của đơn vị khác (ứng dụng trả 404).
 --   1 dòng: booking_id, code, status, created_at, hold_expires_at, total_vnd, tickets_vnd,
 --   extras_vnd, voucher_code (NULL = chưa cấp), package_name, contact_name, contact_phone,
+--   contact_email (người liên hệ của đơn, để đơn vị báo cho khách trước chuyến đi),
 --   tour_id, tour_title, starts_at, ends_at, schedule_capacity, schedule_remaining,
 --   schedule_status, people, payment_status (khoản thanh toán tiêu biểu, NULL = chưa có).
 --   Dòng vé, phụ thu và danh sách khách đọc bằng NTK_sp_admin_booking_line_list /
@@ -525,6 +510,7 @@ BEGIN
         b.package_name,
         b.contact_name,
         b.contact_phone,
+        b.contact_email,
         t.id                AS tour_id,
         t.title             AS tour_title,
         s.starts_at,

@@ -12,7 +12,7 @@
 --             NTK_sp_admin_payout_item_list, NTK_sp_admin_payout_pay,
 --             NTK_sp_admin_payout_waiting_list, NTK_sp_admin_refund_open_list,
 --             NTK_sp_admin_refund_complete,
---             NTK_sp_host_bank, NTK_sp_host_bank_save,
+--             NTK_sp_admin_provider_bank_verify, NTK_sp_host_bank, NTK_sp_host_bank_save,
 --             NTK_sp_host_payout_summary, NTK_sp_host_payout_list, NTK_sp_host_payout_detail,
 --             NTK_sp_host_payout_item_list
 -- Quy tắc   : * Khách trả đúng giá niêm yết cho LocalTour. Phí dịch vụ LocalTour lấy từ phần của
@@ -52,6 +52,11 @@
 --               dịch chuyển khoản, đơn vị đã khai đủ tài khoản nhận tiền và số tài khoản vẫn đúng
 --               số quản trị viên thấy trên trang lúc chuyển khoản (chụp vào khoản chi trả lúc đó).
 --               Ghi admin_logs 'payout_paid' (số tài khoản chỉ hiện 4 số cuối).
+--             * Xác minh tài khoản nhận tiền (cột providers.bank_verified_at / _by, file 31): tài
+--               khoản đơn vị mới khai hoặc vừa đổi ở trạng thái "chưa xác minh". Quản trị viên
+--               kiểm tra ngoài hệ thống rồi bấm "Xác minh" (NTK_sp_admin_provider_bank_verify);
+--               chưa xác minh thì không ghi nhận được khoản chi trả. Đơn vị sửa tài khoản thì dấu
+--               xác minh bị xóa. Không lưu lịch sử các tài khoản cũ ngoài admin_logs.
 --             * Đơn vị tổ chức chỉ thấy khoản chi trả của chính mình (kiểm tra trong SQL như file
 --               27), và chỉ khi đơn vị đang hợp tác, tài khoản đang hoạt động.
 --             * NTK_sp_payout_sweep gọi được nhiều lần và cùng lúc từ nhiều phiên: khóa dòng rồi
@@ -563,7 +568,8 @@ DELIMITER ;
 --   "Chờ chi trả" trước (lập trước lên trước), rồi "Đã chi trả" (mới chuyển lên trước).
 --   Cột: payout_id, status, created_at, paid_at, transfer_reference, booking_count, gross_vnd,
 --        commission_vnd, net_vnd, schedule_id, starts_at, ends_at, tour_id, tour_title,
---        provider_id, business_name, has_bank (1 = đơn vị đã khai đủ tài khoản nhận tiền).
+--        provider_id, business_name, has_bank (1 = đơn vị đã khai đủ tài khoản nhận tiền),
+--        bank_verified (1 = quản trị viên đã xác minh tài khoản đang khai).
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NTK_sp_admin_payout_list;
 
@@ -592,7 +598,8 @@ BEGIN
         pr.business_name,
         (COALESCE(pr.bank_name, '') <> ''
          AND COALESCE(pr.bank_account_no, '') <> ''
-         AND COALESCE(pr.bank_account_name, '') <> '') AS has_bank
+         AND COALESCE(pr.bank_account_name, '') <> '') AS has_bank,
+        (pr.bank_verified_at IS NOT NULL) AS bank_verified
     FROM host_payouts hp
     JOIN schedules s  ON s.id = hp.schedule_id
     JOIN tours t      ON t.id = s.tour_id
@@ -637,7 +644,8 @@ DELIMITER ;
 --   còn chờ), schedule_id, starts_at, ends_at, schedule_status, tour_id, tour_title,
 --   provider_id, business_name, contact_phone, provider_email, provider_status,
 --   provider_bank_name, provider_bank_account_no, provider_bank_account_name (tài khoản đơn vị
---   đang khai).
+--   đang khai), provider_bank_verified_at (NULL = quản trị viên chưa xác minh tài khoản đang
+--   khai), provider_bank_verified_by_name.
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NTK_sp_admin_payout_detail;
 
@@ -675,13 +683,16 @@ BEGIN
         pr.approval_status AS provider_status,
         pr.bank_name         AS provider_bank_name,
         pr.bank_account_no   AS provider_bank_account_no,
-        pr.bank_account_name AS provider_bank_account_name
+        pr.bank_account_name AS provider_bank_account_name,
+        pr.bank_verified_at  AS provider_bank_verified_at,
+        v.name               AS provider_bank_verified_by_name
     FROM host_payouts hp
     JOIN schedules s  ON s.id = hp.schedule_id
     JOIN tours t      ON t.id = s.tour_id
     JOIN providers pr ON pr.id = hp.provider_id
     JOIN users u      ON u.id = pr.user_id
     LEFT JOIN users a ON a.id = hp.paid_by
+    LEFT JOIN users v ON v.id = pr.bank_verified_by
     WHERE hp.id = (p_payout_id COLLATE utf8mb4_unicode_ci);
 END$$
 DELIMITER ;
@@ -726,7 +737,9 @@ DELIMITER ;
 --   Quản trị viên ghi nhận đã chi trả sau khi chuyển khoản cho đơn vị ngoài hệ thống. Khoản chi
 --   trả -> 'paid', lưu mã giao dịch, ghi chú, người ghi, giờ ghi và chụp tài khoản nhận tiền đơn
 --   vị đang khai. p_seen_account_no = số tài khoản quản trị viên thấy trên trang lúc chuyển khoản
---   (ô ẩn của form): đơn vị vừa đổi số tài khoản thì không ghi. Ghi admin_logs 'payout_paid'
+--   (ô ẩn của form): đơn vị vừa đổi số tài khoản thì không ghi. Tài khoản đang khai phải được
+--   quản trị viên xác minh trước (NTK_sp_admin_provider_bank_verify); đơn vị đổi tài khoản thì
+--   phải xác minh lại. Ghi admin_logs 'payout_paid'
 --   (target_type 'payout'; số tài khoản chỉ hiện 4 số cuối như 'provider_bank').
 --   1 dòng: result.
 --     result = 'ok'
@@ -737,6 +750,7 @@ DELIMITER ;
 --              'already_paid'       : khoản đã được ghi "Đã chi trả" trước đó.
 --              'bank_missing'       : đơn vị chưa khai đủ tài khoản nhận tiền.
 --              'bank_changed'       : số tài khoản đơn vị đang khai khác số quản trị viên đã thấy.
+--              'bank_unverified'    : quản trị viên chưa xác minh tài khoản đơn vị đang khai.
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NTK_sp_admin_payout_pay;
 
@@ -756,6 +770,7 @@ proc: BEGIN
     DECLARE v_bank_name   VARCHAR(100) CHARACTER SET utf8mb4 DEFAULT NULL;
     DECLARE v_bank_no     VARCHAR(30)  CHARACTER SET utf8mb4 DEFAULT NULL;
     DECLARE v_bank_holder VARCHAR(100) CHARACTER SET utf8mb4 DEFAULT NULL;
+    DECLARE v_verified_at DATETIME     DEFAULT NULL;
     DECLARE v_reference   VARCHAR(255) CHARACTER SET utf8mb4 DEFAULT NULLIF(TRIM(p_transfer_reference), '');
     DECLARE v_note        VARCHAR(500) CHARACTER SET utf8mb4 DEFAULT NULLIF(TRIM(p_note), '');
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
@@ -801,10 +816,14 @@ proc: BEGIN
         LEAVE proc;
     END IF;
 
-    SELECT MAX(NULLIF(TRIM(pr.bank_name), '')), MAX(NULLIF(TRIM(pr.bank_account_no), '')), MAX(NULLIF(TRIM(pr.bank_account_name), ''))
-      INTO v_bank_name, v_bank_no, v_bank_holder
-      FROM providers pr
-     WHERE pr.id = v_provider_id;
+    -- Khóa dòng đơn vị: đơn vị không đổi được tài khoản trong lúc khoản chi trả đang được ghi.
+    SELECT MAX(NULLIF(TRIM(x.bank_name), '')), MAX(NULLIF(TRIM(x.bank_account_no), '')),
+           MAX(NULLIF(TRIM(x.bank_account_name), '')), MAX(x.bank_verified_at)
+      INTO v_bank_name, v_bank_no, v_bank_holder, v_verified_at
+      FROM (SELECT pr.bank_name, pr.bank_account_no, pr.bank_account_name, pr.bank_verified_at
+              FROM providers pr
+             WHERE pr.id = v_provider_id
+               FOR UPDATE) x;
 
     IF v_bank_name IS NULL OR v_bank_no IS NULL OR v_bank_holder IS NULL THEN
         ROLLBACK;
@@ -816,6 +835,13 @@ proc: BEGIN
     IF v_bank_no <> TRIM(COALESCE(p_seen_account_no, '')) THEN
         ROLLBACK;
         SELECT 'bank_changed' AS result;
+        LEAVE proc;
+    END IF;
+
+    -- Tài khoản mới khai hoặc vừa đổi: quản trị viên phải xác minh trước khi ghi nhận chi trả.
+    IF v_verified_at IS NULL THEN
+        ROLLBACK;
+        SELECT 'bank_unverified' AS result;
         LEAVE proc;
     END IF;
 
@@ -834,6 +860,104 @@ proc: BEGIN
     VALUES (UUID(), p_actor_user_id, 'payout', p_payout_id, 'payout_paid', 'pending', 'paid',
             LEFT(CONCAT('Đã chuyển ', REPLACE(FORMAT(v_net, 0), ',', '.'), ' VND tới ', v_bank_name, ', số tài khoản ****', RIGHT(v_bank_no, 4),
                         ', mã giao dịch ', v_reference, IF(v_note IS NULL, '', CONCAT(': ', v_note))), 255), NOW());
+
+    COMMIT;
+    SELECT 'ok' AS result;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_admin_provider_bank_verify(p_actor_user_id, p_provider_id, p_seen_bank_name,
+--                                   p_seen_account_no, p_seen_account_name)
+--   Quản trị viên xác minh tài khoản nhận tiền đơn vị đang khai (kiểm tra ngoài hệ thống, ví dụ
+--   gọi điện cho đơn vị hoặc đối chiếu giấy tờ, rồi bấm "Xác minh"). p_seen_* = đúng thông tin
+--   quản trị viên thấy trên trang (ô ẩn của form): đơn vị vừa đổi tài khoản thì không ghi.
+--   Đơn vị sửa tài khoản (NTK_sp_host_bank_save) thì dấu xác minh bị xóa, phải xác minh lại.
+--   Chưa xác minh thì không ghi nhận được khoản chi trả (NTK_sp_admin_payout_pay).
+--   Ghi admin_logs 'provider_bank_verify' (target_type 'provider_bank', target_id = mã đơn vị;
+--   số tài khoản chỉ hiện 4 số cuối).
+--   1 dòng: result.
+--     result = 'ok'
+--              'unchanged'    : tài khoản này đã được xác minh trước đó.
+--              'forbidden'    : không phải quản trị viên đang hoạt động.
+--              'not_found'    : không có đơn vị này.
+--              'bank_missing' : đơn vị chưa khai đủ tài khoản nhận tiền.
+--              'bank_changed' : tài khoản đơn vị đang khai khác thông tin quản trị viên đã thấy.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_admin_provider_bank_verify;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_admin_provider_bank_verify(
+    IN p_actor_user_id     CHAR(36),
+    IN p_provider_id       CHAR(36),
+    IN p_seen_bank_name    VARCHAR(255) CHARACTER SET utf8mb4,
+    IN p_seen_account_no   VARCHAR(255) CHARACTER SET utf8mb4,
+    IN p_seen_account_name VARCHAR(255) CHARACTER SET utf8mb4
+)
+MODIFIES SQL DATA
+proc: BEGIN
+    DECLARE v_provider_id CHAR(36)     CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL;
+    DECLARE v_bank_name   VARCHAR(100) CHARACTER SET utf8mb4 DEFAULT NULL;
+    DECLARE v_bank_no     VARCHAR(30)  CHARACTER SET utf8mb4 DEFAULT NULL;
+    DECLARE v_bank_holder VARCHAR(100) CHARACTER SET utf8mb4 DEFAULT NULL;
+    DECLARE v_verified_at DATETIME     DEFAULT NULL;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM users
+                    WHERE id = (p_actor_user_id COLLATE utf8mb4_unicode_ci)
+                      AND role = 'admin' AND status = 'active') THEN
+        SELECT 'forbidden' AS result;
+        LEAVE proc;
+    END IF;
+
+    START TRANSACTION;
+
+    SELECT MAX(x.id), MAX(NULLIF(TRIM(x.bank_name), '')), MAX(NULLIF(TRIM(x.bank_account_no), '')),
+           MAX(NULLIF(TRIM(x.bank_account_name), '')), MAX(x.bank_verified_at)
+      INTO v_provider_id, v_bank_name, v_bank_no, v_bank_holder, v_verified_at
+      FROM (SELECT pr.id, pr.bank_name, pr.bank_account_no, pr.bank_account_name, pr.bank_verified_at
+              FROM providers pr
+             WHERE pr.id = (p_provider_id COLLATE utf8mb4_unicode_ci)
+               FOR UPDATE) x;
+
+    IF v_provider_id IS NULL THEN
+        ROLLBACK;
+        SELECT 'not_found' AS result;
+        LEAVE proc;
+    END IF;
+
+    IF v_bank_name IS NULL OR v_bank_no IS NULL OR v_bank_holder IS NULL THEN
+        ROLLBACK;
+        SELECT 'bank_missing' AS result;
+        LEAVE proc;
+    END IF;
+
+    -- Đơn vị đổi tài khoản sau khi quản trị viên mở trang: thông tin đã kiểm tra không còn đúng.
+    IF BINARY v_bank_name <> BINARY TRIM(COALESCE(p_seen_bank_name, ''))
+       OR v_bank_no <> TRIM(COALESCE(p_seen_account_no, ''))
+       OR BINARY v_bank_holder <> BINARY TRIM(COALESCE(p_seen_account_name, '')) THEN
+        ROLLBACK;
+        SELECT 'bank_changed' AS result;
+        LEAVE proc;
+    END IF;
+
+    IF v_verified_at IS NOT NULL THEN
+        ROLLBACK;
+        SELECT 'unchanged' AS result;
+        LEAVE proc;
+    END IF;
+
+    UPDATE providers
+       SET bank_verified_at = NOW(), bank_verified_by = p_actor_user_id
+     WHERE id = v_provider_id;
+
+    INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
+    VALUES (UUID(), p_actor_user_id, 'provider_bank', v_provider_id, 'provider_bank_verify', 'unverified', 'verified',
+            LEFT(CONCAT('Đã xác minh tài khoản nhận tiền: ', v_bank_name, ', số tài khoản ****', RIGHT(v_bank_no, 4), ', ', v_bank_holder), 255), NOW());
 
     COMMIT;
     SELECT 'ok' AS result;
@@ -1037,7 +1161,8 @@ DELIMITER ;
 -- ---------------------------------------------------------------------
 -- NTK_sp_host_bank(p_user_id)
 --   Tài khoản nhận tiền chi trả của đơn vị đang đăng nhập. 0 hoặc 1 dòng: provider_id,
---   bank_name, bank_account_no, bank_account_name (NULL = chưa khai).
+--   bank_name, bank_account_no, bank_account_name (NULL = chưa khai), bank_verified_at
+--   (NULL = LocalTour chưa xác minh tài khoản đang khai).
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NTK_sp_host_bank;
 
@@ -1047,7 +1172,7 @@ CREATE PROCEDURE NTK_sp_host_bank(
 )
 READS SQL DATA
 BEGIN
-    SELECT pr.id AS provider_id, pr.bank_name, pr.bank_account_no, pr.bank_account_name
+    SELECT pr.id AS provider_id, pr.bank_name, pr.bank_account_no, pr.bank_account_name, pr.bank_verified_at
       FROM providers pr
       JOIN users u ON u.id = pr.user_id
      WHERE u.id = (p_user_id COLLATE utf8mb4_unicode_ci)
@@ -1065,6 +1190,8 @@ DELIMITER ;
 --     p_bank_account_name : tên chủ tài khoản, 2 - 100 ký tự.
 --   Ghi admin_logs 'provider_bank' (target_type 'provider_bank', target_id = mã đơn vị; số tài
 --   khoản trong ghi chú chỉ hiện 4 số cuối). Khoản đã "Đã chi trả" giữ tài khoản đã chụp.
+--   Mỗi lần tài khoản đổi, dấu xác minh của quản trị viên bị xóa (bank_verified_at = NULL):
+--   quản trị viên xác minh lại thì khoản chi trả mới ghi nhận được.
 --   1 dòng: result, field.
 --     result = 'ok' | 'unchanged'
 --              'forbidden' (không phải tài khoản đơn vị đang hoạt động, đơn vị đang hợp tác)
@@ -1133,7 +1260,8 @@ proc: BEGIN
     END IF;
 
     UPDATE providers
-       SET bank_name = v_name, bank_account_no = v_no, bank_account_name = v_holder
+       SET bank_name = v_name, bank_account_no = v_no, bank_account_name = v_holder,
+           bank_verified_at = NULL, bank_verified_by = NULL
      WHERE id = v_provider_id;
 
     INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
@@ -1150,8 +1278,8 @@ DELIMITER ;
 -- NTK_sp_host_payout_summary(p_user_id)
 --   Số liệu đầu trang "Doanh thu & chi trả" của đơn vị đang đăng nhập. 0 hoặc 1 dòng:
 --   commission_percent (% phí dịch vụ hiện tại, áp dụng cho đơn đặt từ lúc này),
---   has_bank (1 = đã khai đủ tài khoản nhận tiền), payout_count, gross_vnd, commission_vnd,
---   net_pending_vnd, net_paid_vnd.
+--   has_bank (1 = đã khai đủ tài khoản nhận tiền), bank_verified (1 = LocalTour đã xác minh tài
+--   khoản đang khai), payout_count, gross_vnd, commission_vnd, net_pending_vnd, net_paid_vnd.
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NTK_sp_host_payout_summary;
 
@@ -1170,6 +1298,7 @@ BEGIN
         (COALESCE(pr.bank_name, '') <> ''
          AND COALESCE(pr.bank_account_no, '') <> ''
          AND COALESCE(pr.bank_account_name, '') <> '') AS has_bank,
+        (pr.bank_verified_at IS NOT NULL) AS bank_verified,
         (SELECT COUNT(*) FROM host_payouts hp WHERE hp.provider_id = pr.id) AS payout_count,
         (SELECT COALESCE(SUM(hp.gross_vnd), 0) FROM host_payouts hp WHERE hp.provider_id = pr.id) AS gross_vnd,
         (SELECT COALESCE(SUM(hp.commission_vnd), 0) FROM host_payouts hp WHERE hp.provider_id = pr.id) AS commission_vnd,

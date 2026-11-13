@@ -85,12 +85,14 @@ $focusField = array_key_first(array_diff_key($errors, ['form' => true])) ?? 'tit
                 <h1 class="lt-admin__title" id="admin-title"><?= $isNew ? 'Thêm tour' : 'Sửa thông tin tour' ?></h1>
                 <p class="lt-admin__subtitle">
 <?php if ($isNew && $isHost): ?>
-                    Tour mới ở trạng thái "Chờ duyệt". Sau khi lưu, thêm lịch khởi hành, giá vé, ảnh và lịch trình; quản trị viên duyệt thì tour mới hiển thị cho khách.
+                    Tour mới ở trạng thái "Nháp". Sau khi lưu, thêm lịch khởi hành, giá vé, ảnh và lịch trình rồi chọn "Gửi duyệt"; quản trị viên duyệt thì tour mới hiển thị cho khách.
 <?php elseif ($isNew): ?>
                     Tour mới ở trạng thái "Chờ duyệt". Sau khi lưu, thêm lịch khởi hành và giá vé rồi phê duyệt ở trang chi tiết tour.
 <?php elseif ($isHost): ?>
                     <span class="lt-badge lt-badge--<?= e($tour['approval_status']) ?>"><?= e(tour_status_label($tour['approval_status'])) ?></span>
-                    Sửa thông tin tour đã duyệt hoặc bị từ chối sẽ đưa tour về "Chờ duyệt" để quản trị viên duyệt lại.
+                    <?= ($tour['revision_of'] ?? null) !== null
+                        ? 'Đây là bản sửa: khách vẫn thấy thông tin đã duyệt cho tới khi quản trị viên duyệt bản sửa này.'
+                        : 'Sửa xong, quay lại trang tour và chọn "Gửi duyệt" để quản trị viên LocalTour duyệt.' ?>
 <?php else: ?>
                     <span class="lt-badge lt-badge--<?= e($tour['approval_status']) ?>"><?= e(tour_status_label($tour['approval_status'])) ?></span>
                     Sửa thông tin không đổi trạng thái duyệt của tour.

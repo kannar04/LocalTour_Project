@@ -149,6 +149,9 @@ $router->post('/admin/payments/{id}/momo', [AdminPaymentController::class, 'momo
 $router->get('/admin/payouts', [\App\Controllers\AdminPayoutController::class, 'index']);
 $router->get('/admin/payouts/{id}', [\App\Controllers\AdminPayoutController::class, 'show']);
 $router->post('/admin/payouts/{id}/pay', [\App\Controllers\AdminPayoutController::class, 'pay']);
+// Quản trị viên xác minh tài khoản nhận tiền đơn vị đang khai (kiểm tra ngoài hệ thống rồi bấm "Xác minh"):
+// chưa xác minh thì không ghi nhận được khoản chi trả; đơn vị đổi tài khoản thì phải xác minh lại.
+$router->post('/admin/payouts/{id}/bank/verify', [\App\Controllers\AdminPayoutController::class, 'verifyBank']);
 $router->post('/admin/refunds/{id}/complete', [\App\Controllers\AdminPayoutController::class, 'completeRefund']);
 $router->get('/admin/settings', [\App\Controllers\AdminSettingController::class, 'index']);
 $router->post('/admin/settings', [\App\Controllers\AdminSettingController::class, 'save']);
@@ -157,17 +160,17 @@ $router->post('/admin/settings', [\App\Controllers\AdminSettingController::class
 $router->get('/admin/tours/{id}/location', [\App\Controllers\AdminTourLocationController::class, 'edit']);
 $router->post('/admin/tours/{id}/location', [\App\Controllers\AdminTourLocationController::class, 'update']);
 
-// Tài khoản đơn vị tổ chức (Nguyễn Tuấn Khôi): đơn vị tự đăng ký ở /host/register rồi chờ quản trị viên duyệt, hoặc
-// quản trị viên thêm đơn vị và cấp mật khẩu ở trang "Đơn vị tổ chức"; đơn vị đăng nhập ở /host/login và tự đăng tour,
-// lịch khởi hành, giá vé, ảnh, lịch trình, dịch vụ, chính sách hủy của tour của mình.
-// Tour mới và tour vừa sửa ở trạng thái "Chờ duyệt": quản trị viên vẫn là người duyệt (/admin/tours).
+// Tài khoản đơn vị tổ chức (Nguyễn Tuấn Khôi): đơn vị không tự đăng ký; quản trị viên thêm đơn vị và cấp mật khẩu ở
+// trang "Đơn vị tổ chức". Đơn vị đăng nhập ở /host/login và tự đăng tour, lịch khởi hành, giá vé, ảnh, lịch trình,
+// dịch vụ, chính sách hủy của tour của mình.
+// Vòng duyệt: tour mới là "Bản nháp"; đơn vị bấm "Gửi duyệt" (submit) thì tour "Chờ duyệt" và bị khóa cho tới khi
+// quản trị viên duyệt / từ chối (/admin/tours). Tour đã duyệt không sửa trực tiếp: đơn vị tạo "bản sửa" (revision),
+// tour đang hiển thị giữ nguyên cho tới khi quản trị viên duyệt bản sửa. Lịch khởi hành và giá vé không cần duyệt.
 // '/host/tours/new' đặt trước '/host/tours/{id}'.
 $router->post('/admin/providers/{id}/password', [AdminProviderController::class, 'password']);
 $router->get('/host/login', [\App\Controllers\HostAuthController::class, 'showLogin']);
 $router->post('/host/login', [\App\Controllers\HostAuthController::class, 'login']);
 $router->post('/host/logout', [\App\Controllers\HostAuthController::class, 'logout']);
-$router->get('/host/register', [\App\Controllers\HostAuthController::class, 'showRegister']);
-$router->post('/host/register', [\App\Controllers\HostAuthController::class, 'register']);
 $router->get('/host', [\App\Controllers\HostTourController::class, 'index']);
 $router->get('/host/tours', [\App\Controllers\HostTourController::class, 'index']);
 $router->get('/host/tours/new', [\App\Controllers\HostTourFormController::class, 'create']);
@@ -175,6 +178,10 @@ $router->post('/host/tours/new', [\App\Controllers\HostTourFormController::class
 $router->get('/host/tours/{id}', [\App\Controllers\HostTourController::class, 'show']);
 $router->get('/host/tours/{id}/edit', [\App\Controllers\HostTourFormController::class, 'edit']);
 $router->post('/host/tours/{id}/edit', [\App\Controllers\HostTourFormController::class, 'update']);
+$router->post('/host/tours/{id}/submit', [\App\Controllers\HostTourController::class, 'submit']);
+$router->post('/host/tours/{id}/archive', [\App\Controllers\HostTourController::class, 'archive']);
+$router->post('/host/tours/{id}/revision', [\App\Controllers\HostTourController::class, 'startRevision']);
+$router->post('/host/tours/{id}/revision/discard', [\App\Controllers\HostTourController::class, 'discardRevision']);
 $router->get('/host/tours/{id}/schedules', [\App\Controllers\HostScheduleController::class, 'index']);
 $router->post('/host/tours/{id}/schedules', [\App\Controllers\HostScheduleController::class, 'store']);
 $router->get('/host/schedules/{id}/edit', [\App\Controllers\HostScheduleController::class, 'edit']);

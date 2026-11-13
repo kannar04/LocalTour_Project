@@ -37,8 +37,10 @@ $maxMb = AdminTourContentModel::IMAGE_MAX_BYTES / 1024 / 1024;
                     <span class="lt-badge lt-badge--<?= e($tour['approval_status']) ?>"><?= e(tour_status_label($tour['approval_status'])) ?></span>
                     <?= e($tour['title']) ?>
                 </p>
-<?php if ($isHost && $tour['approval_status'] === 'approved'): ?>
-                <p class="lt-admin-hint">Tour đang hiển thị cho khách. Mỗi thay đổi ở trang này đưa tour về "Chờ duyệt" cho tới khi quản trị viên duyệt lại.</p>
+<?php if ($isHost && ($tour['revision_of'] ?? null) !== null): ?>
+                <p class="lt-admin-hint">Đây là bản sửa: khách vẫn thấy nội dung đã duyệt cho tới khi quản trị viên duyệt bản sửa này.</p>
+<?php elseif ($isHost): ?>
+                <p class="lt-admin-hint">Sửa xong, quay lại trang tour và chọn "Gửi duyệt" để quản trị viên LocalTour duyệt.</p>
 <?php endif; ?>
             </header>
 

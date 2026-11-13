@@ -3,8 +3,8 @@
 /*
  * Trang "Đăng nhập đơn vị tổ chức" (/host/login, Nguyễn Tuấn Khôi), dùng chung style với các trang đăng nhập khác (auth.css).
  * Biến: $next (trang khu /host quay lại sau khi đăng nhập), $email (giữ lại khi nhập sai), $error ('' = không lỗi),
- *       $notice (thông báo sau khi gửi đăng ký ở /host/register, '' = không có), $recaptchaSiteKey ('' = không có captcha).
- * Không bao giờ in lại mật khẩu. Đơn vị chưa có tài khoản đăng ký ở /host/register và chờ quản trị viên duyệt.
+ *       $recaptchaSiteKey ('' = không có captcha).
+ * Không bao giờ in lại mật khẩu. Đơn vị không tự đăng ký: quản trị viên thêm đơn vị rồi cấp mật khẩu.
  */
 ?>
 <?php $sidebarMode = 'mobile'; require __DIR__ . '/../partials/sidebar.php'; ?>
@@ -19,11 +19,6 @@
             <div class="lt-auth__alert" role="alert">
                 <span class="lt-icon lt-icon--alert" aria-hidden="true"></span>
                 <span><?= e($error) ?></span>
-            </div>
-<?php elseif ($notice !== ''): ?>
-            <div class="lt-auth__alert lt-auth__alert--success" role="status">
-                <span class="lt-icon lt-icon--check" aria-hidden="true"></span>
-                <span><?= e($notice) ?></span>
             </div>
 <?php endif; ?>
 
@@ -47,7 +42,7 @@
                 <button class="lt-btn lt-btn--primary lt-btn--block" type="submit">Đăng nhập</button>
             </form>
 
-            <p class="lt-auth__switch">Chưa có tài khoản đơn vị? <a href="<?= e(url('/host/register')) ?>">Đăng ký đơn vị tổ chức</a></p>
+            <p class="lt-auth__switch">Chưa có tài khoản đơn vị? Liên hệ quản trị viên LocalTour để được cấp tài khoản.</p>
             <p class="lt-auth__switch">Bạn là khách hàng? <a href="<?= e(url('/login')) ?>">Đăng nhập tài khoản khách hàng</a></p>
         </section>
     </div>

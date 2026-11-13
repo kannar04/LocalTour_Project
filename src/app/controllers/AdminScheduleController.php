@@ -324,7 +324,7 @@ class AdminScheduleController extends AdminController
         if ($tour === null) {
             self::notFound();
         }
-        $this->authorizeTour((string) $tour['tour_id']);
+        $this->authorizeTour((string) $tour['tour_id'], 'schedule');
 
         return $tour;
     }
@@ -337,7 +337,7 @@ class AdminScheduleController extends AdminController
         if ($schedule === null) {
             self::notFound();
         }
-        $this->authorizeTour((string) $schedule['tour_id']);
+        $this->authorizeTour((string) $schedule['tour_id'], 'schedule');
 
         return $schedule;
     }

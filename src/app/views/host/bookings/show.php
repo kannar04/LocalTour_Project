@@ -120,6 +120,7 @@ $showVoucher = $booking['voucher_code'] !== null && in_array($bookingStatus, ['c
                         <dl class="lt-fields">
                             <dt>Người liên hệ</dt><dd><?= e($booking['contact_name']) ?></dd>
                             <dt>Số điện thoại</dt><dd><?= e($booking['contact_phone']) ?></dd>
+                            <dt>Email</dt><dd><?= e(or_missing($booking['contact_email'] ?? null)) ?></dd>
                             <dt>Thanh toán</dt><dd><span class="lt-badge lt-badge--<?= e($booking['payment_status'] ?? 'none') ?>"><?= e(payment_status_label($booking['payment_status'])) ?></span></dd>
 <?php if ($showVoucher): ?>
                             <dt>Mã voucher</dt><dd><strong><?= e($booking['voucher_code']) ?></strong></dd>

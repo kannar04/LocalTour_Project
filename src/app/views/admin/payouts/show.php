@@ -4,6 +4,8 @@
  * Một khoản chi trả cho đơn vị tổ chức (Nguyễn Tuấn Khôi): lịch khởi hành, đơn vị, tài khoản nhận tiền, từng đơn trong
  * khoản và form ghi nhận đã chi trả (ô ẩn account_no = số tài khoản đang hiện, để phát hiện đơn vị vừa đổi tài khoản).
  * Đơn vị chưa khai tài khoản nhận tiền: hiện thông báo thay cho form.
+ * Khoản còn chờ: tài khoản đơn vị đang khai phải được quản trị viên xác minh trước. Chưa xác minh thì hiện form xác minh
+ * (ô ẩn bank_name, account_no, account_name = đúng tài khoản đang hiện) thay cho form ghi nhận đã chi trả.
  * Biến: $payout (NTK_sp_admin_payout_detail), $items (NTK_sp_admin_payout_item_list), $old (reference, note đang nhập),
  *       $errors (lỗi theo ô; 'form' = lỗi chung), $success ('' = không có).
  */
@@ -15,6 +17,9 @@ $bank = $isPending
     ? ['name' => $payout['provider_bank_name'], 'no' => $payout['provider_bank_account_no'], 'holder' => $payout['provider_bank_account_name']]
     : ['name' => $payout['bank_name'], 'no' => $payout['bank_account_no'], 'holder' => $payout['bank_account_name']];
 $hasBank = trim((string) $bank['name']) !== '' && trim((string) $bank['no']) !== '' && trim((string) $bank['holder']) !== '';
+// Dấu xác minh thuộc về tài khoản đơn vị đang khai nên chỉ xét với khoản còn chờ.
+$bankVerified = $isPending && $hasBank && $payout['provider_bank_verified_at'] !== null;
+$needsVerify = $isPending && $hasBank && !$bankVerified;
 $referenceError = $errors['reference'] ?? '';
 $noteError = $errors['note'] ?? '';
 ?>
@@ -105,11 +110,26 @@ $noteError = $errors['note'] ?? '';
                             <dt>Số tài khoản</dt><dd><strong><?= e($bank['no']) ?></strong></dd>
                             <dt>Chủ tài khoản</dt><dd><?= e($bank['holder']) ?></dd>
 <?php endif; ?>
+<?php if ($bankVerified): ?>
+                            <dt>Xác minh</dt><dd id="payout-bank-state"><span class="lt-badge lt-badge--verified">Đã xác minh</span> <?= e(format_datetime((string) $payout['provider_bank_verified_at'])) ?><?= $payout['provider_bank_verified_by_name'] !== null ? ' · ' . e($payout['provider_bank_verified_by_name']) : '' ?></dd>
+<?php elseif ($needsVerify): ?>
+                            <dt>Xác minh</dt><dd id="payout-bank-state"><span class="lt-badge lt-badge--pending">Chưa xác minh</span></dd>
+<?php endif; ?>
                         </dl>
 <?php if (!$hasBank): ?>
                         <div class="lt-alert lt-alert--warning" role="note"><span class="lt-icon lt-icon--alert" aria-hidden="true"></span><span>Đơn vị chưa khai tài khoản nhận tiền. Nhắc đơn vị khai ở mục “Tài khoản nhận tiền” của khu đơn vị tổ chức rồi mới chuyển khoản.</span></div>
+<?php elseif ($needsVerify): ?>
+                        <div class="lt-alert lt-alert--warning" role="note"><span class="lt-icon lt-icon--alert" aria-hidden="true"></span><span>Tài khoản này đơn vị mới khai hoặc vừa đổi. Trước khi bấm xác minh, hãy kiểm tra tài khoản với đơn vị ngoài hệ thống, ví dụ gọi số điện thoại liên hệ ở trên hoặc đối chiếu giấy tờ của đơn vị. Chưa xác minh thì chưa ghi nhận đã chi trả được.</span></div>
+                        <form class="lt-admin-form" action="<?= e(url('/admin/payouts/' . $payout['payout_id'] . '/bank/verify')) ?>" method="post">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="bank_name" value="<?= e($bank['name']) ?>">
+                            <input type="hidden" name="account_no" value="<?= e($bank['no']) ?>">
+                            <input type="hidden" name="account_name" value="<?= e($bank['holder']) ?>">
+                            <button class="lt-btn lt-btn--primary lt-btn--block" type="submit"><span class="lt-icon lt-icon--check" aria-hidden="true"></span> Đã kiểm tra, xác minh tài khoản này</button>
+                        </form>
+                        <p class="lt-admin-hint">Đơn vị đổi tài khoản thì dấu xác minh bị xóa và phải xác minh lại.</p>
 <?php elseif ($isPending): ?>
-                        <p class="lt-admin-hint">Tài khoản đơn vị đang khai. Khi bấm “Ghi nhận đã chi trả”, hệ thống lưu lại tài khoản này cùng khoản chi trả.</p>
+                        <p class="lt-admin-hint">Tài khoản đơn vị đang khai, đã được xác minh. Khi bấm “Ghi nhận đã chi trả”, hệ thống lưu lại tài khoản này cùng khoản chi trả. Đơn vị đổi tài khoản thì phải xác minh lại.</p>
 <?php else: ?>
                         <p class="lt-admin-hint">Tài khoản đã nhận tiền, lưu lại lúc ghi nhận đã chi trả.</p>
 <?php endif; ?>
@@ -119,6 +139,8 @@ $noteError = $errors['note'] ?? '';
                         <h2 class="lt-panel__title" id="payout-pay-title">Chuyển khoản</h2>
 <?php if ($isPending && !$hasBank): ?>
                         <p class="lt-empty">Chưa chuyển khoản được: đơn vị chưa khai tài khoản nhận tiền. Khi đơn vị khai xong, form ghi nhận đã chi trả sẽ hiện ở đây.</p>
+<?php elseif ($needsVerify): ?>
+                        <p class="lt-empty">Chưa chuyển khoản được: tài khoản nhận tiền của đơn vị chưa được xác minh. Xác minh tài khoản ở mục “Đơn vị nhận tiền” xong, form ghi nhận đã chi trả sẽ hiện ở đây.</p>
 <?php elseif ($isPending): ?>
                         <p class="lt-admin__text">Chuyển <strong><?= e(format_vnd($payout['net_vnd'])) ?></strong> cho đơn vị bằng ngân hàng của LocalTour, rồi nhập mã giao dịch để ghi nhận. Hệ thống không tự chuyển tiền.</p>
                         <form class="lt-admin-form" action="<?= e(url('/admin/payouts/' . $payout['payout_id'] . '/pay')) ?>" method="post" novalidate>

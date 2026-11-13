@@ -255,7 +255,9 @@ DELIMITER ;
 --   Cột trả về: tour_id, title, provider_name, provider_approval_status,
 --     provider_user_status, destination_name, category_name, approval_status,
 --     is_public (1 = đang hiển thị cho khách), schedule_count (mọi lịch của tour),
---     last_action_at (lần xử lý gần nhất trong admin_logs, NULL nếu chưa có).
+--     last_action_at (lần xử lý gần nhất trong admin_logs, NULL nếu chưa có),
+--     revision_of, revision_of_title (Sprint 6, file 32: dòng này là "bản sửa" của một tour đã
+--     duyệt; NULL = tour thường).
 --   Sắp xếp: tour chờ duyệt trước, rồi title, rồi id.
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS LTP_sp_admin_tour_list;
@@ -284,12 +286,15 @@ BEGIN
         (SELECT MAX(l.created_at)
            FROM admin_logs l
           WHERE l.target_type = 'tour'
-            AND l.target_id = t.id) AS last_action_at
+            AND l.target_id = t.id) AS last_action_at,
+        t.revision_of,
+        o.title             AS revision_of_title
     FROM tours t
     JOIN providers p ON p.id = t.provider_id
     JOIN users     u ON u.id = p.user_id
     LEFT JOIN destinations d ON d.id = t.destination_id
     LEFT JOIN categories   c ON c.id = t.category_id
+    LEFT JOIN tours        o ON o.id = t.revision_of
     WHERE NULLIF(p_approval_status, '') IS NULL
        OR t.approval_status = (p_approval_status COLLATE utf8mb4_unicode_ci)
     ORDER BY (t.approval_status = 'pending') DESC, t.title ASC, t.id ASC;
@@ -305,7 +310,9 @@ DELIMITER ;
 --   provider_name, provider_phone, provider_approval_status, provider_user_status,
 --   approval_status, is_public,
 --   schedule_count, ticket_count (loại vé active), image_count, itinerary_count,
---   inclusion_count, policy_count (số phiên bản chính sách hủy).
+--   inclusion_count, policy_count (số phiên bản chính sách hủy),
+--   revision_of (Sprint 6, file 32: mã tour gốc khi dòng này là "bản sửa"; NULL = tour thường),
+--   revision_id, revision_status (bản sửa đang mở của tour này; NULL = không có).
 --   Chỉ trả số lượng các phần con: trang quản trị dùng để xem tour đã đủ thông tin chưa.
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS LTP_sp_admin_tour_detail;
@@ -350,12 +357,16 @@ BEGIN
         (SELECT COUNT(*) FROM tour_images ti WHERE ti.tour_id = t.id) AS image_count,
         (SELECT COUNT(*) FROM tour_itinerary_items ii WHERE ii.tour_id = t.id) AS itinerary_count,
         (SELECT COUNT(*) FROM tour_inclusions tn WHERE tn.tour_id = t.id) AS inclusion_count,
-        (SELECT COUNT(*) FROM cancellation_policies cp WHERE cp.tour_id = t.id) AS policy_count
+        (SELECT COUNT(*) FROM cancellation_policies cp WHERE cp.tour_id = t.id) AS policy_count,
+        t.revision_of,
+        r.id                AS revision_id,
+        r.approval_status   AS revision_status
     FROM tours t
     JOIN providers p ON p.id = t.provider_id
     JOIN users     u ON u.id = p.user_id
     LEFT JOIN destinations d ON d.id = t.destination_id
     LEFT JOIN categories   c ON c.id = t.category_id
+    LEFT JOIN tours        r ON r.revision_of = t.id
     WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci);
 END$$
 DELIMITER ;
@@ -365,8 +376,13 @@ DELIMITER ;
 --   p_new_status: 'approved' (phê duyệt) | 'rejected' (từ chối, bắt buộc p_note).
 --   Đổi trạng thái và ghi admin_logs ('tour_approve' / 'tour_reject') trong cùng một
 --   transaction. p_note tối đa 255 ký tự (NULL / '' = không có).
+--   Sprint 6 (NTK, file 32): p_tour_id là "bản sửa" của một tour đã duyệt (tours.revision_of)
+--   thì phê duyệt = chép nội dung bản sửa vào tour gốc rồi xóa bản sửa
+--   (NTK_sp_tour_revision_apply, cùng transaction); bản sửa không bao giờ thành tour 'approved'
+--   riêng. Từ chối bản sửa: như tour thường (bản sửa sang 'rejected', tour gốc không đổi).
 --   1 dòng: result, approval_status.
 --     result = 'ok'                 : đã đổi; approval_status = trạng thái mới.
+--              'original_not_approved' : bản sửa của tour gốc không còn 'approved', chưa áp dụng được.
 --              'forbidden'          : người thao tác không phải quản trị viên đang hoạt động.
 --              'not_found'          : không có tour này.
 --              'invalid_transition' : tour không ở trạng thái 'pending', hoặc p_new_status sai.
@@ -387,6 +403,8 @@ proc: BEGIN
     DECLARE v_old  VARCHAR(20)  DEFAULT NULL;
     DECLARE v_new  VARCHAR(20)  DEFAULT COALESCE(p_new_status, '');
     DECLARE v_note VARCHAR(255) CHARACTER SET utf8mb4 DEFAULT NULLIF(TRIM(p_note), '');
+    DECLARE v_revision_of CHAR(36)    DEFAULT NULL;
+    DECLARE v_applied     VARCHAR(30) DEFAULT NULL;
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -402,8 +420,8 @@ proc: BEGIN
 
     START TRANSACTION;
 
-    SELECT approval_status
-      INTO v_old
+    SELECT approval_status, revision_of
+      INTO v_old, v_revision_of
       FROM tours
      WHERE id = (p_tour_id COLLATE utf8mb4_unicode_ci)
        FOR UPDATE;
@@ -423,6 +441,19 @@ proc: BEGIN
     IF v_new = 'rejected' AND v_note IS NULL THEN
         ROLLBACK;
         SELECT 'note_required' AS result, v_old AS approval_status;
+        LEAVE proc;
+    END IF;
+
+    -- Sprint 6 (NTK, file 32): phê duyệt "bản sửa" = áp dụng nội dung bản sửa vào tour gốc.
+    IF v_new = 'approved' AND v_revision_of IS NOT NULL THEN
+        CALL NTK_sp_tour_revision_apply(p_actor_user_id, p_tour_id, v_note, v_applied);
+        IF v_applied = 'ok' THEN
+            COMMIT;
+            SELECT 'ok' AS result, 'approved' AS approval_status;
+        ELSE
+            ROLLBACK;
+            SELECT v_applied AS result, v_old AS approval_status;
+        END IF;
         LEAVE proc;
     END IF;
 

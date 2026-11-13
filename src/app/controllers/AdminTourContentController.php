@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Models\AdminTourContentModel;
 use App\Models\AdminTourModel;
+use App\Models\TourRevisionModel;
 use finfo;
 
 /**
@@ -16,7 +17,9 @@ use finfo;
  * Xóa tour: tour chưa có đơn thì xóa hẳn; đã có đơn thì chuyển "Ngừng hiển thị" để giữ lịch sử đơn;
  * còn đơn đang xử lý thì không xóa được.
  * Khu /host (HostTourContentController): đơn vị tổ chức sửa ảnh, lịch trình, dịch vụ và chính sách hủy của tour
- * của chính mình (sửa tour đã duyệt thì tour quay về "Chờ duyệt"); xóa / hiển thị lại tour chỉ dành cho quản trị viên.
+ * của chính mình khi tour đang "Nháp" hoặc "Bị từ chối" (tour đã duyệt sửa qua bản sửa, file 32); xóa / hiển thị lại
+ * tour chỉ dành cho quản trị viên. Bản sửa lúc đầu dùng chung file ảnh với tour gốc nên file chỉ bị xóa khi không còn
+ * dòng ảnh nào dùng tới (removeUpload()).
  */
 class AdminTourContentController extends AdminController
 {
@@ -334,8 +337,11 @@ class AdminTourContentController extends AdminController
         }
 
         $tourId = (string) $tour['tour_id'];
-        // Tour bị xóa hẳn thì ảnh cũng mất: lấy danh sách trước để xóa file đã tải lên.
+        // Tour bị xóa hẳn thì ảnh cũng mất: lấy danh sách trước để xóa file đã tải lên (kể cả ảnh của bản sửa đang mở).
         $images = $this->content->images($tourId);
+        if (($tour['revision_id'] ?? null) !== null) {
+            $images = array_merge($images, $this->content->images((string) $tour['revision_id']));
+        }
         $row = $this->content->deleteTour($this->actorId(), $tourId);
 
         match ((string) $row['result']) {
@@ -431,10 +437,16 @@ class AdminTourContentController extends AdminController
         return [self::UPLOAD_DIR . '/' . $name, null];
     }
 
-    /** Xóa file ảnh đã tải lên (chỉ file do trang này tạo: uploads/tours/<32 ký tự hex>.<đuôi>). */
-    private static function removeUpload(string $url): void
+    /**
+     * Xóa file ảnh đã tải lên (chỉ file do trang này tạo: uploads/tours/<32 ký tự hex>.<đuôi>).
+     * Gọi sau khi dòng ảnh đã bị xóa: file còn được dòng ảnh khác dùng (tour gốc / bản sửa) thì giữ lại.
+     */
+    public static function removeUpload(string $url): void
     {
         if (preg_match('#^' . self::UPLOAD_DIR . '/[a-f0-9]{32}\.(jpg|png|webp)$#D', $url) !== 1) {
+            return;
+        }
+        if ((new TourRevisionModel())->imageInUse($url)) {
             return;
         }
         $path = BASE_PATH . '/public/assets/' . $url;

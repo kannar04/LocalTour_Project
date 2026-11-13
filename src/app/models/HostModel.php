@@ -8,7 +8,7 @@ use Core\Database;
 
 /**
  * Tài khoản đơn vị tổ chức (khu /host, Nguyễn Tuấn Khôi): đơn vị của tài khoản đang đăng nhập, tour của đơn vị,
- * đơn đặt tour trên tour của đơn vị (chỉ xem), đơn vị tự đăng ký (chờ duyệt) và mật khẩu đăng nhập do quản trị viên cấp.
+ * đơn đặt tour trên tour của đơn vị (chỉ xem) và mật khẩu đăng nhập do quản trị viên cấp (đơn vị không tự đăng ký).
  * Procedure: 27_procedures_NTK_host.sql.
  */
 final class HostModel
@@ -38,7 +38,9 @@ final class HostModel
     /**
      * Tour có thuộc đơn vị của tài khoản không; null = không phải tour của đơn vị.
      *
-     * @return array<string, mixed>|null tour_id, approval_status, can_edit, reject_note
+     * @return array<string, mixed>|null tour_id, approval_status, can_edit (sửa nội dung), can_schedule (sửa lịch, giá vé),
+     *         reject_note, revision_of + revision_of_title + revision_of_status (khi tour là bản sửa),
+     *         revision_id + revision_status (khi tour có bản sửa đang mở)
      */
     public function tourAccess(string $userId, string $tourId): ?array
     {
@@ -87,18 +89,6 @@ final class HostModel
     public function account(string $providerId): ?array
     {
         return Database::call('NTK_sp_admin_provider_account', [$providerId])[0] ?? null;
-    }
-
-    /**
-     * Đơn vị tự đăng ký ở /host/register: tạo tài khoản và đơn vị ở trạng thái "Chờ duyệt". $passwordHash = password_hash().
-     *
-     * @return array{result: string, field: ?string} result: ok, invalid (field = ô sai), email_taken
-     */
-    public function register(string $businessName, string $contactPhone, string $email, string $passwordHash): array
-    {
-        $row = Database::call('NTK_sp_host_register', [$businessName, $contactPhone, mb_strtolower($email), $passwordHash])[0] ?? [];
-
-        return ['result' => (string) ($row['result'] ?? 'invalid'), 'field' => isset($row['field']) ? (string) $row['field'] : null];
     }
 
     /**
