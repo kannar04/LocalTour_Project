@@ -264,6 +264,8 @@ Thanh toán thử (sandbox, không chuyển tiền thật):
 
 Nhóm dùng chung một bộ khóa sandbox: hỏi riêng trong nhóm, không gửi vào nhóm chat chung, không ghi vào file được commit. Điền xong, tải lại trang thanh toán; `check_install.php` hiện `OK VNPay sandbox: đã có khóa (giá trị không in ra)` và `OK VietQR: đã có tài khoản nhận (giá trị không in ra)`.
 
+**Giới hạn của VNPay khi chạy ở máy cục bộ (I03).** VNPay sandbox không gọi được địa chỉ `localhost` / `127.0.0.1`, nên IPN không tới máy demo. Kết quả thanh toán được ghi khi khách quay về từ cổng VNPay (Return URL). Khách đóng tab trước khi quay về thì khoản chưa có kết quả: sau 15 phút khoản hiện ở mục “Giao dịch VNPay chưa rõ kết quả” của trang **Đối chiếu thanh toán** để quản trị viên đối chiếu tay. Luồng IPN đã được kiểm thử ở Sprint 4 bằng URL có chữ ký.
+
 ## 11. Cài lại trước buổi demo
 
 Ngày khởi hành trong dữ liệu mẫu được tính theo ngày cài database, nên cài lại database trước mỗi buổi demo hoặc kiểm thử:

@@ -57,8 +57,8 @@ Mục trong cột “Hướng dẫn” là số mục của [02 – Hướng d�
 | B12 | 8 | Built-in server: `C:\xampp\php\php.exe -S 127.0.0.1:8080 -t public public/router.php`, mở `http://127.0.0.1:8080` | Màn hình lệnh báo `… Development Server (http://127.0.0.1:8080) started`; trang “Bảng tin du lịch” có 9 tour. | | | |
 | B13 | 8 | Mở `/tours/c0000000-0000-4000-8000-000000000001` | Trang chi tiết “Hà Nội qua những món ăn phố cổ”. | | | |
 | B14 | 8 | `/admin/login`: đăng nhập sai mật khẩu, rồi đúng mật khẩu ở B08 | Sai: “Email hoặc mật khẩu không đúng.”; đúng: trang “Tổng quan”. | | | |
-| B15 | 8 | `/register` tạo tài khoản khách hàng, đặt tour 1 cho 1 người lớn | “Đã gửi yêu cầu đặt tour”, đơn `LTxxxxxx` ở trạng thái “Chờ xác nhận”. | | | |
-| B16 | 8 | Quản trị viên mở đơn ở “Yêu cầu đặt tour”, chọn “Xác nhận chỗ và giá”; khách mở “Thanh toán ngay” | Đơn “Chờ thanh toán”; chưa có khóa thanh toán thử thì hiện “VNPay đang tạm ngưng”, “VietQR đang tạm ngưng”. | | | |
+| B15 | 8 | `/register` tạo tài khoản khách hàng, đặt tour 1 cho 1 người lớn | Đơn `LTxxxxxx` được giữ chỗ ngay và trang thanh toán của đơn mở ra (“Đã giữ chỗ cho đơn LTxxxxxx”); trong “Đơn của tôi” đơn ở trạng thái “Chờ thanh toán”. | | | |
+| B16 | 8 | Xem trang thanh toán của đơn vừa đặt; quản trị viên mở “Đơn đặt tour” | Chưa có khóa thanh toán thử thì trang thanh toán hiện “VNPay đang tạm ngưng”, “VietQR đang tạm ngưng”; đơn có trong danh sách “Đơn đặt tour” của quản trị viên. | | | |
 | B17 | 9 | `scripts\register_expire_task.bat`; `schtasks /Query /TN "LocalTour - Tu huy don qua han"`; `scripts\register_expire_task.bat /delete` | `SUCCESS … created`; trạng thái `Ready`; `SUCCESS … deleted`. | | | |
 | B18 | 10 | (Tùy chọn) điền khóa thanh toán thử trong `.env`, chạy lại `check_install.php` | Hai dòng `OK VNPay sandbox …`, `OK VietQR …`, giá trị khóa không in ra. | | | |
 | B19 | 12 | Thử một lỗi trong bảng “Xử lý sự cố” (ghi rõ lỗi nào) | Hiện tượng và cách xử lý đúng như bảng. | | | |

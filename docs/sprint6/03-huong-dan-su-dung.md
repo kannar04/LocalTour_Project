@@ -152,6 +152,7 @@ Thanh toán được khi đơn ở **Chờ thanh toán** và còn hạn giữ ch
    - **Đổi sang ngày khác:** chọn “Ngày muốn đổi sang”; chỉ hiện các lịch cùng tour còn đủ chỗ cho số khách của đơn.
 4. Nhập “Lý do” (bắt buộc, tối đa 500 ký tự), bấm **Gửi yêu cầu**. Trang báo “Đã gửi yêu cầu. LocalTour sẽ xử lý và cập nhật kết quả trên trang này. Tiền hoàn (nếu có) được LocalTour chuyển lại thủ công.”
 5. Mục “Yêu cầu đã gửi” hiện trạng thái **Chờ xử lý**, sau đó **Đã đồng ý** hoặc **Đã từ chối** kèm “Phản hồi của LocalTour”. Đơn giữ nguyên cho tới khi yêu cầu được đồng ý.
+6. Yêu cầu hủy được đồng ý thì đơn chuyển “Đã hủy”: trang đơn ghi “Đơn đã bị hủy. Lý do: …” (phản hồi của LocalTour), và “Lịch sử đơn” có dòng “Đồng ý hủy tour” cùng dòng “Tạo yêu cầu hoàn tiền” ghi số tiền hoàn. Đơn đã hủy không còn thẻ “Đổi ngày / hủy tour”.
 
 ![Gửi yêu cầu đổi ngày](images/08-doi-ngay-huy-tour.png)
 
@@ -233,7 +234,7 @@ Tour chỉ hiện cho khách khi tour đã được duyệt và đơn vị tổ 
 3. Cấp tài khoản đăng nhập: bấm **Sửa** ở đơn vị vừa thêm; ở “Tài khoản đăng nhập” nhập “Mật khẩu” (tối thiểu 8 ký tự), bấm **Cấp mật khẩu** → “Đã lưu mật khẩu đăng nhập của đơn vị.” Gửi mật khẩu cho đơn vị qua kênh riêng; LocalTour không hiển thị lại mật khẩu. Đổi mật khẩu: nhập “Mật khẩu mới”, bấm **Đổi mật khẩu**.
 4. Đơn vị đăng nhập ở `/host/login` bằng email liên hệ và mật khẩu được cấp, và chỉ đăng nhập được khi ở trạng thái “Đang hợp tác”. Đơn vị không tự đăng ký tài khoản.
 5. Sửa: bấm **Sửa**, đổi thông tin, bấm **Lưu thay đổi**. Chuyển “Ngừng hợp tác” thì tour của đơn vị không hiện cho khách và đơn vị không đăng nhập được.
-6. Xóa (chỉ đơn vị chưa có tour): ở trang sửa, tích “Tôi hiểu đơn vị sẽ bị xóa hẳn.”, bấm **Xóa đơn vị**.
+6. Xóa (chỉ đơn vị chưa có tour): ở trang sửa, tích “Tôi hiểu đơn vị sẽ bị xóa hẳn.”, bấm **Xóa đơn vị**. Đơn vị còn tour thì mục “Xóa đơn vị” không có ô tích và nút xóa, chỉ ghi “Đơn vị còn N tour nên không xóa được (đơn cũ cần giữ thông tin đơn vị).”; muốn ẩn tour của đơn vị thì chọn “Ngừng hợp tác” rồi lưu.
 
 ![Cấp mật khẩu đăng nhập cho đơn vị tổ chức](images/13-quan-tri-cap-mat-khau.png)
 
@@ -250,7 +251,7 @@ Tour chỉ hiện cho khách khi tour đã được duyệt và đơn vị tổ 
 
 1. Bấm **Duyệt tour**, tab “Chờ duyệt”. Tour mới của đơn vị hiện theo tên tour; bản sửa của tour đã duyệt hiện với dòng “Bản sửa của tour đã duyệt: <tên tour>”. Bấm **Xem và duyệt**.
 2. Tour mới: xem thông tin, ảnh, lịch trình, dịch vụ, chính sách hủy và lịch khởi hành. Bấm **Phê duyệt tour** → “Đã phê duyệt tour.”, tour hiện cho khách. Hoặc nhập “Lý do từ chối (bắt buộc)” rồi bấm **Từ chối tour** → “Đã từ chối tour và lưu lý do.”; đơn vị thấy lý do, sửa tour và gửi lại. Để trống lý do thì báo “Vui lòng nhập lý do từ chối.”
-3. Bản sửa: mục “So sánh với tour đang hiển thị” đặt hai cột “Đang hiển thị” và “Bản sửa”, chỉ liệt kê phần có thay đổi (Thông tin tour, Ảnh, Lịch trình, Dịch vụ, Chính sách hủy). Lịch khởi hành và giá vé không nằm trong bản sửa. Bấm **Xem tour đang hiển thị** để mở tour gốc.
+3. Bản sửa: mục “So sánh với tour đang hiển thị” đặt “Đang hiển thị” cạnh “Bản sửa” và chỉ liệt kê nhóm có thay đổi. “Thông tin tour” là bảng ba cột “Mục”, “Đang hiển thị”, “Bản sửa”, mỗi dòng một mục đã đổi. “Ảnh” gắn nhãn “Mới” cho ảnh thêm vào và “Bị bỏ” cho ảnh bị bỏ. “Lịch trình”, “Dịch vụ bao gồm / không bao gồm” và “Chính sách hủy” ghi cả danh sách ở hai bên. Lịch khởi hành và giá vé không nằm trong bản sửa. Bấm **Xem tour đang hiển thị** để mở tour gốc.
 4. Ở “Xử lý”: bấm **Phê duyệt bản sửa** → “Đã duyệt bản sửa: nội dung mới đã được áp dụng cho tour.” Hoặc nhập lý do rồi bấm **Từ chối bản sửa**: tour đang hiển thị giữ nguyên, đơn vị thấy lý do.
 5. Trong lúc tour hoặc bản sửa “Chờ duyệt”, đơn vị không sửa được nội dung. Lịch khởi hành và giá vé đơn vị sửa trực tiếp, không qua duyệt (mục 5.5).
 
