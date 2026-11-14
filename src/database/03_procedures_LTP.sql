@@ -9,8 +9,9 @@
 -- Quy tắc   : Trang khách: tour được hiển thị khi tours.approval_status = 'approved' VÀ
 --             providers.approval_status = 'approved' VÀ tài khoản của nhà cung cấp
 --             (users.status) = 'active'. Tour khác -> không bao giờ trả về.
---             Lịch đặt được: status = 'open', starts_at > NOW(), remaining > 0 và có
---             ít nhất một loại vé active.
+--             Lịch đặt được: status = 'open', remaining > 0, có ít nhất một loại vé active
+--             và còn hơn settings.booking_cutoff_minutes phút (mặc định 60) mới tới giờ khởi
+--             hành: starts_at > NOW() + số phút đó (giống LTP_sp_booking_create, file 10).
 --             Điểm đánh giá chỉ tính đánh giá moderation_status = 'approved'.
 --             Ảnh bìa: ảnh của chính tour có sort_order nhỏ nhất (rồi id nhỏ nhất).
 --             Tên điểm đến = destinations.name; tour chưa gán destination_id thì dùng
@@ -19,7 +20,8 @@
 --             "Illegal mix of collations" khi database mặc định dùng collation khác.
 --             Trang quản trị: xem mọi tour, quy tắc riêng ở phần "Trang quản trị" cuối file.
 --             Không có DEFINER.
--- Chạy sau  : 01_schema.sql, 16_migration_sprint5_LTP.sql (bảng tour_packages).
+-- Chạy sau  : 01_schema.sql, 16_migration_sprint5_LTP.sql (bảng tour_packages). Khi gọi cần
+--             bảng settings (28_migration_economy_NTK.sql).
 --             Chạy lại được (DROP PROCEDURE IF EXISTS).
 -- =====================================================================
 
@@ -69,6 +71,11 @@ BEGIN
     DECLARE v_destination_id CHAR(36) CHARACTER SET utf8mb4 DEFAULT NULL;
     DECLARE v_category_id    CHAR(36) CHARACTER SET utf8mb4 DEFAULT NULL;
     DECLARE v_sort           VARCHAR(20) DEFAULT 'recommended';
+    -- Ngừng nhận đặt trước giờ khởi hành bao nhiêu phút (file 28).
+    DECLARE v_cutoff_min INT DEFAULT 60;
+
+    SET v_cutoff_min = COALESCE((SELECT IF(st.value REGEXP '^[0-9]{1,5}$', CAST(st.value AS UNSIGNED), NULL)
+                                   FROM settings st WHERE st.name = 'booking_cutoff_minutes'), 60);
 
     -- Thoát ký tự đặc biệt của LIKE: '!' trước (vì là ký tự thoát), sau đó '%' và '_'.
     IF p_keyword IS NOT NULL AND TRIM(p_keyword) <> '' THEN
@@ -127,7 +134,7 @@ BEGIN
                              GROUP BY tp.tour_id) pk
                         ON pk.tour_id = s.tour_id
                 WHERE s.status = 'open'
-                  AND s.starts_at > NOW()
+                  AND s.starts_at > NOW() + INTERVAL v_cutoff_min MINUTE
                   AND s.remaining > 0
                 GROUP BY s.tour_id) bs
            ON bs.tour_id = t.id
@@ -248,7 +255,9 @@ DELIMITER ;
 --   Cột trả về: tour_id, title, provider_name, provider_approval_status,
 --     provider_user_status, destination_name, category_name, approval_status,
 --     is_public (1 = đang hiển thị cho khách), schedule_count (mọi lịch của tour),
---     last_action_at (lần xử lý gần nhất trong admin_logs, NULL nếu chưa có).
+--     last_action_at (lần xử lý gần nhất trong admin_logs, NULL nếu chưa có),
+--     revision_of, revision_of_title (Sprint 6, file 32: dòng này là "bản sửa" của một tour đã
+--     duyệt; NULL = tour thường).
 --   Sắp xếp: tour chờ duyệt trước, rồi title, rồi id.
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS LTP_sp_admin_tour_list;
@@ -277,12 +286,15 @@ BEGIN
         (SELECT MAX(l.created_at)
            FROM admin_logs l
           WHERE l.target_type = 'tour'
-            AND l.target_id = t.id) AS last_action_at
+            AND l.target_id = t.id) AS last_action_at,
+        t.revision_of,
+        o.title             AS revision_of_title
     FROM tours t
     JOIN providers p ON p.id = t.provider_id
     JOIN users     u ON u.id = p.user_id
     LEFT JOIN destinations d ON d.id = t.destination_id
     LEFT JOIN categories   c ON c.id = t.category_id
+    LEFT JOIN tours        o ON o.id = t.revision_of
     WHERE NULLIF(p_approval_status, '') IS NULL
        OR t.approval_status = (p_approval_status COLLATE utf8mb4_unicode_ci)
     ORDER BY (t.approval_status = 'pending') DESC, t.title ASC, t.id ASC;
@@ -298,7 +310,9 @@ DELIMITER ;
 --   provider_name, provider_phone, provider_approval_status, provider_user_status,
 --   approval_status, is_public,
 --   schedule_count, ticket_count (loại vé active), image_count, itinerary_count,
---   inclusion_count, policy_count (số phiên bản chính sách hủy).
+--   inclusion_count, policy_count (số phiên bản chính sách hủy),
+--   revision_of (Sprint 6, file 32: mã tour gốc khi dòng này là "bản sửa"; NULL = tour thường),
+--   revision_id, revision_status (bản sửa đang mở của tour này; NULL = không có).
 --   Chỉ trả số lượng các phần con: trang quản trị dùng để xem tour đã đủ thông tin chưa.
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS LTP_sp_admin_tour_detail;
@@ -343,12 +357,16 @@ BEGIN
         (SELECT COUNT(*) FROM tour_images ti WHERE ti.tour_id = t.id) AS image_count,
         (SELECT COUNT(*) FROM tour_itinerary_items ii WHERE ii.tour_id = t.id) AS itinerary_count,
         (SELECT COUNT(*) FROM tour_inclusions tn WHERE tn.tour_id = t.id) AS inclusion_count,
-        (SELECT COUNT(*) FROM cancellation_policies cp WHERE cp.tour_id = t.id) AS policy_count
+        (SELECT COUNT(*) FROM cancellation_policies cp WHERE cp.tour_id = t.id) AS policy_count,
+        t.revision_of,
+        r.id                AS revision_id,
+        r.approval_status   AS revision_status
     FROM tours t
     JOIN providers p ON p.id = t.provider_id
     JOIN users     u ON u.id = p.user_id
     LEFT JOIN destinations d ON d.id = t.destination_id
     LEFT JOIN categories   c ON c.id = t.category_id
+    LEFT JOIN tours        r ON r.revision_of = t.id
     WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci);
 END$$
 DELIMITER ;
@@ -358,8 +376,13 @@ DELIMITER ;
 --   p_new_status: 'approved' (phê duyệt) | 'rejected' (từ chối, bắt buộc p_note).
 --   Đổi trạng thái và ghi admin_logs ('tour_approve' / 'tour_reject') trong cùng một
 --   transaction. p_note tối đa 255 ký tự (NULL / '' = không có).
+--   Sprint 6 (NTK, file 32): p_tour_id là "bản sửa" của một tour đã duyệt (tours.revision_of)
+--   thì phê duyệt = chép nội dung bản sửa vào tour gốc rồi xóa bản sửa
+--   (NTK_sp_tour_revision_apply, cùng transaction); bản sửa không bao giờ thành tour 'approved'
+--   riêng. Từ chối bản sửa: như tour thường (bản sửa sang 'rejected', tour gốc không đổi).
 --   1 dòng: result, approval_status.
 --     result = 'ok'                 : đã đổi; approval_status = trạng thái mới.
+--              'original_not_approved' : bản sửa của tour gốc không còn 'approved', chưa áp dụng được.
 --              'forbidden'          : người thao tác không phải quản trị viên đang hoạt động.
 --              'not_found'          : không có tour này.
 --              'invalid_transition' : tour không ở trạng thái 'pending', hoặc p_new_status sai.
@@ -380,6 +403,8 @@ proc: BEGIN
     DECLARE v_old  VARCHAR(20)  DEFAULT NULL;
     DECLARE v_new  VARCHAR(20)  DEFAULT COALESCE(p_new_status, '');
     DECLARE v_note VARCHAR(255) CHARACTER SET utf8mb4 DEFAULT NULLIF(TRIM(p_note), '');
+    DECLARE v_revision_of CHAR(36)    DEFAULT NULL;
+    DECLARE v_applied     VARCHAR(30) DEFAULT NULL;
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -395,8 +420,8 @@ proc: BEGIN
 
     START TRANSACTION;
 
-    SELECT approval_status
-      INTO v_old
+    SELECT approval_status, revision_of
+      INTO v_old, v_revision_of
       FROM tours
      WHERE id = (p_tour_id COLLATE utf8mb4_unicode_ci)
        FOR UPDATE;
@@ -416,6 +441,19 @@ proc: BEGIN
     IF v_new = 'rejected' AND v_note IS NULL THEN
         ROLLBACK;
         SELECT 'note_required' AS result, v_old AS approval_status;
+        LEAVE proc;
+    END IF;
+
+    -- Sprint 6 (NTK, file 32): phê duyệt "bản sửa" = áp dụng nội dung bản sửa vào tour gốc.
+    IF v_new = 'approved' AND v_revision_of IS NOT NULL THEN
+        CALL NTK_sp_tour_revision_apply(p_actor_user_id, p_tour_id, v_note, v_applied);
+        IF v_applied = 'ok' THEN
+            COMMIT;
+            SELECT 'ok' AS result, 'approved' AS approval_status;
+        ELSE
+            ROLLBACK;
+            SELECT v_applied AS result, v_old AS approval_status;
+        END IF;
         LEAVE proc;
     END IF;
 
