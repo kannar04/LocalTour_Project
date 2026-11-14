@@ -5,7 +5,8 @@
  * $sidebarMode = 'column' (mặc định, trang danh sách): cột trái trên desktop, panel thu gọn trên mobile;
  *                'mobile' (trang chi tiết / không tìm thấy): chỉ là panel thu gọn dưới 992px.
  * Mục: Bảng tin, "Đơn của tôi" (chỉ tài khoản khách hàng), "So sánh tour" (FR-15, Sprint 5: compare.js gắn
- * các tour đã chọn vào link .js-compare-link) và "Bản đồ" (/ban-do, điểm khởi hành của các tour).
+ * các tour đã chọn vào link .js-compare-link), "Bản đồ" (/ban-do, điểm khởi hành của các tour) và
+ * "Dành cho đơn vị tổ chức" (/host/login; chỉ hiện khi chưa đăng nhập).
  * Danh sách #sidebar-destinations được JS điền từ /api/destinations
  * (tour-list.js ở chế độ 'column', app.js tải khi mở panel ở chế độ 'mobile').
  */
@@ -16,6 +17,8 @@ $isBookingsActive = ($activeNav ?? 'feed') === 'bookings';
 $isCompareActive = ($activeNav ?? 'feed') === 'compare';
 $isMapActive = ($activeNav ?? 'feed') === 'map';
 $isCustomer = (current_user()['role'] ?? '') === 'customer';
+// "Dành cho đơn vị tổ chức" (/host/login): chỉ hiện khi chưa đăng nhập. Đơn vị không tự đăng ký, quản trị viên cấp tài khoản.
+$showHostLogin = current_user() === null;
 ?>
 <?php if (!$isColumn): ?>
 <div class="container-xl lt-container d-lg-none">
@@ -54,6 +57,14 @@ $isCustomer = (current_user()['role'] ?? '') === 'customer';
                     <span class="lt-nav__label">Bản đồ</span>
                 </a>
             </li>
+<?php if ($showHostLogin): ?>
+            <li>
+                <a class="lt-nav__link" href="<?= e(url('/host/login')) ?>">
+                    <span class="lt-icon lt-icon--log-in" aria-hidden="true"></span>
+                    <span class="lt-nav__label">Dành cho đơn vị tổ chức</span>
+                </a>
+            </li>
+<?php endif; ?>
         </ul>
 
         <div class="lt-sidebar__section">

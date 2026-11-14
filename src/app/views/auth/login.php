@@ -46,6 +46,7 @@ $registerHref = url('/register') . ($next !== '/tours' ? '?next=' . rawurlencode
             </form>
 
             <p class="lt-auth__switch">Chưa có tài khoản? <a href="<?= e($registerHref) ?>">Đăng ký</a></p>
+            <p class="lt-auth__switch">Bạn là đơn vị tổ chức tour? <a href="<?= e(url('/host/login')) ?>">Đăng nhập đơn vị tổ chức</a></p>
 
             <div class="lt-auth__guest">
                 <p class="lt-auth__divider"><span>hoặc</span></p>

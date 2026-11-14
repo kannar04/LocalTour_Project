@@ -43,12 +43,12 @@ $router->get('/api/tours/{id}', [TourDetailController::class, 'apiShow']);
 $router->get('/compare', [CompareController::class, 'index']);
 $router->get('/api/compare', [CompareController::class, 'apiIndex']);
 
-// Đặt tour (M4): trang hoàn tất thông tin, kiểm tra chỗ trống của lịch, lưu yêu cầu đặt tour.
+// Đặt tour (M4): trang hoàn tất thông tin, kiểm tra chỗ trống của lịch, tạo đơn đặt tour (giữ chỗ ngay).
 $router->get('/tours/{id}/book', [BookingController::class, 'create']);
 $router->get('/api/schedules/{id}/availability', [ScheduleController::class, 'apiAvailability']);
 $router->post('/api/bookings', [BookingController::class, 'store']);
 
-// Đơn của tôi (M4): yêu cầu đặt tour đã gửi của tài khoản đang đăng nhập.
+// Đơn của tôi (M4): đơn đặt tour của tài khoản đang đăng nhập.
 $router->get('/bookings', [CustomerBookingController::class, 'index']);
 $router->get('/bookings/{code}', [CustomerBookingController::class, 'show']);
 
@@ -61,10 +61,14 @@ $router->post('/bookings/{code}/pay/vietqr/submit', [PaymentController::class, '
 $router->get('/payments/vnpay/return', [VnpayController::class, 'result']);
 $router->get('/payments/vnpay/ipn', [VnpayController::class, 'ipn']);
 $router->get('/bookings/{code}/voucher', [VoucherController::class, 'show']);
-// Thanh toán MoMo (môi trường thử): '/payments/momo/ipn' đặt trước '/payments/momo/{code}'.
-$router->get('/payments/momo/return', [\App\Controllers\MomoController::class, 'result']);
-$router->post('/payments/momo/ipn', [\App\Controllers\MomoController::class, 'ipn']);
-$router->post('/payments/momo/{code}', [\App\Controllers\MomoController::class, 'start']);
+// Thanh toán MoMo (môi trường thử) đang ẩn: chỉ có các đường dẫn này khi config/payment.php bật momo_enabled.
+// '/payments/momo/ipn' đặt trước '/payments/momo/{code}'.
+$momoOn = (require BASE_PATH . '/config/payment.php')['momo_enabled'] === true;
+if ($momoOn) {
+    $router->get('/payments/momo/return', [\App\Controllers\MomoController::class, 'result']);
+    $router->post('/payments/momo/ipn', [\App\Controllers\MomoController::class, 'ipn']);
+    $router->post('/payments/momo/{code}', [\App\Controllers\MomoController::class, 'start']);
+}
 
 // Đổi ngày / hủy tour (Sprint 5, US14): khách gửi yêu cầu, quản trị viên xử lý thủ công.
 $router->get('/bookings/{code}/change', [ChangeRequestController::class, 'create']);
@@ -77,11 +81,14 @@ $router->get('/register', [AuthController::class, 'showRegister']);
 $router->post('/register', [AuthController::class, 'register']);
 $router->post('/logout', [AuthController::class, 'logout']);
 
-// Đăng nhập bằng Google / Facebook (OAuth 2.0) cho tài khoản khách hàng. Thiếu khóa trong .env thì nút bị ẩn.
+// Đăng nhập bằng Google (OAuth 2.0) cho tài khoản khách hàng. Thiếu khóa trong .env thì nút bị ẩn.
+// Facebook đang ẩn: chỉ có đường dẫn khi config/auth.php bật facebook.enabled.
 $router->get('/auth/google', [App\Controllers\SocialAuthController::class, 'google']);
 $router->get('/auth/google/callback', [App\Controllers\SocialAuthController::class, 'googleCallback']);
-$router->get('/auth/facebook', [App\Controllers\SocialAuthController::class, 'facebook']);
-$router->get('/auth/facebook/callback', [App\Controllers\SocialAuthController::class, 'facebookCallback']);
+if ((require BASE_PATH . '/config/auth.php')['facebook']['enabled'] === true) {
+    $router->get('/auth/facebook', [App\Controllers\SocialAuthController::class, 'facebook']);
+    $router->get('/auth/facebook/callback', [App\Controllers\SocialAuthController::class, 'facebookCallback']);
+}
 
 // Bản đồ và địa điểm quanh điểm khởi hành (Nguyễn Tuấn Khôi): trang /ban-do và quán ăn, bar, giải trí, quán nước
 // quanh điểm khởi hành của tour (Overpass API gọi từ máy chủ, lưu đệm 7 ngày).
@@ -140,11 +147,70 @@ $router->post('/admin/change-requests/{id}/decide', [AdminChangeRequestControlle
 $router->get('/admin/payments', [AdminPaymentController::class, 'index']);
 $router->post('/admin/payments/{id}/decide', [AdminPaymentController::class, 'decide']);
 $router->post('/admin/payments/{id}/vnpay', [AdminPaymentController::class, 'vnpayDecide']);
-// Thanh toán MoMo: quản trị viên tra cứu lại khoản MoMo chưa rõ kết quả.
-$router->post('/admin/payments/{id}/momo', [AdminPaymentController::class, 'momoCheck']);
+// Thanh toán MoMo (đang ẩn): quản trị viên tra cứu lại khoản MoMo chưa rõ kết quả.
+if ($momoOn) {
+    $router->post('/admin/payments/{id}/momo', [AdminPaymentController::class, 'momoCheck']);
+}
+
+// Dòng tiền sau tour (Nguyễn Tuấn Khôi): khoản chi trả cho đơn vị tổ chức (hệ thống tự lập sau khi lịch khởi hành kết
+// thúc, quản trị viên chuyển khoản ngoài hệ thống rồi ghi nhận đã chi trả), ghi "Đã hoàn tiền" cho khoản hoàn của khách,
+// và thông số vận hành (% phí dịch vụ LocalTour, thời gian giữ chỗ, hạn nhận đặt, hạn nhận VietQR).
+$router->get('/admin/payouts', [\App\Controllers\AdminPayoutController::class, 'index']);
+$router->get('/admin/payouts/{id}', [\App\Controllers\AdminPayoutController::class, 'show']);
+$router->post('/admin/payouts/{id}/pay', [\App\Controllers\AdminPayoutController::class, 'pay']);
+// Quản trị viên xác minh tài khoản nhận tiền đơn vị đang khai (kiểm tra ngoài hệ thống rồi bấm "Xác minh"):
+// chưa xác minh thì không ghi nhận được khoản chi trả; đơn vị đổi tài khoản thì phải xác minh lại.
+$router->post('/admin/payouts/{id}/bank/verify', [\App\Controllers\AdminPayoutController::class, 'verifyBank']);
+$router->post('/admin/refunds/{id}/complete', [\App\Controllers\AdminPayoutController::class, 'completeRefund']);
+$router->get('/admin/settings', [\App\Controllers\AdminSettingController::class, 'index']);
+$router->post('/admin/settings', [\App\Controllers\AdminSettingController::class, 'save']);
 
 // Bản đồ (Nguyễn Tuấn Khôi): quản trị viên đặt / xóa vị trí điểm khởi hành của tour.
 $router->get('/admin/tours/{id}/location', [\App\Controllers\AdminTourLocationController::class, 'edit']);
 $router->post('/admin/tours/{id}/location', [\App\Controllers\AdminTourLocationController::class, 'update']);
+
+// Tài khoản đơn vị tổ chức (Nguyễn Tuấn Khôi): đơn vị không tự đăng ký; quản trị viên thêm đơn vị và cấp mật khẩu ở
+// trang "Đơn vị tổ chức". Đơn vị đăng nhập ở /host/login và tự đăng tour, lịch khởi hành, giá vé, ảnh, lịch trình,
+// dịch vụ, chính sách hủy của tour của mình.
+// Vòng duyệt: tour mới là "Bản nháp"; đơn vị bấm "Gửi duyệt" (submit) thì tour "Chờ duyệt" và bị khóa cho tới khi
+// quản trị viên duyệt / từ chối (/admin/tours). Tour đã duyệt không sửa trực tiếp: đơn vị tạo "bản sửa" (revision),
+// tour đang hiển thị giữ nguyên cho tới khi quản trị viên duyệt bản sửa. Lịch khởi hành và giá vé không cần duyệt.
+// '/host/tours/new' đặt trước '/host/tours/{id}'.
+$router->post('/admin/providers/{id}/password', [AdminProviderController::class, 'password']);
+$router->get('/host/login', [\App\Controllers\HostAuthController::class, 'showLogin']);
+$router->post('/host/login', [\App\Controllers\HostAuthController::class, 'login']);
+$router->post('/host/logout', [\App\Controllers\HostAuthController::class, 'logout']);
+$router->get('/host', [\App\Controllers\HostTourController::class, 'index']);
+$router->get('/host/tours', [\App\Controllers\HostTourController::class, 'index']);
+$router->get('/host/tours/new', [\App\Controllers\HostTourFormController::class, 'create']);
+$router->post('/host/tours/new', [\App\Controllers\HostTourFormController::class, 'store']);
+$router->get('/host/tours/{id}', [\App\Controllers\HostTourController::class, 'show']);
+$router->get('/host/tours/{id}/edit', [\App\Controllers\HostTourFormController::class, 'edit']);
+$router->post('/host/tours/{id}/edit', [\App\Controllers\HostTourFormController::class, 'update']);
+$router->post('/host/tours/{id}/submit', [\App\Controllers\HostTourController::class, 'submit']);
+$router->post('/host/tours/{id}/archive', [\App\Controllers\HostTourController::class, 'archive']);
+$router->post('/host/tours/{id}/revision', [\App\Controllers\HostTourController::class, 'startRevision']);
+$router->post('/host/tours/{id}/revision/discard', [\App\Controllers\HostTourController::class, 'discardRevision']);
+$router->get('/host/tours/{id}/schedules', [\App\Controllers\HostScheduleController::class, 'index']);
+$router->post('/host/tours/{id}/schedules', [\App\Controllers\HostScheduleController::class, 'store']);
+$router->get('/host/schedules/{id}/edit', [\App\Controllers\HostScheduleController::class, 'edit']);
+$router->post('/host/schedules/{id}/edit', [\App\Controllers\HostScheduleController::class, 'update']);
+$router->get('/host/tours/{id}/content', [\App\Controllers\HostTourContentController::class, 'index']);
+$router->post('/host/tours/{id}/content/images', [\App\Controllers\HostTourContentController::class, 'addImage']);
+$router->post('/host/tours/{id}/content/images/{imageId}/delete', [\App\Controllers\HostTourContentController::class, 'deleteImage']);
+$router->post('/host/tours/{id}/content/images/{imageId}/cover', [\App\Controllers\HostTourContentController::class, 'setCover']);
+$router->post('/host/tours/{id}/content/itinerary', [\App\Controllers\HostTourContentController::class, 'saveItinerary']);
+$router->post('/host/tours/{id}/content/itinerary/{itemId}/delete', [\App\Controllers\HostTourContentController::class, 'deleteItinerary']);
+$router->post('/host/tours/{id}/content/inclusions', [\App\Controllers\HostTourContentController::class, 'addInclusion']);
+$router->post('/host/tours/{id}/content/inclusions/{inclusionId}/delete', [\App\Controllers\HostTourContentController::class, 'deleteInclusion']);
+$router->post('/host/tours/{id}/content/policy', [\App\Controllers\HostTourContentController::class, 'addPolicy']);
+// Đơn vị xem đơn đặt trên tour của mình (chỉ đọc, không có route POST): xử lý đơn vẫn ở /admin.
+$router->get('/host/bookings', [\App\Controllers\HostBookingController::class, 'index']);
+$router->get('/host/bookings/{id}', [\App\Controllers\HostBookingController::class, 'show']);
+// Doanh thu & chi trả (Nguyễn Tuấn Khôi): đơn vị xem khoản chi trả của mình (chỉ đọc) và tự khai tài khoản nhận tiền.
+$router->get('/host/payouts', [\App\Controllers\HostPayoutController::class, 'index']);
+$router->get('/host/payouts/{id}', [\App\Controllers\HostPayoutController::class, 'show']);
+$router->get('/host/bank', [\App\Controllers\HostPayoutController::class, 'bank']);
+$router->post('/host/bank', [\App\Controllers\HostPayoutController::class, 'saveBank']);
 
 return $router;

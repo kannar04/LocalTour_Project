@@ -25,6 +25,11 @@
 <?php if ($success !== ''): ?>
             <div class="lt-alert lt-alert--success" role="status"><span class="lt-icon lt-icon--check" aria-hidden="true"></span><span><?= e($success) ?></span></div>
 <?php endif; ?>
+<?php // Sprint 6 (Nguyễn Tuấn Khôi): đơn vị ở trạng thái "Chờ duyệt" chưa đăng nhập được cho tới khi quản trị viên duyệt. ?>
+<?php $pendingCount = count(array_filter($providers, static fn (array $row): bool => $row['approval_status'] === 'pending')); ?>
+<?php if ($pendingCount > 0): ?>
+            <div class="lt-alert lt-alert--warning" role="status"><span class="lt-icon lt-icon--info" aria-hidden="true"></span><span>Có <?= e($pendingCount) ?> đơn vị đang chờ duyệt. Mở đơn vị, chọn “<?= e(provider_status_label('approved')) ?>” rồi lưu để đơn vị đăng nhập và đăng tour.</span></div>
+<?php endif; ?>
 
             <section class="lt-panel" aria-label="Danh sách đơn vị tổ chức">
 <?php if ($providers === []): ?>
