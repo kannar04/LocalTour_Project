@@ -44,11 +44,11 @@ Ngoài phạm vi (không ghi “Không đạt” cho các mục này):
 
 | Mục | Nội dung |
 | --- | --- |
-| Máy | Máy của nhóm PCG, cài ở 6.4 sáng 16/11 ([05 – Biên bản thử cài đặt](05-bien-ban-thu-cai-dat.md)); ghi tên máy, Windows, XAMPP, PHP vào biên bản. |
+| Máy | Máy của nhóm PCG, nhóm PCG tự cài theo [02 – Hướng dẫn cài đặt](02-huong-dan-cai-dat.md) sáng 16/11; ghi tên máy, Windows, XAMPP, PHP vào biên bản. |
 | Gói demo | Gói 6.3 (hoặc gói cập nhật sau 6.6); ghi mã commit vào biên bản. |
 | Database | Cài mới theo 02 sáng 16/11, chạy hết 54 ca trong ngày. Không cài lại giữa buổi: các ca sau dùng tiếp tài khoản, đơn và khoản hoàn tiền của các ca trước (UAT-53 dùng khoản của UAT-16, UAT-28). Không dùng database chung của nhóm. |
 | Tài khoản | QTV: tạo bằng `create_admin.php` theo 02. KH-A, KH-B: đăng ký ở `/register` (email `…@localtour.test`) trong UAT-07. ĐV-A, ĐV-B: QTV thêm ở trang “Đơn vị tổ chức” và cấp mật khẩu trong UAT-38 (email `…@localtour.test`). Không ghi mật khẩu vào tài liệu. |
-| Thanh toán | Khóa VNPay sandbox và VietQR đã điền trong `.env` của máy UAT (thành viên nhóm điền khi cài; gói gửi nhóm PCG không có khóa). VietQR: không chuyển tiền thật, khách bấm “Tôi đã chuyển khoản”, QTV đối chiếu. VNPay: thẻ thử của VNPay sandbox. Hoàn tiền và chi trả: không chuyển tiền thật, nhập mã giao dịch thử. |
+| Thanh toán | Khóa VNPay sandbox và VietQR đã điền trong `.env` của máy UAT (nhóm PCG tự điền theo mục 10 của 02, từ file khóa nhóm LocalTour gửi riêng; gói gửi nhóm PCG không có khóa). VietQR: tài khoản nhận là tài khoản thử nghiệm, không chuyển tiền thật, khách bấm “Tôi đã chuyển khoản”, QTV đối chiếu. VNPay: thẻ thử của VNPay sandbox. Hoàn tiền và chi trả: không chuyển tiền thật, nhập mã giao dịch thử. |
 | Tác vụ tự động | Đã chạy `src/scripts/register_expire_task.bat` (15 phút một lần: hủy đơn quá hạn giữ chỗ, tự hoàn thành đơn của lịch đã kết thúc, lập khoản chi trả). Các trang “Đơn của tôi”, “Đơn đặt tour”, “Đối chiếu thanh toán”, “Chi trả đơn vị tổ chức” cũng chạy các bước này khi mở. Cần chạy ngay: mở cửa sổ lệnh ở thư mục `src`, chạy `C:\xampp\php\php.exe scripts\expire_holds.php`. |
 | Thông số vận hành | Giá trị mặc định: phí dịch vụ 10 %, giữ chỗ 30 phút, ngừng nhận đặt 60 phút trước giờ khởi hành, ngừng nhận VietQR 24 giờ trước giờ khởi hành. Chỉ đổi trong UAT-48, UAT-51, UAT-52 và đặt lại như ca ghi. |
 | Trình duyệt | Chrome bản mới, desktop. Ba phiên, mỗi phiên một tài khoản: cửa sổ thường cho khách, cửa sổ ẩn danh cho QTV, một trình duyệt thứ hai cho đơn vị tổ chức (UAT-17 dùng trình duyệt thứ hai cho KH-B). |
@@ -123,7 +123,7 @@ Defect log dùng cột như Sprint 5 (Mã lỗi, Ca UAT, Tiêu đề, Mức đ�
 
 | Ngày | Việc | Người |
 | --- | --- | --- |
-| 16/11, sáng | Cài gói demo trên máy UAT theo 02 (6.4); kiểm tra tiêu chí vào. | Phong, Thức, Khôi; nhóm PCG |
+| 16/11, sáng | Nhóm PCG tự cài gói demo trên máy UAT theo 02 và điền khóa thanh toán từ file nhóm gửi riêng; kiểm tra tiêu chí vào. | Nhóm PCG |
 | 16/11, sáng | Chạy UAT-01 → UAT-37 (UAT-25, UAT-26 chạy sau khi đơn hết thời gian giữ chỗ 30 phút, trong lúc đó chạy tiếp các ca khác); báo ngay lỗi chặn. | Nhóm PCG; Hải, Thành điều phối |
 | 16/11, chiều | Chạy UAT-38 → UAT-54 (UAT-45 chạy cuối, sau UAT-54; UAT-52 chạy trong lúc chờ lịch của UAT-51 kết thúc). | Nhóm PCG; Hải, Thành điều phối |
 | 16/11, cuối buổi | Điền kết quả vào biên bản UAT (mục 8); nhóm PCG ký phần người dùng. | Nhóm PCG; Hải, Thành |
