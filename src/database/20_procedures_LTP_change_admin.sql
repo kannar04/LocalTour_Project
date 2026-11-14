@@ -160,8 +160,10 @@ DELIMITER ;
 --                                    p_refund_vnd)
 --   p_decision : 'approved' (đồng ý) | 'rejected' (từ chối).
 --   p_note     : kết quả xử lý, bắt buộc, tối đa 500 ký tự.
---   p_refund_vnd: chỉ dùng khi đồng ý hủy: số tiền sẽ hoàn (0 - tiền đã trả). NULL = số dự
---                 kiến hoàn lúc khách gửi (không vượt tiền đã trả hiện tại).
+--   p_refund_vnd: chỉ dùng khi đồng ý hủy: số tiền sẽ hoàn (0 - tiền còn hoàn được). NULL = số
+--                 dự kiến hoàn lúc khách gửi (không vượt tiền còn hoàn được).
+--                 Tiền còn hoàn được = tổng khoản 'paid' của đơn - tổng khoản hoàn chưa bị từ
+--                 chối ('requested', 'approved', 'completed') của các khoản đó, không âm.
 --   1 dòng: result, field, booking_status.
 --     result = 'ok'                   : đã xử lý; booking_status = trạng thái đơn sau xử lý.
 --              'forbidden'            : người thao tác không phải quản trị viên đang hoạt động.
@@ -303,7 +305,13 @@ proc: BEGIN
             LEAVE proc;
         END IF;
 
-        SELECT COALESCE(SUM(p.amount_vnd), 0) INTO v_paid
+        -- Tiền còn hoàn được: đã trả trừ các khoản hoàn chưa bị từ chối của đơn, không âm.
+        SELECT GREATEST(0, COALESCE(SUM(p.amount_vnd), 0)
+                           - COALESCE((SELECT SUM(r.amount_vnd)
+                                         FROM refunds r
+                                         JOIN payments rp ON rp.id = r.payment_id
+                                        WHERE rp.booking_id = v_booking_id AND r.status <> 'rejected'), 0))
+          INTO v_paid
           FROM payments p
          WHERE p.booking_id = v_booking_id AND p.status = 'paid';
 

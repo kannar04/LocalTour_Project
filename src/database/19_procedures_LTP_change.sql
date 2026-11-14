@@ -15,13 +15,16 @@
 --               miễn phí, luôn hoàn refund_percent %. Đơn không có chính sách (version 0): dự
 --               kiến hoàn 0đ, LocalTour xem xét từng trường hợp.
 --             * Tiền đã trả = tổng payments 'paid' của đơn. Đơn chưa thanh toán: hoàn 0đ.
---             * Đổi ngày: lịch mới cùng tour, đang mở bán ('open'), chưa khởi hành, khác lịch
---               hiện tại và còn đủ chỗ cho số khách của đơn. Giá đơn không đổi.
+--             * Đổi ngày: lịch mới cùng tour, đang mở bán ('open'), còn nhận đặt (giờ khởi hành
+--               sau NOW() + settings.booking_cutoff_minutes phút, mặc định 60, như trang đặt tour
+--               ở file 10), khác lịch hiện tại và còn đủ chỗ cho số khách của đơn. Giá đơn không
+--               đổi.
 --             * Lý do bắt buộc, tối đa 500 ký tự.
 --             * Chưa tự động hoàn tiền, chưa đổi đơn ở bước này: chỉ lưu yêu cầu, chụp lại chính
 --               sách và ghi booking_events 'cancel_requested' / 'change_requested'.
 --             Tham số chuỗi được so sánh với COLLATE utf8mb4_unicode_ci; không có DEFINER.
 -- Chạy sau  : 16_migration_sprint5_LTP.sql. Chạy lại được (DROP PROCEDURE IF EXISTS).
+--             Đọc bảng settings (28_migration_economy_NTK.sql) lúc chạy.
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
@@ -97,7 +100,8 @@ DELIMITER ;
 
 -- ---------------------------------------------------------------------
 -- LTP_sp_change_schedule_options(p_user_id, p_code)
---   Các lịch khách có thể đổi sang: cùng tour với đơn, 'open', chưa khởi hành, khác lịch
+--   Các lịch khách có thể đổi sang: cùng tour với đơn, 'open', còn nhận đặt (giờ khởi hành sau
+--   NOW() + booking_cutoff_minutes phút), khác lịch
 --   hiện tại, còn đủ chỗ cho số khách của đơn (đơn chưa giữ chỗ cũng tính như vậy) và có
 --   loại vé đang bán cùng tên với mọi dòng vé của đơn (người lớn / trẻ em).
 --   Rỗng nếu không phải đơn của tài khoản này.
@@ -112,6 +116,12 @@ CREATE PROCEDURE LTP_sp_change_schedule_options(
 )
 READS SQL DATA
 BEGIN
+    DECLARE v_cutoff_min INT DEFAULT 60;
+
+    -- Ngừng nhận đặt trước giờ khởi hành (file 28); thiếu dòng hoặc giá trị không hợp lệ thì dùng 60.
+    SET v_cutoff_min = COALESCE((SELECT IF(st.value REGEXP '^[0-9]{1,5}$', CAST(st.value AS UNSIGNED), NULL)
+                                   FROM settings st WHERE st.name = 'booking_cutoff_minutes'), 60);
+
     SELECT
         s2.id          AS schedule_id,
         s2.starts_at,
@@ -123,7 +133,7 @@ BEGIN
     WHERE b.user_id = (p_user_id COLLATE utf8mb4_unicode_ci)
       AND b.code = (UPPER(TRIM(p_code)) COLLATE utf8mb4_unicode_ci)
       AND s2.status = 'open'
-      AND s2.starts_at > NOW()
+      AND s2.starts_at > NOW() + INTERVAL v_cutoff_min MINUTE
       AND s2.remaining >= (SELECT COALESCE(SUM(bl.quantity), 0) FROM booking_lines bl WHERE bl.booking_id = b.id)
       AND NOT EXISTS (SELECT 1
                         FROM booking_lines bl
@@ -148,7 +158,8 @@ DELIMITER ;
 --              'departed'             : đã tới giờ khởi hành.
 --              'pending_exists'       : đơn đang có một yêu cầu chờ xử lý.
 --              'schedule_unavailable' : lịch mới không đổi sang được (khác tour, đã đóng, đã
---                                       khởi hành, trùng lịch hiện tại, thiếu loại vé của đơn).
+--                                       khởi hành hoặc đã ngừng nhận đặt, trùng lịch hiện tại,
+--                                       thiếu loại vé của đơn).
 --              'no_seats'             : lịch mới không còn đủ chỗ.
 --     Khi không 'ok', không có gì được ghi.
 -- ---------------------------------------------------------------------
@@ -184,6 +195,7 @@ proc: BEGIN
     DECLARE v_new_status  VARCHAR(20)  DEFAULT NULL;
     DECLARE v_new_left    INT          DEFAULT 0;
     DECLARE v_request_id  CHAR(36)     DEFAULT UUID();
+    DECLARE v_cutoff_min  INT          DEFAULT 60;
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -211,6 +223,10 @@ proc: BEGIN
         SELECT 'invalid' AS result, 'reason' AS field, NULL AS request_id, NULL AS estimated_refund_vnd;
         LEAVE proc;
     END IF;
+
+    -- Ngừng nhận đặt trước giờ khởi hành (file 28); thiếu dòng hoặc giá trị không hợp lệ thì dùng 60.
+    SET v_cutoff_min = COALESCE((SELECT IF(st.value REGEXP '^[0-9]{1,5}$', CAST(st.value AS UNSIGNED), NULL)
+                                   FROM settings st WHERE st.name = 'booking_cutoff_minutes'), 60);
 
     START TRANSACTION;
 
@@ -262,7 +278,7 @@ proc: BEGIN
          WHERE s.id = (TRIM(p_schedule_id) COLLATE utf8mb4_unicode_ci);
 
         IF v_new_id IS NULL OR v_new_tour <> v_tour_id OR v_new_id = v_schedule_id
-           OR v_new_status <> 'open' OR v_new_starts <= NOW() THEN
+           OR v_new_status <> 'open' OR v_new_starts <= NOW() + INTERVAL v_cutoff_min MINUTE THEN
             ROLLBACK;
             SELECT 'schedule_unavailable' AS result, 'schedule_id' AS field, NULL AS request_id, NULL AS estimated_refund_vnd;
             LEAVE proc;
