@@ -14,7 +14,8 @@ use Core\Database;
 final class AdminStatsModel
 {
     /**
-     * Tài khoản khách hàng (FR-19), tour theo trạng thái duyệt (FR-20) và số yêu cầu chờ xác nhận.
+     * Tài khoản khách hàng (FR-19), tour theo trạng thái duyệt (FR-20) và tổng số đơn đặt tour (booking_total).
+     * booking_pending = đơn "Chờ xác nhận" của quy trình cũ; trang Tổng quan đếm đơn "Chờ thanh toán" từ bookingsByStatus().
      *
      * @return array<string, mixed>
      */
@@ -24,7 +25,7 @@ final class AdminStatsModel
     }
 
     /**
-     * Số yêu cầu đặt tour theo từng trạng thái (FR-21), luôn đủ 6 trạng thái.
+     * Số đơn đặt tour theo từng trạng thái (FR-21), luôn đủ 6 trạng thái.
      *
      * @return list<array<string, mixed>>
      */
@@ -34,7 +35,7 @@ final class AdminStatsModel
     }
 
     /**
-     * Số yêu cầu đặt tour theo ngày tạo (FR-22). $period: 'day' | 'month' | 'year'; ngày dạng 'Y-m-d', null = không giới hạn.
+     * Số đơn đặt tour theo ngày tạo (FR-22). $period: 'day' | 'month' | 'year'; ngày dạng 'Y-m-d', null = không giới hạn.
      *
      * @return list<array<string, mixed>>
      */
