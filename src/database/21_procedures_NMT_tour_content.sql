@@ -13,6 +13,12 @@
 --             NMT_sp_admin_provider_delete
 -- Quy tắc   : * Mọi thao tác ghi kiểm tra người thao tác là quản trị viên đang hoạt động và ghi
 --               admin_logs (target_type 'tour', target_id = mã tour).
+--             * Sprint 6: ảnh, lịch trình, dịch vụ và chính sách hủy còn nhận người thao tác là
+--               đơn vị tổ chức đang hợp tác, chỉ trên tour của chính đơn vị
+--               (NTK_sp_host_can_edit_tour, file 27) và chỉ khi tour đang 'draft' / 'rejected'.
+--               Đơn vị sửa nội dung tour bị từ chối thì tour quay về 'draft'
+--               (NTK_sp_host_tour_resubmit); tour đã duyệt sửa qua "bản sửa" (file 32). Xóa / khôi
+--               phục tour và xóa đơn vị vẫn chỉ dành cho quản trị viên.
 --             * Chỉ sửa dữ liệu của đúng tour (mã mục phải thuộc tour đó): không ảnh hưởng tour khác.
 --             * Ảnh: tối đa 12 ảnh / tour; ảnh bìa = ảnh có sort_order nhỏ nhất. File ảnh do ứng
 --               dụng lưu (public/assets/uploads/tours); xóa ảnh trả url để ứng dụng xóa file.
@@ -81,6 +87,7 @@ proc: BEGIN
     DECLARE v_count    INT      DEFAULT 0;
     DECLARE v_sort     INT      DEFAULT 0;
     DECLARE v_image_id CHAR(36) DEFAULT UUID();
+    DECLARE v_host BOOLEAN DEFAULT FALSE;
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -90,8 +97,12 @@ proc: BEGIN
     IF NOT EXISTS (SELECT 1 FROM users
                     WHERE id = (p_actor_user_id COLLATE utf8mb4_unicode_ci)
                       AND role = 'admin' AND status = 'active') THEN
-        SELECT 'forbidden' AS result, NULL AS field, NULL AS image_id;
-        LEAVE proc;
+        -- Không phải quản trị viên: chỉ nhận đơn vị tổ chức đang hợp tác thao tác trên tour của mình (file 27).
+        CALL NTK_sp_host_can_edit_tour(p_actor_user_id, p_tour_id, v_host);
+        IF NOT COALESCE(v_host, FALSE) THEN
+            SELECT 'forbidden' AS result, NULL AS field, NULL AS image_id;
+            LEAVE proc;
+        END IF;
     END IF;
 
     IF v_url IS NULL OR CHAR_LENGTH(v_url) > 255 THEN
@@ -129,6 +140,11 @@ proc: BEGIN
     VALUES (UUID(), p_actor_user_id, 'tour', p_tour_id, 'image_add', NULL, NULL,
             LEFT(CONCAT('Thêm ảnh', IF(v_alt IS NULL, '', CONCAT(' "', v_alt, '"'))), 255), NOW());
 
+    -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
+    IF v_host THEN
+        CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
+    END IF;
+
     COMMIT;
     SELECT 'ok' AS result, NULL AS field, v_image_id AS image_id;
 END$$
@@ -150,6 +166,7 @@ MODIFIES SQL DATA
 proc: BEGIN
     DECLARE v_url VARCHAR(255) CHARACTER SET utf8mb4 DEFAULT NULL;
     DECLARE v_alt VARCHAR(255) CHARACTER SET utf8mb4 DEFAULT NULL;
+    DECLARE v_host BOOLEAN DEFAULT FALSE;
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -159,8 +176,12 @@ proc: BEGIN
     IF NOT EXISTS (SELECT 1 FROM users
                     WHERE id = (p_actor_user_id COLLATE utf8mb4_unicode_ci)
                       AND role = 'admin' AND status = 'active') THEN
-        SELECT 'forbidden' AS result, NULL AS url;
-        LEAVE proc;
+        -- Không phải quản trị viên: chỉ nhận đơn vị tổ chức đang hợp tác thao tác trên tour của mình (file 27).
+        CALL NTK_sp_host_can_edit_tour(p_actor_user_id, p_tour_id, v_host);
+        IF NOT COALESCE(v_host, FALSE) THEN
+            SELECT 'forbidden' AS result, NULL AS url;
+            LEAVE proc;
+        END IF;
     END IF;
 
     START TRANSACTION;
@@ -182,6 +203,11 @@ proc: BEGIN
     INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
     VALUES (UUID(), p_actor_user_id, 'tour', p_tour_id, 'image_delete', NULL, NULL,
             LEFT(CONCAT('Xóa ảnh', IF(v_alt IS NULL, '', CONCAT(' "', v_alt, '"'))), 255), NOW());
+
+    -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
+    IF v_host THEN
+        CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
+    END IF;
 
     COMMIT;
     SELECT 'ok' AS result, v_url AS url;
@@ -206,6 +232,7 @@ proc: BEGIN
     DECLARE v_found INT      DEFAULT 0;
     DECLARE v_cover CHAR(36) DEFAULT NULL;
     DECLARE v_min   INT      DEFAULT 0;
+    DECLARE v_host BOOLEAN DEFAULT FALSE;
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -215,8 +242,12 @@ proc: BEGIN
     IF NOT EXISTS (SELECT 1 FROM users
                     WHERE id = (p_actor_user_id COLLATE utf8mb4_unicode_ci)
                       AND role = 'admin' AND status = 'active') THEN
-        SELECT 'forbidden' AS result;
-        LEAVE proc;
+        -- Không phải quản trị viên: chỉ nhận đơn vị tổ chức đang hợp tác thao tác trên tour của mình (file 27).
+        CALL NTK_sp_host_can_edit_tour(p_actor_user_id, p_tour_id, v_host);
+        IF NOT COALESCE(v_host, FALSE) THEN
+            SELECT 'forbidden' AS result;
+            LEAVE proc;
+        END IF;
     END IF;
 
     START TRANSACTION;
@@ -249,6 +280,11 @@ proc: BEGIN
 
     INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
     VALUES (UUID(), p_actor_user_id, 'tour', p_tour_id, 'image_cover', NULL, NULL, 'Đổi ảnh bìa', NOW());
+
+    -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
+    IF v_host THEN
+        CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
+    END IF;
 
     COMMIT;
     SELECT 'ok' AS result;
@@ -307,6 +343,7 @@ proc: BEGIN
     DECLARE v_old_time TIME         DEFAULT NULL;
     DECLARE v_old_desc VARCHAR(255) CHARACTER SET utf8mb4 DEFAULT NULL;
     DECLARE v_old_sort INT          DEFAULT NULL;
+    DECLARE v_host BOOLEAN DEFAULT FALSE;
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -316,8 +353,12 @@ proc: BEGIN
     IF NOT EXISTS (SELECT 1 FROM users
                     WHERE id = (p_actor_user_id COLLATE utf8mb4_unicode_ci)
                       AND role = 'admin' AND status = 'active') THEN
-        SELECT 'forbidden' AS result, NULL AS field, NULL AS item_id;
-        LEAVE proc;
+        -- Không phải quản trị viên: chỉ nhận đơn vị tổ chức đang hợp tác thao tác trên tour của mình (file 27).
+        CALL NTK_sp_host_can_edit_tour(p_actor_user_id, p_tour_id, v_host);
+        IF NOT COALESCE(v_host, FALSE) THEN
+            SELECT 'forbidden' AS result, NULL AS field, NULL AS item_id;
+            LEAVE proc;
+        END IF;
     END IF;
 
     IF v_desc = '' OR CHAR_LENGTH(v_desc) > 255 THEN
@@ -356,6 +397,11 @@ proc: BEGIN
                 LEFT(CONCAT('Thêm lịch trình: ', IF(p_start_time IS NULL, '', CONCAT(TIME_FORMAT(p_start_time, '%H:%i'), ' ')), v_desc), 255),
                 NOW());
 
+        -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
+        IF v_host THEN
+            CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
+        END IF;
+
         COMMIT;
         SELECT 'ok' AS result, NULL AS field, v_item_id AS item_id;
         LEAVE proc;
@@ -389,6 +435,11 @@ proc: BEGIN
             LEFT(CONCAT('Sửa lịch trình: ', IF(p_start_time IS NULL, '', CONCAT(TIME_FORMAT(p_start_time, '%H:%i'), ' ')), v_desc), 255),
             NOW());
 
+    -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
+    IF v_host THEN
+        CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
+    END IF;
+
     COMMIT;
     SELECT 'ok' AS result, NULL AS field, v_item_id AS item_id;
 END$$
@@ -409,6 +460,7 @@ CREATE PROCEDURE NMT_sp_admin_itinerary_delete(
 MODIFIES SQL DATA
 proc: BEGIN
     DECLARE v_desc VARCHAR(255) CHARACTER SET utf8mb4 DEFAULT NULL;
+    DECLARE v_host BOOLEAN DEFAULT FALSE;
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -418,8 +470,12 @@ proc: BEGIN
     IF NOT EXISTS (SELECT 1 FROM users
                     WHERE id = (p_actor_user_id COLLATE utf8mb4_unicode_ci)
                       AND role = 'admin' AND status = 'active') THEN
-        SELECT 'forbidden' AS result;
-        LEAVE proc;
+        -- Không phải quản trị viên: chỉ nhận đơn vị tổ chức đang hợp tác thao tác trên tour của mình (file 27).
+        CALL NTK_sp_host_can_edit_tour(p_actor_user_id, p_tour_id, v_host);
+        IF NOT COALESCE(v_host, FALSE) THEN
+            SELECT 'forbidden' AS result;
+            LEAVE proc;
+        END IF;
     END IF;
 
     START TRANSACTION;
@@ -441,6 +497,11 @@ proc: BEGIN
     INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
     VALUES (UUID(), p_actor_user_id, 'tour', p_tour_id, 'itinerary_delete', NULL, NULL,
             LEFT(CONCAT('Xóa lịch trình: ', v_desc), 255), NOW());
+
+    -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
+    IF v_host THEN
+        CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
+    END IF;
 
     COMMIT;
     SELECT 'ok' AS result;
@@ -491,6 +552,7 @@ proc: BEGIN
     DECLARE v_count INT      DEFAULT 0;
     DECLARE v_sort  INT      DEFAULT 0;
     DECLARE v_id    CHAR(36) DEFAULT UUID();
+    DECLARE v_host BOOLEAN DEFAULT FALSE;
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -500,8 +562,12 @@ proc: BEGIN
     IF NOT EXISTS (SELECT 1 FROM users
                     WHERE id = (p_actor_user_id COLLATE utf8mb4_unicode_ci)
                       AND role = 'admin' AND status = 'active') THEN
-        SELECT 'forbidden' AS result, NULL AS field, NULL AS inclusion_id;
-        LEAVE proc;
+        -- Không phải quản trị viên: chỉ nhận đơn vị tổ chức đang hợp tác thao tác trên tour của mình (file 27).
+        CALL NTK_sp_host_can_edit_tour(p_actor_user_id, p_tour_id, v_host);
+        IF NOT COALESCE(v_host, FALSE) THEN
+            SELECT 'forbidden' AS result, NULL AS field, NULL AS inclusion_id;
+            LEAVE proc;
+        END IF;
     END IF;
 
     IF v_text = '' OR CHAR_LENGTH(v_text) > 150 THEN
@@ -537,6 +603,11 @@ proc: BEGIN
     VALUES (UUID(), p_actor_user_id, 'tour', p_tour_id, 'inclusion_add', NULL, NULL,
             LEFT(CONCAT(IF(v_inc, 'Thêm mục bao gồm: ', 'Thêm mục không bao gồm: '), v_text), 255), NOW());
 
+    -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
+    IF v_host THEN
+        CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
+    END IF;
+
     COMMIT;
     SELECT 'ok' AS result, NULL AS field, v_id AS inclusion_id;
 END$$
@@ -557,6 +628,7 @@ CREATE PROCEDURE NMT_sp_admin_inclusion_delete(
 MODIFIES SQL DATA
 proc: BEGIN
     DECLARE v_text VARCHAR(150) CHARACTER SET utf8mb4 DEFAULT NULL;
+    DECLARE v_host BOOLEAN DEFAULT FALSE;
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -566,8 +638,12 @@ proc: BEGIN
     IF NOT EXISTS (SELECT 1 FROM users
                     WHERE id = (p_actor_user_id COLLATE utf8mb4_unicode_ci)
                       AND role = 'admin' AND status = 'active') THEN
-        SELECT 'forbidden' AS result;
-        LEAVE proc;
+        -- Không phải quản trị viên: chỉ nhận đơn vị tổ chức đang hợp tác thao tác trên tour của mình (file 27).
+        CALL NTK_sp_host_can_edit_tour(p_actor_user_id, p_tour_id, v_host);
+        IF NOT COALESCE(v_host, FALSE) THEN
+            SELECT 'forbidden' AS result;
+            LEAVE proc;
+        END IF;
     END IF;
 
     START TRANSACTION;
@@ -589,6 +665,11 @@ proc: BEGIN
     INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
     VALUES (UUID(), p_actor_user_id, 'tour', p_tour_id, 'inclusion_delete', NULL, NULL,
             LEFT(CONCAT('Xóa mục: ', v_text), 255), NOW());
+
+    -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
+    IF v_host THEN
+        CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
+    END IF;
 
     COMMIT;
     SELECT 'ok' AS result;
@@ -656,6 +737,7 @@ proc: BEGIN
     DECLARE v_old_hours INT      DEFAULT NULL;
     DECLARE v_old_pct   INT      DEFAULT NULL;
     DECLARE v_old_terms TEXT     CHARACTER SET utf8mb4;
+    DECLARE v_host BOOLEAN DEFAULT FALSE;
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -667,8 +749,12 @@ proc: BEGIN
     IF NOT EXISTS (SELECT 1 FROM users
                     WHERE id = (p_actor_user_id COLLATE utf8mb4_unicode_ci)
                       AND role = 'admin' AND status = 'active') THEN
-        SELECT 'forbidden' AS result, NULL AS field, NULL AS version;
-        LEAVE proc;
+        -- Không phải quản trị viên: chỉ nhận đơn vị tổ chức đang hợp tác thao tác trên tour của mình (file 27).
+        CALL NTK_sp_host_can_edit_tour(p_actor_user_id, p_tour_id, v_host);
+        IF NOT COALESCE(v_host, FALSE) THEN
+            SELECT 'forbidden' AS result, NULL AS field, NULL AS version;
+            LEAVE proc;
+        END IF;
     END IF;
 
     IF p_free_before_hours IS NOT NULL AND p_free_before_hours NOT BETWEEN 0 AND 720 THEN
@@ -716,6 +802,11 @@ proc: BEGIN
                         IF(p_free_before_hours IS NULL, 'không có mốc hủy miễn phí',
                            CONCAT('hủy miễn phí trước ', p_free_before_hours, ' giờ')),
                         ', hoàn ', p_refund_percent, '%'), 255), NOW());
+
+    -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
+    IF v_host THEN
+        CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
+    END IF;
 
     COMMIT;
     SELECT 'ok' AS result, NULL AS field, v_version AS version;
@@ -831,6 +922,8 @@ proc: BEGIN
     DELETE FROM tour_posts           WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
     DELETE FROM favorite_tours       WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
     DELETE FROM comparison_tours     WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
+    -- Sprint 6 (NTK, file 32): tour còn "bản sửa" đang mở thì xóa bản sửa trước (khóa ngoại tours.revision_of).
+    CALL NTK_sp_tour_revision_purge_of(p_tour_id);
     DELETE FROM tours                WHERE id = (p_tour_id COLLATE utf8mb4_unicode_ci);
 
     INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)

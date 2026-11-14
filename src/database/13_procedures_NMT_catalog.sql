@@ -17,9 +17,15 @@
 --             thao tác là quản trị viên đang hoạt động và kiểm tra lại dữ liệu (lớp chặn
 --             cuối), rồi ghi đúng một dòng admin_logs trong cùng transaction
 --             (target_type 'provider' / 'tour' / 'schedule').
---             Đơn vị tổ chức: chưa có tài khoản đăng nhập riêng. Thêm đơn vị = thêm một
---             dòng users (role 'provider', password_hash NULL, status 'active', name = tên
---             đơn vị, email = email liên hệ viết thường) và một dòng providers.
+--             Đơn vị tổ chức: thêm đơn vị = thêm một dòng users (role 'provider',
+--             password_hash NULL, status 'active', name = tên đơn vị, email = email liên hệ
+--             viết thường) và một dòng providers. Mật khẩu đăng nhập khu /host do quản trị
+--             viên cấp sau (27_procedures_NTK_host.sql).
+--             Sprint 6: thêm / sửa tour và lịch khởi hành còn nhận người thao tác là đơn vị
+--             tổ chức đang hợp tác, chỉ trên tour của chính đơn vị (kiểm tra bằng
+--             NTK_sp_host_can_edit_tour / NTK_sp_host_can_use_provider của file 27). Đơn vị
+--             không đổi được đơn vị của tour, nguồn tham khảo và trạng thái xác minh; đơn vị
+--             sửa thông tin tour đã duyệt / bị từ chối thì tour quay về 'pending' (chờ duyệt lại).
 --             approved_at = thời điểm chuyển sang 'approved' (giữ nguyên khi vẫn
 --             'approved', NULL khi không còn 'approved').
 --             Tour mới luôn ở approval_status 'pending' (chờ duyệt ở trang Duyệt tour);
@@ -60,7 +66,8 @@ BEGIN
         u.status          AS user_status,
         (SELECT COUNT(*)
            FROM tours t
-          WHERE t.provider_id = p.id) AS tour_count
+          WHERE t.provider_id = p.id
+            AND t.revision_of IS NULL) AS tour_count
     FROM providers p
     JOIN users u ON u.id = p.user_id
     ORDER BY p.business_name, p.id;
@@ -89,7 +96,8 @@ BEGIN
         u.status          AS user_status,
         (SELECT COUNT(*)
            FROM tours t
-          WHERE t.provider_id = p.id) AS tour_count
+          WHERE t.provider_id = p.id
+            AND t.revision_of IS NULL) AS tour_count
     FROM providers p
     JOIN users u ON u.id = p.user_id
     WHERE p.id = (p_provider_id COLLATE utf8mb4_unicode_ci);
@@ -359,7 +367,7 @@ DELIMITER ;
 --   destination, duration_minutes, max_group_size, language_codes, pickup_mode,
 --   meeting_point, transport, guide_info, dropoff_point, document_terms, meal_terms,
 --   voucher_terms, reschedule_terms, source_url, verification_status, verified_at,
---   approval_status.
+--   approval_status, revision_of (Sprint 6: khác NULL = "bản sửa" của một tour đã duyệt, file 32).
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NMT_sp_admin_tour_form;
 
@@ -392,7 +400,8 @@ BEGIN
         t.source_url,
         t.verification_status,
         t.verified_at,
-        t.approval_status
+        t.approval_status,
+        t.revision_of
     FROM tours t
     WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci);
 END$$
@@ -491,6 +500,8 @@ DELIMITER ;
 --   p_reschedule_terms, p_source_url, p_verification_status)
 --   Thêm tour ở trạng thái 'pending' (chờ duyệt), ghi admin_logs 'tour_create'
 --   (from NULL, to 'pending'). Ô không bắt buộc để trống = NULL.
+--   Sprint 6 (NTK): tour do đơn vị tổ chức tự thêm ở khu /host bắt đầu là 'draft' (bản nháp);
+--   đơn vị bấm "Gửi duyệt" thì tour mới sang 'pending' (NTK_sp_host_tour_submit, file 32).
 --   1 dòng: result, field, tour_id.
 --     result = 'ok'        : đã thêm; tour_id = mã tour mới.
 --              'forbidden' : người thao tác không phải quản trị viên đang hoạt động.
@@ -536,6 +547,7 @@ proc: BEGIN
     DECLARE v_field       VARCHAR(30)  DEFAULT NULL;
     DECLARE v_destination VARCHAR(100) CHARACTER SET utf8mb4 DEFAULT NULL;
     DECLARE v_tour_id     CHAR(36)     DEFAULT UUID();
+    DECLARE v_host BOOLEAN DEFAULT FALSE;
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -545,8 +557,15 @@ proc: BEGIN
     IF NOT EXISTS (SELECT 1 FROM users
                     WHERE id = (p_actor_user_id COLLATE utf8mb4_unicode_ci)
                       AND role = 'admin' AND status = 'active') THEN
-        SELECT 'forbidden' AS result, NULL AS field, NULL AS tour_id;
-        LEAVE proc;
+        -- Không phải quản trị viên: chỉ nhận đơn vị tổ chức đang hợp tác thao tác trên tour của mình (file 27).
+        CALL NTK_sp_host_can_use_provider(p_actor_user_id, p_provider_id, v_host);
+        -- Tour do đơn vị thêm: chưa có nguồn tham khảo, "Chưa xác minh" (quản trị viên xác minh khi duyệt).
+        IF NOT COALESCE(v_host, FALSE)
+           OR COALESCE(p_verification_status, '') <> 'unverified'
+           OR v_source IS NOT NULL THEN
+            SELECT 'forbidden' AS result, NULL AS field, NULL AS tour_id;
+            LEAVE proc;
+        END IF;
     END IF;
 
     CALL NMT_sp_admin_tour_validate(p_provider_id, p_destination_id, v_category, v_title,
@@ -573,10 +592,10 @@ proc: BEGIN
             v_dropoff, NULL, NULLIF(TRIM(p_document_terms), ''), NULLIF(TRIM(p_meal_terms), ''),
             NULLIF(TRIM(p_voucher_terms), ''), NULLIF(TRIM(p_reschedule_terms), ''), v_source,
             IF(p_verification_status = 'verified', CURDATE(), NULL),
-            p_verification_status, 'pending');
+            p_verification_status, IF(COALESCE(v_host, FALSE), 'draft', 'pending'));
 
     INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
-    VALUES (UUID(), p_actor_user_id, 'tour', v_tour_id, 'tour_create', NULL, 'pending', NULL, NOW());
+    VALUES (UUID(), p_actor_user_id, 'tour', v_tour_id, 'tour_create', NULL, IF(COALESCE(v_host, FALSE), 'draft', 'pending'), NULL, NOW());
 
     COMMIT;
     SELECT 'ok' AS result, NULL AS field, v_tour_id AS tour_id;
@@ -660,6 +679,7 @@ proc: BEGIN
     DECLARE o_source      VARCHAR(500) DEFAULT NULL;
     DECLARE o_verified    VARCHAR(20)  DEFAULT NULL;
     DECLARE o_verified_at DATE         DEFAULT NULL;
+    DECLARE v_host BOOLEAN DEFAULT FALSE;
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -669,8 +689,12 @@ proc: BEGIN
     IF NOT EXISTS (SELECT 1 FROM users
                     WHERE id = (p_actor_user_id COLLATE utf8mb4_unicode_ci)
                       AND role = 'admin' AND status = 'active') THEN
-        SELECT 'forbidden' AS result, NULL AS field, NULL AS tour_id;
-        LEAVE proc;
+        -- Không phải quản trị viên: chỉ nhận đơn vị tổ chức đang hợp tác thao tác trên tour của mình (file 27).
+        CALL NTK_sp_host_can_edit_tour(p_actor_user_id, p_tour_id, v_host);
+        IF NOT COALESCE(v_host, FALSE) THEN
+            SELECT 'forbidden' AS result, NULL AS field, NULL AS tour_id;
+            LEAVE proc;
+        END IF;
     END IF;
 
     CALL NMT_sp_admin_tour_validate(p_provider_id, p_destination_id, v_category, v_title,
@@ -702,6 +726,16 @@ proc: BEGIN
     IF o_title IS NULL THEN
         ROLLBACK;
         SELECT 'not_found' AS result, NULL AS field, NULL AS tour_id;
+        LEAVE proc;
+    END IF;
+
+    -- Đơn vị tổ chức không đổi được đơn vị của tour, nguồn tham khảo và trạng thái xác minh
+    -- (việc của quản trị viên).
+    IF v_host AND NOT (BINARY o_provider <=> BINARY p_provider_id
+                       AND BINARY o_source <=> BINARY v_source
+                       AND o_verified <=> p_verification_status) THEN
+        ROLLBACK;
+        SELECT 'forbidden' AS result, NULL AS field, NULL AS tour_id;
         LEAVE proc;
     END IF;
 
@@ -762,6 +796,11 @@ proc: BEGIN
     INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
     VALUES (UUID(), p_actor_user_id, 'tour', p_tour_id, 'tour_update', o_verified, p_verification_status,
             IF(v_changes = '', NULL, LEFT(CONCAT('Sửa: ', v_changes), 255)), NOW());
+
+    -- Đơn vị tổ chức sửa tour bị từ chối: tour quay về "Bản nháp" (file 27).
+    IF v_host THEN
+        CALL NTK_sp_host_tour_resubmit(p_actor_user_id, p_tour_id);
+    END IF;
 
     COMMIT;
     SELECT 'ok' AS result, NULL AS field, p_tour_id AS tour_id;
@@ -907,6 +946,7 @@ MODIFIES SQL DATA
 proc: BEGIN
     DECLARE v_field       VARCHAR(30) DEFAULT NULL;
     DECLARE v_schedule_id CHAR(36)    DEFAULT UUID();
+    DECLARE v_host BOOLEAN DEFAULT FALSE;
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -916,8 +956,13 @@ proc: BEGIN
     IF NOT EXISTS (SELECT 1 FROM users
                     WHERE id = (p_actor_user_id COLLATE utf8mb4_unicode_ci)
                       AND role = 'admin' AND status = 'active') THEN
-        SELECT 'forbidden' AS result, NULL AS field, NULL AS schedule_id;
-        LEAVE proc;
+        -- Không phải quản trị viên: chỉ nhận đơn vị tổ chức đang hợp tác thao tác trên tour của mình (file 27).
+        -- Lịch khởi hành và giá vé không cần duyệt: làm được ở mọi trạng thái duyệt trừ 'archived'.
+        CALL NTK_sp_host_can_manage_schedule(p_actor_user_id, p_tour_id, v_host);
+        IF NOT COALESCE(v_host, FALSE) THEN
+            SELECT 'forbidden' AS result, NULL AS field, NULL AS schedule_id;
+            LEAVE proc;
+        END IF;
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM tours WHERE id = (p_tour_id COLLATE utf8mb4_unicode_ci)) THEN
@@ -1029,6 +1074,8 @@ proc: BEGIN
     DECLARE v_child_active BOOLEAN      DEFAULT NULL;
     DECLARE v_old_child    BIGINT       DEFAULT NULL;
     DECLARE v_changes      VARCHAR(255) CHARACTER SET utf8mb4 DEFAULT '';
+    DECLARE v_host BOOLEAN DEFAULT FALSE;
+    DECLARE v_host_tour CHAR(36) DEFAULT NULL;
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -1038,8 +1085,15 @@ proc: BEGIN
     IF NOT EXISTS (SELECT 1 FROM users
                     WHERE id = (p_actor_user_id COLLATE utf8mb4_unicode_ci)
                       AND role = 'admin' AND status = 'active') THEN
-        SELECT 'forbidden' AS result, NULL AS field, NULL AS status, NULL AS held, NULL AS active_bookings;
-        LEAVE proc;
+        -- Không phải quản trị viên: chỉ nhận đơn vị tổ chức đang hợp tác thao tác trên tour của mình (file 27).
+        SELECT s.tour_id INTO v_host_tour
+          FROM schedules s
+         WHERE s.id = (p_schedule_id COLLATE utf8mb4_unicode_ci);
+        CALL NTK_sp_host_can_manage_schedule(p_actor_user_id, v_host_tour, v_host);
+        IF NOT COALESCE(v_host, FALSE) THEN
+            SELECT 'forbidden' AS result, NULL AS field, NULL AS status, NULL AS held, NULL AS active_bookings;
+            LEAVE proc;
+        END IF;
     END IF;
 
     START TRANSACTION;
