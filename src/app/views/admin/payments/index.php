@@ -4,6 +4,7 @@
  * Khoản chuyển khoản VietQR chờ đối chiếu (Sprint 4, 4.5.3.2 – Nguyễn Minh Thức, Nguyễn Tuấn Khôi).
  * Biến: $payments (NMT_sp_admin_payment_queue, báo trước lên trước), $error ('' = không có),
  *       $vnpayPayments (NTK_sp_admin_vnpay_queue: khoản VNPay chưa rõ kết quả, tạo trước lên trước),
+ *       $momoEnabled (false = MoMo đang ẩn, không có mục MoMo),
  *       $momoPayments (NTK_sp_admin_momo_queue: khoản MoMo chưa rõ kết quả, tạo trước lên trước).
  * Quản trị viên mở yêu cầu để so số tiền và nội dung chuyển khoản với sao kê rồi bấm "Đã nhận tiền" / "Không khớp";
  * khoản VNPay chưa rõ kết quả thì tra trên cổng VNPay rồi ghi "Có giao dịch thành công" / "Không có giao dịch";
@@ -19,7 +20,7 @@
         <main id="main-content" class="col-12 col-lg lt-admin" tabindex="-1" aria-labelledby="admin-title">
             <header class="lt-admin__head">
                 <h1 class="lt-admin__title" id="admin-title">Đối chiếu thanh toán</h1>
-                <p class="lt-admin__subtitle">Chuyển khoản VietQR khách đã báo và giao dịch VNPay, MoMo chưa rõ kết quả</p>
+                <p class="lt-admin__subtitle">Chuyển khoản VietQR khách đã báo và giao dịch VNPay<?= $momoEnabled ? ', MoMo' : '' ?> chưa rõ kết quả</p>
             </header>
 
 <?php if ($error !== ''): ?>
@@ -123,6 +124,7 @@
 <?php endif; ?>
             </section>
 
+<?php if ($momoEnabled): ?>
             <section class="lt-panel" aria-labelledby="queue-momo-title">
                 <h2 class="lt-panel__title" id="queue-momo-title">Giao dịch MoMo chưa rõ kết quả</h2>
 <?php if ($momoPayments === []): ?>
@@ -168,6 +170,7 @@
                 </div>
 <?php endif; ?>
             </section>
+<?php endif; ?>
         </main>
     </div>
 </div>

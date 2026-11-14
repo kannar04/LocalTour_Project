@@ -46,7 +46,7 @@ final class MomoGateway
     /** @param array<string, string> $config config/payment.php */
     public static function enabled(array $config): bool
     {
-        return ($config['momo_partner_code'] ?? '') !== '' && ($config['momo_access_key'] ?? '') !== ''
+        return ($config['momo_enabled'] ?? false) === true && ($config['momo_partner_code'] ?? '') !== '' && ($config['momo_access_key'] ?? '') !== ''
             && ($config['momo_secret_key'] ?? '') !== '' && function_exists('curl_init')
             && preg_match('#^https://[A-Za-z0-9.\-]+(:\d{1,5})?(/|$)#', (string) ($config['momo_endpoint'] ?? '')) === 1;
     }

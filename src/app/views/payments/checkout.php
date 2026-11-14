@@ -3,7 +3,8 @@
 /*
  * Chọn phương thức thanh toán (Sprint 4, 4.5.1.1 – Nguyễn Minh Thức): VNPay (sandbox), MoMo (môi trường thử –
  * Nguyễn Tuấn Khôi) hoặc chuyển khoản VietQR cho đơn "Chờ thanh toán". Số tiền là tổng tiền của đơn.
- * Biến: $booking (NTK_sp_customer_booking_detail), $lines, $extras, $vnpayEnabled, $vietqrEnabled, $momoEnabled,
+ * Biến: $booking (NTK_sp_customer_booking_detail), $lines, $extras, $vnpayEnabled, $vietqrEnabled,
+ *       $momoEnabled (false = chưa cấu hình MoMo trong .env, trang không hiện MoMo),
  *       $momoAmountOk (tổng tiền nằm trong hạn mức MoMo), $error ('' = không có), $title,
  *       $justCreated (vừa đặt xong, khách được chuyển thẳng tới đây), $vietqrOpen (false = sát giờ khởi hành,
  *       không nhận VietQR), $vietqrCutoffHours (số giờ trước giờ khởi hành ngừng nhận VietQR).
@@ -63,7 +64,7 @@ $adjustment = $totalVnd - (int) $booking['tickets_vnd'] - (int) $booking['extras
             <div class="col-12 col-lg-7 col-xl-8">
                 <section class="lt-book-card" aria-labelledby="pay-method-title">
                     <h2 class="lt-book-card__title" id="pay-method-title">Chọn phương thức thanh toán</h2>
-                    <p class="lt-field__hint">Môi trường thử nghiệm của đồ án: VNPay và MoMo chạy môi trường thử, vui lòng không chuyển tiền thật.</p>
+                    <p class="lt-field__hint">Môi trường thử nghiệm của đồ án: VNPay<?= $momoEnabled ? ' và MoMo' : '' ?> chạy môi trường thử, vui lòng không chuyển tiền thật.</p>
 
                     <div class="lt-pay-methods">
                         <form class="lt-pay-method" action="<?= e(url('/bookings/' . $code . '/pay/vnpay')) ?>" method="post">
@@ -77,19 +78,19 @@ $adjustment = $totalVnd - (int) $booking['tickets_vnd'] - (int) $booking['extras
 <?php endif; ?>
                         </form>
 
+<?php if ($momoEnabled): ?>
                         <form class="lt-pay-method" action="<?= e(url('/payments/momo/' . $code)) ?>" method="post">
                             <?= csrf_field() ?>
                             <h3 class="lt-pay-method__title">MoMo</h3>
                             <p class="lt-pay-method__text">Ví MoMo, thẻ ATM nội địa hoặc thẻ quốc tế qua cổng MoMo. Đơn được xác nhận ngay khi thanh toán thành công.</p>
-<?php if (!$momoEnabled): ?>
-                            <button class="lt-btn lt-btn--outline lt-btn--block" type="button" disabled>MoMo đang tạm ngưng</button>
-<?php elseif (!$momoAmountOk): ?>
+<?php if (!$momoAmountOk): ?>
                             <button class="lt-btn lt-btn--outline lt-btn--block" type="button" disabled aria-describedby="momo-limit">Không dùng được MoMo</button>
                             <p class="lt-field__hint" id="momo-limit">MoMo chỉ nhận thanh toán từ 10.000đ đến 50.000.000đ.</p>
 <?php else: ?>
                             <button class="lt-btn lt-btn--outline lt-btn--block" type="submit">Thanh toán qua MoMo</button>
 <?php endif; ?>
                         </form>
+<?php endif; ?>
 
 <?php if ($vietqrOpen): ?>
                         <form class="lt-pay-method" action="<?= e(url('/bookings/' . $code . '/pay/vietqr')) ?>" method="post">
@@ -105,7 +106,7 @@ $adjustment = $totalVnd - (int) $booking['tickets_vnd'] - (int) $booking['extras
 <?php else: ?>
                         <div class="lt-pay-method" id="pay-vietqr-closed">
                             <h3 class="lt-pay-method__title">Chuyển khoản VietQR</h3>
-                            <p class="lt-pay-method__text">Không dùng được cho đơn này: còn dưới <?= e((int) $vietqrCutoffHours) ?> giờ tới giờ khởi hành nên LocalTour không kịp đối chiếu chuyển khoản. Vui lòng thanh toán qua VNPay hoặc MoMo để đơn được xác nhận ngay.</p>
+                            <p class="lt-pay-method__text">Không dùng được cho đơn này: còn dưới <?= e((int) $vietqrCutoffHours) ?> giờ tới giờ khởi hành nên LocalTour không kịp đối chiếu chuyển khoản. Vui lòng thanh toán qua VNPay<?= $momoEnabled ? ' hoặc MoMo' : '' ?> để đơn được xác nhận ngay.</p>
                         </div>
 <?php endif; ?>
                     </div>

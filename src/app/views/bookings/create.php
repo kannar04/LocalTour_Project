@@ -9,7 +9,8 @@
  *       $scheduleNotice (lịch đã chọn không còn nhận khách), $contact (name, email, phone),
  *       $requestToken (mã một lần mở form), $loginUrl (đăng nhập lại khi hết phiên), $title,
  *       $rules (BookingModel::rules(): hold_minutes, booking_cutoff_minutes, vietqr_cutoff_hours),
- *       $packages (gói đang bán, TourPackageModel::options(); [] = tour không chia gói), $selectedPackageId.
+ *       $packages (gói đang bán, TourPackageModel::options(); [] = tour không chia gói), $selectedPackageId,
+ *       $momoEnabled (false = chưa cấu hình MoMo trong .env, không nhắc tới MoMo).
  * Hai bước trong cùng trang: điền thông tin → "Xem lại & xác nhận" → "Đặt tour và thanh toán".
  * booking.js dựng hàng vé, danh sách khách, tạm tính và gửi POST /api/bookings; trang cần JavaScript.
  * Sprint 4 (4.3.2.3): khách chọn phụ thu / hoạt động tùy chọn; tổng tiền = tiền vé + các khoản đã chọn.
@@ -254,12 +255,12 @@ $contactFields = [
                         <h2 class="lt-book-card__title" id="book-terms-title"><span class="lt-book-card__num">4</span>Điều kiện đặt tour</h2>
                         <ul class="lt-book-terms">
                             <li>Khi bạn bấm đặt, LocalTour giữ chỗ ngay và đơn ở trạng thái <strong>Chờ thanh toán</strong>, không cần chờ duyệt.</li>
-                            <li>Bạn thanh toán bằng VNPay, MoMo hoặc VietQR trong <strong><?= e($holdText) ?></strong> kể từ lúc đặt (không muộn hơn giờ khởi hành); quá hạn đơn tự hủy và chỗ được trả lại cho lịch.</li>
+                            <li>Bạn thanh toán bằng <?= $momoEnabled ? 'VNPay, MoMo hoặc VietQR' : 'VNPay hoặc VietQR' ?> trong <strong><?= e($holdText) ?></strong> kể từ lúc đặt (không muộn hơn giờ khởi hành); quá hạn đơn tự hủy và chỗ được trả lại cho lịch.</li>
 <?php if ($cutoffMinutes > 0): ?>
                             <li>LocalTour nhận đặt tới trước giờ khởi hành <?= e($cutoffText) ?>.</li>
 <?php endif; ?>
 <?php if ($vietqrHours > 0): ?>
-                            <li>Chuyển khoản VietQR cần LocalTour đối chiếu nên chỉ nhận khi còn ít nhất <?= e($vietqrHours) ?> giờ tới giờ khởi hành; sát giờ hơn vui lòng dùng VNPay hoặc MoMo.</li>
+                            <li>Chuyển khoản VietQR cần LocalTour đối chiếu nên chỉ nhận khi còn ít nhất <?= e($vietqrHours) ?> giờ tới giờ khởi hành; sát giờ hơn vui lòng dùng VNPay<?= $momoEnabled ? ' hoặc MoMo' : '' ?>.</li>
 <?php endif; ?>
 <?php foreach ($policyLines as $policyLine): ?>
                             <li><?= e($policyLine) ?></li>

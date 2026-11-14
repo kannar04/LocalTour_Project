@@ -281,7 +281,7 @@ $canSetTotal = in_array('awaiting_payment', $nextStatuses, true);
 <?php elseif ($holdsSeats): ?>
                             <p class="lt-admin-hint">Đơn đang giữ <?= e((int) $booking['people']) ?> chỗ của lịch<?= $booking['status'] === 'awaiting_payment' ? '; quá hạn thanh toán mà chưa trả tiền thì hệ thống tự hủy và trả chỗ' : '' ?>. Hủy đơn này sẽ trả lại <?= e((int) $booking['people']) ?> chỗ cho lịch<?= $booking['status'] === 'confirmed' ? ' và tạo yêu cầu hoàn toàn bộ số tiền khách đã trả (chuyển khoản lại cho khách rồi ghi “Đã hoàn tiền” ở trang Chi trả đơn vị tổ chức)' : '' ?>.</p>
 <?php endif; ?>
-                            <p class="lt-admin-hint">Bắt buộc khi từ chối, hủy hoặc đổi tổng giá. VNPay / MoMo thành công tự xác nhận đơn; chuyển khoản VietQR nên đối chiếu ở mục “Thanh toán” bên trái.</p>
+                            <p class="lt-admin-hint">Bắt buộc khi từ chối, hủy hoặc đổi tổng giá. VNPay thành công tự xác nhận đơn; chuyển khoản VietQR nên đối chiếu ở mục “Thanh toán” bên trái.</p>
                             <button class="lt-btn lt-btn--primary lt-btn--block" type="submit">Cập nhật trạng thái</button>
                         </form>
 <?php endif; ?>

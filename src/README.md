@@ -207,7 +207,7 @@ Tiền tố tên procedure cho biết người phụ trách: `LTP_` – Lê Trun
 | POST | `/api/bookings` | `BookingController@store` | Form đặt tour + `_csrf`, `request_token`; 201 đã tạo đơn "Chờ thanh toán" và giữ chỗ (`data.url` là trang thanh toán của đơn), 200 gửi trùng, 401, 403, 409 (lịch, chỗ, giá hoặc gói đã đổi), 422 (lỗi theo từng ô). |
 | GET | `/bookings` | `CustomerBookingController@index` | "Đơn của tôi" của tài khoản đang đăng nhập. |
 | GET | `/bookings/{code}` | `CustomerBookingController@show` | Chi tiết đơn (`LTxxxxxx`); 404 khi mã sai hoặc đơn của tài khoản khác; `?new=1` hiện thông báo vừa giữ chỗ; `?pay=` hiện kết quả thanh toán. |
-| GET | `/bookings/{code}/pay` | `PaymentController@checkout` | Chọn VNPay, MoMo hoặc VietQR; chỉ đơn "Chờ thanh toán" còn hạn. Khách được chuyển tới đây ngay sau khi đặt (`?new=1` hiện thông báo đã giữ chỗ); VietQR không hiện nút khi còn dưới 24 giờ tới giờ khởi hành. |
+| GET | `/bookings/{code}/pay` | `PaymentController@checkout` | Chọn VNPay hoặc VietQR; chỉ đơn "Chờ thanh toán" còn hạn. Khách được chuyển tới đây ngay sau khi đặt (`?new=1` hiện thông báo đã giữ chỗ); VietQR không hiện nút khi còn dưới 24 giờ tới giờ khởi hành. |
 | POST | `/bookings/{code}/pay/vnpay` | `PaymentController@startVnpay` | `_csrf`; 303 sang cổng VNPay sandbox. |
 | POST | `/bookings/{code}/pay/vietqr` | `PaymentController@startVietqr` | `_csrf`; 303 sang trang chuyển khoản. |
 | GET | `/bookings/{code}/pay/vietqr` | `PaymentController@transfer` | Mã VietQR, số tiền, nội dung chuyển khoản. |
@@ -251,11 +251,7 @@ Tiền tố tên procedure cho biết người phụ trách: `LTP_` – Lê Trun
 | GET | `/ban-do` | `TourMapController@index` | Bản đồ các tour (Leaflet 1.9.4, nền OpenStreetMap). Chưa chạy `23_map_places_NTK.sql` thì "đang tạm ngưng". |
 | GET | `/api/tours/{id}/places` | `TourMapController@apiPlaces` | JSON quán ăn, bar, giải trí, quán nước trong 1,5 km quanh điểm khởi hành (Overpass API gọi từ máy chủ, lưu đệm 7 ngày ở `map_place_cache`); lỗi thì dùng bản lưu cũ hoặc báo "Chưa tải được địa điểm, thử lại sau.". |
 | GET, POST | `/admin/tours/{id}/location` | `AdminTourLocationController` | Đặt / xóa tọa độ điểm khởi hành của tour (bấm trên bản đồ hoặc nhập số). |
-| GET | `/auth/google`, `/auth/google/callback`, `/auth/facebook`, `/auth/facebook/callback` | `SocialAuthController` | Đăng nhập / đăng ký khách hàng bằng Google hoặc Facebook (OAuth 2.0); tự liên kết với tài khoản khách hàng đang hoạt động cùng email. Nút chỉ hiện khi đã điền khóa. |
-| POST | `/payments/momo/{code}` | `MomoController@start` | Tạo khoản MoMo (10.000đ – 50.000.000đ) rồi chuyển sang cổng MoMo môi trường thử. |
-| GET | `/payments/momo/return` | `MomoController@result` | Kiểm tra chữ ký, tra cứu lại giao dịch với MoMo rồi mới ghi nhận; thành công thì đơn "Đã xác nhận" và có voucher. |
-| POST | `/payments/momo/ipn` | `MomoController@ipn` | JSON của MoMo, trả 204. Chỉ tới được khi máy chủ có địa chỉ HTTPS công khai. |
-| POST | `/admin/payments/{id}/momo` | `AdminPaymentController@momoCheck` | "Tra cứu MoMo": ghi đúng kết quả MoMo trả lời cho khoản quá 15 phút chưa rõ kết quả. |
+| GET | `/auth/google`, `/auth/google/callback` | `SocialAuthController` | Đăng nhập / đăng ký khách hàng bằng Google (OAuth 2.0); tự liên kết với tài khoản khách hàng đang hoạt động cùng email. Nút chỉ hiện khi đã điền khóa. |
 
 Mọi trang `/admin…` (trừ `/admin/login`): chưa đăng nhập thì chuyển tới `/admin/login`, đăng nhập bằng tài khoản không phải quản trị viên thì nhận trang 403. Mọi trang `/host…` (trừ `/host/login`): chưa đăng nhập thì chuyển tới `/host/login`; đơn vị chỉ mở được tour, đơn đặt tour và khoản chi trả của chính mình.
 
@@ -344,10 +340,7 @@ copy .env.example .env
 | `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET` | Mã website và khóa bí mật VNPay sandbox. Để trống thì VNPay hiện "đang tạm ngưng". |
 | `VNPAY_PAY_URL` | Giữ mặc định (cổng sandbox). |
 | `VNPAY_RETURN_URL` | Để trống: ứng dụng tự tính theo địa chỉ đang mở. |
-| `MOMO_PARTNER_CODE`, `MOMO_ACCESS_KEY`, `MOMO_SECRET_KEY` | Khóa MoMo môi trường thử (<https://business.momo.vn> → Trung tâm tích hợp thanh toán → môi trường Test). Để trống thì MoMo hiện "đang tạm ngưng". |
-| `MOMO_ENDPOINT`, `MOMO_RETURN_URL`, `MOMO_IPN_URL` | Để trống (cổng thử `https://test-payment.momo.vn`, địa chỉ trả về tự tính). `MOMO_IPN_URL` chỉ điền khi có địa chỉ HTTPS công khai. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` | OAuth client loại Web application ở Google Cloud. Để trống thì ẩn nút Google. Redirect để trống thì tự tính; phải khai báo đúng địa chỉ `…/auth/google/callback` ở Google (chỉ nhận `localhost`, không nhận địa chỉ IP). |
-| `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`, `FACEBOOK_REDIRECT_URI` | Ứng dụng Facebook Login. Để trống thì ẩn nút Facebook. Khai báo `…/auth/facebook/callback` ở Valid OAuth Redirect URIs. |
 | `RECAPTCHA_SITE_KEY`, `RECAPTCHA_SECRET_KEY` | reCAPTCHA v2 (ô "Tôi không phải người máy") ở `/login`, `/register`, `/admin/login`. Để trống thì không có captcha. |
 | `MAIL_HOST`, `MAIL_PORT`, `MAIL_ENCRYPTION`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME` | SMTP gửi email "Đặt tour thành công" khi đơn chuyển "Đã xác nhận" (mỗi đơn một lần, nhật ký ở `email_logs`). Gmail: `smtp.gmail.com`, `587`, `tls`, mật khẩu ứng dụng 16 ký tự. Để trống `MAIL_HOST` thì không gửi. Thử: `php src/scripts/mail_check.php` (đăng nhập SMTP), `php src/scripts/mail_check.php email@cua-ban` (gửi thử). |
 
@@ -455,9 +448,9 @@ Dùng tài khoản khách hàng tự tạo ở Bước 6 (tài khoản quản tr
 Cần điền khóa VNPay sandbox và tài khoản VietQR trong `.env` (Bước 3). Đây là môi trường thử nghiệm: không chuyển tiền thật.
 
 1. Đặt một đơn như Bước 8: đơn mới ở "Chờ thanh toán" ngay, không cần quản trị viên làm gì. Hạn thanh toán là 30 phút kể từ lúc đặt và không muộn hơn giờ khởi hành. (Chỉ đơn cũ "Chờ xác nhận" mới cần quản trị viên chọn "Xác nhận chỗ và giá", có thể sửa "Tổng giá chốt" kèm lý do; đơn đó được hạn 24 giờ.)
-2. Khách ở trang "Thanh toán đơn `LTxxxxxx`" mở ra ngay sau khi đặt, hoặc mở đơn rồi bấm "Thanh toán ngay". VNPay và MoMo tự xác nhận đơn; VietQR cần quản trị viên đối chiếu một lần:
+2. Khách ở trang "Thanh toán đơn `LTxxxxxx`" mở ra ngay sau khi đặt, hoặc mở đơn rồi bấm "Thanh toán ngay". VNPay tự xác nhận đơn; VietQR cần quản trị viên đối chiếu một lần:
    - **VNPay:** bấm "Thanh toán qua VNPay", chuyển sang cổng sandbox; thanh toán bằng thẻ thử nghiệm NCB trong tài liệu VNPay sandbox. VNPay trả về trang đơn với thông báo "Thanh toán VNPay thành công", đơn "Đã xác nhận", có voucher. Chạy ở `localhost` thì VNPay không gọi được IPN; kết quả được ghi qua Return URL.
-   - **VietQR:** bấm "Lấy mã VietQR" (chỉ có khi còn ít nhất 24 giờ tới giờ khởi hành; sát giờ hơn trang ghi VietQR không dùng được cho đơn này, dùng VNPay hoặc MoMo); trang hiện mã QR đúng số tiền và nội dung `LTxxxxxxPn`; bấm "Tôi đã chuyển khoản" → khoản "Chờ đối chiếu". Quản trị viên mở "Đối chiếu thanh toán" ở menu quản trị, chọn "Đã nhận tiền" (đơn "Đã xác nhận", cấp voucher) hoặc "Không khớp" (bắt buộc lý do; khách thanh toán lại được).
+   - **VietQR:** bấm "Lấy mã VietQR" (chỉ có khi còn ít nhất 24 giờ tới giờ khởi hành; sát giờ hơn trang ghi VietQR không dùng được cho đơn này, dùng VNPay); trang hiện mã QR đúng số tiền và nội dung `LTxxxxxxPn`; bấm "Tôi đã chuyển khoản" → khoản "Chờ đối chiếu". Quản trị viên mở "Đối chiếu thanh toán" ở menu quản trị, chọn "Đã nhận tiền" (đơn "Đã xác nhận", cấp voucher) hoặc "Không khớp" (bắt buộc lý do; khách thanh toán lại được).
 3. Đơn đã thanh toán có nút "Xem và in voucher"; trang voucher in được (Ctrl+P chỉ in phần voucher). Mục "Lịch sử đơn" ghi đủ các bước.
 
 | Thử thêm | Kết quả mong đợi |

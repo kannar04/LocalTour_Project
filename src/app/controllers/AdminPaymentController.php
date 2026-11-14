@@ -39,7 +39,8 @@ final class AdminPaymentController extends AdminController
             'adminNav' => 'payments',
             'payments' => $this->payments->queue(),
             'vnpayPayments' => $this->payments->vnpayQueue(),
-            'momoPayments' => (new MomoPaymentModel())->queue(),
+            'momoEnabled' => $momoEnabled = MomoGateway::enabled(require BASE_PATH . '/config/payment.php'),
+            'momoPayments' => $momoEnabled ? (new MomoPaymentModel())->queue() : [],
             'error' => AdminBookingController::PAYMENT_ERRORS[$this->query('err')] ?? '',
             'pageStyles' => ['css/admin.css'],
         ]);

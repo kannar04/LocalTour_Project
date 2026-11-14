@@ -61,10 +61,14 @@ $router->post('/bookings/{code}/pay/vietqr/submit', [PaymentController::class, '
 $router->get('/payments/vnpay/return', [VnpayController::class, 'result']);
 $router->get('/payments/vnpay/ipn', [VnpayController::class, 'ipn']);
 $router->get('/bookings/{code}/voucher', [VoucherController::class, 'show']);
-// Thanh toán MoMo (môi trường thử): '/payments/momo/ipn' đặt trước '/payments/momo/{code}'.
-$router->get('/payments/momo/return', [\App\Controllers\MomoController::class, 'result']);
-$router->post('/payments/momo/ipn', [\App\Controllers\MomoController::class, 'ipn']);
-$router->post('/payments/momo/{code}', [\App\Controllers\MomoController::class, 'start']);
+// Thanh toán MoMo (môi trường thử) đang ẩn: chỉ có các đường dẫn này khi config/payment.php bật momo_enabled.
+// '/payments/momo/ipn' đặt trước '/payments/momo/{code}'.
+$momoOn = (require BASE_PATH . '/config/payment.php')['momo_enabled'] === true;
+if ($momoOn) {
+    $router->get('/payments/momo/return', [\App\Controllers\MomoController::class, 'result']);
+    $router->post('/payments/momo/ipn', [\App\Controllers\MomoController::class, 'ipn']);
+    $router->post('/payments/momo/{code}', [\App\Controllers\MomoController::class, 'start']);
+}
 
 // Đổi ngày / hủy tour (Sprint 5, US14): khách gửi yêu cầu, quản trị viên xử lý thủ công.
 $router->get('/bookings/{code}/change', [ChangeRequestController::class, 'create']);
@@ -77,11 +81,14 @@ $router->get('/register', [AuthController::class, 'showRegister']);
 $router->post('/register', [AuthController::class, 'register']);
 $router->post('/logout', [AuthController::class, 'logout']);
 
-// Đăng nhập bằng Google / Facebook (OAuth 2.0) cho tài khoản khách hàng. Thiếu khóa trong .env thì nút bị ẩn.
+// Đăng nhập bằng Google (OAuth 2.0) cho tài khoản khách hàng. Thiếu khóa trong .env thì nút bị ẩn.
+// Facebook đang ẩn: chỉ có đường dẫn khi config/auth.php bật facebook.enabled.
 $router->get('/auth/google', [App\Controllers\SocialAuthController::class, 'google']);
 $router->get('/auth/google/callback', [App\Controllers\SocialAuthController::class, 'googleCallback']);
-$router->get('/auth/facebook', [App\Controllers\SocialAuthController::class, 'facebook']);
-$router->get('/auth/facebook/callback', [App\Controllers\SocialAuthController::class, 'facebookCallback']);
+if ((require BASE_PATH . '/config/auth.php')['facebook']['enabled'] === true) {
+    $router->get('/auth/facebook', [App\Controllers\SocialAuthController::class, 'facebook']);
+    $router->get('/auth/facebook/callback', [App\Controllers\SocialAuthController::class, 'facebookCallback']);
+}
 
 // Bản đồ và địa điểm quanh điểm khởi hành (Nguyễn Tuấn Khôi): trang /ban-do và quán ăn, bar, giải trí, quán nước
 // quanh điểm khởi hành của tour (Overpass API gọi từ máy chủ, lưu đệm 7 ngày).
@@ -140,8 +147,10 @@ $router->post('/admin/change-requests/{id}/decide', [AdminChangeRequestControlle
 $router->get('/admin/payments', [AdminPaymentController::class, 'index']);
 $router->post('/admin/payments/{id}/decide', [AdminPaymentController::class, 'decide']);
 $router->post('/admin/payments/{id}/vnpay', [AdminPaymentController::class, 'vnpayDecide']);
-// Thanh toán MoMo: quản trị viên tra cứu lại khoản MoMo chưa rõ kết quả.
-$router->post('/admin/payments/{id}/momo', [AdminPaymentController::class, 'momoCheck']);
+// Thanh toán MoMo (đang ẩn): quản trị viên tra cứu lại khoản MoMo chưa rõ kết quả.
+if ($momoOn) {
+    $router->post('/admin/payments/{id}/momo', [AdminPaymentController::class, 'momoCheck']);
+}
 
 // Dòng tiền sau tour (Nguyễn Tuấn Khôi): khoản chi trả cho đơn vị tổ chức (hệ thống tự lập sau khi lịch khởi hành kết
 // thúc, quản trị viên chuyển khoản ngoài hệ thống rồi ghi nhận đã chi trả), ghi "Đã hoàn tiền" cho khoản hoàn của khách,

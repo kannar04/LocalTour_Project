@@ -23,12 +23,13 @@ final class SocialLogin
     private const STATE_MAX = 5;
     private const FLASH_KEY = 'auth_flash';
 
-    /** Nhà cung cấp có đủ mã ứng dụng và khóa bí mật trong .env. */
+    /** Nhà cung cấp đang bật (config/auth.php) và có đủ mã ứng dụng, khóa bí mật trong .env. */
     public static function enabled(string $provider): bool
     {
         $config = self::config($provider);
 
-        return $config !== null && $config['client_id'] !== '' && $config['client_secret'] !== '';
+        return $config !== null && ($config['enabled'] ?? true) === true
+            && $config['client_id'] !== '' && $config['client_secret'] !== '';
     }
 
     /**

@@ -42,7 +42,7 @@ final class SettingModel
         'vietqr_cutoff_hours' => [
             'label' => 'Ngừng nhận chuyển khoản VietQR',
             'unit' => 'giờ',
-            'hint' => 'Còn ít hơn bấy nhiêu giờ tới giờ khởi hành thì chỉ nhận VNPay / MoMo, không nhận chuyển khoản phải đối chiếu tay. 0 = luôn nhận.',
+            'hint' => 'Còn ít hơn bấy nhiêu giờ tới giờ khởi hành thì chỉ nhận VNPay, không nhận chuyển khoản phải đối chiếu tay. 0 = luôn nhận.',
             'min' => 0,
             'max' => 168,
             'default' => '24',

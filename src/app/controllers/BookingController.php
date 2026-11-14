@@ -12,6 +12,7 @@ use App\Models\TourContentModel;
 use App\Models\TourDetailModel;
 use App\Models\TourPackageModel;
 use App\Models\UserModel;
+use App\Services\MomoGateway;
 use Core\Auth;
 use Core\Controller;
 use Core\Router;
@@ -104,6 +105,7 @@ final class BookingController extends Controller
             'scheduleNotice' => $scheduleNotice,
             'contact' => ['name' => $user['name'], 'email' => $user['email'], 'phone' => ''],
             'rules' => $this->bookings->rules(),
+            'momoEnabled' => MomoGateway::enabled(require BASE_PATH . '/config/payment.php'),
             // Mỗi lần mở form một mã mới: gửi lại cùng form (bấm 2 lần, mạng chập chờn) chỉ tạo một đơn.
             'requestToken' => bin2hex(random_bytes(16)),
             'loginUrl' => url('/login') . '?next=' . rawurlencode(self::currentPath()),

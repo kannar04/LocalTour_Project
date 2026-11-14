@@ -35,7 +35,7 @@ final class PaymentController extends Controller
         'vnpay' => 'Chưa tạo được yêu cầu thanh toán VNPay, vui lòng thử lại.',
         'momo' => 'Chưa tạo được yêu cầu thanh toán MoMo, vui lòng thử lại.',
         'momo_amount' => 'MoMo chỉ nhận thanh toán từ 10.000đ đến 50.000.000đ, vui lòng chọn phương thức khác.',
-        'vietqr_closed' => 'Đã sát giờ khởi hành nên không nhận chuyển khoản VietQR nữa. Vui lòng thanh toán qua VNPay hoặc MoMo.',
+        'vietqr_closed' => 'Đã sát giờ khởi hành nên không nhận chuyển khoản VietQR nữa. Vui lòng thanh toán qua VNPay.',
     ];
 
     private CustomerBookingModel $bookings;
@@ -63,7 +63,7 @@ final class PaymentController extends Controller
         PaymentResultModel::expireHoldsQuietly();
     }
 
-    /** GET /bookings/{code}/pay – chọn VNPay, MoMo hoặc VietQR. */
+    /** GET /bookings/{code}/pay – chọn VNPay hoặc VietQR (MoMo khi được bật). */
     public function checkout(string $code): void
     {
         $booking = $this->findOrFail($code);

@@ -11,6 +11,7 @@ use App\Models\BookingHistoryModel;
 use App\Models\MomoPaymentModel;
 use App\Models\PaymentResultModel;
 use App\Services\BookingMail;
+use App\Services\MomoGateway;
 
 /**
  * Quản lý đơn đặt tour (FR-25, Nguyễn Tuấn Khôi): danh sách lọc theo trạng thái / tìm theo mã hoặc khách,
@@ -173,7 +174,8 @@ final class AdminBookingController extends AdminController
             'extras' => $this->bookings->extras($bookingId),
             'payments' => $this->bookings->payments($bookingId),
             'vnpayUnclear' => array_column((new AdminPaymentModel())->vnpayQueue($bookingId), 'payment_id'),
-            'momoUnclear' => array_column((new MomoPaymentModel())->queue($bookingId), 'order_id', 'payment_id'),
+            'momoUnclear' => MomoGateway::enabled(require BASE_PATH . '/config/payment.php')
+                ? array_column((new MomoPaymentModel())->queue($bookingId), 'order_id', 'payment_id') : [],
             'passengers' => $this->bookings->passengers($bookingId),
             'history' => (new BookingHistoryModel())->forAdmin($bookingId),
             'changeRequests' => (new AdminChangeRequestModel())->list('', $bookingId),

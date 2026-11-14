@@ -31,7 +31,7 @@ $rangeText = match (true) {
             </a>
             <header class="lt-admin__head">
                 <h1 class="lt-admin__title" id="admin-title">Khoản thanh toán theo kỳ</h1>
-                <p class="lt-admin__subtitle"><?= e($rangeText) ?> · khoản thanh toán thành công theo ngày thanh toán, dùng để đối chiếu doanh thu với VNPay, MoMo và sao kê</p>
+                <p class="lt-admin__subtitle"><?= e($rangeText) ?> · khoản thanh toán thành công theo ngày thanh toán, dùng để đối chiếu doanh thu với VNPay và sao kê</p>
             </header>
 
             <section class="lt-panel" aria-labelledby="revenue-list-title">
