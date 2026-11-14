@@ -10,14 +10,17 @@
 --      luôn hiện đúng thứ tự đã nhập. Khách của đơn cũ để 0 (sắp tiếp theo id).
 --   4. Dữ liệu kiểm thử: lịch 40 của tour 6 (Hội An) chỉ còn 1 chỗ, để thử "không đủ chỗ"
 --      (đặt 2 khách) và "đặt vừa đủ" (đặt 1 khách).
--- Quy tắc giữ chỗ (M4, theo User Flow đặt tour và BPMN đặt tour):
+-- Quy tắc giữ chỗ (M4, theo User Flow đặt tour và BPMN đặt tour). Đây là quy tắc lúc file này
+-- ra đời; từ luồng đặt ngay (file 10, 28, 29) đơn mới được giữ chỗ ngay lúc đặt ở
+-- 'awaiting_payment' trong settings.hold_minutes phút, các dòng dưới chỉ còn đúng với đơn
+-- 'pending' tạo theo quy trình cũ:
 --   * Đơn mới = 'pending' (Chờ xác nhận): CHƯA trừ schedules.remaining, chỉ kiểm tra
 --     remaining >= số khách lúc tạo đơn.
 --   * Quản trị viên xác nhận chỗ (pending -> awaiting_payment): trừ remaining (giữ chỗ 24 giờ);
 --     không đủ chỗ thì báo lỗi, không đổi gì. remaining về 0 -> lịch chuyển 'full'.
 --   * Hủy đơn đang giữ chỗ (awaiting_payment / confirmed -> cancelled): cộng lại remaining
 --     (không vượt capacity), lịch 'full' mở lại 'open'.
---   * Tự hủy khi quá hạn giữ chỗ 24 giờ thuộc M5 (thanh toán).
+--   * Tự hủy khi quá hạn giữ chỗ (hold_expires_at) thuộc M5 (thanh toán, file 15).
 -- Phụ trách : Nguyễn Minh Thức (NMT) - M4 mục 3
 -- Tương thích: MariaDB 10.4 (XAMPP) / MySQL 8.
 -- Chạy sau  : 01_schema.sql, 02_seed.sql. Chạy lại được: cột / khóa đã có thì bỏ qua,

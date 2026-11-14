@@ -6,8 +6,13 @@
 -- Procedures: NMT_sp_payment_list, NMT_sp_payment_start, NMT_sp_payment_get,
 --             NMT_sp_payment_transfer_submit, NMT_sp_admin_payment_queue,
 --             NMT_sp_admin_payment_decide
--- Quy tắc   : * Chỉ đơn 'awaiting_payment' (đã xác nhận chỗ và giá) còn trong hạn giữ chỗ
---               mới thanh toán được. Số tiền = bookings.total_vnd (giá quản trị viên đã chốt).
+-- Quy tắc   : * Chỉ đơn 'awaiting_payment' (đã giữ chỗ lúc đặt, file 10) còn trong hạn giữ chỗ
+--               mới thanh toán được. Số tiền = bookings.total_vnd.
+--             * VietQR cần quản trị viên đối chiếu tay nên chỉ nhận khi còn ít nhất
+--               settings.vietqr_cutoff_hours giờ (mặc định 24; thiếu hoặc không phải số thì dùng
+--               24) mới tới giờ khởi hành; sát giờ hơn thì NMT_sp_payment_start trả
+--               'vietqr_closed', khách dùng VNPay / MoMo (tự xác nhận). Khoản VietQR đã bắt đầu
+--               trước mốc đó vẫn báo chuyển khoản và đối chiếu được.
 --             * Mỗi lần bắt đầu thanh toán VNPay là một khoản 'pending' mới với mã riêng
 --               (reference = mã đơn + P + số thứ tự, vd. LT518204P2) gửi làm vnp_TxnRef.
 --             * VietQR dùng lại khoản VietQR 'pending' đang có của đơn (cùng nội dung chuyển
@@ -16,10 +21,17 @@
 --               đơn này cũng không bị tự hủy khi quá hạn (15_procedures_LTP_payment.sql).
 --             * Quản trị viên đối chiếu: "Đã nhận tiền" -> khoản 'paid', đơn 'confirmed', cấp
 --               voucher; "Không khớp" (bắt buộc lý do) -> khoản 'failed', đơn vẫn chờ thanh toán
---               tới hết hạn. Mỗi lần đối chiếu ghi admin_logs của đơn (NFR-09).
+--               tới hết hạn giữ chỗ (đã quá hạn thì lần quét tự hủy kế tiếp hủy đơn và trả chỗ,
+--               file 15). Mỗi lần đối chiếu ghi admin_logs của đơn (NFR-09).
+--             * Khoản chờ đối chiếu của đơn KHÔNG còn chờ thanh toán (quản trị viên đã hủy đơn, hoặc
+--               đơn đã được trả bằng VNPay / MoMo trong lúc chờ) vẫn đối chiếu được, để lịch khởi
+--               hành không bị treo khoản chi trả (file 30): "Đã nhận tiền" -> khoản 'paid' và tạo
+--               yêu cầu hoàn toàn bộ khoản đó (refunds 'requested'), trạng thái đơn giữ nguyên;
+--               "Không khớp" -> khoản 'failed'.
 --             * Nhiều khoản tạo trong cùng một giây được xếp theo số thứ tự trong reference.
 --             Tham số chuỗi được so sánh với COLLATE utf8mb4_unicode_ci; không có DEFINER.
 -- Chạy sau  : 01 -> 12. NMT_sp_admin_payment_decide gọi LTP_sp_voucher_issue (file 15).
+--             NMT_sp_payment_start đọc bảng settings (28_migration_economy_NTK.sql).
 --             Chạy lại được (DROP PROCEDURE IF EXISTS).
 -- =====================================================================
 
@@ -67,6 +79,8 @@ DELIMITER ;
 --              'not_payable'             : đơn không ở 'awaiting_payment' hoặc đã thanh toán.
 --              'expired'                 : đã quá hạn giữ chỗ (đơn sẽ bị tự hủy).
 --              'awaiting_reconciliation' : đã báo chuyển khoản, đang chờ đối chiếu.
+--              'vietqr_closed'           : VietQR không nhận nữa vì còn dưới
+--                                          settings.vietqr_cutoff_hours giờ tới giờ khởi hành.
 --              'invalid'                 : phương thức không hợp lệ.
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NMT_sp_payment_start;
@@ -87,6 +101,9 @@ proc: BEGIN
     DECLARE v_payment_id CHAR(36)    DEFAULT NULL;
     DECLARE v_reference  VARCHAR(32) DEFAULT NULL;
     DECLARE v_count      INT         DEFAULT 0;
+    DECLARE v_schedule   CHAR(36)    DEFAULT NULL;
+    DECLARE v_starts_at  DATETIME    DEFAULT NULL;
+    DECLARE v_qr_hours   INT         DEFAULT 24;
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -100,8 +117,8 @@ proc: BEGIN
 
     START TRANSACTION;
 
-    SELECT b.id, b.code, b.status, b.total_vnd, b.hold_expires_at
-      INTO v_booking_id, v_code, v_status, v_total, v_hold
+    SELECT b.id, b.code, b.status, b.total_vnd, b.hold_expires_at, b.schedule_id
+      INTO v_booking_id, v_code, v_status, v_total, v_hold, v_schedule
       FROM bookings b
      WHERE b.user_id = (p_user_id COLLATE utf8mb4_unicode_ci)
        AND b.code = (UPPER(TRIM(p_code)) COLLATE utf8mb4_unicode_ci)
@@ -130,6 +147,19 @@ proc: BEGIN
         ROLLBACK;
         SELECT 'expired' AS result, NULL AS payment_id, NULL AS reference, NULL AS amount_vnd, NULL AS expires_at;
         LEAVE proc;
+    END IF;
+
+    -- VietQR phải đối chiếu tay: sát giờ khởi hành thì không nhận (trang đã cũ cũng bị chặn ở đây).
+    IF p_method = 'vietqr' THEN
+        SET v_qr_hours = COALESCE((SELECT IF(st.value REGEXP '^[0-9]{1,4}$', CAST(st.value AS UNSIGNED), NULL)
+                                     FROM settings st WHERE st.name = 'vietqr_cutoff_hours'), 24);
+        SELECT s.starts_at INTO v_starts_at FROM schedules s WHERE s.id = (v_schedule COLLATE utf8mb4_unicode_ci);
+
+        IF v_starts_at IS NULL OR v_starts_at < NOW() + INTERVAL v_qr_hours HOUR THEN
+            ROLLBACK;
+            SELECT 'vietqr_closed' AS result, NULL AS payment_id, NULL AS reference, NULL AS amount_vnd, NULL AS expires_at;
+            LEAVE proc;
+        END IF;
     END IF;
 
     -- VietQR: dùng lại khoản đang chờ chuyển khoản nếu đúng số tiền hiện tại.
@@ -317,10 +347,13 @@ DELIMITER ;
 -- NMT_sp_admin_payment_decide(p_payment_id, p_decision, p_actor_user_id, p_note)
 --   Đối chiếu một khoản VietQR đang 'awaiting_reconciliation'.
 --   p_decision = 'confirm' (đã nhận đúng số tiền) hoặc 'reject' (không thấy / không khớp).
---   1 dòng: result, booking_id.
+--   1 dòng: result, booking_id, confirmed (1 = chính lần này chuyển đơn sang 'confirmed', ứng
+--   dụng gửi email "Đặt tour thành công"; 0 = không).
 --     result = 'ok' | 'forbidden' | 'not_found' | 'invalid' (quyết định sai)
 --              'note_required' (từ chối mà không có lý do)
---              'not_payable' (khoản không còn chờ đối chiếu hoặc đơn không còn chờ thanh toán)
+--              'not_payable' (khoản không còn chờ đối chiếu)
+--   Đơn không còn 'awaiting_payment': "Đã nhận tiền" ghi khoản 'paid' và tạo yêu cầu hoàn tiền
+--   (không đổi trạng thái đơn, không cấp voucher); "Không khớp" ghi khoản 'failed'.
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NMT_sp_admin_payment_decide;
 
@@ -336,6 +369,8 @@ proc: BEGIN
     DECLARE v_booking_id CHAR(36)    DEFAULT NULL;
     DECLARE v_status     VARCHAR(30) DEFAULT NULL;
     DECLARE v_pay_status VARCHAR(30) DEFAULT NULL;
+    DECLARE v_amount     BIGINT      DEFAULT 0;
+    DECLARE v_confirmed  TINYINT     DEFAULT 0;
     DECLARE v_reference  VARCHAR(100) CHARACTER SET utf8mb4 DEFAULT NULL;
     DECLARE v_note       VARCHAR(255) CHARACTER SET utf8mb4 DEFAULT NULLIF(TRIM(p_note), '');
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
@@ -347,19 +382,19 @@ proc: BEGIN
     IF NOT EXISTS (SELECT 1 FROM users
                     WHERE id = (p_actor_user_id COLLATE utf8mb4_unicode_ci)
                       AND role = 'admin' AND status = 'active') THEN
-        SELECT 'forbidden' AS result, NULL AS booking_id;
+        SELECT 'forbidden' AS result, NULL AS booking_id, 0 AS confirmed;
         LEAVE proc;
     END IF;
 
     IF p_decision IS NULL OR p_decision NOT IN ('confirm', 'reject') THEN
-        SELECT 'invalid' AS result, NULL AS booking_id;
+        SELECT 'invalid' AS result, NULL AS booking_id, 0 AS confirmed;
         LEAVE proc;
     END IF;
 
     START TRANSACTION;
 
-    SELECT p.booking_id, p.status, COALESCE(p.reference, p.provider_txn_id)
-      INTO v_booking_id, v_pay_status, v_reference
+    SELECT p.booking_id, p.status, COALESCE(p.reference, p.provider_txn_id), p.amount_vnd
+      INTO v_booking_id, v_pay_status, v_reference, v_amount
       FROM payments p
      WHERE p.id = (p_payment_id COLLATE utf8mb4_unicode_ci)
        AND p.method = 'vietqr'
@@ -367,25 +402,46 @@ proc: BEGIN
 
     IF v_booking_id IS NULL THEN
         ROLLBACK;
-        SELECT 'not_found' AS result, NULL AS booking_id;
+        SELECT 'not_found' AS result, NULL AS booking_id, 0 AS confirmed;
         LEAVE proc;
     END IF;
 
     SELECT b.status INTO v_status FROM bookings b WHERE b.id = v_booking_id FOR UPDATE;
 
-    IF v_pay_status <> 'awaiting_reconciliation' OR v_status <> 'awaiting_payment' THEN
+    IF v_pay_status <> 'awaiting_reconciliation' THEN
         ROLLBACK;
-        SELECT 'not_payable' AS result, v_booking_id AS booking_id;
+        SELECT 'not_payable' AS result, v_booking_id AS booking_id, 0 AS confirmed;
         LEAVE proc;
     END IF;
 
     IF p_decision = 'reject' AND v_note IS NULL THEN
         ROLLBACK;
-        SELECT 'note_required' AS result, v_booking_id AS booking_id;
+        SELECT 'note_required' AS result, v_booking_id AS booking_id, 0 AS confirmed;
         LEAVE proc;
     END IF;
 
-    IF p_decision = 'confirm' THEN
+    IF p_decision = 'confirm' AND v_status <> 'awaiting_payment' THEN
+        -- Đơn không còn chờ thanh toán (quản trị viên đã hủy đơn, hoặc đơn đã được trả bằng khoản
+        -- khác trong lúc chờ đối chiếu): tiền khách đã chuyển phải hoàn lại. Ghi khoản 'paid' và
+        -- tạo yêu cầu hoàn tiền; không đổi trạng thái đơn, không cấp voucher.
+        UPDATE payments
+           SET status = 'paid', paid_at = NOW(), note = v_note
+         WHERE id = (p_payment_id COLLATE utf8mb4_unicode_ci);
+
+        INSERT INTO refunds (id, payment_id, amount_vnd, reason, status, requested_at)
+        VALUES (UUID(), p_payment_id, v_amount,
+                LEFT(CONCAT('Chuyển khoản VietQR ', v_reference, ' được đối chiếu khi đơn không còn chờ thanh toán; cần hoàn tiền cho khách.'), 255),
+                'requested', NOW());
+
+        INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
+        VALUES (UUID(), p_actor_user_id, 'booking', v_booking_id, 'payment_confirm', NULL, NULL,
+                LEFT(CONCAT('Đã nhận chuyển khoản VietQR ', v_reference, IF(v_note IS NULL, '', CONCAT(': ', v_note))), 255), NOW());
+
+        INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
+        VALUES (UUID(), p_actor_user_id, 'booking', v_booking_id, 'refund_requested', NULL, NULL,
+                LEFT(CONCAT('Hoàn ', REPLACE(FORMAT(v_amount, 0), ',', '.'), ' VND cho khoản ', v_reference,
+                            ' vì đơn không còn chờ thanh toán, LocalTour hoàn tiền thủ công.'), 255), NOW());
+    ELSEIF p_decision = 'confirm' THEN
         UPDATE payments
            SET status = 'paid', paid_at = NOW(), note = v_note
          WHERE id = (p_payment_id COLLATE utf8mb4_unicode_ci);
@@ -404,6 +460,7 @@ proc: BEGIN
                 LEFT(CONCAT('Đã nhận chuyển khoản VietQR ', v_reference, IF(v_note IS NULL, '', CONCAT(': ', v_note))), 255), NOW());
 
         CALL LTP_sp_voucher_issue(v_booking_id);
+        SET v_confirmed = 1;
     ELSE
         UPDATE payments
            SET status = 'failed', note = v_note
@@ -415,6 +472,6 @@ proc: BEGIN
     END IF;
 
     COMMIT;
-    SELECT 'ok' AS result, v_booking_id AS booking_id;
+    SELECT 'ok' AS result, v_booking_id AS booking_id, v_confirmed AS confirmed;
 END$$
 DELIMITER ;

@@ -11,12 +11,14 @@
 -- Quy tắc   : Trang chi tiết tour chỉ trả dữ liệu của tour đang hiển thị: tours.approval_status = 'approved'
 --             VÀ providers.approval_status = 'approved' VÀ users.status = 'active'
 --             (tài khoản của nhà cung cấp). Tour khác hoặc không tồn tại -> 0 dòng.
---             Lịch đặt được: status = 'open', starts_at > NOW(), remaining > 0 và có
---             ít nhất một loại vé active.
+--             Lịch đặt được: status = 'open', remaining > 0, có ít nhất một loại vé active
+--             và còn hơn settings.booking_cutoff_minutes phút (mặc định 60) mới tới giờ khởi
+--             hành: starts_at > NOW() + số phút đó (giống LTP_sp_booking_create, file 10).
 --             p_tour_id là UUID dạng chữ, so sánh với COLLATE utf8mb4_unicode_ci.
 --             Thống kê: tính trên toàn hệ thống, quy tắc ở phần "Trang quản trị" cuối file.
 --             Chỉ đọc dữ liệu (READS SQL DATA), không có DEFINER.
--- Chạy sau  : 01_schema.sql. Chạy lại được (DROP PROCEDURE IF EXISTS).
+-- Chạy sau  : 01_schema.sql. Khi gọi cần bảng settings (28_migration_economy_NTK.sql).
+--             Chạy lại được (DROP PROCEDURE IF EXISTS).
 -- =====================================================================
 
 -- Procedure của thiết kế cũ: lịch trình nay đọc bằng NTK_sp_tour_itinerary_list (file 05).
@@ -47,6 +49,11 @@ CREATE PROCEDURE NMT_sp_tour_detail(
 )
 READS SQL DATA
 BEGIN
+    -- Ngừng nhận đặt trước giờ khởi hành bao nhiêu phút (file 28).
+    DECLARE v_cutoff_min INT DEFAULT 60;
+    SET v_cutoff_min = COALESCE((SELECT IF(st.value REGEXP '^[0-9]{1,5}$', CAST(st.value AS UNSIGNED), NULL)
+                                   FROM settings st WHERE st.name = 'booking_cutoff_minutes'), 60);
+
     SELECT
         t.id                AS tour_id,
         t.provider_id,
@@ -93,7 +100,7 @@ BEGIN
                  JOIN ticket_types tt ON tt.schedule_id = s.id AND tt.active = TRUE
                 WHERE s.tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci)
                   AND s.status = 'open'
-                  AND s.starts_at > NOW()
+                  AND s.starts_at > NOW() + INTERVAL v_cutoff_min MINUTE
                   AND s.remaining > 0
                 GROUP BY s.tour_id) bs
            ON bs.tour_id = t.id
@@ -120,6 +127,11 @@ CREATE PROCEDURE NMT_sp_tour_schedule_list(
 )
 READS SQL DATA
 BEGIN
+    -- Ngừng nhận đặt trước giờ khởi hành bao nhiêu phút (file 28).
+    DECLARE v_cutoff_min INT DEFAULT 60;
+    SET v_cutoff_min = COALESCE((SELECT IF(st.value REGEXP '^[0-9]{1,5}$', CAST(st.value AS UNSIGNED), NULL)
+                                   FROM settings st WHERE st.name = 'booking_cutoff_minutes'), 60);
+
     SELECT
         s.id            AS schedule_id,
         s.starts_at,
@@ -137,7 +149,7 @@ BEGIN
       AND p.approval_status = 'approved'
       AND u.status = 'active'
       AND s.status = 'open'
-      AND s.starts_at > NOW()
+      AND s.starts_at > NOW() + INTERVAL v_cutoff_min MINUTE
       AND s.remaining > 0
     GROUP BY s.id, s.starts_at, s.ends_at, s.capacity, s.remaining
     ORDER BY s.starts_at, s.id;
@@ -160,6 +172,11 @@ CREATE PROCEDURE NMT_sp_tour_ticket_list(
 )
 READS SQL DATA
 BEGIN
+    -- Ngừng nhận đặt trước giờ khởi hành bao nhiêu phút (file 28).
+    DECLARE v_cutoff_min INT DEFAULT 60;
+    SET v_cutoff_min = COALESCE((SELECT IF(st.value REGEXP '^[0-9]{1,5}$', CAST(st.value AS UNSIGNED), NULL)
+                                   FROM settings st WHERE st.name = 'booking_cutoff_minutes'), 60);
+
     SELECT
         tt.id           AS ticket_type_id,
         tt.schedule_id,
@@ -177,7 +194,7 @@ BEGIN
       AND p.approval_status = 'approved'
       AND u.status = 'active'
       AND s.status = 'open'
-      AND s.starts_at > NOW()
+      AND s.starts_at > NOW() + INTERVAL v_cutoff_min MINUTE
       AND s.remaining > 0
       AND tt.active = TRUE
     ORDER BY s.starts_at, s.id, tt.price_vnd DESC, tt.name, tt.id;
@@ -233,6 +250,8 @@ DELIMITER ;
 --   tour_rejected (FR-20), tour_archived (ngừng hiển thị, Sprint 5),
 --   tour_public (đang hiển thị cho khách), booking_total,
 --   booking_pending (yêu cầu chờ xác nhận, cần quản trị viên xử lý).
+--   Số tour không tính "bản sửa" (tours.revision_of khác NULL, file 32), trừ tour_pending:
+--   tour_pending tính cả bản sửa đang chờ duyệt vì quản trị viên cũng phải duyệt bản sửa.
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NMT_sp_admin_summary;
 
@@ -259,13 +278,14 @@ BEGIN
             FROM users
            WHERE role = 'customer') cu
     CROSS JOIN
-         (SELECT COUNT(*)                                     AS tour_total,
-                 COALESCE(SUM(t.approval_status = 'draft'), 0)    AS tour_draft,
-                 COALESCE(SUM(t.approval_status = 'pending'), 0)  AS tour_pending,
-                 COALESCE(SUM(t.approval_status = 'approved'), 0) AS tour_approved,
-                 COALESCE(SUM(t.approval_status = 'rejected'), 0) AS tour_rejected,
-                 COALESCE(SUM(t.approval_status = 'archived'), 0) AS tour_archived,
-                 COALESCE(SUM(t.approval_status = 'approved'
+         (SELECT COALESCE(SUM(t.revision_of IS NULL), 0)      AS tour_total,
+                 COALESCE(SUM(t.revision_of IS NULL AND t.approval_status = 'draft'), 0)    AS tour_draft,
+                 COALESCE(SUM(t.approval_status = 'pending'), 0)                            AS tour_pending,
+                 COALESCE(SUM(t.revision_of IS NULL AND t.approval_status = 'approved'), 0) AS tour_approved,
+                 COALESCE(SUM(t.revision_of IS NULL AND t.approval_status = 'rejected'), 0) AS tour_rejected,
+                 COALESCE(SUM(t.revision_of IS NULL AND t.approval_status = 'archived'), 0) AS tour_archived,
+                 COALESCE(SUM(t.revision_of IS NULL
+                              AND t.approval_status = 'approved'
                               AND p.approval_status = 'approved'
                               AND u.status = 'active'), 0)        AS tour_public
             FROM tours t

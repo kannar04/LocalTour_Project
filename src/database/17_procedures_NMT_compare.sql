@@ -6,7 +6,11 @@
 --             Ô thiếu dữ liệu trả NULL; trang so sánh hiện "Chưa cập nhật" (CompareModel).
 -- Phụ trách : Nguyễn Minh Thức (NMT) - Sprint 5
 -- Procedures: NMT_sp_tour_compare
--- Chạy sau  : 16_migration_sprint5_LTP.sql (bảng tour_packages). Chạy lại được.
+-- Quy tắc   : Lịch đặt được: 'open', còn chỗ, có vé đang bán và còn hơn
+--             settings.booking_cutoff_minutes phút (mặc định 60) mới tới giờ khởi hành, giống
+--             trang chi tiết tour (file 04) và LTP_sp_booking_create (file 10).
+-- Chạy sau  : 16_migration_sprint5_LTP.sql (bảng tour_packages). Khi gọi cần bảng settings
+--             (28_migration_economy_NTK.sql). Chạy lại được.
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
@@ -38,6 +42,11 @@ CREATE PROCEDURE NMT_sp_tour_compare(
 READS SQL DATA
 BEGIN
     DECLARE v_ids VARCHAR(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT REPLACE(COALESCE(p_tour_ids, ''), ' ', '');
+    -- Ngừng nhận đặt trước giờ khởi hành bao nhiêu phút (file 28).
+    DECLARE v_cutoff_min INT DEFAULT 60;
+
+    SET v_cutoff_min = COALESCE((SELECT IF(st.value REGEXP '^[0-9]{1,5}$', CAST(st.value AS UNSIGNED), NULL)
+                                   FROM settings st WHERE st.name = 'booking_cutoff_minutes'), 60);
 
     -- Danh sách bao gồm / lịch trình có thể dài hơn giới hạn mặc định 1024 ký tự.
     SET SESSION group_concat_max_len = 16384;
@@ -103,7 +112,7 @@ BEGIN
                  JOIN ticket_types tt ON tt.schedule_id = s.id AND tt.active = TRUE
                 WHERE FIND_IN_SET(s.tour_id, v_ids) > 0
                   AND s.status = 'open'
-                  AND s.starts_at > NOW()
+                  AND s.starts_at > NOW() + INTERVAL v_cutoff_min MINUTE
                   AND s.remaining > 0
                 GROUP BY s.tour_id) bs
            ON bs.tour_id = t.id
