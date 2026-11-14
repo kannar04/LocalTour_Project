@@ -1,0 +1,2 @@
+# File .bat luôn có xuống dòng CRLF khi lấy mã (clone, tải ZIP): cmd chạy sai file .bat có tiếng Việt mà chỉ có LF.
+*.bat text eol=crlf
