@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Models\AdminTourContentModel;
 use App\Models\AdminTourModel;
+use App\Models\TourRevisionModel;
 use finfo;
 
 /**
@@ -15,8 +16,12 @@ use finfo;
  * của người dùng). Xóa ảnh tải lên thì xóa luôn file. Mỗi thao tác được ghi lịch sử (admin_logs, NFR-09).
  * Xóa tour: tour chưa có đơn thì xóa hẳn; đã có đơn thì chuyển "Ngừng hiển thị" để giữ lịch sử đơn;
  * còn đơn đang xử lý thì không xóa được.
+ * Khu /host (HostTourContentController): đơn vị tổ chức sửa ảnh, lịch trình, dịch vụ và chính sách hủy của tour
+ * của chính mình khi tour đang "Nháp" hoặc "Bị từ chối" (tour đã duyệt sửa qua bản sửa, file 32); xóa / hiển thị lại
+ * tour chỉ dành cho quản trị viên. Bản sửa lúc đầu dùng chung file ảnh với tour gốc nên file chỉ bị xóa khi không còn
+ * dòng ảnh nào dùng tới (removeUpload()).
  */
-final class AdminTourContentController extends AdminController
+class AdminTourContentController extends AdminController
 {
     private const MESSAGES = [
         'image_added' => 'Đã thêm ảnh.',
@@ -320,6 +325,7 @@ final class AdminTourContentController extends AdminController
     /** POST /admin/tours/{id}/delete – confirm=1, _csrf */
     public function deleteTour(string $id): void
     {
+        $this->adminOnly();
         $tour = $this->findTourOrFail($id);
         if (!$this->csrfValid()) {
             $this->renderContent($tour, self::EMPTY_FORM, ['form' => self::CSRF_FAILED], '', 403);
@@ -331,8 +337,11 @@ final class AdminTourContentController extends AdminController
         }
 
         $tourId = (string) $tour['tour_id'];
-        // Tour bị xóa hẳn thì ảnh cũng mất: lấy danh sách trước để xóa file đã tải lên.
+        // Tour bị xóa hẳn thì ảnh cũng mất: lấy danh sách trước để xóa file đã tải lên (kể cả ảnh của bản sửa đang mở).
         $images = $this->content->images($tourId);
+        if (($tour['revision_id'] ?? null) !== null) {
+            $images = array_merge($images, $this->content->images((string) $tour['revision_id']));
+        }
         $row = $this->content->deleteTour($this->actorId(), $tourId);
 
         match ((string) $row['result']) {
@@ -342,13 +351,14 @@ final class AdminTourContentController extends AdminController
             'not_found' => self::notFound(),
             'already_archived' => $this->renderContent($this->findTourOrFail($tourId), self::EMPTY_FORM, ['form' => 'Tour đã ở trạng thái "Ngừng hiển thị".'], '', 409),
             default => $this->renderContent($tour, self::EMPTY_FORM, ['form' => 'Không xóa được: tour còn ' . (int) ($row['active_bookings'] ?? 0)
-                . ' đơn đang chờ xác nhận, chờ thanh toán hoặc đã xác nhận. Hãy xử lý hoặc hủy các đơn này ở trang "Yêu cầu đặt tour" trước.'], '', 409),
+                . ' đơn đang chờ xác nhận, chờ thanh toán hoặc đã xác nhận. Hãy xử lý hoặc hủy các đơn này ở trang "Đơn đặt tour" trước.'], '', 409),
         };
     }
 
     /** POST /admin/tours/{id}/restore – _csrf (tour "Ngừng hiển thị" → "Chờ duyệt") */
     public function restoreTour(string $id): void
     {
+        $this->adminOnly();
         $tour = $this->findTourOrFail($id);
         if (!$this->csrfValid()) {
             $this->renderContent($tour, self::EMPTY_FORM, ['form' => self::CSRF_FAILED], '', 403);
@@ -427,10 +437,16 @@ final class AdminTourContentController extends AdminController
         return [self::UPLOAD_DIR . '/' . $name, null];
     }
 
-    /** Xóa file ảnh đã tải lên (chỉ file do trang này tạo: uploads/tours/<32 ký tự hex>.<đuôi>). */
-    private static function removeUpload(string $url): void
+    /**
+     * Xóa file ảnh đã tải lên (chỉ file do trang này tạo: uploads/tours/<32 ký tự hex>.<đuôi>).
+     * Gọi sau khi dòng ảnh đã bị xóa: file còn được dòng ảnh khác dùng (tour gốc / bản sửa) thì giữ lại.
+     */
+    public static function removeUpload(string $url): void
     {
         if (preg_match('#^' . self::UPLOAD_DIR . '/[a-f0-9]{32}\.(jpg|png|webp)$#D', $url) !== 1) {
+            return;
+        }
+        if ((new TourRevisionModel())->imageInUse($url)) {
             return;
         }
         $path = BASE_PATH . '/public/assets/' . $url;
@@ -461,7 +477,15 @@ final class AdminTourContentController extends AdminController
 
     private function back(string $tourId, string $message): void
     {
-        $this->redirect('/admin/tours/' . $tourId . '/content?msg=' . $message);
+        $this->redirect($this->base . '/tours/' . $tourId . '/content?msg=' . $message);
+    }
+
+    /** Xóa / hiển thị lại tour: chỉ quản trị viên (khu /host không có đường dẫn này). */
+    private function adminOnly(): void
+    {
+        if ($this->host !== null) {
+            self::forbidden();
+        }
     }
 
     /** @return array<string, string> */
@@ -479,8 +503,12 @@ final class AdminTourContentController extends AdminController
     {
         $tourId = self::parseUuid($id);
         $tour = $tourId === null ? null : (new AdminTourModel())->find($tourId);
+        if ($tour === null) {
+            self::notFound();
+        }
+        $this->authorizeTour((string) $tour['tour_id']);
 
-        return $tour ?? self::notFound();
+        return $tour;
     }
 
     /**
