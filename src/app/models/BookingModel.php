@@ -7,9 +7,10 @@ namespace App\Models;
 use Core\Database;
 
 /**
- * Lưu yêu cầu đặt tour (M4 mục 6 – Lê Trung Phong): một đơn 'pending' kèm dòng vé, phụ thu / tùy chọn khách chọn
- * (Sprint 4, 4.3.3.1), gói tour khách chọn (Sprint 5, US06-S5-01) và danh sách khách; ghi lịch sử "tạo đơn" (4.3.3.2).
- * Procedure: LTP_sp_booking_create.
+ * Lưu đơn đặt tour (M4 mục 6 – Lê Trung Phong): một đơn 'awaiting_payment' (Chờ thanh toán) đã giữ chỗ, kèm dòng vé,
+ * phụ thu / tùy chọn khách chọn (Sprint 4, 4.3.3.1), gói tour khách chọn (Sprint 5, US06-S5-01) và danh sách khách;
+ * ghi lịch sử "tạo đơn" (4.3.3.2). Đặt ngay, không chờ quản trị viên xác nhận chỗ (Nguyễn Tuấn Khôi).
+ * Procedure: LTP_sp_booking_create, NTK_sp_booking_rules.
  */
 final class BookingModel
 {
@@ -19,7 +20,7 @@ final class BookingModel
     public const EXTRAS_MAX = 20;
 
     /**
-     * Tạo yêu cầu đặt tour. Trả dòng kết quả của procedure: result (ok, duplicate, forbidden, invalid,
+     * Tạo đơn đặt tour và giữ chỗ. Trả dòng kết quả của procedure: result (ok, duplicate, forbidden, invalid,
      * schedule_unavailable, group_limit, no_seats, tickets_changed, extras_changed, package_changed, price_changed,
      * retry), booking_code, total_vnd, remaining, max_group_size.
      *
@@ -55,5 +56,22 @@ final class BookingModel
         ]);
 
         return $rows[0] ?? ['result' => 'retry'];
+    }
+
+    /**
+     * Thông số đặt tour đang áp dụng (bảng settings): số phút giữ chỗ, ngừng nhận đặt trước giờ khởi hành bao nhiêu
+     * phút, còn dưới bao nhiêu giờ tới giờ khởi hành thì không nhận chuyển khoản VietQR.
+     *
+     * @return array{hold_minutes: int, booking_cutoff_minutes: int, vietqr_cutoff_hours: int}
+     */
+    public function rules(): array
+    {
+        $row = Database::call('NTK_sp_booking_rules')[0] ?? [];
+
+        return [
+            'hold_minutes' => (int) ($row['hold_minutes'] ?? 30),
+            'booking_cutoff_minutes' => (int) ($row['booking_cutoff_minutes'] ?? 60),
+            'vietqr_cutoff_hours' => (int) ($row['vietqr_cutoff_hours'] ?? 24),
+        ];
     }
 }

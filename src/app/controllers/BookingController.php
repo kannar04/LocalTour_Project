@@ -6,19 +6,23 @@ namespace App\Controllers;
 
 use App\Models\BookingAvailabilityModel;
 use App\Models\BookingModel;
+use App\Models\CustomerBookingModel;
+use App\Models\PaymentResultModel;
 use App\Models\TourContentModel;
 use App\Models\TourDetailModel;
 use App\Models\TourPackageModel;
 use App\Models\UserModel;
+use App\Services\MomoGateway;
 use Core\Auth;
 use Core\Controller;
 use Core\Router;
 
 /**
- * Đặt tour (M4 mục 6, 8 – Lê Trung Phong): trang "Hoàn tất thông tin đặt tour" và API lưu yêu cầu đặt tour.
+ * Đặt tour (M4 mục 6, 8 – Lê Trung Phong): trang "Hoàn tất thông tin đặt tour" và API lưu đơn đặt tour.
  * Chỉ tài khoản khách hàng đặt được; chế độ khách được chuyển tới đăng nhập rồi quay lại đúng trang.
- * Đơn mới ở trạng thái 'pending' (Chờ xác nhận), chưa giữ chỗ và chưa thu tiền. Sprint 4: khách chọn phụ thu / hoạt động
- * tùy chọn (4.3.2.3); API kiểm tra lại và lưu cùng đơn (4.3.3.1, 4.3.3.2). Thanh toán mở sau khi quản trị viên xác nhận chỗ.
+ * Đặt ngay (Nguyễn Tuấn Khôi): đơn mới giữ chỗ luôn và ở trạng thái 'awaiting_payment' (Chờ thanh toán), không chờ quản
+ * trị viên xác nhận chỗ; API trả địa chỉ trang thanh toán của đơn, khách thanh toán trong hạn giữ chỗ (quá hạn đơn tự hủy).
+ * Sprint 4: khách chọn phụ thu / hoạt động tùy chọn (4.3.2.3); API kiểm tra lại và lưu cùng đơn (4.3.3.1, 4.3.3.2).
  * Sprint 5 (US06-S5-01): tour chia gói thì khách chọn một gói, giá vé người lớn / trẻ em lấy theo gói.
  */
 final class BookingController extends Controller
@@ -100,6 +104,8 @@ final class BookingController extends Controller
             'selectedTickets' => $this->selectedTickets(),
             'scheduleNotice' => $scheduleNotice,
             'contact' => ['name' => $user['name'], 'email' => $user['email'], 'phone' => ''],
+            'rules' => $this->bookings->rules(),
+            'momoEnabled' => MomoGateway::enabled(require BASE_PATH . '/config/payment.php'),
             // Mỗi lần mở form một mã mới: gửi lại cùng form (bấm 2 lần, mạng chập chờn) chỉ tạo một đơn.
             'requestToken' => bin2hex(random_bytes(16)),
             'loginUrl' => url('/login') . '?next=' . rawurlencode(self::currentPath()),
@@ -147,18 +153,30 @@ final class BookingController extends Controller
         $remaining = (int) ($row['remaining'] ?? 0);
         $maxGroup = (int) ($row['max_group_size'] ?? 0);
 
+        // Gửi lại cùng form sau khi đơn trước đã hết hạn giữ chỗ hoặc đã đóng (vd. khách bấm Back của trình duyệt rồi đặt
+        // lại): không chuyển tới trang thanh toán đã hết tác dụng, báo để khách tải lại trang (mã yêu cầu mới).
+        if ($result === 'duplicate') {
+            PaymentResultModel::expireHoldsQuietly();
+            $existing = (new CustomerBookingModel())->find($user['user_id'], $code);
+            if ($existing === null || $existing['status'] !== 'awaiting_payment') {
+                $this->conflict('duplicate_closed', 'Đơn trước đã hết hạn giữ chỗ hoặc đã đóng, vui lòng tải lại trang để đặt lại.');
+            }
+        }
+
         match ($result) {
-            'ok' => $this->json(true, 'Đã gửi yêu cầu đặt tour.', [
+            // Đã giữ chỗ: sang thẳng trang thanh toán của đơn.
+            'ok' => $this->json(true, 'Đã giữ chỗ. Vui lòng thanh toán để hoàn tất đặt tour.', [
                 'code' => $code,
-                'url' => url('/bookings/' . $code) . '?new=1',
+                'url' => url('/bookings/' . $code . '/pay') . '?new=1',
             ], 201),
-            'duplicate' => $this->json(true, 'Yêu cầu này đã được gửi trước đó.', [
+            // Gửi lại cùng form khi đơn còn chờ thanh toán: không tạo đơn mới, tới trang thanh toán của đơn đó.
+            'duplicate' => $this->json(true, 'Đơn này đã được tạo trước đó.', [
                 'code' => $code,
-                'url' => url('/bookings/' . $code),
+                'url' => url('/bookings/' . $code . '/pay'),
             ]),
             'forbidden' => $this->json(false, 'Tài khoản của bạn hiện không đặt tour được.', null, 403),
             'invalid' => $this->json(false, 'Vui lòng kiểm tra lại thông tin đặt tour.', ['errors' => []], 422),
-            'schedule_unavailable' => $this->conflict($result, 'Lịch này không còn nhận đặt. Vui lòng chọn ngày khác.'),
+            'schedule_unavailable' => $this->conflict($result, 'Lịch này không còn nhận đặt (đã đóng hoặc quá sát giờ khởi hành). Vui lòng chọn ngày khác.'),
             'group_limit' => $this->conflict($result, 'Mỗi nhóm tối đa ' . $maxGroup . ' khách.', ['max_group_size' => $maxGroup]),
             'no_seats' => $this->conflict(
                 $result,
@@ -177,7 +195,7 @@ final class BookingController extends Controller
                 'Giá vừa thay đổi, tổng tiền mới là ' . format_vnd((int) $row['total_vnd']) . '. Vui lòng xem lại trước khi gửi.',
                 ['total_vnd' => (int) $row['total_vnd'], 'tickets' => $this->ticketOptions($form['schedule_id'])]
             ),
-            default => $this->conflict('retry', 'Chưa gửi được yêu cầu, vui lòng bấm gửi lại.'),
+            default => $this->conflict('retry', 'Chưa đặt được tour, vui lòng bấm đặt lại.'),
         };
     }
 
@@ -340,7 +358,7 @@ final class BookingController extends Controller
             'name' => (string) $extra['name'],
             'price' => $price,
             'perPerson' => in_array(mb_strtolower($unit), self::PER_PERSON_UNITS, true),
-            'priceText' => $price === null ? 'Giá cập nhật khi xác nhận chỗ' : format_vnd($price) . ($unit !== '' ? ' / ' . $unit : ' / nhóm'),
+            'priceText' => $price === null ? 'Chưa có giá, chưa chọn được' : format_vnd($price) . ($unit !== '' ? ' / ' . $unit : ' / nhóm'),
             'conditions' => trim((string) ($extra['conditions'] ?? '')),
         ];
     }

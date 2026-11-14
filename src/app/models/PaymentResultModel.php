@@ -9,7 +9,8 @@ use Throwable;
 
 /**
  * Kết quả thanh toán và hạn giữ chỗ (Sprint 4 – Lê Trung Phong): ghi kết quả VNPay đã xác minh chữ ký
- * (4.5.2.1 Return URL, 4.5.2.2 IPN, idempotent) và tự hủy đơn quá hạn thanh toán 24 giờ (4.5.4.1).
+ * (4.5.2.1 Return URL, 4.5.2.2 IPN, idempotent) và tự hủy đơn "Chờ thanh toán" quá hạn giữ chỗ (4.5.4.1; hạn = settings.hold_minutes phút từ lúc đặt, đơn cũ 24 giờ từ lúc
+ * quản trị viên xác nhận chỗ).
  * Procedure: LTP_sp_payment_vnpay_result, LTP_sp_booking_expire_holds.
  */
 final class PaymentResultModel
@@ -47,8 +48,9 @@ final class PaymentResultModel
     }
 
     /**
-     * Chạy tự hủy trước khi mở trang đơn / trang quản trị, để trạng thái luôn đúng kể cả khi Task Scheduler
-     * chưa chạy scripts/expire_holds.php. Lỗi chỉ ghi log, không làm hỏng trang.
+     * Chạy tự hủy đơn quá hạn rồi việc sau tour (NTK_sp_payout_sweep: đơn của lịch đã kết thúc tự "Đã hoàn thành", lập
+     * khoản chi trả) trước khi mở trang đơn / trang quản trị, để trạng thái luôn đúng kể cả khi Task Scheduler chưa chạy
+     * scripts/expire_holds.php. Hai bước độc lập: bước này lỗi thì bước kia vẫn chạy. Lỗi chỉ ghi log, không làm hỏng trang.
      */
     public static function expireHoldsQuietly(): void
     {
@@ -56,6 +58,13 @@ final class PaymentResultModel
             (new self())->expireHolds();
         } catch (Throwable $exception) {
             error_log('LocalTour: không tự hủy được đơn quá hạn: ' . $exception->getMessage());
+        }
+
+        // Dòng tiền sau tour (Nguyễn Tuấn Khôi, file 30): đơn của lịch đã kết thúc tự "Đã hoàn thành", lập khoản chi trả.
+        try {
+            (new PayoutModel())->sweep();
+        } catch (Throwable $exception) {
+            error_log('LocalTour: không chạy được việc sau tour (tự hoàn thành đơn, lập khoản chi trả): ' . $exception->getMessage());
         }
     }
 }
