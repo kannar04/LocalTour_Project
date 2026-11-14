@@ -20,7 +20,9 @@ use Throwable;
  * Thanh toán đơn đặt tour của khách hàng (Sprint 4 – Nguyễn Minh Thức): chọn phương thức (4.5.1.1), tạo yêu cầu
  * VNPay có chữ ký đúng đơn, số tiền và hạn (4.5.1.2, FR-17), mã VietQR đúng số tiền và mã thanh toán (4.5.3.1)
  * rồi báo đã chuyển khoản để quản trị viên đối chiếu (4.5.3.2).
- * Chỉ đơn "Chờ thanh toán" còn hạn giữ chỗ mới thanh toán được; số tiền là tổng giá quản trị viên đã chốt.
+ * Chỉ đơn "Chờ thanh toán" còn hạn giữ chỗ mới thanh toán được; số tiền là tổng tiền của đơn.
+ * Đặt ngay (Nguyễn Tuấn Khôi): khách tới trang này ngay sau khi đặt (?new=1). VietQR cần quản trị viên đối chiếu tay nên
+ * không nhận khi sát giờ khởi hành (settings.vietqr_cutoff_hours): trang ẩn nút, NMT_sp_payment_start cũng chặn.
  */
 final class PaymentController extends Controller
 {
@@ -33,6 +35,7 @@ final class PaymentController extends Controller
         'vnpay' => 'Chưa tạo được yêu cầu thanh toán VNPay, vui lòng thử lại.',
         'momo' => 'Chưa tạo được yêu cầu thanh toán MoMo, vui lòng thử lại.',
         'momo_amount' => 'MoMo chỉ nhận thanh toán từ 10.000đ đến 50.000.000đ, vui lòng chọn phương thức khác.',
+        'vietqr_closed' => 'Đã sát giờ khởi hành nên không nhận chuyển khoản VietQR nữa. Vui lòng thanh toán qua VNPay.',
     ];
 
     private CustomerBookingModel $bookings;
@@ -60,7 +63,7 @@ final class PaymentController extends Controller
         PaymentResultModel::expireHoldsQuietly();
     }
 
-    /** GET /bookings/{code}/pay – chọn VNPay, MoMo hoặc VietQR. */
+    /** GET /bookings/{code}/pay – chọn VNPay hoặc VietQR (MoMo khi được bật). */
     public function checkout(string $code): void
     {
         $booking = $this->findOrFail($code);
@@ -74,10 +77,16 @@ final class PaymentController extends Controller
         }
 
         $config = self::config();
+        $options = $this->payments->options($this->user['user_id'], $code);
         $this->render('payments/checkout', [
             'title' => 'Thanh toán đơn ' . $code,
             'activeNav' => 'bookings',
             'booking' => $booking,
+            // Thông báo "Đã giữ chỗ" chỉ hiện ngay sau khi đặt (?new=1 và đơn tạo trong 2 phút gần đây), không hiện lại khi
+            // khách mở lại đường dẫn này về sau.
+            'justCreated' => $this->query('new') === '1' && time() - (int) strtotime((string) $booking['created_at']) <= 120,
+            'vietqrOpen' => $options['vietqr_open'],
+            'vietqrCutoffHours' => $options['vietqr_cutoff_hours'],
             'lines' => $this->bookings->lines($this->user['user_id'], $code),
             'extras' => $this->bookings->extras($this->user['user_id'], $code),
             'vnpayEnabled' => VnpayGateway::enabled($config),
@@ -195,6 +204,7 @@ final class PaymentController extends Controller
             'ok' => $this->redirect($okPath !== '' ? $okPath : '/bookings/' . $code . '/pay'),
             'expired' => $this->redirect('/bookings/' . $code . '?pay=expired'),
             'awaiting_reconciliation' => $this->redirect('/bookings/' . $code . '/pay/vietqr'),
+            'vietqr_closed' => $this->redirect('/bookings/' . $code . '/pay?error=vietqr_closed'),
             'not_found' => $this->notFound(),
             default => $this->redirect('/bookings/' . $code),
         };

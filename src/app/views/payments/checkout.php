@@ -2,9 +2,13 @@
 <?php
 /*
  * Chọn phương thức thanh toán (Sprint 4, 4.5.1.1 – Nguyễn Minh Thức): VNPay (sandbox), MoMo (môi trường thử –
- * Nguyễn Tuấn Khôi) hoặc chuyển khoản VietQR cho đơn "Chờ thanh toán". Số tiền là tổng giá LocalTour đã chốt.
- * Biến: $booking (NTK_sp_customer_booking_detail), $lines, $extras, $vnpayEnabled, $vietqrEnabled, $momoEnabled,
- *       $momoAmountOk (tổng tiền nằm trong hạn mức MoMo), $error ('' = không có), $title.
+ * Nguyễn Tuấn Khôi) hoặc chuyển khoản VietQR cho đơn "Chờ thanh toán". Số tiền là tổng tiền của đơn.
+ * Biến: $booking (NTK_sp_customer_booking_detail), $lines, $extras, $vnpayEnabled, $vietqrEnabled,
+ *       $momoEnabled (false = chưa cấu hình MoMo trong .env, trang không hiện MoMo),
+ *       $momoAmountOk (tổng tiền nằm trong hạn mức MoMo), $error ('' = không có), $title,
+ *       $justCreated (vừa đặt xong, khách được chuyển thẳng tới đây), $vietqrOpen (false = sát giờ khởi hành,
+ *       không nhận VietQR), $vietqrCutoffHours (số giờ trước giờ khởi hành ngừng nhận VietQR).
+ * Đặt ngay: chỗ đã được giữ lúc đặt tới $booking['hold_expires_at']; quá hạn chưa thanh toán thì đơn tự hủy.
  */
 $code = (string) $booking['code'];
 $holdUntil = format_datetime($booking['hold_expires_at'] === null ? null : (string) $booking['hold_expires_at']);
@@ -39,6 +43,16 @@ $adjustment = $totalVnd - (int) $booking['tickets_vnd'] - (int) $booking['extras
             </ol>
         </div>
 
+<?php if ($justCreated): ?>
+        <div class="lt-book-success" role="status">
+            <span class="lt-icon lt-icon--check" aria-hidden="true"></span>
+            <div>
+                <p class="lt-book-success__title">Đã giữ chỗ cho đơn <?= e($code) ?></p>
+                <p>Chọn phương thức và thanh toán<?= $holdUntil !== '' ? ' trước <strong>' . e($holdUntil) . '</strong>' : '' ?> để hoàn tất đặt tour. Đơn cũng nằm trong Đơn của tôi.</p>
+            </div>
+        </div>
+<?php endif; ?>
+
 <?php if ($error !== ''): ?>
         <div class="lt-book-alert" role="alert">
             <span class="lt-icon lt-icon--alert" aria-hidden="true"></span>
@@ -50,7 +64,7 @@ $adjustment = $totalVnd - (int) $booking['tickets_vnd'] - (int) $booking['extras
             <div class="col-12 col-lg-7 col-xl-8">
                 <section class="lt-book-card" aria-labelledby="pay-method-title">
                     <h2 class="lt-book-card__title" id="pay-method-title">Chọn phương thức thanh toán</h2>
-                    <p class="lt-field__hint">Môi trường thử nghiệm của đồ án: VNPay và MoMo chạy môi trường thử, vui lòng không chuyển tiền thật.</p>
+                    <p class="lt-field__hint">Môi trường thử nghiệm của đồ án: VNPay<?= $momoEnabled ? ' và MoMo' : '' ?> chạy môi trường thử, vui lòng không chuyển tiền thật.</p>
 
                     <div class="lt-pay-methods">
                         <form class="lt-pay-method" action="<?= e(url('/bookings/' . $code . '/pay/vnpay')) ?>" method="post">
@@ -64,20 +78,21 @@ $adjustment = $totalVnd - (int) $booking['tickets_vnd'] - (int) $booking['extras
 <?php endif; ?>
                         </form>
 
+<?php if ($momoEnabled): ?>
                         <form class="lt-pay-method" action="<?= e(url('/payments/momo/' . $code)) ?>" method="post">
                             <?= csrf_field() ?>
                             <h3 class="lt-pay-method__title">MoMo</h3>
                             <p class="lt-pay-method__text">Ví MoMo, thẻ ATM nội địa hoặc thẻ quốc tế qua cổng MoMo. Đơn được xác nhận ngay khi thanh toán thành công.</p>
-<?php if (!$momoEnabled): ?>
-                            <button class="lt-btn lt-btn--outline lt-btn--block" type="button" disabled>MoMo đang tạm ngưng</button>
-<?php elseif (!$momoAmountOk): ?>
+<?php if (!$momoAmountOk): ?>
                             <button class="lt-btn lt-btn--outline lt-btn--block" type="button" disabled aria-describedby="momo-limit">Không dùng được MoMo</button>
                             <p class="lt-field__hint" id="momo-limit">MoMo chỉ nhận thanh toán từ 10.000đ đến 50.000.000đ.</p>
 <?php else: ?>
                             <button class="lt-btn lt-btn--outline lt-btn--block" type="submit">Thanh toán qua MoMo</button>
 <?php endif; ?>
                         </form>
+<?php endif; ?>
 
+<?php if ($vietqrOpen): ?>
                         <form class="lt-pay-method" action="<?= e(url('/bookings/' . $code . '/pay/vietqr')) ?>" method="post">
                             <?= csrf_field() ?>
                             <h3 class="lt-pay-method__title">Chuyển khoản VietQR</h3>
@@ -88,6 +103,12 @@ $adjustment = $totalVnd - (int) $booking['tickets_vnd'] - (int) $booking['extras
                             <button class="lt-btn lt-btn--outline lt-btn--block" type="button" disabled>VietQR đang tạm ngưng</button>
 <?php endif; ?>
                         </form>
+<?php else: ?>
+                        <div class="lt-pay-method" id="pay-vietqr-closed">
+                            <h3 class="lt-pay-method__title">Chuyển khoản VietQR</h3>
+                            <p class="lt-pay-method__text">Không dùng được cho đơn này: còn dưới <?= e((int) $vietqrCutoffHours) ?> giờ tới giờ khởi hành nên LocalTour không kịp đối chiếu chuyển khoản. Vui lòng thanh toán qua VNPay<?= $momoEnabled ? ' hoặc MoMo' : '' ?> để đơn được xác nhận ngay.</p>
+                        </div>
+<?php endif; ?>
                     </div>
                 </section>
             </div>
@@ -122,7 +143,7 @@ $adjustment = $totalVnd - (int) $booking['tickets_vnd'] - (int) $booking['extras
                     <div class="lt-booking__total">
                         <div class="lt-booking__total-main">
                             <span class="lt-booking__total-label">Cần thanh toán</span>
-                            <span class="lt-booking__total-formula">Giá LocalTour đã chốt · VND</span>
+                            <span class="lt-booking__total-formula"><?= $adjustment !== 0 ? 'Giá LocalTour đã chốt · VND' : 'Vé + phụ thu / tùy chọn · VND' ?></span>
                         </div>
                         <strong class="lt-booking__total-value"><?= e(format_vnd($totalVnd)) ?></strong>
                     </div>
