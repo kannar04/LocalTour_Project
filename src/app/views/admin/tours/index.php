@@ -2,7 +2,8 @@
 <?php
 /*
  * Danh sách tour cho quản trị viên duyệt (FR-24, Lê Trung Phong).
- * Biến: $filter ('pending' | 'approved' | 'rejected' | 'archived' | 'all'), $tours (LTP_sp_admin_tour_list),
+ * Biến: $filter ('pending' | 'approved' | 'rejected' | 'archived' | 'all'), $tours (LTP_sp_admin_tour_list;
+ *       revision_of khác null = bản sửa của một tour đã duyệt, Sprint 6),
  *       $success (thông báo sau khi xóa tour, '' = không có).
  */
 use App\Controllers\AdminTourController;
@@ -57,6 +58,9 @@ use App\Controllers\AdminTourController;
                                 <td>
                                     <strong><?= e($tour['title']) ?></strong>
                                     <span class="lt-table__sub"><?= e($tour['destination_name']) ?><?= $tour['category_name'] !== null ? ' · ' . e($tour['category_name']) : '' ?></span>
+<?php if ($tour['revision_of'] !== null): ?>
+                                    <span class="lt-table__sub">Bản sửa của tour đã duyệt: <?= e($tour['revision_of_title']) ?></span>
+<?php endif; ?>
                                 </td>
                                 <td><?= e($tour['provider_name']) ?></td>
                                 <td><span class="lt-badge lt-badge--<?= e($tour['approval_status']) ?>"><?= e(tour_status_label($tour['approval_status'])) ?></span></td>
