@@ -6,14 +6,14 @@
 | WBS | 6.2 – User Guide đặt tour; 6.11 – Cập nhật tài liệu theo CR2 |
 | Người phụ trách | Hồ Duy Hải, Đỗ Sơn Thành |
 | Căn cứ | Giao diện bản tích hợp Sprint 6, gồm yêu cầu thay đổi CR2 (đặt tour giữ chỗ ngay, tài khoản đơn vị tổ chức, phí dịch vụ và chi trả, thông số vận hành); Product Backlog (US-01 → US-29); [Sprint 5 – Yêu cầu và luồng](../sprint5/01-yeu-cau-va-luong-sprint5.md); [Sprint 4 – Yêu cầu và luồng đặt tour](../sprint4/02-yeu-cau-va-luong-dat-tour.md) |
-| Tài liệu liên quan | [01 – Kế hoạch Sprint 6](01-ke-hoach-sprint6.md), [02 – Hướng dẫn cài đặt](02-huong-dan-cai-dat.md), [04 – Kế hoạch và checklist UAT](04-uat-checklist.md) |
-| Trạng thái | Bản nháp; nội dung đã cập nhật theo CR2. Ảnh minh họa đã chụp lại trên bản tích hợp có CR2 (13/11/2026); đối chiếu với gói demo 6.3, chốt ngày 15/11/2026 trước khi gửi nhóm PCG. |
+| Tài liệu liên quan | [01 – Kế hoạch Sprint 6](01-ke-hoach-sprint6.md), [04 – Kế hoạch và checklist UAT](04-uat-checklist.md) |
+| Trạng thái | Bản nháp; nội dung đã cập nhật theo CR2. Ảnh minh họa đã chụp lại trên bản tích hợp có CR2 (13/11/2026); đối chiếu với bản demo 6.3 trên trang demo, chốt ngày 15/11/2026 trước khi gửi nhóm PCG. |
 
 Tên nút, nhãn và thông báo trong tài liệu chép đúng như trên màn hình. Ảnh minh họa dùng dữ liệu thử (tài khoản `khach.a@localtour.test`, đơn LT577460, đơn vị tổ chức “Hà Nội Local”); tài khoản ngân hàng trong ảnh là số mẫu.
 
 ## 1. Trước khi bắt đầu
 
-Cài đặt, tạo tài khoản quản trị và điền khóa thanh toán theo [02 – Hướng dẫn cài đặt](02-huong-dan-cai-dat.md). Đường dẫn trong tài liệu (ví dụ `/tours`) viết sau địa chỉ trang web đã cài.
+Mở trang demo https://localtour.alwaysdata.net bằng trình duyệt; không cần cài đặt gì. Đường dẫn trong tài liệu (ví dụ `/tours`) viết sau địa chỉ này. Tài khoản quản trị do nhóm LocalTour cấp (nhóm PCG: file `GuiNhomPCG_DiaChi_TaiKhoan.txt`); trang demo đã có sẵn khóa thanh toán.
 
 | Vai trò | Làm được | Vào từ |
 | --- | --- | --- |
@@ -119,7 +119,7 @@ Thanh toán được khi đơn ở **Chờ thanh toán** và còn hạn giữ ch
 ![Đơn chờ thanh toán](images/06-don-cho-thanh-toan.png)
 
 1. Bấm **Thanh toán ngay** → trang “Thanh toán đơn LTxxxxxx”, phần “Chọn phương thức thanh toán”.
-2. **VNPay:** bấm **Thanh toán qua VNPay** → cổng VNPay sandbox → thanh toán bằng thẻ thử của VNPay sandbox (xem [02 – Hướng dẫn cài đặt](02-huong-dan-cai-dat.md)). VNPay trả về trang đơn với “Thanh toán VNPay thành công. Đơn đã được xác nhận và voucher đã sẵn sàng.” Hủy ở cổng VNPay thì về trang đơn với “Bạn đã hủy giao dịch ở VNPay.”, đơn vẫn **Chờ thanh toán** và thanh toán lại được trong hạn.
+2. **VNPay:** bấm **Thanh toán qua VNPay** → cổng VNPay sandbox → thanh toán bằng thẻ thử của VNPay sandbox (nhóm PCG: số thẻ trong file `GuiNhomPCG_DiaChi_TaiKhoan.txt`). VNPay trả về trang đơn với “Thanh toán VNPay thành công. Đơn đã được xác nhận và voucher đã sẵn sàng.” Hủy ở cổng VNPay thì về trang đơn với “Bạn đã hủy giao dịch ở VNPay.”, đơn vẫn **Chờ thanh toán** và thanh toán lại được trong hạn.
 3. **VietQR:** bấm **Lấy mã VietQR** → trang “Chuyển khoản VietQR” có mã QR, số tiền và nội dung chuyển khoản (mã thanh toán dạng `LTxxxxxxP1`). Chuyển đúng số tiền và nội dung, rồi bấm **Tôi đã chuyển khoản**. Trang đơn báo “Đã ghi nhận bạn báo chuyển khoản. LocalTour sẽ đối chiếu rồi xác nhận đơn; đơn không bị tự hủy trong lúc chờ.”, khoản ở **Chờ đối chiếu**.
 4. Đơn còn dưới 24 giờ tới giờ khởi hành: thẻ “Chuyển khoản VietQR” ghi “Không dùng được cho đơn này: còn dưới 24 giờ tới giờ khởi hành nên LocalTour không kịp đối chiếu chuyển khoản.” và không có nút **Lấy mã VietQR**; thanh toán bằng VNPay.
 5. Muốn xem lại mã chuyển khoản: bấm **Xem thông tin chuyển khoản** ở trang đơn. Ở trang chuyển khoản, **Chọn phương thức khác** để quay lại chọn VNPay; **Về trang đơn** để về đơn.
@@ -160,7 +160,7 @@ Thanh toán được khi đơn ở **Chờ thanh toán** và còn hạn giữ ch
 
 ### 4.1. Đăng nhập quản trị
 
-1. Mở `/admin/login` (“Đăng nhập quản trị”), nhập Email, Mật khẩu của tài khoản quản trị tạo lúc cài đặt, bấm **Đăng nhập**.
+1. Mở `/admin/login` (“Đăng nhập quản trị”), nhập Email, Mật khẩu của tài khoản quản trị nhóm LocalTour cấp, bấm **Đăng nhập**.
 2. Menu trái: Tổng quan, Duyệt tour, Đơn vị tổ chức, Đơn đặt tour, Đổi ngày / hủy tour, Đối chiếu thanh toán, Chi trả đơn vị tổ chức, Thông số vận hành, Về trang khách, Đăng xuất.
 3. Tài khoản khách hàng hoặc tài khoản đơn vị tổ chức mở trang quản trị sẽ thấy “Bạn không có quyền truy cập trang này.”
 
@@ -190,7 +190,7 @@ Thanh toán được khi đơn ở **Chờ thanh toán** và còn hạn giữ ch
 
 ### 4.4. Xử lý giao dịch VNPay chưa rõ kết quả
 
-Khi chạy ở máy cục bộ, VNPay không gọi được IPN; kết quả chỉ ghi khi khách quay về từ cổng VNPay. Khoản VNPay không có kết quả sau 15 phút hiện ở mục “Giao dịch VNPay chưa rõ kết quả” của **Đối chiếu thanh toán**.
+Kết quả VNPay được ghi khi khách quay về LocalTour từ cổng VNPay. Khoản VNPay chưa có kết quả sau 15 phút (ví dụ khách đóng tab cổng VNPay) hiện ở mục “Giao dịch VNPay chưa rõ kết quả” của **Đối chiếu thanh toán**.
 
 1. Bấm **Đối chiếu** ở khoản đó, tra mã thanh toán (`LTxxxxxxPn`) trên cổng VNPay sandbox.
 2. Có giao dịch thành công: nhập “Mã giao dịch VNPay (khi có giao dịch thành công)” (chỉ chữ số), bấm **Có giao dịch thành công**. Đơn còn chờ thanh toán thì chuyển “Đã xác nhận” và có voucher; đơn đã hủy thì hệ thống tạo yêu cầu hoàn tiền.
@@ -259,7 +259,7 @@ Tour chỉ hiện cho khách khi tour đã được duyệt và đơn vị tổ 
 
 ### 4.10. Chi trả cho đơn vị tổ chức
 
-Khi lịch khởi hành kết thúc, hệ thống tự chuyển các đơn “Đã xác nhận” của lịch sang “Đã hoàn thành” và lập một khoản chi trả cho lịch đó. Thực nhận = tiền thực thu (khách đã trả, đã trừ tiền hoàn) − phí dịch vụ LocalTour (theo mức lưu trong từng đơn lúc đặt). Hệ thống không tự chuyển tiền. Bước tự động này chạy mỗi khi mở trang “Chi trả đơn vị tổ chức” và theo tác vụ định kỳ cài ở [02 – Hướng dẫn cài đặt](02-huong-dan-cai-dat.md).
+Khi lịch khởi hành kết thúc, hệ thống tự chuyển các đơn “Đã xác nhận” của lịch sang “Đã hoàn thành” và lập một khoản chi trả cho lịch đó. Thực nhận = tiền thực thu (khách đã trả, đã trừ tiền hoàn) − phí dịch vụ LocalTour (theo mức lưu trong từng đơn lúc đặt). Hệ thống không tự chuyển tiền. Bước tự động này chạy mỗi khi mở trang “Chi trả đơn vị tổ chức” và theo tác vụ định kỳ của trang demo (5 phút một lần).
 
 1. Bấm **Chi trả đơn vị tổ chức**. Ba ô đầu trang: “Tiền thực thu”, “Phí dịch vụ LocalTour”, “Thực nhận chờ chi trả”. Tab: Chờ chi trả, Đã chi trả, Tất cả. Đầu trang ghi mốc “Chi trả được lập cho các lịch kết thúc từ …”.
 2. Mỗi dòng là một lịch khởi hành: Đơn vị tổ chức, Tiền thực thu, Phí dịch vụ, Thực nhận, Trạng thái. Dòng ghi “Chưa khai tài khoản nhận tiền” hoặc “Tài khoản chưa xác minh” thì chưa chuyển khoản được. Bấm **Chi trả**.
@@ -391,9 +391,9 @@ Thông tin, ảnh, lịch trình, dịch vụ và chính sách hủy của tour 
 | Trang đặt tour báo “Tài khoản này không đặt tour được” | Đang đăng nhập bằng tài khoản quản trị hoặc tài khoản đơn vị tổ chức. | Đăng xuất, đăng nhập bằng tài khoản khách hàng. |
 | Không thấy ngày muốn đi ở ô “Ngày tham gia” | Lịch đã hết chỗ, đã hủy, hoặc còn dưới 60 phút tới giờ khởi hành. | Chọn ngày khác. |
 | Bấm **Đặt tour và thanh toán** thì báo “Lịch này vừa hết chỗ…” hoặc “Lịch này không còn nhận đặt…” | Lịch vừa hết chỗ hoặc vừa quá hạn nhận đặt trong lúc điền thông tin. | Chọn ngày khác rồi đặt lại. |
-| Nút ghi “VNPay đang tạm ngưng” / “VietQR đang tạm ngưng” | Máy chưa điền khóa thanh toán. | Điền khóa theo [02 – Hướng dẫn cài đặt](02-huong-dan-cai-dat.md). |
+| Nút ghi “VNPay đang tạm ngưng” / “VietQR đang tạm ngưng” | Trang chưa có khóa thanh toán. | Báo nhóm LocalTour. |
 | Thẻ “Chuyển khoản VietQR” ghi “Không dùng được cho đơn này…” | Còn dưới 24 giờ tới giờ khởi hành. | Thanh toán bằng VNPay. |
-| Ảnh tour chỉ là ô xám có biểu tượng ảnh | File ảnh tải lên không có trên máy này. | Chép thư mục ảnh tải lên theo 02. |
+| Ảnh tour chỉ là ô xám có biểu tượng ảnh | File ảnh tải lên không có trên máy chủ. | Báo nhóm LocalTour kèm địa chỉ trang tour. |
 | Đơn “Chờ thanh toán” chuyển “Đã hủy” | Quá thời gian giữ chỗ (mặc định 30 phút) mà chưa thanh toán. | Đặt lại tour và thanh toán trong hạn. |
 | Không gửi được yêu cầu đổi ngày / hủy | Đơn đang có một yêu cầu chờ xử lý, tour đã khởi hành hoặc đơn đã đóng. | Chờ kết quả yêu cầu trước, hoặc liên hệ LocalTour. |
 | Không thấy lịch muốn đổi sang | Lịch đó không còn đủ chỗ cho số khách của đơn. | Chọn ngày khác. |

@@ -6,13 +6,13 @@
 | WBS | 6.5 – Thực hiện UAT; 6.6 – Sửa lỗi chặn UAT; 6.7 – Tổng hợp nghiệm thu demo |
 | Người phụ trách | Hồ Duy Hải, Đỗ Sơn Thành (QA / Documentation); chạy ca: nhóm PCG; sửa lỗi: Lê Trung Phong, Nguyễn Tuấn Khôi, Nguyễn Minh Thức |
 | Căn cứ | Product Backlog (USECASEPLAN): US-01 → US-29 và tiêu chí nghiệm thu; yêu cầu thay đổi CR2 (FR-26 → FR-30; điều chỉnh FR-08, FR-11, FR-17, FR-25); Báo cáo tổng hợp Sprint 5 (mục 3, 8.1); Test Plan và RTM Sprint 5 (mức độ lỗi, defect log) |
-| Tài liệu liên quan | [01 – Kế hoạch Sprint 6](01-ke-hoach-sprint6.md), [02 – Hướng dẫn cài đặt](02-huong-dan-cai-dat.md), [03 – Hướng dẫn sử dụng](03-huong-dan-su-dung.md), [05 – Biên bản thử cài đặt](05-bien-ban-thu-cai-dat.md) |
+| Tài liệu liên quan | [01 – Kế hoạch Sprint 6](01-ke-hoach-sprint6.md), [03 – Hướng dẫn sử dụng](03-huong-dan-su-dung.md); file `GuiNhomPCG_DiaChi_TaiKhoan.txt` (địa chỉ trang demo, tài khoản QTV, thẻ thử VNPay sandbox) |
 | Bộ ca UAT | UAT-01 → UAT-54 (50 Must, 3 Should, 1 Could), phủ 29/29 User Story |
-| Trạng thái | Bản nháp; đã cập nhật theo CR2 (UAT-09 → UAT-37 viết lại theo đặt tour giữ chỗ ngay, thêm UAT-38 → UAT-54). Đã chạy thử đủ 54 ca trên bản tích hợp ngày 13/11/2026 và sửa câu chữ 6 ca cho khớp màn hình (UAT-03, 06, 28, 31, 37, 42). Nhóm rà soát và chốt trước khi nhóm PCG chạy UAT ngày 16/11/2026. |
+| Trạng thái | Bản nháp; đã cập nhật theo CR2 (UAT-09 → UAT-37 viết lại theo đặt tour giữ chỗ ngay, thêm UAT-38 → UAT-54). Đã chạy thử đủ 54 ca trên bản tích hợp ngày 13/11/2026 và sửa câu chữ 6 ca cho khớp màn hình (UAT-03, 06, 28, 31, 37, 42). Từ 14/11/2026 UAT chạy trên trang demo https://localtour.alwaysdata.net, nhóm PCG không cài đặt. Nhóm rà soát và chốt trước khi nhóm PCG chạy UAT ngày 16/11/2026. |
 
 ## 1. Mục tiêu và phạm vi
 
-Mục tiêu: người dùng (vai khách hàng, quản trị viên và đơn vị tổ chức) xác nhận bản demo đáp ứng tiêu chí nghiệm thu của 29 User Story (US-01 → US-24 và 5 story của CR2: US-25 → US-29), trên máy cài từ gói demo 6.3 theo Installation Guide; có biên bản để quyết định Go / No-go ngày 19/11.
+Mục tiêu: người dùng (vai khách hàng, quản trị viên và đơn vị tổ chức) xác nhận bản demo đáp ứng tiêu chí nghiệm thu của 29 User Story (US-01 → US-24 và 5 story của CR2: US-25 → US-29), trên trang demo https://localtour.alwaysdata.net (bản demo 6.3); có biên bản để quyết định Go / No-go ngày 19/11.
 
 UAT khác System Test Sprint 5: thao tác như người dùng thật theo [03 – Hướng dẫn sử dụng](03-huong-dan-su-dung.md), không dùng DevTools, không sửa database bằng tay.
 
@@ -20,7 +20,7 @@ Ngoài phạm vi (không ghi “Không đạt” cho các mục này):
 
 | Mục | Lý do |
 | --- | --- |
-| IPN của VNPay khi chạy ở máy cục bộ | VNPay không gọi được `localhost` (I03); kết quả ghi qua Return URL, luồng IPN đã thử ở Sprint 4. |
+| IPN của VNPay | Kết quả thanh toán VNPay kiểm tra lúc khách quay về LocalTour từ cổng VNPay (Return URL); luồng IPN đã thử ở Sprint 4. |
 | Hoàn tiền tự động | LocalTour chuyển khoản lại thủ công ngoài hệ thống. UAT chỉ kiểm tra việc ghi khoản hoàn và ghi “Đã hoàn tiền” (UAT-53). |
 | Chuyển khoản chi trả thật cho đơn vị tổ chức | Hệ thống không tự chuyển tiền. UAT dùng mã giao dịch thử, không chuyển tiền thật (UAT-54). |
 | Đơn “Chờ xác nhận” trong dữ liệu mẫu | Tạo theo quy trình cũ. Đơn mới không qua bước xác nhận chỗ nên các đơn này không dùng trong ca UAT. |
@@ -37,19 +37,19 @@ Ngoài phạm vi (không ghi “Không đạt” cho các mục này):
 | Người dùng vai khách hàng | ……… (nhóm PCG) | Thao tác các bước của KH-A, KH-B. |
 | Người dùng vai quản trị viên | ……… (nhóm PCG) | Thao tác các bước của QTV. |
 | Người dùng vai đơn vị tổ chức | ……… (nhóm PCG) | Thao tác các bước của ĐV-A, ĐV-B. |
-| Hỗ trợ kỹ thuật, sửa lỗi chặn (6.6) | Lê Trung Phong, Nguyễn Tuấn Khôi, Nguyễn Minh Thức | Xem lỗi, sửa, cập nhật gói demo; không thao tác thay người dùng. |
+| Hỗ trợ kỹ thuật, sửa lỗi chặn (6.6) | Lê Trung Phong, Nguyễn Tuấn Khôi, Nguyễn Minh Thức | Xem lỗi, sửa, cập nhật trang demo; không thao tác thay người dùng. |
 | Quyết định Go / No-go | Cả nhóm; PM Lê Trung Phong ký | Theo mục 4. |
 
 ## 3. Môi trường và dữ liệu
 
 | Mục | Nội dung |
 | --- | --- |
-| Máy | Máy của nhóm PCG, nhóm PCG tự cài theo [02 – Hướng dẫn cài đặt](02-huong-dan-cai-dat.md) sáng 16/11; ghi tên máy, Windows, XAMPP, PHP vào biên bản. |
-| Gói demo | Gói 6.3 (hoặc gói cập nhật sau 6.6); ghi mã commit vào biên bản. |
-| Database | Cài mới theo 02 sáng 16/11, chạy hết 54 ca trong ngày. Không cài lại giữa buổi: các ca sau dùng tiếp tài khoản, đơn và khoản hoàn tiền của các ca trước (UAT-53 dùng khoản của UAT-16, UAT-28). Không dùng database chung của nhóm. |
-| Tài khoản | QTV: tạo bằng `create_admin.php` theo 02. KH-A, KH-B: đăng ký ở `/register` (email `…@localtour.test`) trong UAT-07. ĐV-A, ĐV-B: QTV thêm ở trang “Đơn vị tổ chức” và cấp mật khẩu trong UAT-38 (email `…@localtour.test`). Không ghi mật khẩu vào tài liệu. |
-| Thanh toán | Khóa VNPay sandbox và VietQR đã điền trong `.env` của máy UAT (nhóm PCG tự điền theo mục 10 của 02, từ file khóa nhóm LocalTour gửi riêng; gói gửi nhóm PCG không có khóa). VietQR: tài khoản nhận là tài khoản thử nghiệm, không chuyển tiền thật, khách bấm “Tôi đã chuyển khoản”, QTV đối chiếu. VNPay: thẻ thử của VNPay sandbox. Hoàn tiền và chi trả: không chuyển tiền thật, nhập mã giao dịch thử. |
-| Tác vụ tự động | Đã chạy `src/scripts/register_expire_task.bat` (15 phút một lần: hủy đơn quá hạn giữ chỗ, tự hoàn thành đơn của lịch đã kết thúc, lập khoản chi trả). Các trang “Đơn của tôi”, “Đơn đặt tour”, “Đối chiếu thanh toán”, “Chi trả đơn vị tổ chức” cũng chạy các bước này khi mở. Cần chạy ngay: mở cửa sổ lệnh ở thư mục `src`, chạy `C:\xampp\php\php.exe scripts\expire_holds.php`. |
+| Trang demo | https://localtour.alwaysdata.net, mở bằng trình duyệt; địa chỉ và tài khoản QTV trong file `GuiNhomPCG_DiaChi_TaiKhoan.txt` nhóm LocalTour gửi kèm. Máy của nhóm PCG chỉ cần trình duyệt và Internet, không cài gì; ghi tên máy và trình duyệt vào biên bản. |
+| Bản demo | Bản 6.3 trên trang demo (hoặc bản cập nhật sau 6.6); nhóm LocalTour ghi mã commit vào biên bản. |
+| Dữ liệu | Nhóm LocalTour cài mới dữ liệu mẫu trên trang demo trước buổi UAT; từ đó tới hết UAT không ai khác thao tác trên trang. Chạy hết 54 ca trong ngày. Không cài lại giữa buổi: các ca sau dùng tiếp tài khoản, đơn và khoản hoàn tiền của các ca trước (UAT-53 dùng khoản của UAT-16, UAT-28). |
+| Tài khoản | QTV: nhóm LocalTour tạo trước buổi UAT, email và mật khẩu trong file `GuiNhomPCG_DiaChi_TaiKhoan.txt`. KH-A, KH-B: đăng ký ở `/register` (email `…@localtour.test`) trong UAT-07. ĐV-A, ĐV-B: QTV thêm ở trang “Đơn vị tổ chức” và cấp mật khẩu trong UAT-38 (email `…@localtour.test`). Không ghi mật khẩu vào tài liệu. |
+| Thanh toán | Trang demo đã có sẵn khóa VNPay sandbox và VietQR; nhóm PCG không cần khóa nào. VietQR: tài khoản nhận là tài khoản thử nghiệm, không chuyển tiền thật, khách bấm “Tôi đã chuyển khoản”, QTV đối chiếu. VNPay: thẻ thử của VNPay sandbox, ghi trong file `GuiNhomPCG_DiaChi_TaiKhoan.txt`. Hoàn tiền và chi trả: không chuyển tiền thật, nhập mã giao dịch thử. |
+| Tác vụ tự động | Trang demo có tác vụ chạy 5 phút một lần: hủy đơn quá hạn giữ chỗ, tự hoàn thành đơn của lịch đã kết thúc, lập khoản chi trả. Các trang “Đơn của tôi”, “Đơn đặt tour”, “Đối chiếu thanh toán”, “Chi trả đơn vị tổ chức” cũng chạy các bước này khi mở. |
 | Thông số vận hành | Giá trị mặc định: phí dịch vụ 10 %, giữ chỗ 30 phút, ngừng nhận đặt 60 phút trước giờ khởi hành, ngừng nhận VietQR 24 giờ trước giờ khởi hành. Chỉ đổi trong UAT-48, UAT-51, UAT-52 và đặt lại như ca ghi. |
 | Trình duyệt | Chrome bản mới, desktop. Ba phiên, mỗi phiên một tài khoản: cửa sổ thường cho khách, cửa sổ ẩn danh cho QTV, một trình duyệt thứ hai cho đơn vị tổ chức (UAT-17 dùng trình duyệt thứ hai cho KH-B). |
 | Minh chứng | Thư mục `MinhChung_UAT_Sprint6/`, ảnh đặt tên `UAT-xx_mo-ta.png`. Che email, mã QR và số tài khoản (kể cả tài khoản nhận tiền của đơn vị tổ chức); không chụp trang “Chuyển khoản VietQR”. |
@@ -87,9 +87,9 @@ Quy ước khi đặt đơn:
 
 | Tiêu chí vào (trước khi chạy 16/11) |
 | --- |
-| 1. Gói demo cài được trên máy UAT chỉ theo 02; biên bản 05 không còn lỗi chặn. |
-| 2. Bước kiểm tra cài đặt của 02 đạt; `/tours` hiện 9 tour; QTV đăng nhập được `/admin/login`. |
-| 3. Khóa VNPay sandbox, VietQR đã điền; tác vụ tự động đã cài; trang “Thông số vận hành” ở giá trị mặc định (10 % / 30 phút / 60 phút / 24 giờ). |
+| 1. Nhóm LocalTour đã cài bản demo 6.3 và dữ liệu mẫu mới lên trang demo; bước kiểm tra cài đặt không có lỗi. |
+| 2. Máy UAT mở được trang demo; `/tours` hiện 9 tour; QTV đăng nhập được `/admin/login` bằng tài khoản trong file `GuiNhomPCG_DiaChi_TaiKhoan.txt`. |
+| 3. Trang thanh toán có “Thanh toán qua VNPay” và “Lấy mã VietQR” (không ghi “đang tạm ngưng”); tác vụ tự động của trang demo đang chạy; trang “Thông số vận hành” ở giá trị mặc định (10 % / 30 phút / 60 phút / 24 giờ). |
 | 4. Nhóm đã quyết định Go ở System Test Exit Sprint 5. |
 
 | Tiêu chí ra (chốt 19/11) |
@@ -106,7 +106,7 @@ Quy tắc quyết định:
 | --- | --- |
 | Go | Đạt cả 5 tiêu chí ra. |
 | Go có điều kiện | Đạt tiêu chí 2, 3, 5; còn ca Should / Could không đạt hoặc ca chưa chạy vì môi trường (mạng, cổng VNPay), có ngày chạy lại trong Sprint 7. |
-| No-go | Còn ca Must không đạt hoặc lỗi Critical / High mở sau 6.6. Sửa, cập nhật gói, chạy lại ca liên quan; chốt lại trong Sprint 7. |
+| No-go | Còn ca Must không đạt hoặc lỗi Critical / High mở sau 6.6. Sửa, cập nhật trang demo, chạy lại ca liên quan; chốt lại trong Sprint 7. |
 
 Mức độ lỗi (giữ như Sprint 5):
 
@@ -123,12 +123,13 @@ Defect log dùng cột như Sprint 5 (Mã lỗi, Ca UAT, Tiêu đề, Mức đ�
 
 | Ngày | Việc | Người |
 | --- | --- | --- |
-| 16/11, sáng | Nhóm PCG tự cài gói demo trên máy UAT theo 02 và điền khóa thanh toán từ file nhóm gửi riêng; kiểm tra tiêu chí vào. | Nhóm PCG |
+| Trước 16/11 | Cài mới dữ liệu mẫu trên trang demo, tạo tài khoản QTV, gửi nhóm PCG file 03, 04 và `GuiNhomPCG_DiaChi_TaiKhoan.txt`. | Nguyễn Tuấn Khôi |
+| 16/11, sáng | Nhóm PCG mở trang demo theo file `GuiNhomPCG_DiaChi_TaiKhoan.txt`, kiểm tra tiêu chí vào. | Nhóm PCG |
 | 16/11, sáng | Chạy UAT-01 → UAT-37 (UAT-25, UAT-26 chạy sau khi đơn hết thời gian giữ chỗ 30 phút, trong lúc đó chạy tiếp các ca khác); báo ngay lỗi chặn. | Nhóm PCG; Hải, Thành điều phối |
 | 16/11, chiều | Chạy UAT-38 → UAT-54 (UAT-45 chạy cuối, sau UAT-54; UAT-52 chạy trong lúc chờ lịch của UAT-51 kết thúc). | Nhóm PCG; Hải, Thành điều phối |
 | 16/11, cuối buổi | Điền kết quả vào biên bản UAT (mục 8); nhóm PCG ký phần người dùng. | Nhóm PCG; Hải, Thành |
-| 17/11 | Sửa lỗi Critical / High (6.6), cập nhật gói. | Phong, Thức, Khôi (người làm chức năng có lỗi) |
-| 18/11 | Chạy lại ca liên quan trên gói đã cập nhật (và ca chưa chạy ngày 16/11); ghi lỗi đã sửa vào biên bản; ký biên bản. | Hải, Thành chạy lại; cả nhóm ký |
+| 17/11 | Sửa lỗi Critical / High (6.6), cập nhật trang demo. | Phong, Thức, Khôi (người làm chức năng có lỗi) |
+| 18/11 | Chạy lại ca liên quan trên trang demo đã cập nhật (và ca chưa chạy ngày 16/11); ghi lỗi đã sửa vào biên bản; ký biên bản. | Hải, Thành chạy lại; cả nhóm ký |
 | 19/11 | Tổng hợp nghiệm thu demo (mục 9), quyết định Go / No-go. | Hải, Thành lập; cả nhóm quyết định |
 
 ## 6. Checklist UAT
@@ -226,7 +227,7 @@ Cột Kết quả ghi **Đạt** hoặc **Không đạt**. Ca không chạy đư
 
 | Mã | US | Kịch bản | Các bước | Kết quả mong đợi | Kết quả (Đạt/Không đạt) | Ghi chú |
 | --- | --- | --- | --- | --- | --- | --- |
-| UAT-48 | US-13, US-29 | Hết hạn giữ chỗ theo thông số | 1. QTV “Thông số vận hành”: “Thời gian giữ chỗ (phút)” = 5, “Lưu thông số”. 2. KH-B đặt tour 1, 1 người lớn (đơn B7), không thanh toán; ghi hạn trên trang thanh toán và số chỗ còn của lịch. 3. Sau hạn, không mở trang nào của LocalTour; ở thư mục `src` chạy `C:\xampp\php\php.exe scripts\expire_holds.php`. 4. KH-B mở B7; khách mở trang tour 1. 5. QTV đặt lại 30, lưu. | Bước 1, 5: “Đã lưu thông số vận hành.” Bước 2: hạn giữ chỗ = lúc đặt + 5 phút. Bước 3: lệnh in dòng “… đã hủy 1 đơn quá hạn thanh toán.” (in 0 nếu tác vụ 15 phút vừa chạy trước). Bước 4: B7 “Đã hủy”, “Lịch sử đơn” ghi “Quá hạn thanh toán, đơn tự hủy” – “Hệ thống”; số chỗ còn của lịch trở lại như trước khi đặt. | | Ghi mã B7 |
+| UAT-48 | US-13, US-29 | Hết hạn giữ chỗ theo thông số | 1. QTV “Thông số vận hành”: “Thời gian giữ chỗ (phút)” = 5, “Lưu thông số”. 2. KH-B đặt tour 1, 1 người lớn (đơn B7), không thanh toán; ghi hạn trên trang thanh toán và số chỗ còn của lịch. 3. Sau hạn, không mở trang nào của LocalTour, chờ thêm 5 phút (tác vụ tự động của trang demo). 4. KH-B mở B7; khách mở trang tour 1. 5. QTV đặt lại 30, lưu. | Bước 1, 5: “Đã lưu thông số vận hành.” Bước 2: hạn giữ chỗ = lúc đặt + 5 phút. Bước 4: B7 “Đã hủy” mà không ai bấm hủy, “Lịch sử đơn” ghi “Quá hạn thanh toán, đơn tự hủy” – “Hệ thống”, giờ của dòng này sớm hơn lúc KH-B mở đơn; số chỗ còn của lịch trở lại như trước khi đặt. | | Ghi mã B7 |
 | UAT-49 | US-06 | Ngừng nhận đặt 60 phút trước giờ khởi hành | 1. QTV thêm cho tour 1 một lịch khởi hành sau hiện tại 45 phút; khách mở trang tour 1. 2. QTV thêm một lịch khởi hành sau hiện tại 65 phút; khách mở lại trang tour 1. 3. KH-B chọn lịch 65 phút, nhập thông tin tới “Xem lại đơn đặt tour”; chờ tới khi còn dưới 60 phút tới giờ khởi hành; bấm “Đặt tour và thanh toán”. 4. KH-B mở “Đơn của tôi”. | Bước 1: lịch 45 phút không có trong ô “Ngày tham gia”. Bước 2: lịch 65 phút có trong ô. Bước 3 bị chặn: “Lịch này không còn nhận đặt (đã đóng hoặc quá sát giờ khởi hành). Vui lòng chọn ngày khác.” Bước 4: không có đơn mới. | | |
 | UAT-50 | US-11 | Không nhận VietQR khi còn dưới 24 giờ | 1. QTV thêm cho tour 1 một lịch khởi hành sau hiện tại khoảng 3 giờ. 2. KH-B đặt lịch này, 1 người lớn (đơn B8). 3. Xem trang thanh toán. | Bước 2: đặt được, B8 “Chờ thanh toán”. Bước 3: thẻ “Chuyển khoản VietQR” ghi “Không dùng được cho đơn này: còn dưới 24 giờ tới giờ khởi hành nên LocalTour không kịp đối chiếu chuyển khoản.”, không có nút “Lấy mã VietQR”; vẫn có “Thanh toán qua VNPay”. | | Ghi mã B8 (để đơn tự hủy) |
 
@@ -236,7 +237,7 @@ Cột Kết quả ghi **Đạt** hoặc **Không đạt**. Ca không chạy đư
 | --- | --- | --- | --- | --- | --- | --- |
 | UAT-51 | US-29, US-28 | Thông số có hiệu lực ngay; chuẩn bị lịch kết thúc sớm | 1. QTV “Thông số vận hành”: “Ngừng nhận đặt trước giờ khởi hành (phút)” = 0, “Ngừng nhận chuyển khoản VietQR (giờ)” = 0, “Lưu thông số”. 2. ĐV-A thêm cho tour T một lịch: Khởi hành = hiện tại + 30 phút, Kết thúc = hiện tại + 35 phút, sức chứa 10, giá vé người lớn 300.000đ. 3. KH-A đặt lịch này 2 người lớn (đơn A8), “Lấy mã VietQR”, “Tôi đã chuyển khoản”; KH-B đặt 1 người lớn (đơn B9), làm tương tự. 4. QTV bấm “Đã nhận tiền” cho A8 và B9. 5. QTV mở B9, “Hủy đơn”, nhập lý do, cập nhật. 6. QTV đặt lại 60 và 24, lưu; khách mở trang tour T. | Bước 1, 6: “Đã lưu thông số vận hành.” Bước 3: lịch còn dưới 60 phút vẫn có trong ô “Ngày tham gia” và đặt được; trang thanh toán có “Lấy mã VietQR”; hạn giữ chỗ không muộn hơn giờ khởi hành. Bước 4: A8, B9 “Đã xác nhận”. Bước 5: B9 “Đã hủy”, trang đơn báo có khoản cần hoàn tiền cho khách. Bước 6: lịch này không còn trong ô “Ngày tham gia”. | | Ghi mã A8, B9 và giờ kết thúc của lịch |
 | UAT-52 | US-29 | Thông số vận hành: kiểm tra giá trị, lưu, phân quyền | 1. QTV mở “Thông số vận hành”. 2. Nhập “Phí dịch vụ LocalTour (%)” = 101, “Lưu thông số”. 3. Nhập phí = 10, “Thời gian giữ chỗ (phút)” = 4, lưu. 4. Nhập phí = 20, giữ chỗ = 30, lưu; bấm “Lưu thông số” lần nữa. 5. KH-A mở `/admin/settings`. | Bước 1: 4 ô đang là 10 / 30 / 60 / 24. Bước 2: “Nhập số từ 0 đến 100, tối đa 2 chữ số thập phân (ví dụ 10 hoặc 12,5).”, không lưu. Bước 3: “Nhập số nguyên từ 5 đến 1440 phút.”, không lưu. Bước 4: “Đã lưu thông số vận hành.”, dưới ô phí ghi “Sửa lần cuối … bởi …”; lần hai: “Không có thay đổi nào.” Bước 5: “Bạn không có quyền truy cập trang này.” | | Chạy trong lúc chờ lịch của UAT-51 kết thúc. Giữ phí 20 % tới hết UAT-53 |
-| UAT-53 | US-28 | Đơn tự hoàn thành; ghi “Đã hoàn tiền”; lập khoản chi trả | 1. Sau giờ kết thúc của lịch ở UAT-51, QTV mở “Chi trả đơn vị tổ chức”. 2. QTV mở A8. 3. Ở “Hoàn tiền cho khách”, dòng B9: để trống mã, bấm “Đã hoàn tiền”; rồi nhập một mã giao dịch thử, bấm lại. Ghi “Đã hoàn tiền” cho các khoản còn lại (B2 từ UAT-16, A5 từ UAT-28). 4. Tải lại trang, tab “Chờ chi trả”. 5. ĐV-A mở “Doanh thu & chi trả”. 6. QTV đặt lại phí = 10, lưu. | Bước 1: lịch nằm ở “Lịch đã kết thúc, chưa lập được khoản chi trả”, cột “Còn dang dở” ghi “1 khoản hoàn tiền chưa chuyển cho khách”; chưa có khoản chi trả của lịch. Bước 2: A8 “Đã hoàn thành” mà không ai bấm, lịch sử ghi “Hệ thống”. Bước 3: để trống báo “Vui lòng nhập mã giao dịch hoàn tiền.”; có mã: “Đã ghi nhận hoàn tiền cho khách.”, dòng không còn trong mục. Bước 4: có một khoản “Chờ chi trả” của lịch, 1 đơn (B9 đã hoàn đủ nên không tính): Tiền thực thu 600.000đ; Phí dịch vụ 60.000đ (10 % lưu lúc đặt, không phải 20 %); Thực nhận 540.000đ; dòng ghi “Chưa khai tài khoản nhận tiền”. Bước 5: ĐV-A thấy cùng khoản, cùng số tiền, “Chờ chi trả”. | | Chưa tới giờ thì chờ; cần chạy ngay thì dùng lệnh ở mục 3 |
+| UAT-53 | US-28 | Đơn tự hoàn thành; ghi “Đã hoàn tiền”; lập khoản chi trả | 1. Sau giờ kết thúc của lịch ở UAT-51, QTV mở “Chi trả đơn vị tổ chức”. 2. QTV mở A8. 3. Ở “Hoàn tiền cho khách”, dòng B9: để trống mã, bấm “Đã hoàn tiền”; rồi nhập một mã giao dịch thử, bấm lại. Ghi “Đã hoàn tiền” cho các khoản còn lại (B2 từ UAT-16, A5 từ UAT-28). 4. Tải lại trang, tab “Chờ chi trả”. 5. ĐV-A mở “Doanh thu & chi trả”. 6. QTV đặt lại phí = 10, lưu. | Bước 1: lịch nằm ở “Lịch đã kết thúc, chưa lập được khoản chi trả”, cột “Còn dang dở” ghi “1 khoản hoàn tiền chưa chuyển cho khách”; chưa có khoản chi trả của lịch. Bước 2: A8 “Đã hoàn thành” mà không ai bấm, lịch sử ghi “Hệ thống”. Bước 3: để trống báo “Vui lòng nhập mã giao dịch hoàn tiền.”; có mã: “Đã ghi nhận hoàn tiền cho khách.”, dòng không còn trong mục. Bước 4: có một khoản “Chờ chi trả” của lịch, 1 đơn (B9 đã hoàn đủ nên không tính): Tiền thực thu 600.000đ; Phí dịch vụ 60.000đ (10 % lưu lúc đặt, không phải 20 %); Thực nhận 540.000đ; dòng ghi “Chưa khai tài khoản nhận tiền”. Bước 5: ĐV-A thấy cùng khoản, cùng số tiền, “Chờ chi trả”. | | Chưa tới giờ thì chờ |
 | UAT-54 | US-28 | Xác minh tài khoản nhận tiền rồi mới ghi nhận đã chi trả | 1. QTV bấm “Chi trả” ở khoản của UAT-53. 2. ĐV-A “Tài khoản nhận tiền”: nhập Ngân hàng, Số tài khoản (số thử), Tên chủ tài khoản, “Lưu tài khoản”. 3. QTV tải lại trang khoản chi trả. 4. QTV bấm “Đã kiểm tra, xác minh tài khoản này”. 5. Để trống “Mã giao dịch chuyển khoản”, bấm “Ghi nhận đã chi trả”; rồi nhập một mã thử, bấm lại. 6. ĐV-A mở “Doanh thu & chi trả”, “Xem” khoản đó. 7. ĐV-A đổi “Số tài khoản”, lưu. 8. ĐV-B dán địa chỉ trang khoản chi trả của ĐV-A. | Bước 1: “Chưa chuyển khoản được: đơn vị chưa khai tài khoản nhận tiền. …”, không có ô nhập mã giao dịch. Bước 2: “Đã lưu tài khoản nhận tiền.”, trang ghi “Chờ LocalTour xác minh: …”. Bước 3: “Xác minh: Chưa xác minh”; “Chưa chuyển khoản được: tài khoản nhận tiền của đơn vị chưa được xác minh. …”. Bước 4: “Đã xác minh tài khoản nhận tiền của đơn vị.”, hiện ô “Mã giao dịch chuyển khoản”. Bước 5: để trống báo “Vui lòng nhập mã giao dịch chuyển khoản.”; có mã: “Đã ghi nhận chuyển khoản. Khoản chi trả chuyển sang “Đã chi trả”.” Bước 6: khoản “Đã chi trả”, có “Chuyển lúc”, “Mã giao dịch”, “Tài khoản nhận”. Bước 7: trang lại ghi “Chờ LocalTour xác minh: …”; khoản đã chi trả giữ tài khoản đã nhận tiền. Bước 8: “Không tìm thấy trang”. | | Che số tài khoản trong ảnh |
 
 ## 7. Đối chiếu User Story → ca UAT
@@ -265,8 +266,8 @@ Cột Kết quả ghi **Đạt** hoặc **Không đạt**. Ca không chạy đư
 | --- | --- |
 | Ngày | …/11/2026, từ …… đến …… |
 | Địa điểm / máy | |
-| Windows / XAMPP / PHP | |
-| Mã commit gói demo | |
+| Trình duyệt (tên, phiên bản) | |
+| Mã commit bản demo trên trang demo | |
 
 Thành phần:
 
@@ -347,7 +348,7 @@ Lỗi còn mở:
 
 | Mục | Kết quả |
 | --- | --- |
-| Gói demo đã nghiệm thu (mã commit) | |
+| Bản demo đã nghiệm thu (mã commit) | |
 | Installation Guide đã sửa theo 6.4 | ☐ Có ☐ Không cần sửa |
 | User Guide đã sửa theo UAT | ☐ Có ☐ Không cần sửa |
 | Số US đạt / tổng | __ / 29 |
@@ -355,5 +356,5 @@ Lỗi còn mở:
 | Điểm còn thiếu | |
 | Chuyển sang Sprint 7 | |
 | Quyết định nghiệm thu demo | ☐ Go ☐ Go có điều kiện ☐ No-go – lý do: |
-| Bằng chứng | Biên bản mục 8, defect log, `MinhChung_UAT_Sprint6/`, [05 – Biên bản thử cài đặt](05-bien-ban-thu-cai-dat.md) |
+| Bằng chứng | Biên bản mục 8, defect log, `MinhChung_UAT_Sprint6/` |
 | Người ký | QA: Hồ Duy Hải ……… · Đỗ Sơn Thành ……… · PM: Lê Trung Phong ……… · Ngày …/11/2026 |
