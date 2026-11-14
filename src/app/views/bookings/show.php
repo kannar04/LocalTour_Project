@@ -4,7 +4,7 @@
  * Chi tiết một đơn của khách hàng (M4 mục 8, Nguyễn Tuấn Khôi): trạng thái và bước tiếp theo, lý do từ chối / hủy,
  * chuyến đi, danh sách khách, tiền vé và chính sách hủy đúng phiên bản lúc đặt.
  * Biến: $booking (NTK_sp_customer_booking_detail), $lines (vé), $extras (phụ thu / tùy chọn), $passengers,
- *       $payments (NMT_sp_payment_list), $history (LTP_sp_customer_booking_history), $justCreated (vừa gửi yêu cầu),
+ *       $payments (NMT_sp_payment_list), $history (LTP_sp_customer_booking_history), $justCreated (vừa đặt xong),
  *       $payNotice (kết quả thanh toán: [loại, nội dung] hoặc null), $changeQuote (LTP_sp_change_quote), $title.
  * Sprint 4: "Chờ thanh toán" có nút thanh toán VNPay / VietQR và hạn giữ chỗ; đơn đã xác nhận có voucher.
  * Sprint 5: gói tour đã chọn; thẻ "Đổi ngày / hủy tour" (gửi yêu cầu hoặc xem yêu cầu đang chờ xử lý).
@@ -35,15 +35,16 @@ $specialRequests = array_values(array_filter(
     static fn (string $request): bool => $request !== ''
 ));
 
-// Bước tiếp theo theo trạng thái (giống luồng xử lý trong 07_procedures_NTK_admin.sql).
+// Bước tiếp theo theo trạng thái. Đơn mới được giữ chỗ ngay và bắt đầu ở "Chờ thanh toán" (10_procedures_LTP_booking.sql);
+// 'pending' (Chờ xác nhận) chỉ còn ở đơn tạo theo quy trình cũ, do quản trị viên xử lý (07_procedures_NTK_admin.sql).
 $nextStep = match ($bookingStatus) {
     'pending' => 'LocalTour đang kiểm tra chỗ cho yêu cầu của bạn. Đơn chưa giữ chỗ và chưa thu tiền.',
     'awaiting_payment' => $awaitingReconciliation
         ? 'Bạn đã báo chuyển khoản. LocalTour đang đối chiếu và sẽ xác nhận đơn; chỗ của bạn vẫn được giữ trong lúc chờ.'
         : ((int) $booking['hold_expired'] === 1
             ? 'Đơn đã quá hạn thanh toán và sẽ được hủy, chỗ được trả lại cho lịch.'
-            : 'LocalTour đã giữ chỗ và chốt tổng giá. Vui lòng thanh toán bằng VNPay, MoMo hoặc VietQR'
-                . ($holdUntil !== '' ? ' trước ' . $holdUntil : '') . '; quá hạn đơn tự hủy.'),
+            : 'LocalTour đang giữ chỗ cho bạn. Vui lòng thanh toán'
+                . ($holdUntil !== '' ? ' trước ' . $holdUntil : '') . '; quá hạn đơn tự hủy và chỗ được trả lại cho lịch.'),
     'confirmed' => 'Đơn đã được xác nhận. Mang theo voucher (bản in hoặc trên điện thoại) và có mặt ở điểm hẹn trước giờ khởi hành.',
     'completed' => 'Chuyến đi đã hoàn thành. Cảm ơn bạn đã đi tour cùng LocalTour.',
     'rejected' => 'LocalTour không nhận được yêu cầu này. Bạn có thể chọn ngày khác hoặc tour khác.',
@@ -89,12 +90,12 @@ $steps = [
 <?php endif; ?>
 <?php endif; ?>
 
-<?php if ($justCreated): ?>
+<?php if ($justCreated && $bookingStatus === 'awaiting_payment' && !$awaitingReconciliation && (int) $booking['hold_expired'] === 0): ?>
         <div class="lt-book-success" role="status">
             <span class="lt-icon lt-icon--check" aria-hidden="true"></span>
             <div>
-                <p class="lt-book-success__title">Đã gửi yêu cầu đặt tour</p>
-                <p>Mã đơn của bạn là <strong><?= e($booking['code']) ?></strong>. LocalTour sẽ kiểm tra chỗ; kết quả hiện ở trang này và trong Đơn của tôi.</p>
+                <p class="lt-book-success__title">Đã giữ chỗ cho đơn <?= e($booking['code']) ?></p>
+                <p>Vui lòng thanh toán<?= $holdUntil !== '' ? ' trước <strong>' . e($holdUntil) . '</strong>' : '' ?> để hoàn tất đặt tour.</p>
             </div>
         </div>
 <?php endif; ?>
@@ -108,7 +109,7 @@ $steps = [
                 <h1 class="lt-book-head__title">Đơn <?= e($booking['code']) ?></h1>
                 <span class="lt-status lt-status--<?= e($statusKey) ?>"><?= e(booking_status_label($bookingStatus)) ?></span>
             </div>
-            <p class="lt-book-head__lead">Gửi lúc <?= e(format_datetime((string) $booking['created_at'])) ?></p>
+            <p class="lt-book-head__lead">Đặt lúc <?= e(format_datetime((string) $booking['created_at'])) ?></p>
 <?php if (!$isClosed): ?>
             <ol class="lt-steps" aria-label="Tiến trình đơn">
 <?php foreach ($steps as $index => $step): ?>
@@ -280,7 +281,7 @@ $steps = [
                     <div class="lt-booking__total">
                         <div class="lt-booking__total-main">
                             <span class="lt-booking__total-label">Tổng tiền</span>
-                            <span class="lt-booking__total-formula"><?= $bookingStatus === 'pending' ? 'Giá lúc đặt, LocalTour sẽ chốt · VND' : 'Giá LocalTour đã chốt · VND' ?></span>
+                            <span class="lt-booking__total-formula"><?= $bookingStatus === 'pending' ? 'Giá lúc đặt, LocalTour sẽ chốt · VND' : ($ticketsVnd + $extrasVnd !== $totalVnd ? 'Giá LocalTour đã chốt · VND' : 'Vé + phụ thu / tùy chọn · VND') ?></span>
                         </div>
                         <strong class="lt-booking__total-value"><?= e(format_vnd($totalVnd)) ?></strong>
                     </div>

@@ -1,7 +1,7 @@
 <?php declare(strict_types=1); ?>
 <?php
 /*
- * Danh sách yêu cầu đặt tour cho quản trị viên (FR-25, Nguyễn Tuấn Khôi).
+ * Danh sách đơn đặt tour cho quản trị viên (FR-25, Nguyễn Tuấn Khôi).
  * Biến: $filter ('' = tất cả), $keyword (mã, tên, email hoặc số điện thoại), $bookings (NTK_sp_admin_booking_list).
  */
 use App\Controllers\AdminBookingController;
@@ -20,8 +20,8 @@ $filterHref = static function (string $value) use ($keyword): string {
 
         <main id="main-content" class="col-12 col-lg lt-admin" tabindex="-1" aria-labelledby="admin-title">
             <header class="lt-admin__head">
-                <h1 class="lt-admin__title" id="admin-title">Yêu cầu đặt tour</h1>
-                <p class="lt-admin__subtitle">Xác nhận, từ chối, hủy hoặc cập nhật trạng thái yêu cầu của khách</p>
+                <h1 class="lt-admin__title" id="admin-title">Đơn đặt tour</h1>
+                <p class="lt-admin__subtitle">Theo dõi đơn của khách, đối chiếu thanh toán và cập nhật trạng thái đơn</p>
             </header>
 
             <form class="lt-admin-search" action="<?= e(url('/admin/bookings')) ?>" method="get" role="search">
@@ -43,11 +43,11 @@ $filterHref = static function (string $value) use ($keyword): string {
 <?php endforeach; ?>
             </nav>
 
-            <section class="lt-panel" aria-label="Danh sách yêu cầu đặt tour">
+            <section class="lt-panel" aria-label="Danh sách đơn đặt tour">
 <?php if ($bookings === []): ?>
-                <p class="lt-empty"><?= $keyword !== '' ? 'Không tìm thấy yêu cầu nào khớp với “' . e($keyword) . '”.' : 'Không có yêu cầu nào ở trạng thái này.' ?></p>
+                <p class="lt-empty"><?= $keyword !== '' ? 'Không tìm thấy đơn nào khớp với “' . e($keyword) . '”.' : 'Không có đơn nào ở trạng thái này.' ?></p>
 <?php else: ?>
-                <p class="lt-panel__lead"><?= count($bookings) ?> yêu cầu, mới nhất trước<?= count($bookings) >= 200 ? ' (hiển thị 200 yêu cầu đầu tiên)' : '' ?></p>
+                <p class="lt-panel__lead"><?= count($bookings) ?> đơn, mới nhất trước<?= count($bookings) >= 200 ? ' (hiển thị 200 đơn đầu tiên)' : '' ?></p>
                 <div class="table-responsive">
                     <table class="table lt-table mb-0">
                         <thead>

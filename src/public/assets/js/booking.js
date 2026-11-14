@@ -7,7 +7,8 @@
  *   - Sprint 5 (US06-S5-01): tour chia gói thì giá vé người lớn / trẻ em theo gói đang chọn; gói không có giá
  *     trẻ em thì ẩn vé trẻ em;
  *   - "Xem lại & xác nhận": kiểm tra ở trình duyệt rồi hỏi chỗ trống (GET /api/schedules/{id}/availability);
- *   - "Gửi yêu cầu đặt tour": POST /api/bookings, thành công thì chuyển tới trang đơn.
+ *   - "Đặt tour và thanh toán": POST /api/bookings (giữ chỗ ngay), thành công thì chuyển tới trang thanh toán của đơn
+ *     (địa chỉ do server trả về).
  * Lỗi từ server (401, 403, 409, 422) hiện ngay trên form và giữ nguyên thông tin đã nhập.
  * Dữ liệu đọc từ <script type="application/json" id="book-data"> và chỉ đưa vào DOM bằng .text() / .attr().
  */
@@ -600,17 +601,18 @@
         }
 
         function submitBooking() {
-            setBusy(true, $submitBtn, 'Đang gửi…');
+            setBusy(true, $submitBtn, 'Đang giữ chỗ…');
 
             $.ajax({ url: LT.url('/api/bookings'), method: 'POST', data: $form.serialize(), dataType: 'json' })
                 .done(function (response) {
                     var target = response && response.success && response.data && response.data.url;
                     if (target) {
-                        window.location.assign(String(target));
+                        // replace: nút Back của trình duyệt không quay lại form đã gửi (mã yêu cầu đã dùng).
+                        window.location.replace(String(target));
                         return; // Giữ nút ở trạng thái đang gửi tới khi chuyển trang.
                     }
                     setBusy(false, $submitBtn, submitLabel);
-                    showAlert('Không gửi được yêu cầu. Vui lòng thử lại.');
+                    showAlert('Chưa đặt được tour. Vui lòng thử lại.');
                 })
                 .fail(function (xhr) {
                     setBusy(false, $submitBtn, submitLabel);
@@ -621,7 +623,7 @@
         function handleFailure(xhr) {
             var response = xhr.responseJSON || {};
             var info = response.data || {};
-            var message = response.message || 'Không gửi được yêu cầu. Vui lòng kiểm tra kết nối và bấm gửi lại.';
+            var message = response.message || 'Chưa đặt được tour. Vui lòng kiểm tra kết nối và bấm đặt lại.';
 
             // Mất kết nối hoặc lỗi máy chủ: ở lại bước xem lại để gửi lại (mã yêu cầu chống tạo trùng đơn).
             if (xhr.status === 0 || xhr.status >= 500) {
@@ -651,7 +653,7 @@
         /** 409: lịch, số chỗ hoặc giá đã đổi từ lúc mở trang. Cập nhật lại form theo dữ liệu mới. */
         function handleConflict(info, message) {
             var schedule = currentSchedule();
-            if (info.reason === 'extras_changed' || info.reason === 'package_changed') {
+            if (info.reason === 'extras_changed' || info.reason === 'package_changed' || info.reason === 'duplicate_closed') {
                 showAlert(message + ' ', reloadLink());
                 $alert.trigger('focus');
                 return;

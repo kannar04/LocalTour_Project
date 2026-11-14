@@ -31,7 +31,7 @@ final class AdminPaymentModel
 
     /**
      * Đã nhận tiền ('confirm') hoặc không khớp ('reject', bắt buộc lý do). Trả dòng kết quả: result (ok, forbidden,
-     * not_found, invalid, note_required, not_payable), booking_id.
+     * not_found, invalid, note_required, not_payable), booking_id, confirmed (1 = lần này vừa chuyển đơn sang "Đã xác nhận").
      *
      * @return array<string, mixed>
      */
@@ -56,7 +56,7 @@ final class AdminPaymentModel
     /**
      * Kết quả quản trị viên tra trên cổng VNPay: 'confirm' (có giao dịch thành công, bắt buộc mã giao dịch VNPay) hoặc
      * 'reject' (không có giao dịch, bắt buộc lý do). Trả dòng kết quả: result (ok, forbidden, not_found, invalid,
-     * txn_required, note_required, not_payable), booking_id.
+     * txn_required, note_required, not_payable), booking_id, confirmed (1 = lần này vừa chuyển đơn sang "Đã xác nhận").
      *
      * @return array<string, mixed>
      */

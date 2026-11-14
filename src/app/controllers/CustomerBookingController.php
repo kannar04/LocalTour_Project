@@ -16,7 +16,7 @@ use Core\Controller;
 use Core\Router;
 
 /**
- * "Đơn của tôi" (M4 mục 7, 8 – Nguyễn Tuấn Khôi): khách hàng xem các yêu cầu đặt tour đã gửi, trạng thái xử lý,
+ * "Đơn của tôi" (M4 mục 7, 8 – Nguyễn Tuấn Khôi): khách hàng xem các đơn đặt tour của mình, trạng thái,
  * lý do từ chối / hủy, danh sách khách và chính sách hủy đã áp dụng.
  * Sprint 4: phụ thu / tùy chọn đã chọn, hạn và nút thanh toán, kết quả VNPay / VietQR / MoMo (?pay=), voucher và lịch sử đơn.
  * Sprint 5: gói tour đã chọn và lối vào "Đổi ngày / hủy tour" (ChangeRequestController).
@@ -85,7 +85,7 @@ final class CustomerBookingController extends Controller
         ]);
     }
 
-    /** GET /bookings/{code}?new=1 (new=1: vừa gửi yêu cầu xong) */
+    /** GET /bookings/{code}?new=1 (new=1: vừa đặt xong; luồng đặt ngay chuyển khách tới /bookings/{code}/pay?new=1) */
     public function show(string $code): void
     {
         if ($this->user['role'] !== 'customer') {
@@ -144,14 +144,17 @@ final class CustomerBookingController extends Controller
         return self::PAY_NOTICES[$code] ?? null;
     }
 
-    /** Tài khoản quản trị mở "Đơn của tôi": không có đơn khách hàng. */
+    /** Tài khoản quản trị viên hoặc đơn vị tổ chức mở "Đơn của tôi": không có đơn khách hàng. */
     private function renderNotCustomer(): void
     {
+        $where = $this->user['role'] === 'provider'
+            ? 'Đơn vị tổ chức xem đơn đặt tour của tour mình ở khu đơn vị tổ chức.'
+            : 'Đơn đặt tour được quản lý ở trang quản trị.';
         $this->render('bookings/message', [
             'title' => 'Không có đơn',
             'errorCode' => 'Lỗi 403',
             'heading' => 'Tài khoản này không có đơn đặt tour',
-            'text' => '"Đơn của tôi" chỉ dành cho tài khoản khách hàng. Yêu cầu đặt tour được quản lý ở trang quản trị.',
+            'text' => '"Đơn của tôi" chỉ dành cho tài khoản khách hàng. ' . $where,
             'pageStyles' => ['css/tour-detail.css', 'css/booking.css'],
         ], 403);
     }

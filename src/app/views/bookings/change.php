@@ -229,7 +229,7 @@ $typeOptions = [
                         </div>
                         <strong class="lt-booking__total-value"><?= e(format_vnd($estimatedRefund)) ?></strong>
                     </div>
-                    <p class="lt-field__hint">Tiền hoàn được LocalTour chuyển khoản lại thủ công sau khi đồng ý hủy, chưa hoàn tự động qua VNPay.</p>
+                    <p class="lt-field__hint">Tiền hoàn được LocalTour chuyển khoản lại thủ công sau khi đồng ý hủy, chưa hoàn tự động qua cổng thanh toán.</p>
                     <a class="lt-btn lt-btn--outline lt-btn--block" href="<?= e($bookingUrl) ?>">
                         <span class="lt-icon lt-icon--arrow-left" aria-hidden="true"></span>
                         Về trang đơn

@@ -132,7 +132,7 @@ $compareJson = json_encode($compareData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_
 <?php endforeach; ?>
             </table>
         </div>
-        <p class="lt-field__hint lt-cmp-foot">Giá là giá thấp nhất của các lịch còn nhận đặt (tour chia gói: gói rẻ nhất). Giá chính thức được LocalTour chốt khi xác nhận chỗ.</p>
+        <p class="lt-field__hint lt-cmp-foot">Giá là giá thấp nhất của các lịch còn nhận đặt (tour chia gói: gói rẻ nhất). Giá đúng theo ngày, gói và số khách bạn chọn hiện ở trang đặt tour.</p>
 <?php endif; ?>
         <script type="application/json" id="compare-data"><?= $compareJson ?></script>
     </div>
