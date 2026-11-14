@@ -40,6 +40,8 @@ final class Database
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
                 PDO::ATTR_TIMEOUT => $config['timeout'],
+                // NOW()/CURDATE() trong procedure dùng giờ Việt Nam, giống giờ PHP (core/bootstrap.php).
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET time_zone = '+07:00'",
             ]);
         } catch (PDOException $exception) {
             throw new DatabaseException('Không thể kết nối cơ sở dữ liệu LocalTour.', 0, $exception);

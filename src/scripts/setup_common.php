@@ -184,6 +184,8 @@ final class SetupMysql
             '--port=' . $this->config['port'],
             '--user=' . $this->config['username'],
             '--default-character-set=utf8mb4',
+            // Dữ liệu mẫu dùng NOW()/CURDATE(): tính theo giờ Việt Nam dù máy chủ đặt múi giờ khác.
+            "--init-command=SET time_zone = '+07:00'",
         ], $arguments);
         $descriptors = [
             0 => $stdinFile === null ? ['pipe', 'r'] : ['file', $stdinFile, 'r'],
