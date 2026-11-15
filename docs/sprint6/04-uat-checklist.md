@@ -5,14 +5,14 @@
 | Sprint | Sprint 6 – Chuẩn bị demo, hướng dẫn và nghiệm thu UAT (13/11 – 19/11/2026) |
 | WBS | 6.5 – Thực hiện UAT; 6.6 – Sửa lỗi chặn UAT; 6.7 – Tổng hợp nghiệm thu demo |
 | Người phụ trách | Hồ Duy Hải, Đỗ Sơn Thành (QA / Documentation); chạy ca: nhóm PCG; sửa lỗi: Lê Trung Phong, Nguyễn Tuấn Khôi, Nguyễn Minh Thức |
-| Căn cứ | Product Backlog (USECASEPLAN): US-01 → US-29 và tiêu chí nghiệm thu; yêu cầu thay đổi CR2 (FR-26 → FR-30; điều chỉnh FR-08, FR-11, FR-17, FR-25); Báo cáo tổng hợp Sprint 5 (mục 3, 8.1); Test Plan và RTM Sprint 5 (mức độ lỗi, defect log) |
+| Căn cứ | Product Backlog (USECASEPLAN): US-01 → US-39 và tiêu chí nghiệm thu; yêu cầu thay đổi CR2 (FR-26 → FR-30; điều chỉnh FR-08, FR-11, FR-17, FR-25); yêu cầu thay đổi CR3 và SRS v1.2 (FR-31 → FR-36; FR-16 đưa vào MVP; điều chỉnh FR-06); Báo cáo tổng hợp Sprint 5 (mục 3, 8.1); Test Plan và RTM Sprint 5 (mức độ lỗi, defect log) |
 | Tài liệu liên quan | [01 – Kế hoạch Sprint 6](01-ke-hoach-sprint6.md), [03 – Hướng dẫn sử dụng](03-huong-dan-su-dung.md); file `GuiNhomPCG_DiaChi_TaiKhoan.txt` (địa chỉ trang demo, tài khoản QTV, thẻ thử VNPay sandbox) |
-| Bộ ca UAT | UAT-01 → UAT-54 (50 Must, 3 Should, 1 Could), phủ 29/29 User Story |
-| Trạng thái | Bản nháp; đã cập nhật theo CR2 (UAT-09 → UAT-37 viết lại theo đặt tour giữ chỗ ngay, thêm UAT-38 → UAT-54). Đã chạy thử đủ 54 ca trên bản tích hợp ngày 13/11/2026 và sửa câu chữ 6 ca cho khớp màn hình (UAT-03, 06, 28, 31, 37, 42). Từ 14/11/2026 UAT chạy trên trang demo https://localtour.alwaysdata.net, nhóm PCG không cài đặt. Nhóm rà soát và chốt trước khi nhóm PCG chạy UAT ngày 16/11/2026. |
+| Bộ ca UAT | UAT-01 → UAT-64 (61 Must, 3 Should), phủ 39/39 User Story |
+| Trạng thái | Bản nháp; đã cập nhật theo CR2 (UAT-09 → UAT-37 viết lại theo đặt tour giữ chỗ ngay, thêm UAT-38 → UAT-54) và CR3 (thêm UAT-55 → UAT-64 theo SRS v1.2; US-15 lên Must vì CR3 có chức năng gửi đánh giá). Đã chạy thử đủ 54 ca trên bản tích hợp ngày 13/11/2026 và sửa câu chữ 6 ca cho khớp màn hình (UAT-03, 06, 28, 31, 37, 42). Từ 14/11/2026 UAT chạy trên trang demo https://localtour.alwaysdata.net, nhóm PCG không cài đặt. Ngày 15/11/2026 chạy thử đủ 64 ca trên bản CR3: 54 ca cũ cho kết quả như trước, 10 ca mới khớp màn hình sau khi sửa câu chữ 1 chỗ (UAT-64). Nhóm rà soát và chốt trước khi nhóm PCG chạy UAT ngày 16/11/2026. |
 
 ## 1. Mục tiêu và phạm vi
 
-Mục tiêu: người dùng (vai khách hàng, quản trị viên và đơn vị tổ chức) xác nhận bản demo đáp ứng tiêu chí nghiệm thu của 29 User Story (US-01 → US-24 và 5 story của CR2: US-25 → US-29), trên trang demo https://localtour.alwaysdata.net (bản demo 6.3); có biên bản để quyết định Go / No-go ngày 19/11.
+Mục tiêu: người dùng (vai khách hàng, quản trị viên và đơn vị tổ chức) xác nhận bản demo đáp ứng tiêu chí nghiệm thu của 39 User Story (US-01 → US-24, 5 story của CR2: US-25 → US-29 và 10 story của CR3: US-30 → US-39), trên trang demo https://localtour.alwaysdata.net (bản demo 6.3); có biên bản để quyết định Go / No-go ngày 19/11.
 
 UAT khác System Test Sprint 5: thao tác như người dùng thật theo [03 – Hướng dẫn sử dụng](03-huong-dan-su-dung.md), không dùng DevTools, không sửa database bằng tay.
 
@@ -26,8 +26,7 @@ Ngoài phạm vi (không ghi “Không đạt” cho các mục này):
 | Đơn “Chờ xác nhận” trong dữ liệu mẫu | Tạo theo quy trình cũ. Đơn mới không qua bước xác nhận chỗ nên các đơn này không dùng trong ca UAT. |
 | Đổi số người, đổi gói khi đổi ngày | Đổi ngày giữ nguyên số khách, gói và tổng tiền. |
 | Phần thêm của trang so sánh (tổng cho N người, “Chỉ xem điểm khác nhau”, “Chọn tour này”, lưu theo tài khoản) | Giữ ở Product Backlog. |
-| Khách gửi đánh giá tour (FR-16), nhãn “Thông tin chưa được xác minh” (NFR-07) | Giữ ở Product Backlog. |
-| Ngày đi, Bộ lọc, Thích, Bình luận, Chia sẻ, Lưu tour | Nút đang tắt, nhãn “Sắp có”. |
+| Nhãn “Thông tin chưa được xác minh” trên trang khách (NFR-07) | Giữ ở Product Backlog. |
 
 ## 2. Thành phần tham gia
 
@@ -46,7 +45,7 @@ Ngoài phạm vi (không ghi “Không đạt” cho các mục này):
 | --- | --- |
 | Trang demo | https://localtour.alwaysdata.net, mở bằng trình duyệt; địa chỉ và tài khoản QTV trong file `GuiNhomPCG_DiaChi_TaiKhoan.txt` nhóm LocalTour gửi kèm. Máy của nhóm PCG chỉ cần trình duyệt và Internet, không cài gì; ghi tên máy và trình duyệt vào biên bản. |
 | Bản demo | Bản 6.3 trên trang demo (hoặc bản cập nhật sau 6.6); nhóm LocalTour ghi mã commit vào biên bản. |
-| Dữ liệu | Nhóm LocalTour cài mới dữ liệu mẫu trên trang demo trước buổi UAT; từ đó tới hết UAT không ai khác thao tác trên trang. Chạy hết 54 ca trong ngày. Không cài lại giữa buổi: các ca sau dùng tiếp tài khoản, đơn và khoản hoàn tiền của các ca trước (UAT-53 dùng khoản của UAT-16, UAT-28). |
+| Dữ liệu | Nhóm LocalTour cài mới dữ liệu mẫu trên trang demo trước buổi UAT; từ đó tới hết UAT không ai khác thao tác trên trang. Chạy hết 64 ca trong ngày. Không cài lại giữa buổi: các ca sau dùng tiếp tài khoản, đơn và khoản hoàn tiền của các ca trước (UAT-53 dùng khoản của UAT-16, UAT-28). |
 | Tài khoản | QTV: nhóm LocalTour tạo trước buổi UAT, email và mật khẩu trong file `GuiNhomPCG_DiaChi_TaiKhoan.txt`. KH-A, KH-B: đăng ký ở `/register` (email `…@localtour.test`) trong UAT-07. ĐV-A, ĐV-B: QTV thêm ở trang “Đơn vị tổ chức” và cấp mật khẩu trong UAT-38 (email `…@localtour.test`). Không ghi mật khẩu vào tài liệu. |
 | Thanh toán | Trang demo đã có sẵn khóa VNPay sandbox và VietQR; nhóm PCG không cần khóa nào. VietQR: tài khoản nhận là tài khoản thử nghiệm, không chuyển tiền thật, khách bấm “Tôi đã chuyển khoản”, QTV đối chiếu. VNPay: thẻ thử của VNPay sandbox, ghi trong file `GuiNhomPCG_DiaChi_TaiKhoan.txt`. Hoàn tiền và chi trả: không chuyển tiền thật, nhập mã giao dịch thử. |
 | Tác vụ tự động | Trang demo có tác vụ chạy 5 phút một lần: hủy đơn quá hạn giữ chỗ, tự hoàn thành đơn của lịch đã kết thúc, lập khoản chi trả. Các trang “Đơn của tôi”, “Đơn đặt tour”, “Đối chiếu thanh toán”, “Chi trả đơn vị tổ chức” cũng chạy các bước này khi mở. |
@@ -54,7 +53,9 @@ Ngoài phạm vi (không ghi “Không đạt” cho các mục này):
 | Trình duyệt | Chrome bản mới, desktop. Ba phiên, mỗi phiên một tài khoản: cửa sổ thường cho khách, cửa sổ ẩn danh cho QTV, một trình duyệt thứ hai cho đơn vị tổ chức (UAT-17 dùng trình duyệt thứ hai cho KH-B). |
 | Minh chứng | Thư mục `MinhChung_UAT_Sprint6/`, ảnh đặt tên `UAT-xx_mo-ta.png`. Che email, mã QR và số tài khoản (kể cả tài khoản nhận tiền của đơn vị tổ chức); không chụp trang “Chuyển khoản VietQR”. |
 
-Tour dùng trong ca: tour 1 “Hà Nội qua những món ăn phố cổ” (không chia gói; giá vé theo lịch, phụ thu “Phụ thu đi riêng, không ghép khách” 500.000đ / nhóm, tùy chọn “Thêm phần chè cuối tour” 35.000đ / người); tour 3 “Phố cổ theo cách của bạn” (3 gói, tối đa 4 khách); 2 tour ở tab “Chờ duyệt” của trang quản trị; tour T do ĐV-A tạo ở UAT-40 (dùng ở UAT-41 → UAT-47, UAT-51 → UAT-54).
+Tour dùng trong ca: tour 1 “Hà Nội qua những món ăn phố cổ” (không chia gói; giá vé theo lịch, phụ thu “Phụ thu đi riêng, không ghép khách” 500.000đ / nhóm, tùy chọn “Thêm phần chè cuối tour” 35.000đ / người); tour 3 “Phố cổ theo cách của bạn” (3 gói, tối đa 4 khách); 2 tour ở tab “Chờ duyệt” của trang quản trị; tour T do ĐV-A tạo ở UAT-40 (dùng ở UAT-41 → UAT-47, UAT-51 → UAT-54, UAT-56, 57, 61, 62).
+
+Dữ liệu mẫu cho các ca CR3 (UAT-55 → UAT-64): tour 1 có 9 lượt thích và 3 bình luận; tour 6 có 2 bình luận đang hiển thị và 1 bình luận đã bị quản trị viên ẩn; có 1 đánh giá mẫu “Chờ duyệt” (tour 1). Cho UAT-63, người dùng vai khách hàng chuẩn bị 3 file: một ảnh PNG hoặc JPG dưới 2 MB (cạnh từ 64 đến 4096 px), một ảnh trên 2 MB và một file văn bản đổi đuôi thành `.jpg`.
 
 Quy ước khi đặt đơn:
 
@@ -71,7 +72,7 @@ Quy ước khi đặt đơn:
 | B1 | KH-B | UAT-15 | UAT-15 |
 | B2 | KH-B | UAT-16 (thanh toán VietQR rồi bị hủy) | UAT-16, 53 |
 | A3 | KH-A | UAT-17 (lịch sức chứa 2) | UAT-17 |
-| A4 | KH-A | UAT-18 (tour 1, 2 người lớn, VietQR) | UAT-19, 24, 27, 29, 30, 37 |
+| A4 | KH-A | UAT-18 (tour 1, 2 người lớn, VietQR) | UAT-19, 24, 27, 29, 30, 37, 61 |
 | B3 | KH-B | UAT-20 | UAT-20, 22, 24 |
 | A5 | KH-A | UAT-21 (tour 3, có gói, VNPay) | UAT-28, 37, 53 |
 | B4 | KH-B | UAT-23 | UAT-23 |
@@ -81,7 +82,7 @@ Quy ước khi đặt đơn:
 | A7 | KH-A | UAT-46 (tour T, VietQR) | UAT-45, 46, 47 |
 | B7 | KH-B | UAT-48 | UAT-48 |
 | B8 | KH-B | UAT-50 | UAT-50 |
-| A8, B9 | KH-A, KH-B | UAT-51 (lịch kết thúc sớm của tour T) | UAT-51, 53, 54 |
+| A8, B9 | KH-A, KH-B | UAT-51 (lịch kết thúc sớm của tour T) | UAT-51, 53, 54; A8 ở UAT-61, 62 |
 
 ## 4. Tiêu chí vào / ra và quy tắc Go / No-go
 
@@ -94,8 +95,8 @@ Quy ước khi đặt đơn:
 
 | Tiêu chí ra (chốt 19/11) |
 | --- |
-| 1. Đã chạy hết 54 ca; ca chưa chạy có lý do ở cột Ghi chú. |
-| 2. 50/50 ca Must Đạt. |
+| 1. Đã chạy hết 64 ca; ca chưa chạy có lý do ở cột Ghi chú. |
+| 2. 61/61 ca Must Đạt. |
 | 3. Không còn lỗi Critical / High mở. |
 | 4. Lỗi Medium / Low còn mở có người phụ trách và hướng xử lý (sửa ở Sprint 7 hoặc chấp nhận). |
 | 5. Biên bản mục 8 và bảng tổng hợp mục 9 có chữ ký. |
@@ -105,7 +106,7 @@ Quy tắc quyết định:
 | Quyết định | Khi nào |
 | --- | --- |
 | Go | Đạt cả 5 tiêu chí ra. |
-| Go có điều kiện | Đạt tiêu chí 2, 3, 5; còn ca Should / Could không đạt hoặc ca chưa chạy vì môi trường (mạng, cổng VNPay), có ngày chạy lại trong Sprint 7. |
+| Go có điều kiện | Đạt tiêu chí 2, 3, 5; còn ca Should không đạt hoặc ca chưa chạy vì môi trường (mạng, cổng VNPay), có ngày chạy lại trong Sprint 7. |
 | No-go | Còn ca Must không đạt hoặc lỗi Critical / High mở sau 6.6. Sửa, cập nhật trang demo, chạy lại ca liên quan; chốt lại trong Sprint 7. |
 
 Mức độ lỗi (giữ như Sprint 5):
@@ -126,7 +127,7 @@ Defect log dùng cột như Sprint 5 (Mã lỗi, Ca UAT, Tiêu đề, Mức đ�
 | Trước 16/11 | Cài mới dữ liệu mẫu trên trang demo, tạo tài khoản QTV, gửi nhóm PCG file 03, 04 và `GuiNhomPCG_DiaChi_TaiKhoan.txt`. | Nguyễn Tuấn Khôi |
 | 16/11, sáng | Nhóm PCG mở trang demo theo file `GuiNhomPCG_DiaChi_TaiKhoan.txt`, kiểm tra tiêu chí vào. | Nhóm PCG |
 | 16/11, sáng | Chạy UAT-01 → UAT-37 (UAT-25, UAT-26 chạy sau khi đơn hết thời gian giữ chỗ 30 phút, trong lúc đó chạy tiếp các ca khác); báo ngay lỗi chặn. | Nhóm PCG; Hải, Thành điều phối |
-| 16/11, chiều | Chạy UAT-38 → UAT-54 (UAT-45 chạy cuối, sau UAT-54; UAT-52 chạy trong lúc chờ lịch của UAT-51 kết thúc). | Nhóm PCG; Hải, Thành điều phối |
+| 16/11, chiều | Chạy UAT-38 → UAT-64 (UAT-52 và UAT-55 → UAT-60, 63, 64 chạy trong lúc chờ lịch của UAT-51 kết thúc; UAT-61, 62 chạy sau UAT-53; UAT-45 chạy cuối, sau UAT-64, rồi đến bước 6 của UAT-57). | Nhóm PCG; Hải, Thành điều phối |
 | 16/11, cuối buổi | Điền kết quả vào biên bản UAT (mục 8); nhóm PCG ký phần người dùng. | Nhóm PCG; Hải, Thành |
 | 17/11 | Sửa lỗi Critical / High (6.6), cập nhật trang demo. | Phong, Thức, Khôi (người làm chức năng có lỗi) |
 | 18/11 | Chạy lại ca liên quan trên trang demo đã cập nhật (và ca chưa chạy ngày 16/11); ghi lỗi đã sửa vào biên bản; ký biên bản. | Hải, Thành chạy lại; cả nhóm ký |
@@ -214,7 +215,7 @@ Cột Kết quả ghi **Đạt** hoặc **Không đạt**. Ca không chạy đư
 | UAT-42 | US-26, US-21 | Bản sửa của tour đã duyệt | 1. ĐV-A mở tour T, “Tạo bản sửa”. 2. Ở bản sửa: sửa “Mô tả”, thêm 1 mục lịch trình; “Gửi duyệt bản sửa”. 3. Khách mở trang tour T. 4. QTV “Duyệt tour”, tab “Chờ duyệt”, “Xem và duyệt” ở dòng bản sửa. 5. QTV “Phê duyệt bản sửa”. 6. Khách mở lại trang tour T. | Bước 1: “Đã tạo bản sửa. …”. Bước 2: bản sửa “Chờ duyệt”, bị khóa. Bước 3: khách vẫn thấy nội dung cũ. Bước 4: dòng ghi “Bản sửa của tour đã duyệt: <tên tour T>”; mục “So sánh với tour đang hiển thị” chỉ có các phần đã đổi: nhóm “Thông tin tour” (bảng ba cột “Mục”, “Đang hiển thị”, “Bản sửa”, có một dòng “Mô tả”) và nhóm “Lịch trình” (hai bên “Đang hiển thị” và “Bản sửa” đều ghi cả lịch trình; bên “Bản sửa” có thêm mục vừa thêm). Bước 5: “Đã duyệt bản sửa: nội dung mới đã được áp dụng cho tour.” Bước 6: khách thấy nội dung mới; lịch khởi hành, giá vé không đổi; bảng tin vẫn chỉ có một tour T. | | |
 | UAT-43 | US-26 | Từ chối bản sửa, hủy bản sửa | 1. ĐV-A mở tour T (đã duyệt), xem các nút. 2. “Tạo bản sửa”, sửa “Mô tả”, “Gửi duyệt bản sửa”. 3. QTV nhập lý do, “Từ chối bản sửa”. 4. ĐV-A mở bản sửa. 5. ĐV-A “Hủy bản sửa”. 6. Khách mở trang tour T. | Bước 1: không có nút “Sửa thông tin”; chỉ sửa nội dung qua “Tạo bản sửa”. Bước 3: “Đã từ chối tour và lưu lý do.” Bước 4: “Bản sửa bị từ chối: <lý do>”. Bước 5: “Đã hủy bản sửa. Tour đang hiển thị giữ nguyên.”; tour T lại có nút “Tạo bản sửa”. Bước 6: nội dung tour T không đổi qua cả ca. | | |
 | UAT-44 | US-26 | Lịch khởi hành và giá vé không cần duyệt | 1. ĐV-A mở tour T, “Lịch khởi hành và giá vé”, thêm 1 lịch, “Thêm lịch”. 2. Khách mở trang tour T. 3. ĐV-A “Sửa” lịch vừa thêm, đổi “Giá vé người lớn (đ)”, “Lưu thay đổi”. 4. Khách chọn lịch đó, 1 người lớn. 5. QTV “Duyệt tour”, tab “Chờ duyệt”. | Bước 1: “Đã thêm lịch khởi hành.” Bước 2: lịch mới có ngay trong ô “Ngày tham gia”. Bước 3: “Đã lưu lịch khởi hành.” Bước 4: “Tạm tính tiền vé” theo giá mới. Bước 5: không có dòng nào của tour T chờ duyệt. | | |
-| UAT-45 | US-26 | Ngừng hiển thị tour | 1. ĐV-A mở tour T (A7 đang “Đã xác nhận”), bấm “Ngừng hiển thị tour”. 2. QTV hủy A7 kèm lý do (khoản hoàn của A7 ghi “Đã hoàn tiền” như UAT-53). 3. ĐV-A bấm lại “Ngừng hiển thị tour”. 4. Khách mở `/tours` và địa chỉ trang tour T. 5. QTV “Duyệt tour”, tab “Ngừng hiển thị”. | Bước 1 bị chặn: “Tour còn đơn đang chờ xác nhận, chờ thanh toán hoặc đã xác nhận nên chưa ngừng hiển thị được.” Bước 3: “Đã ngừng hiển thị tour. Khách không còn tìm thấy và không đặt được tour.” Bước 4: tour T không còn trên bảng tin; trang tour ghi “Không tìm thấy tour”. Bước 5: tour T ở tab “Ngừng hiển thị”; ĐV-A vẫn xem được đơn cũ của tour. | | Chạy sau UAT-54 |
+| UAT-45 | US-26 | Ngừng hiển thị tour | 1. ĐV-A mở tour T (A7 đang “Đã xác nhận”), bấm “Ngừng hiển thị tour”. 2. QTV hủy A7 kèm lý do (khoản hoàn của A7 ghi “Đã hoàn tiền” như UAT-53). 3. ĐV-A bấm lại “Ngừng hiển thị tour”. 4. Khách mở `/tours` và địa chỉ trang tour T. 5. QTV “Duyệt tour”, tab “Ngừng hiển thị”. | Bước 1 bị chặn: “Tour còn đơn đang chờ xác nhận, chờ thanh toán hoặc đã xác nhận nên chưa ngừng hiển thị được.” Bước 3: “Đã ngừng hiển thị tour. Khách không còn tìm thấy và không đặt được tour.” Bước 4: tour T không còn trên bảng tin; trang tour ghi “Không tìm thấy tour”. Bước 5: tour T ở tab “Ngừng hiển thị”; ĐV-A vẫn xem được đơn cũ của tour. | | Chạy sau UAT-64 |
 
 ### 6.8. Đơn đặt tour của đơn vị tổ chức
 
@@ -240,25 +241,45 @@ Cột Kết quả ghi **Đạt** hoặc **Không đạt**. Ca không chạy đư
 | UAT-53 | US-28 | Đơn tự hoàn thành; ghi “Đã hoàn tiền”; lập khoản chi trả | 1. Sau giờ kết thúc của lịch ở UAT-51, QTV mở “Chi trả đơn vị tổ chức”. 2. QTV mở A8. 3. Ở “Hoàn tiền cho khách”, dòng B9: để trống mã, bấm “Đã hoàn tiền”; rồi nhập một mã giao dịch thử, bấm lại. Ghi “Đã hoàn tiền” cho các khoản còn lại (B2 từ UAT-16, A5 từ UAT-28). 4. Tải lại trang, tab “Chờ chi trả”. 5. ĐV-A mở “Doanh thu & chi trả”. 6. QTV đặt lại phí = 10, lưu. | Bước 1: lịch nằm ở “Lịch đã kết thúc, chưa lập được khoản chi trả”, cột “Còn dang dở” ghi “1 khoản hoàn tiền chưa chuyển cho khách”; chưa có khoản chi trả của lịch. Bước 2: A8 “Đã hoàn thành” mà không ai bấm, lịch sử ghi “Hệ thống”. Bước 3: để trống báo “Vui lòng nhập mã giao dịch hoàn tiền.”; có mã: “Đã ghi nhận hoàn tiền cho khách.”, dòng không còn trong mục. Bước 4: có một khoản “Chờ chi trả” của lịch, 1 đơn (B9 đã hoàn đủ nên không tính): Tiền thực thu 600.000đ; Phí dịch vụ 60.000đ (10 % lưu lúc đặt, không phải 20 %); Thực nhận 540.000đ; dòng ghi “Chưa khai tài khoản nhận tiền”. Bước 5: ĐV-A thấy cùng khoản, cùng số tiền, “Chờ chi trả”. | | Chưa tới giờ thì chờ |
 | UAT-54 | US-28 | Xác minh tài khoản nhận tiền rồi mới ghi nhận đã chi trả | 1. QTV bấm “Chi trả” ở khoản của UAT-53. 2. ĐV-A “Tài khoản nhận tiền”: nhập Ngân hàng, Số tài khoản (số thử), Tên chủ tài khoản, “Lưu tài khoản”. 3. QTV tải lại trang khoản chi trả. 4. QTV bấm “Đã kiểm tra, xác minh tài khoản này”. 5. Để trống “Mã giao dịch chuyển khoản”, bấm “Ghi nhận đã chi trả”; rồi nhập một mã thử, bấm lại. 6. ĐV-A mở “Doanh thu & chi trả”, “Xem” khoản đó. 7. ĐV-A đổi “Số tài khoản”, lưu. 8. ĐV-B dán địa chỉ trang khoản chi trả của ĐV-A. | Bước 1: “Chưa chuyển khoản được: đơn vị chưa khai tài khoản nhận tiền. …”, không có ô nhập mã giao dịch. Bước 2: “Đã lưu tài khoản nhận tiền.”, trang ghi “Chờ LocalTour xác minh: …”. Bước 3: “Xác minh: Chưa xác minh”; “Chưa chuyển khoản được: tài khoản nhận tiền của đơn vị chưa được xác minh. …”. Bước 4: “Đã xác minh tài khoản nhận tiền của đơn vị.”, hiện ô “Mã giao dịch chuyển khoản”. Bước 5: để trống báo “Vui lòng nhập mã giao dịch chuyển khoản.”; có mã: “Đã ghi nhận chuyển khoản. Khoản chi trả chuyển sang “Đã chi trả”.” Bước 6: khoản “Đã chi trả”, có “Chuyển lúc”, “Mã giao dịch”, “Tài khoản nhận”. Bước 7: trang lại ghi “Chờ LocalTour xác minh: …”; khoản đã chi trả giữ tài khoản đã nhận tiền. Bước 8: “Không tìm thấy trang”. | | Che số tài khoản trong ảnh |
 
+### 6.11. Lọc tour, thích, lưu, chia sẻ, bình luận, đánh giá, tài khoản và trợ giúp (CR3)
+
+| Mã | US | Kịch bản | Các bước | Kết quả mong đợi | Kết quả (Đạt/Không đạt) | Ghi chú |
+| --- | --- | --- | --- | --- | --- | --- |
+| UAT-55 | US-30 | Lọc theo ngày đi và bộ lọc nâng cao | 1. Chưa đăng nhập, mở `/tours`, ghi số tour. Ở ô “Ngày đi:” chọn ngày của một lịch khởi hành của tour 1 (xem ở trang tour 1). 2. Bấm dấu × “Bỏ chọn ngày đi”. 3. Bấm “Bộ lọc”, chọn “Đến 500.000đ” và “Đến 3 giờ”, “Áp dụng”; tải lại trang; mở một tour rồi bấm lùi của trình duyệt. 4. “Bộ lọc”, “Xóa bộ lọc”; mở lại “Bộ lọc”, “Ngôn ngữ hướng dẫn” = “Tiếng Hàn”, tích “Có đón tại khách sạn”, “Áp dụng”. 5. “Bộ lọc”, “Xóa bộ lọc”; mở lại “Bộ lọc”, nhập giá “Từ” 900000, “Đến” 500000, “Áp dụng”. 6. Nhập “Từ” 0, “Đến” 1000, “Áp dụng”; bấm “Xóa bộ lọc” ở giữa trang. | Bước 1: chỉ còn tour có lịch khởi hành ngày đó (có tour 1); mỗi thẻ ghi “Khởi hành dd/mm/yyyy · HH:MM” đúng ngày đã chọn; dòng đếm ghi “N tour · ngày dd/mm/yyyy”. Bước 2: trở lại đủ số tour. Bước 3: nút “Bộ lọc” hiện số 2; chỉ còn tour có giá “Từ” không quá 500.000đ và thời lượng không quá 3 giờ; dòng đếm có “giá đến 500.000đ · đến 3 giờ”; tải lại và bấm lùi vẫn giữ bộ lọc. Bước 4: chỉ còn “Bình minh trên bán đảo Sơn Trà”, dòng đếm “1 tour · hướng dẫn tiếng Hàn · đón tại khách sạn”. Bước 5: “Giá “Từ” không được lớn hơn giá “Đến”.”, danh sách không đổi. Bước 6: “Không có tour phù hợp”; bấm “Xóa bộ lọc” thì trở lại đủ số tour, nút “Bộ lọc” không còn số. | | |
+| UAT-56 | US-31 | Thích tour | 1. Chưa đăng nhập, xem nút “Thích” ở thẻ tour 1 và thẻ tour T trên `/tours`; mở tour 1, bấm “Thích”. 2. Đăng nhập KH-A. 3. Bấm “Thích”; tải lại trang; về `/tours`. 4. Mở tour 1, bấm lại “Thích”. 5. QTV mở trang tour 1, bấm “Thích”. | Bước 1: thẻ tour 1 ghi “Thích 9”; thẻ tour T chỉ ghi “Thích” (chưa có lượt thích); bấm “Thích” thì chuyển tới trang đăng nhập. Bước 2: đăng nhập xong quay lại trang tour 1. Bước 3: “Đã thích tour.”, nút ở trạng thái đã thích, “Thích · 10”; tải lại vẫn 10 và vẫn đã thích; thẻ tour 1 ghi “Thích 10”. Bước 4: “Đã bỏ thích tour.”, “Thích · 9”. Bước 5: “Chỉ tài khoản khách hàng mới thích hoặc lưu được tour.”, số lượt thích không đổi. | | |
+| UAT-57 | US-32 | Lưu tour và trang “Tour đã lưu” | 1. KH-A bấm “Tour đã lưu” ở menu trái. 2. Ở `/tours` bấm “Lưu” trên thẻ tour 1; mở trang tour T, bấm “Lưu tour”. 3. Mở “Tour đã lưu”. 4. Bấm “Bỏ lưu” ở tour 1; về `/tours`. 5. KH-B mở “Tour đã lưu”; ĐV-A mở `/tour-da-luu`; khách chưa đăng nhập mở `/tour-da-luu`. 6. Sau UAT-45: KH-A mở lại “Tour đã lưu”. | Bước 1: “Chưa có tour nào được lưu” và nút “Khám phá tour”. Bước 2: mỗi lần báo “Đã lưu tour. Xem lại ở "Tour đã lưu".”, nút đổi thành “Đã lưu”. Bước 3: “2 tour”, tour T ở trên; mỗi thẻ có “Tổ chức bởi …”, “Đã lưu ngày dd/mm/yyyy”, “Bỏ lưu”, “Xem chi tiết”. Bước 4: “Đã bỏ lưu tour.”, còn “1 tour”; thẻ tour 1 lại ghi “Lưu”. Bước 5: KH-B: “Chưa có tour nào được lưu”; ĐV-A: “Tài khoản này không lưu tour”; khách chưa đăng nhập chuyển tới trang đăng nhập. Bước 6: thẻ tour T mờ, ghi “Tour này hiện không còn hiển thị trên LocalTour.”, không mở được trang tour, chỉ còn nút “Bỏ lưu”. | | Bước 6 chạy sau UAT-45 |
+| UAT-58 | US-33 | Chia sẻ tour | 1. Chưa đăng nhập, mở tour 1, bấm “Chia sẻ”; chọn sao chép liên kết nếu máy mở bảng chia sẻ. 2. Dán liên kết vào một tab mới. 3. Ở `/tours` bấm “Chia sẻ” trên thẻ tour 3, dán liên kết vào tab mới. | Bước 1: mở bảng chia sẻ của máy, hoặc báo “Đã sao chép liên kết”; không đòi đăng nhập. Bước 2: mở đúng trang tour 1. Bước 3: mở đúng trang tour 3. | | |
+| UAT-59 | US-34 | Bình luận | 1. Chưa đăng nhập, mở tour 1, mục “Bình luận”. 2. KH-A mở tour 1: bấm “Gửi bình luận” khi để trống; dán 1001 ký tự, gửi. 3. Nhập “UAT-59: tour có đi được với xe đẩy em bé không?”, “Gửi bình luận”; tải lại trang. 4. Gửi tiếp 4 bình luận ngắn (“UAT-59 (2)” → “UAT-59 (5)”), rồi gửi bình luận thứ 6. 5. KH-B mở tour 1, gửi 3 bình luận (“UAT-59 KH-B (1)” → “UAT-59 KH-B (3)”); bấm “Xem thêm bình luận” ở cuối mục. 6. KH-A bấm “Xóa” ở “UAT-59 (5)”, đồng ý. 7. QTV và ĐV-A mở tour 1, mục “Bình luận”. | Bước 1: đọc được 3 bình luận (tên, thời gian, nội dung), không có ô viết; có “Đăng nhập để bình luận”. Bước 2: “Vui lòng nhập nội dung bình luận.”; 1001 ký tự: “Bình luận tối đa 1000 ký tự (hiện có 1001).”; không gửi. Bước 3: bình luận hiện đầu danh sách với tên “Khách Thử A”, nhãn “Bạn” và nút “Xóa”; mục ghi 4 bình luận, nút ở đầu trang ghi “Bình luận · 4”; tải lại vẫn còn. Bước 4: 4 bình luận gửi được; bình luận thứ 6: “Bạn đã gửi 5 bình luận trong 10 phút. Vui lòng đợi một lúc rồi gửi tiếp.” Bước 5: KH-B gửi được; mục hiện 10 bình luận mới nhất và “Xem thêm bình luận”, bấm thì đủ 11; bình luận của người khác không có nút “Xóa”. Bước 6: hỏi “Xóa bình luận này? Bình luận đã xóa không khôi phục được.”; bình luận mất, còn 10. Bước 7: đọc được bình luận, không có ô viết; QTV thấy “Chỉ tài khoản khách hàng mới viết được bình luận. Bạn đang xem với tài khoản quản trị viên.”, ĐV-A thấy “… với tài khoản đơn vị tổ chức.” | | Bước 2–4 làm liền trong 10 phút |
+| UAT-60 | US-35 | Quản trị viên ẩn, hiện lại bình luận | 1. QTV mở “Bình luận” ở menu quản trị, tab “Đã ẩn”. 2. Tab “Đang hiển thị”, tìm “UAT-59 KH-B (1)”. 3. Bấm “Ẩn” khi để trống lý do. 4. Nhập lý do “UAT-60: thử ẩn bình luận”, bấm “Ẩn”. 5. Khách mở tour 1 và tour 6, mục “Bình luận”. 6. QTV tab “Đã ẩn”, bấm “Hiện lại” ở bình luận đó; khách tải lại tour 1. 7. KH-A mở `/admin/comments`. | Bước 1: có bình luận mẫu của tour 6 “Inbox mình để mua vé tour giá rẻ hơn trên này nhé.”, nhãn “Đã ẩn”, người ẩn, thời điểm và “Lý do: Quảng cáo, không liên quan đến nội dung tour.” Bước 2: chỉ còn bình luận đó, ghi “Tour: Hà Nội qua những món ăn phố cổ”. Bước 3: không ẩn được, ô lý do báo phải nhập. Bước 4: “Đã ẩn bình luận. Bình luận không còn hiện trên trang tour.”; bình luận sang tab “Đã ẩn” với tên QTV, thời điểm và “Lý do: UAT-60: thử ẩn bình luận”. Bước 5: tour 1 không còn bình luận đó, còn 9 bình luận; tour 6 có 2 bình luận, không có bình luận đã ẩn. Bước 6: “Đã hiện lại bình luận trên trang tour.”; tour 1 có lại bình luận, 10 bình luận. Bước 7: “Bạn không có quyền truy cập trang này.” | | |
+| UAT-61 | US-36 | Khách đánh giá đơn đã hoàn thành | 1. KH-A mở “Đơn của tôi”, xem dòng A8 và A4. 2. Mở A4, xem mục “Đánh giá tour”. 3. Mở A8: bấm “Gửi đánh giá” khi chưa chọn sao; chọn 4 sao, nhập “Tốt”, gửi. 4. Nhập “UAT-61: hướng dẫn viên vui, lịch trình vừa sức.”, “Gửi đánh giá”. 5. Bấm “Sửa đánh giá”, chọn 5 sao, “Lưu thay đổi”. 6. Khách mở trang tour T. 7. KH-B dán địa chỉ trang đơn A8. | Bước 1: dòng A8 (“Đã hoàn thành”) có nút “Viết đánh giá”, dòng A4 không có. Bước 2: “Bạn có thể chấm điểm và nhận xét tour sau khi chuyến đi hoàn thành.”, không có ô chấm điểm. Bước 3: không gửi được: trình duyệt báo phải chọn sao, rồi báo nhận xét cần ít nhất 10 ký tự. Bước 4: “Đã gửi đánh giá. Đánh giá sẽ hiện trên trang tour sau khi LocalTour duyệt.”; mục ghi “4/5”, “Chờ duyệt”, “Đánh giá đang chờ LocalTour duyệt. Bạn vẫn sửa được trước khi đánh giá được đăng.” Bước 5: “Đã cập nhật đánh giá. Đánh giá đang chờ LocalTour duyệt lại.”, “5/5”. Bước 6: tour T vẫn “Chưa có đánh giá”. Bước 7: “Không tìm thấy đơn”. | | Chạy sau UAT-53 (A8 “Đã hoàn thành”) |
+| UAT-62 | US-37 | Duyệt, từ chối và gỡ đánh giá | 1. QTV mở “Duyệt đánh giá”. 2. Ở đánh giá của A8 bấm “Từ chối”, để trống lý do, “Từ chối đánh giá”; rồi nhập lý do “UAT-62: nhận xét cần rõ hơn.”, bấm lại. 3. KH-A mở “Đơn của tôi”, mở A8. 4. KH-A “Sửa đánh giá”, sửa nhận xét, “Gửi lại đánh giá”. 5. QTV tải lại, bấm “Duyệt” ở đánh giá của A8. 6. Khách mở trang tour T, mục “Đánh giá”; KH-A mở lại A8. 7. QTV tab “Đã duyệt”, ở đánh giá của A8 bấm “Gỡ đánh giá”, nhập lý do, bấm “Gỡ đánh giá” bên dưới ô lý do. 8. Khách tải lại trang tour T. 9. KH-A mở `/admin/reviews`. | Bước 1: tab “Chờ duyệt (2)”: đánh giá của A8 (“5/5 · <tên tour T>”, “Đơn LTxxxxxx · Khách Thử A …”) và một đánh giá mẫu của tour 1. Bước 2: để trống không gửi được; có lý do: “Đã từ chối đánh giá và lưu lý do. Khách thấy lý do ở trang đơn và có thể sửa rồi gửi lại.”, đánh giá sang tab “Không được duyệt”, không còn nút. Bước 3: dòng A8 có “Sửa đánh giá”; trang đơn ghi “Không được duyệt” và “LocalTour chưa đăng đánh giá này. Lý do: UAT-62: nhận xét cần rõ hơn.” Bước 4: “Đã cập nhật đánh giá. Đánh giá đang chờ LocalTour duyệt lại.”, “Chờ duyệt”. Bước 5: “Đã duyệt đánh giá. Đánh giá đã hiện trên trang tour.” Bước 6: dưới tên tour T ghi “5,0/5 (1 đánh giá)”; mục “Đánh giá” có nhận xét của Khách Thử A, “5/5 · Tham gia ngày …”; A8 ghi “Đã đăng”, “Đánh giá đã hiện trên trang tour. Đánh giá đã đăng không sửa được nữa.”, có “Xem trên trang tour”, không còn ô sửa. Bước 7: không có lý do thì không gỡ được; có lý do: “Đã từ chối đánh giá và lưu lý do. …”, đánh giá về “Không được duyệt”. Bước 8: tour T lại “Chưa có đánh giá”. Bước 9: “Bạn không có quyền truy cập trang này.” | | |
+| UAT-63 | US-38 | Trang “Tài khoản” của khách hàng | 1. Chưa đăng nhập, mở `/tai-khoan`; đăng nhập KH-B. 2. “Chọn ảnh”: chọn ảnh trên 2 MB; rồi chọn file văn bản đổi đuôi `.jpg`. 3. Chọn ảnh dưới 2 MB, “Lưu ảnh”; mở tour 1, mục “Bình luận”. 4. Ở “Tài khoản” bấm “Xóa ảnh”, đồng ý. 5. Họ tên “K”, số điện thoại “12ab”, “Lưu thông tin”; rồi họ tên “Khách Thử B Mới”, xóa số điện thoại, lưu. 6. Ở phần mật khẩu: nhập sai mật khẩu hiện tại; rồi mật khẩu mới 6 ký tự; rồi hai ô mật khẩu mới khác nhau; rồi nhập đúng, bấm “Đổi mật khẩu”. 7. Đăng xuất; đăng nhập KH-B bằng mật khẩu cũ, rồi bằng mật khẩu mới. 8. Đổi lại họ tên “Khách Thử B”, số điện thoại cũ và mật khẩu cũ. 9. QTV và ĐV-A mở `/tai-khoan`. | Bước 1: chuyển tới trang đăng nhập, đăng nhập xong vào trang “Tài khoản”; ô email không sửa được: “Email dùng để đăng nhập nên không đổi được.” Bước 2: “Ảnh tối đa 2 MB.”; file đổi đuôi: “Không đọc được ảnh này, vui lòng chọn ảnh khác.”; không lưu ảnh nào. Bước 3: “Đã cập nhật ảnh đại diện.”; ảnh hiện ở trang, cạnh tên ở đầu trang và cạnh các bình luận của KH-B ở tour 1. Bước 4: hỏi “Xóa ảnh đại diện? Giao diện sẽ hiện chữ cái đầu tên của bạn.”; “Đã xóa ảnh đại diện.”, đầu trang lại hiện chữ cái đầu. Bước 5: lần đầu “Họ tên từ 2 đến 100 ký tự.” và “Số điện thoại không hợp lệ.”, không lưu; lần hai “Đã lưu thông tin cá nhân.”, đầu trang ghi “Khách Thử B Mới”. Bước 6: lần lượt “Mật khẩu hiện tại không đúng.”, “Mật khẩu mới tối thiểu 8 ký tự.”, “Mật khẩu nhập lại không khớp.”; nhập đúng: “Đã đổi mật khẩu.”, vẫn đăng nhập. Bước 7: mật khẩu cũ: “Email hoặc mật khẩu không đúng.”; mật khẩu mới đăng nhập được. Bước 8: lưu được. Bước 9: “Trang này dành cho tài khoản khách hàng”. | | Dùng 3 file ở mục 3. Không ghi mật khẩu mới vào tài liệu |
+| UAT-64 | US-39 | Trợ giúp, Điều khoản sử dụng, nút Menu | 1. Chưa đăng nhập, bấm “Trợ giúp” ở menu trái. 2. Bấm “Điều khoản sử dụng” ở cuối trang. 3. Mở `/tours`, bấm “Menu” ở đầu trang; tải lại trang; bấm lại “Menu”. 4. Mở tour 1, bấm “Menu”. 5. KH-A xem menu trái; bấm tên của mình ở đầu trang. 6. KH-A mở lần lượt `/tours`, trang tour 1, “Đơn của tôi”, “Tour đã lưu”, “Tài khoản”, “Trợ giúp”. | Bước 1: trang “Trợ giúp” có các mục “Tìm và so sánh tour”, “Đặt tour và giữ chỗ”, “Thanh toán”, “Đổi lịch, hủy và hoàn tiền”, “Tài khoản và ảnh đại diện”, “Thích, lưu, chia sẻ, bình luận và đánh giá”, “Dành cho đơn vị tổ chức”; ghi giữ chỗ 30 phút, ngừng nhận đặt 60 phút, VietQR 24 giờ, khớp “Thông số vận hành”. Bước 2: “Điều khoản sử dụng”, “Hiệu lực từ ngày 16/11/2026.”, có mục “6. Nội dung người dùng: bình luận và đánh giá”. Bước 3: menu trái ẩn, danh sách tour rộng ra; tải lại vẫn ẩn; bấm lại thì hiện. Bước 4: menu mở thành ngăn nổi trên trang tour, bấm ra ngoài thì đóng. Bước 5: menu có “Đơn của tôi”, “Tour đã lưu”, “Tài khoản”, “Trợ giúp”, “Điều khoản”; bấm tên mở trang “Tài khoản”. Bước 6: không trang nào còn nút hay nhãn “Sắp có”. | | |
+
 ## 7. Đối chiếu User Story → ca UAT
 
 | US | Ưu tiên | Ca UAT | US | Ưu tiên | Ca UAT |
 | --- | --- | --- | --- | --- | --- |
-| US-01 | Must | UAT-01 | US-16 | Must | UAT-07, 08, 30 |
-| US-02 | Must | UAT-02 | US-17 | Must | UAT-35 |
-| US-03 | Must | UAT-03, 04 | US-18 | Must | UAT-35 |
-| US-04 | Must | UAT-05 | US-19 | Must | UAT-36 |
-| US-05 | Must | UAT-09 | US-20 | Must | UAT-37 |
-| US-06 | Must | UAT-10, 11, 49 | US-21 | Must | UAT-32, 33, 41, 42 |
-| US-07 | Must | UAT-31, 32, 34 | US-22 | Must | UAT-12, 30 |
-| US-08 | Must | UAT-17 | US-23 | Must | UAT-13, 19 |
-| US-09 | Must | UAT-13, 14, 15 | US-24 | Must | UAT-15, 16 |
-| US-10 | Must | UAT-21, 22, 24 | US-25 | Must | UAT-38, 39 |
-| US-11 | Must | UAT-18, 50 | US-26 | Must | UAT-40, 41, 42, 43, 44, 45, 47 |
-| US-12 | Must | UAT-19, 20, 23, 24 | US-27 | Must | UAT-46, 47 |
-| US-13 | Must | UAT-25, 26, 48 | US-28 | Must | UAT-51, 53, 54 |
-| US-14 | Should | UAT-27, 28, 29 | US-29 | Must | UAT-48, 51, 52 |
-| US-15 | Could | UAT-06 | | | |
+| US-01 | Must | UAT-01 | US-21 | Must | UAT-32, 33, 41, 42 |
+| US-02 | Must | UAT-02 | US-22 | Must | UAT-12, 30 |
+| US-03 | Must | UAT-03, 04 | US-23 | Must | UAT-13, 19 |
+| US-04 | Must | UAT-05 | US-24 | Must | UAT-15, 16 |
+| US-05 | Must | UAT-09 | US-25 | Must | UAT-38, 39 |
+| US-06 | Must | UAT-10, 11, 49 | US-26 | Must | UAT-40, 41, 42, 43, 44, 45, 47 |
+| US-07 | Must | UAT-31, 32, 34 | US-27 | Must | UAT-46, 47 |
+| US-08 | Must | UAT-17 | US-28 | Must | UAT-51, 53, 54 |
+| US-09 | Must | UAT-13, 14, 15 | US-29 | Must | UAT-48, 51, 52 |
+| US-10 | Must | UAT-21, 22, 24 | US-30 | Must | UAT-55 |
+| US-11 | Must | UAT-18, 50 | US-31 | Must | UAT-56 |
+| US-12 | Must | UAT-19, 20, 23, 24 | US-32 | Must | UAT-57 |
+| US-13 | Must | UAT-25, 26, 48 | US-33 | Must | UAT-58 |
+| US-14 | Should | UAT-27, 28, 29 | US-34 | Must | UAT-59 |
+| US-15 | Must | UAT-06 | US-35 | Must | UAT-60 |
+| US-16 | Must | UAT-07, 08, 30 | US-36 | Must | UAT-61 |
+| US-17 | Must | UAT-35 | US-37 | Must | UAT-62 |
+| US-18 | Must | UAT-35 | US-38 | Must | UAT-63 |
+| US-19 | Must | UAT-36 | US-39 | Must | UAT-64 |
+| US-20 | Must | UAT-37 | | | |
 
 ## 8. Biên bản nghiệm thu UAT (điền ngày 16/11; phần sửa lỗi 6.6 điền ngày 18/11)
 
@@ -296,8 +317,9 @@ Tổng hợp kết quả:
 | Đơn đặt tour của đơn vị tổ chức (UAT-46–47) | 2 | | | |
 | Giới hạn khi đặt tour giữ chỗ ngay (UAT-48–50) | 3 | | | |
 | Phí dịch vụ, chi trả, hoàn tiền và thông số vận hành (UAT-51–54) | 4 | | | |
-| **Tổng** | **54** | | | |
-| Trong đó ca Must | 50 | | | |
+| Lọc tour, thích, lưu, chia sẻ, bình luận, đánh giá, tài khoản và trợ giúp (UAT-55–64) | 10 | | | |
+| **Tổng** | **64** | | | |
+| Trong đó ca Must | 61 | | | |
 
 Lỗi còn mở:
 
@@ -330,7 +352,7 @@ Lỗi còn mở:
 | US-12 | Đối chiếu VietQR và VNPay chưa rõ kết quả | Must | UAT-19, 20, 23, 24 | | | |
 | US-13 | Tự hủy đơn quá hạn giữ chỗ | Must | UAT-25, 26, 48 | | | |
 | US-14 | Đổi ngày / hủy tour | Should | UAT-27, 28, 29 | | | |
-| US-15 | Xem đánh giá | Could | UAT-06 | | | |
+| US-15 | Xem đánh giá | Must | UAT-06 | | | |
 | US-16 | Đăng ký, đăng nhập, đăng xuất | Must | UAT-07, 08, 30 | | | |
 | US-17 | Thống kê người dùng | Must | UAT-35 | | | |
 | US-18 | Thống kê tour | Must | UAT-35 | | | |
@@ -345,13 +367,23 @@ Lỗi còn mở:
 | US-27 | Đơn vị tổ chức xem đơn đặt tour (FR-28) | Must | UAT-46, 47 | | | |
 | US-28 | Phí dịch vụ và chi trả cho đơn vị tổ chức (FR-29) | Must | UAT-51, 53, 54 | | | |
 | US-29 | Thông số vận hành (FR-30) | Must | UAT-48, 51, 52 | | | |
+| US-30 | Lọc theo ngày đi và bộ lọc nâng cao (FR-06) | Must | UAT-55 | | | |
+| US-31 | Thích tour (FR-31) | Must | UAT-56 | | | |
+| US-32 | Lưu tour, trang “Tour đã lưu” (FR-32) | Must | UAT-57 | | | |
+| US-33 | Chia sẻ tour (FR-33) | Must | UAT-58 | | | |
+| US-34 | Bình luận (FR-34) | Must | UAT-59 | | | |
+| US-35 | Ẩn, hiện lại bình luận (FR-34) | Must | UAT-60 | | | |
+| US-36 | Khách đánh giá đơn đã hoàn thành (FR-16) | Must | UAT-61 | | | |
+| US-37 | Duyệt, từ chối, gỡ đánh giá (FR-16) | Must | UAT-62 | | | |
+| US-38 | Trang “Tài khoản” (FR-35) | Must | UAT-63 | | | |
+| US-39 | Trợ giúp, Điều khoản sử dụng, nút Menu (FR-36) | Must | UAT-64 | | | |
 
 | Mục | Kết quả |
 | --- | --- |
 | Bản demo đã nghiệm thu (mã commit) | |
 | Installation Guide đã sửa theo 6.4 | ☐ Có ☐ Không cần sửa |
 | User Guide đã sửa theo UAT | ☐ Có ☐ Không cần sửa |
-| Số US đạt / tổng | __ / 29 |
+| Số US đạt / tổng | __ / 39 |
 | Lỗi mở theo mức (Critical / High / Medium / Low) | __ / __ / __ / __ |
 | Điểm còn thiếu | |
 | Chuyển sang Sprint 7 | |
