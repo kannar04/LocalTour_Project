@@ -74,7 +74,7 @@ Quy tắc:
    - “Thời lượng”: Tất cả, Đến 3 giờ, Trên 3 – 4 giờ, Trên 4 giờ.
    - “Ngôn ngữ hướng dẫn”: chọn một ngôn ngữ.
    - “Điểm đón”: tích “Có đón tại khách sạn”.
-   - Bấm **Áp dụng**. Nút **Bộ lọc** hiện số bộ lọc đang chọn; dòng kết quả ghi số tour và các bộ lọc đang dùng, ví dụ “5 tour · giá 500.000đ – 800.000đ · hướng dẫn tiếng Anh”. Bấm **Xóa bộ lọc** trong bảng để bỏ mọi lựa chọn trong bảng và đóng bảng.
+   - Bấm **Áp dụng**. Nút **Bộ lọc** hiện số bộ lọc đang chọn; dòng kết quả ghi số tour và các bộ lọc đang dùng, ví dụ “13 tour · giá 500.000đ – 800.000đ · hướng dẫn tiếng Anh”. Bấm **Xóa bộ lọc** trong bảng để bỏ mọi lựa chọn trong bảng và đóng bảng.
 6. Các bộ lọc kết hợp với ô tìm kiếm, điểm đến, loại hình và sắp xếp, và được giữ trên địa chỉ trang: tải lại trang hoặc bấm quay lại vẫn giữ kết quả lọc.
 7. Sắp xếp: tab **Nổi bật** / **Sắp khởi hành**; ô “Giá”: Mặc định, Thấp đến cao, Cao đến thấp.
 8. Không có kết quả: trang ghi “Không có tour phù hợp” và “Thử bỏ bớt bộ lọc, chọn ngày khác hoặc đổi từ khóa nhé. Bấm “Xóa bộ lọc” để xem mọi tour.”, bấm **Xóa bộ lọc** để xem lại tất cả.
@@ -221,7 +221,7 @@ Mở bằng cách bấm ảnh đại diện hoặc tên ở góc phải, hoặc 
 
 1. **Ảnh đại diện:** bấm **Chọn ảnh**, chọn ảnh JPG, PNG hoặc WebP (tối đa 2 MB, mỗi cạnh từ 64 đến 4096 px), bấm **Lưu ảnh** → “Đã cập nhật ảnh đại diện.” Ảnh được cắt vuông ở giữa và hiện ở đầu trang, cạnh bình luận và đánh giá của bạn. Bấm **Xóa ảnh**, xác nhận “Xóa ảnh đại diện? Giao diện sẽ hiện chữ cái đầu tên của bạn.” → “Đã xóa ảnh đại diện.”
 2. Ảnh không hợp lệ báo “Chỉ nhận ảnh JPG, PNG hoặc WebP.”, “Ảnh tối đa 2 MB.” hoặc “Ảnh cần có cạnh từ 64 đến 4096 px.”; chưa chọn ảnh mà bấm **Lưu ảnh** thì báo “Vui lòng chọn ảnh.”
-3. **Thông tin cá nhân:** sửa “Họ tên” (2 đến 100 ký tự) và “Số điện thoại (không bắt buộc)”, bấm **Lưu thông tin** → “Đã lưu thông tin cá nhân.” Họ tên và số điện thoại được điền sẵn khi đặt tour. Email dùng để đăng nhập nên không đổi được.
+3. **Thông tin cá nhân:** sửa “Họ tên” (2 đến 100 ký tự) và “Số điện thoại (không bắt buộc)”. Các ô sau cũng không bắt buộc: “Số CCCD” (đúng 12 chữ số trên thẻ căn cước; chỉ bạn xem được số này), “Ngày sinh” (từ năm 1900, không ở tương lai; bạn cần đủ 10 tuổi), “Giới tính” (Nam, Nữ, Khác hoặc “Không nêu”), “Địa chỉ” (tối đa 255 ký tự). Bấm **Lưu thông tin** → “Đã lưu thông tin cá nhân.” Ô nào sai thì báo lỗi ngay dưới ô đó, ví dụ “Số CCCD gồm đúng 12 chữ số.”, “Ngày sinh không được ở tương lai.” hoặc “Bạn cần đủ 10 tuổi.”, và chưa thông tin nào được lưu. Họ tên và số điện thoại được điền sẵn khi đặt tour.
 4. **Đổi mật khẩu:** nhập “Mật khẩu hiện tại”, “Mật khẩu mới” (tối thiểu 8 ký tự), “Nhập lại mật khẩu”, bấm **Đổi mật khẩu** → “Đã đổi mật khẩu.” Vẫn đăng nhập sau khi đổi; lần sau đăng nhập bằng mật khẩu mới. Lỗi thường gặp: “Mật khẩu hiện tại không đúng.”, “Mật khẩu nhập lại không khớp.”, “Mật khẩu mới phải khác mật khẩu hiện tại.”
 5. Chưa đăng nhập mà mở `/tai-khoan` thì được đưa tới trang đăng nhập.
 
