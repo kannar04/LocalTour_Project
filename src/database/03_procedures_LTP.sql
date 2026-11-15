@@ -26,7 +26,8 @@
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
--- LTP_sp_tour_list(p_keyword, p_destination_id, p_category_id, p_sort)
+-- LTP_sp_tour_list(p_keyword, p_destination_id, p_category_id, p_sort,
+--                  p_date, p_price_min, p_price_max, p_duration, p_language, p_hotel_pickup)
 --   p_keyword        : NULL / '' / toàn khoảng trắng = không lọc; ngược lại tìm
 --                      LIKE '%từ khóa%' trong tên tour, mô tả, điểm đến, loại hình,
 --                      tên nhà cung cấp. Ký tự % và _ được tìm đúng nghĩa đen (ký tự
@@ -41,6 +42,20 @@
 --     upcoming   : next_starts_at tăng dần, tour chưa có lịch đặt được xếp cuối
 --     price_asc / price_desc: from_price_vnd, tour chưa có giá (NULL) xếp cuối
 --     Cùng thứ hạng thì xếp theo title, rồi id.
+--   Bộ lọc "Ngày đi" và "Bộ lọc" nâng cao (CR3, Lê Trung Phong). NULL = không lọc:
+--   p_date           : chỉ tour có lịch đặt được (quy tắc ở đầu file) khởi hành trong ngày này.
+--                      schedules.starts_at là giờ Việt Nam (kết nối đặt time_zone '+07:00', file
+--                      core/Database.php) nên so trực tiếp: p_date <= starts_at < p_date + 1 ngày.
+--                      Khi có p_date, from_price_vnd và next_starts_at chỉ tính các lịch của ngày đó.
+--   p_price_min / p_price_max : khoảng giá (VND, gồm hai đầu) áp lên from_price_vnd. Đặt một
+--                      trong hai thì tour chưa có giá (from_price_vnd NULL) không được trả về.
+--   p_duration       : 'short' = đến 3 giờ (duration_minutes <= 180),
+--                      'medium' = trên 3 giờ đến 4 giờ (181..240),
+--                      'long' = trên 4 giờ (> 240). Giá trị khác = không lọc.
+--   p_language       : mã ngôn ngữ hướng dẫn (vd. 'en'), tìm trong tours.language_codes
+--                      (danh sách cách nhau bởi dấu phẩy) bằng FIND_IN_SET.
+--   p_hotel_pickup   : 1 = chỉ tour đón tại khách sạn (pickup_mode = 'hotel_pickup');
+--                      NULL / 0 = không lọc.
 --   Cột trả về: tour_id, title, description, destination_id, destination_name,
 --     category_id, category_name (NULL nếu chưa gán loại hình), provider_name,
 --     duration_minutes, max_group_size, language_codes, pickup_mode, meeting_point,
@@ -63,7 +78,13 @@ CREATE PROCEDURE LTP_sp_tour_list(
     IN p_keyword        VARCHAR(100),
     IN p_destination_id CHAR(36),
     IN p_category_id    CHAR(36),
-    IN p_sort           VARCHAR(20)
+    IN p_sort           VARCHAR(20),
+    IN p_date           DATE,
+    IN p_price_min      INT UNSIGNED,
+    IN p_price_max      INT UNSIGNED,
+    IN p_duration       VARCHAR(10),
+    IN p_language       VARCHAR(10),
+    IN p_hotel_pickup   TINYINT
 )
 READS SQL DATA
 BEGIN
@@ -71,6 +92,9 @@ BEGIN
     DECLARE v_destination_id CHAR(36) CHARACTER SET utf8mb4 DEFAULT NULL;
     DECLARE v_category_id    CHAR(36) CHARACTER SET utf8mb4 DEFAULT NULL;
     DECLARE v_sort           VARCHAR(20) DEFAULT 'recommended';
+    DECLARE v_duration       VARCHAR(10) DEFAULT NULL;
+    DECLARE v_language       VARCHAR(10) CHARACTER SET utf8mb4 DEFAULT NULL;
+    DECLARE v_hotel_pickup   BOOLEAN DEFAULT FALSE;
     -- Ngừng nhận đặt trước giờ khởi hành bao nhiêu phút (file 28).
     DECLARE v_cutoff_min INT DEFAULT 60;
 
@@ -95,6 +119,16 @@ BEGIN
     IF p_sort IN ('upcoming', 'price_asc', 'price_desc') THEN
         SET v_sort = p_sort;
     END IF;
+
+    IF p_duration IN ('short', 'medium', 'long') THEN
+        SET v_duration = p_duration;
+    END IF;
+
+    IF p_language IS NOT NULL AND TRIM(p_language) <> '' THEN
+        SET v_language = LOWER(TRIM(p_language));
+    END IF;
+
+    SET v_hotel_pickup = COALESCE(p_hotel_pickup, 0) = 1;
 
     SELECT
         t.id                            AS tour_id,
@@ -136,6 +170,9 @@ BEGIN
                 WHERE s.status = 'open'
                   AND s.starts_at > NOW() + INTERVAL v_cutoff_min MINUTE
                   AND s.remaining > 0
+                  -- Ngày đi (CR3): chỉ lịch khởi hành trong ngày đã chọn
+                  AND (p_date IS NULL
+                       OR (s.starts_at >= p_date AND s.starts_at < p_date + INTERVAL 1 DAY))
                 GROUP BY s.tour_id) bs
            ON bs.tour_id = t.id
     -- Điểm trung bình và số đánh giá đã duyệt
@@ -166,6 +203,17 @@ BEGIN
            OR COALESCE(d.name, t.destination) LIKE (v_pattern COLLATE utf8mb4_unicode_ci) ESCAPE '!'
            OR c.name                          LIKE (v_pattern COLLATE utf8mb4_unicode_ci) ESCAPE '!'
            OR p.business_name                 LIKE (v_pattern COLLATE utf8mb4_unicode_ci) ESCAPE '!')
+      -- Bộ lọc CR3
+      AND (p_date IS NULL OR bs.tour_id IS NOT NULL)
+      AND (p_price_min IS NULL OR bs.from_price_vnd >= p_price_min)
+      AND (p_price_max IS NULL OR bs.from_price_vnd <= p_price_max)
+      AND (v_duration IS NULL
+           OR (v_duration = 'short'  AND t.duration_minutes <= 180)
+           OR (v_duration = 'medium' AND t.duration_minutes > 180 AND t.duration_minutes <= 240)
+           OR (v_duration = 'long'   AND t.duration_minutes > 240))
+      AND (v_language IS NULL
+           OR FIND_IN_SET((v_language COLLATE utf8mb4_unicode_ci), REPLACE(t.language_codes, ' ', '')) > 0)
+      AND (v_hotel_pickup = FALSE OR t.pickup_mode = 'hotel_pickup')
     ORDER BY
         CASE WHEN v_sort = 'recommended' THEN (rs.rating_avg IS NULL) END ASC,
         CASE WHEN v_sort = 'recommended' THEN rs.rating_avg END DESC,
