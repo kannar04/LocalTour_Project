@@ -52,9 +52,9 @@ Mục trong cột “Hướng dẫn” là số mục của [02 – Hướng d�
 | B07 | 6 | `scripts\install_database.bat --fresh`, gõ tên database rồi Enter | Cài lại thành công như B05. | | | |
 | B08 | 7 | `C:\xampp\php\php.exe scripts\create_admin.php --email=admin@localtour.test --generate` | `OK Đã đặt mật khẩu mới cho admin@localtour.test …`, mật khẩu hiện một lần (không ghi vào biên bản). | | | |
 | B09 | 7 | `C:\xampp\php\php.exe scripts\check_install.php` | `Kết quả: … OK, … cảnh báo, 0 lỗi.` Ghi lại dòng kết quả: | | | |
-| B10 | 8 | Apache: Start Apache, mở `http://localhost/LocalTour_Project/src/public/` | Trang “Bảng tin du lịch” có 9 tour. | | | |
+| B10 | 8 | Apache: Start Apache, mở `http://localhost/LocalTour_Project/src/public/` | Trang “Bảng tin du lịch” có 29 tour. | | | |
 | B11 | 8 | Apache: mở `http://localhost/LocalTour_Project/src/.env` | Lỗi 403, không hiện nội dung file. | | | |
-| B12 | 8 | Built-in server: `C:\xampp\php\php.exe -S 127.0.0.1:8080 -t public public/router.php`, mở `http://127.0.0.1:8080` | Màn hình lệnh báo `… Development Server (http://127.0.0.1:8080) started`; trang “Bảng tin du lịch” có 9 tour. | | | |
+| B12 | 8 | Built-in server: `C:\xampp\php\php.exe -S 127.0.0.1:8080 -t public public/router.php`, mở `http://127.0.0.1:8080` | Màn hình lệnh báo `… Development Server (http://127.0.0.1:8080) started`; trang “Bảng tin du lịch” có 29 tour. | | | |
 | B13 | 8 | Mở `/tours/c0000000-0000-4000-8000-000000000001` | Trang chi tiết “Hà Nội qua những món ăn phố cổ”. | | | |
 | B14 | 8 | `/admin/login`: đăng nhập sai mật khẩu, rồi đúng mật khẩu ở B08 | Sai: “Email hoặc mật khẩu không đúng.”; đúng: trang “Tổng quan”. | | | |
 | B15 | 8 | `/register` tạo tài khoản khách hàng, đặt tour 1 cho 1 người lớn | Đơn `LTxxxxxx` được giữ chỗ ngay và trang thanh toán của đơn mở ra (“Đã giữ chỗ cho đơn LTxxxxxx”); trong “Đơn của tôi” đơn ở trạng thái “Chờ thanh toán”. | | | |

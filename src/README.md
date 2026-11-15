@@ -163,7 +163,11 @@ src/
 │   ├── 36_procedures_NTK_review.sql
 │   ├── 37_procedures_LTP_account.sql
 │   ├── 38_seed_cr3_NTK.sql
-│   ├── db_localtour.sql          # File gộp 01–38, sinh tự động
+│   ├── 39_migration_profile_LTP.sql
+│   ├── 40_email_verify_NTK.sql
+│   ├── 41_seed_tours_NMT.sql
+│   ├── 42_map_tours_NTK.sql
+│   ├── db_localtour.sql          # File gộp 01–42, sinh tự động
 │   └── README.md
 ├── public/                       # Thư mục web duy nhất trình duyệt truy cập được
 │   ├── .htaccess                 # Chuyển mọi đường dẫn về index.php (Apache)
@@ -286,7 +290,7 @@ Tiền tố tên procedure cho biết người phụ trách: `LTP_` – Lê Trun
 | POST | `/api/comments/{id}/delete` | `TourCommentController@destroy` | CR3: `_csrf`; người viết xóa bình luận của mình (bình luận không sửa được); 404 khi không phải bình luận của mình. |
 | POST | `/bookings/{code}/review` | `ReviewController@save` | CR3 (FR-16): `rating` (1–5), `content` (10–1000 ký tự), `_csrf`. Chỉ đơn "Đã hoàn thành" của chính tài khoản, mỗi đơn một đánh giá; gửi hoặc sửa xong về thẻ "Đánh giá tour" của trang đơn, đánh giá ở "Chờ duyệt". Sửa được khi "Chờ duyệt" / "Không được duyệt"; đánh giá đã duyệt (thẻ đơn ghi "Đã đăng") không sửa được. |
 | GET | `/tai-khoan` | `AccountController@show` | CR3: trang "Tài khoản" của tài khoản khách hàng (ảnh đại diện, thông tin cá nhân, mật khẩu). Chưa đăng nhập → trang đăng nhập; tài khoản khác → 403. |
-| POST | `/tai-khoan/profile` | `AccountController@updateProfile` | CR3: `name` (2–100 ký tự), `phone` (không bắt buộc; 8–20 ký tự gồm chữ số và khoảng trắng, có thể bắt đầu bằng `+`), `_csrf`; 422 lỗi theo ô. Email không đổi được. |
+| POST | `/tai-khoan/profile` | `AccountController@updateProfile` | CR3: `name` (2–100 ký tự), `phone` (không bắt buộc; 8–20 ký tự gồm chữ số và khoảng trắng, có thể bắt đầu bằng `+`), `citizen_id` (số CCCD, không bắt buộc, đúng 12 chữ số), `date_of_birth` (không bắt buộc; `yyyy-mm-dd` hoặc `dd/mm/yyyy`, từ năm 1900, không ở tương lai, đủ 10 tuổi), `gender` (`male` / `female` / `other`, trống = không nêu), `address` (không bắt buộc, tối đa 255 ký tự), `_csrf`; 422 lỗi theo ô, không lưu gì. |
 | POST | `/tai-khoan/avatar`, `/tai-khoan/avatar/delete` | `AccountController` | CR3: đặt / xóa ảnh đại diện; `avatar` (multipart: JPG / PNG / WebP tối đa 2 MB, cạnh 64–4096 px; không nhận SVG), `_csrf`; 422 ảnh không hợp lệ, 413 file quá lớn. Đổi hoặc xóa ảnh thì xóa file cũ. |
 | POST | `/tai-khoan/password` | `AccountController@changePassword` | CR3: `current_password` (bắt buộc khi tài khoản đã có mật khẩu), `password` (tối thiểu 8 ký tự như khi đăng ký), `password_confirm`, `_csrf`; 422 lỗi theo ô. |
 | GET | `/admin/reviews` | `AdminReviewController@index` | CR3: "Duyệt đánh giá"; `status` `pending` (mặc định, "Chờ duyệt"), `approved` ("Đã duyệt"), `rejected` ("Không được duyệt"), `all`; `q` (mã đơn, tên tour, tên / email khách), `page`. |
@@ -351,14 +355,14 @@ Chọn một trong hai cách.
 **Cách B – Import database trên máy mình.**
 
 1. Mở XAMPP Control Panel, bấm Start cho **MySQL**.
-2. Dùng file `src/database/db_localtour.sql` trong repo. File này được gộp từ `src/database/01_schema.sql` đến `38_seed_cr3_NTK.sql`.
+2. Dùng file `src/database/db_localtour.sql` trong repo. File này được gộp từ `src/database/01_schema.sql` đến `42_map_tours_NTK.sql`.
 3. Mở `http://localhost/phpmyadmin`, chọn tab **Import**, chọn file `db_localtour.sql`, giữ **Character set of the file** là `utf-8`, bấm **Import** (hoặc **Go**). File tự tạo database `db_localtour` với `utf8mb4_unicode_ci`.
 
 Cách nhanh hơn, không cần phpMyAdmin: sau khi tạo `.env` (Bước 3), đứng ở thư mục `src` chạy `scripts\install_database.bat`. Script import mọi file `NN_*.sql` theo thứ tự vào database ghi trong `.env` và đếm lại bảng / procedure; database đã có dữ liệu thì dừng, trừ khi thêm `--fresh`.
 
-Nếu không có file gộp: tạo database `db_localtour` với collation `utf8mb4_unicode_ci`, chọn database đó, rồi import lần lượt `01_schema.sql`, `02_seed.sql`, `03_procedures_LTP.sql`, `04_procedures_NMT.sql`, `05_procedures_NTK.sql`, `06_procedures_NTK_account.sql`, `07_procedures_NTK_admin.sql`, `08_migration_booking_NMT.sql`, `09_procedures_NMT_booking.sql`, `10_procedures_LTP_booking.sql`, `11_procedures_NTK_booking.sql`, `12_migration_sprint4_NMT.sql`, `13_procedures_NMT_catalog.sql`, `14_procedures_NMT_payment.sql`, `15_procedures_LTP_payment.sql`, `16_migration_sprint5_LTP.sql`, `17_procedures_NMT_compare.sql`, `18_procedures_LTP_package.sql`, `19_procedures_LTP_change.sql`, `20_procedures_LTP_change_admin.sql`, `21_procedures_NMT_tour_content.sql`, `22_payment_momo_NTK.sql`, `23_map_places_NTK.sql`, `24_social_login_NTK.sql`, `25_email_NTK.sql`, `26_procedures_NTK_setup.sql`, `27_procedures_NTK_host.sql`, `28_migration_economy_NTK.sql`, `29_procedures_NTK_instant_booking.sql`, `30_procedures_NTK_payout.sql`, `31_migration_host_rules_NTK.sql`, `32_procedures_NTK_tour_revision.sql`, `33_migration_cr3_NTK.sql`, `34_procedures_NMT_social.sql`, `35_procedures_NMT_comment.sql`, `36_procedures_NTK_review.sql`, `37_procedures_LTP_account.sql`, `38_seed_cr3_NTK.sql`.
+Nếu không có file gộp: tạo database `db_localtour` với collation `utf8mb4_unicode_ci`, chọn database đó, rồi import lần lượt `01_schema.sql`, `02_seed.sql`, `03_procedures_LTP.sql`, `04_procedures_NMT.sql`, `05_procedures_NTK.sql`, `06_procedures_NTK_account.sql`, `07_procedures_NTK_admin.sql`, `08_migration_booking_NMT.sql`, `09_procedures_NMT_booking.sql`, `10_procedures_LTP_booking.sql`, `11_procedures_NTK_booking.sql`, `12_migration_sprint4_NMT.sql`, `13_procedures_NMT_catalog.sql`, `14_procedures_NMT_payment.sql`, `15_procedures_LTP_payment.sql`, `16_migration_sprint5_LTP.sql`, `17_procedures_NMT_compare.sql`, `18_procedures_LTP_package.sql`, `19_procedures_LTP_change.sql`, `20_procedures_LTP_change_admin.sql`, `21_procedures_NMT_tour_content.sql`, `22_payment_momo_NTK.sql`, `23_map_places_NTK.sql`, `24_social_login_NTK.sql`, `25_email_NTK.sql`, `26_procedures_NTK_setup.sql`, `27_procedures_NTK_host.sql`, `28_migration_economy_NTK.sql`, `29_procedures_NTK_instant_booking.sql`, `30_procedures_NTK_payout.sql`, `31_migration_host_rules_NTK.sql`, `32_procedures_NTK_tour_revision.sql`, `33_migration_cr3_NTK.sql`, `34_procedures_NMT_social.sql`, `35_procedures_NMT_comment.sql`, `36_procedures_NTK_review.sql`, `37_procedures_LTP_account.sql`, `38_seed_cr3_NTK.sql`, `39_migration_profile_LTP.sql`, `40_email_verify_NTK.sql`, `41_seed_tours_NMT.sql`, `42_map_tours_NTK.sql`.
 
-Import lại bất cứ lúc nào để đưa dữ liệu về trạng thái ban đầu: `01_schema.sql` xóa và tạo lại 27 bảng, đồng thời xóa 2 bảng đã bỏ (`post_comments`, `post_interactions`) và 12 bảng do các file sau thêm; `12_migration_sprint4_NMT.sql` thêm 2 bảng Sprint 4, `16_migration_sprint5_LTP.sql` thêm 2 bảng Sprint 5, `23`, `24`, `25` mỗi file thêm 1 bảng, `28_migration_economy_NTK.sql` thêm 3 bảng `settings`, `host_payouts`, `host_payout_items`, `33_migration_cr3_NTK.sql` thêm 2 bảng `tour_likes`, `tour_comments` (27 + 2 + 2 + 3 + 3 + 2 = tổng 39 bảng). Tài khoản đã đăng ký thử (kể cả tour đã lưu, bình luận, đánh giá của các tài khoản đó) cũng bị xóa. Database đang có dữ liệu mà chỉ cần thêm CR3 thì nâng cấp tại chỗ theo đoạn "CR3" của `src/database/README.md`, không import lại. Ngày khởi hành mẫu được tính theo ngày import, vì vậy nên import lại trước mỗi buổi kiểm thử hoặc demo. Chi tiết xem [02 – Lược đồ dữ liệu](../docs/sprint3/02-luoc-do-du-lieu.md) và `src/database/README.md`.
+Import lại bất cứ lúc nào để đưa dữ liệu về trạng thái ban đầu: `01_schema.sql` xóa và tạo lại 27 bảng, đồng thời xóa 2 bảng đã bỏ (`post_comments`, `post_interactions`) và 13 bảng do các file sau thêm; `12_migration_sprint4_NMT.sql` thêm 2 bảng Sprint 4, `16_migration_sprint5_LTP.sql` thêm 2 bảng Sprint 5, `23`, `24`, `25` mỗi file thêm 1 bảng, `28_migration_economy_NTK.sql` thêm 3 bảng `settings`, `host_payouts`, `host_payout_items`, `33_migration_cr3_NTK.sql` thêm 2 bảng `tour_likes`, `tour_comments`, `40` thêm 1 bảng (27 + 2 + 2 + 3 + 3 + 2 + 1 = tổng 40 bảng). Tài khoản đã đăng ký thử (kể cả tour đã lưu, bình luận, đánh giá của các tài khoản đó) cũng bị xóa. Database đang có dữ liệu mà chỉ cần thêm CR3 thì nâng cấp tại chỗ theo đoạn "CR3" của `src/database/README.md`, không import lại. Ngày khởi hành mẫu được tính theo ngày import, vì vậy nên import lại trước mỗi buổi kiểm thử hoặc demo. Chi tiết xem [02 – Lược đồ dữ liệu](../docs/sprint3/02-luoc-do-du-lieu.md) và `src/database/README.md`.
 
 ### Bước 3. Tạo file `.env`
 
@@ -414,8 +418,8 @@ Mở `http://127.0.0.1:8080`. Giữ cửa sổ dòng lệnh mở trong lúc dùn
 **Database (chỉ với Cách B).** Trong phpMyAdmin, bấm `db_localtour` ở cột trái, mở tab **SQL**, chạy lần lượt từng câu:
 
 ```sql
-SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'db_localtour';                                  -- 39
-SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = 'db_localtour' AND ROUTINE_TYPE = 'PROCEDURE'; -- 178
+SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'db_localtour';                                  -- 40
+SELECT COUNT(*) FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = 'db_localtour' AND ROUTINE_TYPE = 'PROCEDURE'; -- 184
 ```
 
 Ra số khác thì xem mục "Cách 1" của `src/database/README.md` để so tên bảng và procedure. Với Cách A, tài khoản ứng dụng chỉ có quyền gọi procedure nên bỏ qua bước này; các đường dẫn dưới đây đã đủ để kiểm tra.
@@ -424,11 +428,11 @@ Ra số khác thì xem mục "Cách 1" của `src/database/README.md` để so t
 
 | Đường dẫn | Kết quả mong đợi |
 | --- | --- |
-| `/tours` | Trang "Bảng tin du lịch" hiện 9 thẻ tour sau hiệu ứng tải, thẻ đầu là "Phố cổ theo cách của bạn"; bộ lọc điểm đến có 4 điểm đến, bộ lọc "Loại hình" có 5 loại hình. Header có "Đăng nhập" và "Đăng ký". |
+| `/tours` | Trang "Bảng tin du lịch" hiện 29 thẻ tour sau hiệu ứng tải, thẻ đầu là "Phố cổ theo cách của bạn"; bộ lọc điểm đến có 10 điểm đến, bộ lọc "Loại hình" có 5 loại hình. Header có "Đăng nhập" và "Đăng ký". |
 | `/tours/c0000000-0000-4000-8000-000000000001` | Trang chi tiết của tour 1 "Hà Nội qua những món ăn phố cổ", có nút "Quay lại danh sách". Mục "Phụ thu / hoạt động tùy chọn" có nhóm "Phụ thu" (1 dòng) trước nhóm "Hoạt động tùy chọn" (1 dòng). Khi chưa đăng nhập, thẻ đặt tour có liên kết "Đăng nhập để đặt tour". |
 | `/tours/c0000000-0000-4000-8000-000000009999` | Trang "Không tìm thấy tour" (HTTP 404), không có thông báo lỗi PHP. |
 | `/tours/c0000000-0000-4000-8000-000000000010` | Cũng là trang "Không tìm thấy tour": tour 10 đang chờ duyệt nên không được hiển thị. |
-| `/api/tours` | JSON có `"success":true`, `data.total` là 9 và `data.tours` gồm 9 tour. |
+| `/api/tours` | JSON có `"success":true`, `data.total` là 29 và `data.tours` gồm 29 tour. |
 | `/api/categories` | JSON có `data.categories` gồm 5 loại hình. |
 | `/api/tours/c0000000-0000-4000-8000-000000000001` | JSON có `data.tour`, `gallery`, `schedules`, `tickets`, `packages` (rỗng với tour 1), `itinerary`, `inclusions`, `extras`, `reviews`, `policy`. `data.extras` có 2 phần tử, phần tử đầu có `"kind":"surcharge"`. |
 | `/login`, `/register` | Form đăng nhập / đăng ký, có liên kết "Tiếp tục với tư cách khách". |
@@ -463,8 +467,8 @@ Cách nhanh nhất trên database của mình: đứng ở thư mục `src`, ch�
 
 | Đường dẫn | Kết quả mong đợi |
 | --- | --- |
-| `/admin` | 40 tài khoản khách hàng (39 đang hoạt động, 1 bị khóa), 12 tour (2 chờ duyệt, 9 đã duyệt, 1 bị từ chối), ô "Đơn chờ thanh toán" ghi 2 trên tổng 39 đơn đặt tour; bảng "Đơn đặt tour theo trạng thái" (Chờ xác nhận 3 – đơn mẫu theo quy trình cũ), bảng số đơn theo ngày tạo và doanh thu. Bấm “Tháng 10/2026” trong bảng doanh thu → trang “Khoản thanh toán theo kỳ” có 20 khoản, tổng thuần 24.930.000đ, khớp dòng của kỳ. |
-| `/admin/tours` | 2 tour chờ duyệt. Mở "Một buổi chiều trong Đại Nội Huế", bấm "Phê duyệt tour" → "Đã phê duyệt tour."; `/tours` giờ có 10 tour và bộ lọc có Huế. |
+| `/admin` | 40 tài khoản khách hàng (39 đang hoạt động, 1 bị khóa), 32 tour (2 chờ duyệt, 29 đã duyệt, 1 bị từ chối), ô "Đơn chờ thanh toán" ghi 2 trên tổng 39 đơn đặt tour; bảng "Đơn đặt tour theo trạng thái" (Chờ xác nhận 3 – đơn mẫu theo quy trình cũ), bảng số đơn theo ngày tạo và doanh thu. Bấm “Tháng 10/2026” trong bảng doanh thu → trang “Khoản thanh toán theo kỳ” có 20 khoản, tổng thuần 24.930.000đ, khớp dòng của kỳ. |
+| `/admin/tours` | 2 tour chờ duyệt. Mở "Một buổi chiều trong Đại Nội Huế", bấm "Phê duyệt tour" → "Đã phê duyệt tour."; `/tours` giờ có 30 tour và điểm đến Huế có 5 tour. |
 | `/admin/bookings` (menu "Đơn đặt tour") | 39 đơn. Đơn đặt mới bắt đầu ở "Chờ thanh toán" và đã giữ chỗ, không cần quản trị viên xác nhận chỗ. Tab "Chờ xác nhận" có 3 đơn mẫu tạo theo quy trình cũ, dùng để thử bước xác nhận chỗ của đơn cũ: mở đơn `LT518204`, chọn "Xác nhận chỗ và giá" rồi bấm "Cập nhật trạng thái" → trạng thái "Chờ thanh toán" (hạn 24 giờ), mục "Lịch sử xử lý" có thêm một dòng, "Chỗ của lịch" giảm 2. Đơn `LT527716` cần 3 chỗ nhưng lịch chỉ còn 2 → báo "Lịch khởi hành không còn đủ chỗ…", trạng thái không đổi. Mở trang này lần đầu sau khi import, đơn mẫu `LT574913` tự chuyển "Đã hoàn thành" vì lịch đã kết thúc (tab "Đã xác nhận" còn 1 đơn, "Đã hoàn thành" 30 đơn). |
 | `/admin` khi đăng nhập bằng tài khoản khách hàng | Trang 403 "Bạn không có quyền truy cập trang này." |
 
@@ -563,7 +567,7 @@ Dùng tài khoản khách hàng tự tạo ở Bước 6 và tài khoản quản
 | Quản trị: "Bình luận" (`/admin/comments`) | Lọc "Đã ẩn" có 1 bình luận (tour 6) kèm lý do. "Ẩn" một bình luận (bắt buộc lý do) → bình luận không còn trên trang tour, số bình luận giảm 1; "Hiện lại" thì bình luận hiện lại. |
 | Đơn "Đã hoàn thành" của tài khoản khách hàng → thẻ "Đánh giá tour" ở trang đơn | Chọn 1–5 sao, nhận xét 10–1000 ký tự, gửi → "Chờ duyệt". Đơn đã thanh toán chỉ thành "Đã hoàn thành" sau giờ khởi hành (quản trị viên chuyển) hoặc khi lịch kết thúc (tự chuyển), nên cần một đơn của lịch đã khởi hành. |
 | Quản trị: "Duyệt đánh giá" (`/admin/reviews`) | Tab "Chờ duyệt" có đánh giá mẫu của đơn `LT893219` (tour 1, 1 sao) và đánh giá vừa gửi. "Duyệt" → đánh giá hiện trên trang tour, được tính vào điểm trung bình, thẻ đơn của khách ghi "Đã đăng". "Từ chối" (bắt buộc lý do) → "Không được duyệt", khách thấy lý do, sửa và gửi lại thì về "Chờ duyệt". Đánh giá đã duyệt có nút "Gỡ đánh giá" (bắt buộc lý do) → "Không được duyệt", không còn trên trang tour. |
-| `/tai-khoan` (bấm tên ở header) | Sửa họ tên (2–100 ký tự), số điện thoại (không bắt buộc) → header đổi tên ngay. Tải ảnh JPG / PNG / WebP tối đa 2 MB → ảnh hiện ở header, bình luận và đánh giá; file SVG hoặc file không phải ảnh báo lỗi; xóa ảnh thì về chữ cái đầu. Đổi mật khẩu: nhập mật khẩu hiện tại và mật khẩu mới tối thiểu 8 ký tự. Email không đổi được. |
+| `/tai-khoan` (bấm tên ở header) | Sửa họ tên (2–100 ký tự), số điện thoại, số CCCD, ngày sinh, giới tính, địa chỉ (đều không bắt buộc) → header đổi tên ngay, tải lại trang vẫn thấy thông tin đã lưu; số CCCD 11 chữ số báo "Số CCCD gồm đúng 12 chữ số.", ngày sinh ở tương lai báo "Ngày sinh không được ở tương lai.", không lưu gì. Tải ảnh JPG / PNG / WebP tối đa 2 MB → ảnh hiện ở header, bình luận và đánh giá; file SVG hoặc file không phải ảnh báo lỗi; xóa ảnh thì về chữ cái đầu. Đổi mật khẩu: nhập mật khẩu hiện tại và mật khẩu mới tối thiểu 8 ký tự. |
 | `/tro-giup`, `/dieu-khoan` | Trang "Trợ giúp" và "Điều khoản sử dụng", mở từ menu bên trái và chân trang, không cần đăng nhập. |
 
 Ảnh đại diện lưu ở `src/public/assets/uploads/avatars/` trên máy chạy web, không có trong Git; thư mục tự tạo ở lần tải lên đầu tiên, nên `src/public/assets/uploads/` phải ghi được. Ảnh được kiểm tra trước khi lưu; máy chủ có thư viện xử lý ảnh (GD) thì ảnh được cắt vuông và lưu 256 × 256 px, không có thì giữ ảnh gốc đã kiểm tra. Khi chép database sang máy khác, chép kèm thư mục này cùng `uploads/tours/`. Route của CR3 xem bảng ở mục "Route".
@@ -579,6 +583,7 @@ Dùng tài khoản khách hàng tự tạo ở Bước 6 và tài khoản quản
 - Đặt tour: `user_id` của đơn lấy từ phiên đăng nhập, không nhận từ form. Giá và tổng tiền được tính lại trong `LTP_sp_booking_create` từ giá vé đang bán; số tiền gửi lên chỉ để phát hiện giá đã đổi. Mỗi lần mở form có một `request_token`; gửi lại cùng mã (bấm hai lần, mạng lỗi) không tạo đơn thứ hai. Trang "Đơn của tôi" chỉ trả đơn của chính tài khoản và không cho trình duyệt lưu đệm (`Cache-Control: no-store`).
 - Ảnh tour tải lên (Sprint 5): chỉ trang quản trị nhận; kiểm tra kích thước (tối đa 2 MB) và nội dung file thật là JPG / PNG / WebP, lưu tên ngẫu nhiên, không dùng tên file gốc. Ảnh qua đường dẫn chỉ nhận `https://`. Yêu cầu đổi ngày / hủy chỉ gửi được cho đơn của chính tài khoản; quyết định của quản trị viên ghi vào `admin_logs`; số tiền hoàn không vượt tiền đã trả và không tự chuyển tiền.
 - Ảnh đại diện (CR3): chỉ tài khoản khách hàng tải lên ở `/tai-khoan`; kiểm tra kích thước (tối đa 2 MB, cạnh 64–4096 px) và nội dung file thật là JPG / PNG / WebP (không nhận SVG), lưu tên ngẫu nhiên, không dùng tên file gốc; đổi hoặc xóa ảnh thì xóa file cũ. Thích, lưu, bình luận và đánh giá chỉ nhận tài khoản khách hàng đang hoạt động, `user_id` lấy từ phiên đăng nhập; bình luận tối đa 5 lần trong 10 phút (429); nội dung bình luận, đánh giá được escape khi in ra. Ẩn / hiện bình luận và duyệt / từ chối / gỡ đánh giá ghi vào `admin_logs`.
+- Số CCCD (CR3): chỉ chủ tài khoản xem ở `/tai-khoan`; trang quản trị không hiện số này, thông báo lỗi không chứa giá trị đã nhập.
 - Không commit `.env`, mật khẩu, khóa bí mật, địa chỉ IP thật, file log hay tài khoản thử.
 
 ## Khuyến nghị cho máy host database chung (Phong)
