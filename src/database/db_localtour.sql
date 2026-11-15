@@ -1,4 +1,4 @@
--- File sinh tự động từ src/database/01..32, không sửa tay.
+-- File sinh tự động từ src/database/01..38, không sửa tay.
 CREATE DATABASE IF NOT EXISTS db_localtour CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE db_localtour;
 SET NAMES utf8mb4;
@@ -7,10 +7,10 @@ SET NAMES utf8mb4;
 -- Mục đích  : Tạo lược đồ CSDL db_localtour: lược đồ GỘP giữa ERD (trang 01 "Lõi đặt
 --             tour" + trang 02 "Khám phá & vận hành") và bảng yêu cầu chức năng (FR
 --             board), tổng 27 bảng trong file này (các file migration sau thêm bảng: database
---             đầy đủ sau file 28 có 37 bảng). Mỗi bảng / cột thêm mới có ghi chú FR mà nó phục vụ.
+--             đầy đủ sau file 33 có 39 bảng). Mỗi bảng / cột thêm mới có ghi chú FR mà nó phục vụ.
 --
--- ĐÃ BỎ 2 bảng của ERD: post_comments, post_interactions (nút Thích / Bình luận /
---   Chia sẻ trên giao diện chỉ hiện "Sắp có").
+-- ĐÃ BỎ 2 bảng của ERD: post_comments, post_interactions. Thích / Bình luận của CR3 dùng
+--   2 bảng tour_likes, tour_comments do file 33 tạo (gắn thẳng với tour).
 -- Các bảng thông báo, bài đăng tour, yêu thích, so sánh và các bảng danh mục/chi tiết
 -- tour của thiết kế trước đã được triển khai lại theo khóa UUID của lược đồ hiện tại.
 -- Bảng reviews được giữ lại vì trang danh sách và chi tiết hiển thị đánh giá.
@@ -50,7 +50,9 @@ SET NAMES utf8mb4;
 SET @OLD_FOREIGN_KEY_CHECKS = @@FOREIGN_KEY_CHECKS;
 SET FOREIGN_KEY_CHECKS = 0;
 
--- Bảng do các file sau thêm (12: Sprint 4, 16: Sprint 5, 23 - 25, 28): xóa luôn để chạy lại từ đầu không còn dữ liệu thử cũ.
+-- Bảng do các file sau thêm (12: Sprint 4, 16: Sprint 5, 23 - 25, 28, 33): xóa luôn để chạy lại từ đầu không còn dữ liệu thử cũ.
+DROP TABLE IF EXISTS tour_comments;
+DROP TABLE IF EXISTS tour_likes;
 DROP TABLE IF EXISTS host_payout_items;
 DROP TABLE IF EXISTS host_payouts;
 DROP TABLE IF EXISTS settings;
@@ -2227,7 +2229,8 @@ INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
--- LTP_sp_tour_list(p_keyword, p_destination_id, p_category_id, p_sort)
+-- LTP_sp_tour_list(p_keyword, p_destination_id, p_category_id, p_sort,
+--                  p_date, p_price_min, p_price_max, p_duration, p_language, p_hotel_pickup)
 --   p_keyword        : NULL / '' / toàn khoảng trắng = không lọc; ngược lại tìm
 --                      LIKE '%từ khóa%' trong tên tour, mô tả, điểm đến, loại hình,
 --                      tên nhà cung cấp. Ký tự % và _ được tìm đúng nghĩa đen (ký tự
@@ -2242,6 +2245,20 @@ INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_
 --     upcoming   : next_starts_at tăng dần, tour chưa có lịch đặt được xếp cuối
 --     price_asc / price_desc: from_price_vnd, tour chưa có giá (NULL) xếp cuối
 --     Cùng thứ hạng thì xếp theo title, rồi id.
+--   Bộ lọc "Ngày đi" và "Bộ lọc" nâng cao (CR3, Lê Trung Phong). NULL = không lọc:
+--   p_date           : chỉ tour có lịch đặt được (quy tắc ở đầu file) khởi hành trong ngày này.
+--                      schedules.starts_at là giờ Việt Nam (kết nối đặt time_zone '+07:00', file
+--                      core/Database.php) nên so trực tiếp: p_date <= starts_at < p_date + 1 ngày.
+--                      Khi có p_date, from_price_vnd và next_starts_at chỉ tính các lịch của ngày đó.
+--   p_price_min / p_price_max : khoảng giá (VND, gồm hai đầu) áp lên from_price_vnd. Đặt một
+--                      trong hai thì tour chưa có giá (from_price_vnd NULL) không được trả về.
+--   p_duration       : 'short' = đến 3 giờ (duration_minutes <= 180),
+--                      'medium' = trên 3 giờ đến 4 giờ (181..240),
+--                      'long' = trên 4 giờ (> 240). Giá trị khác = không lọc.
+--   p_language       : mã ngôn ngữ hướng dẫn (vd. 'en'), tìm trong tours.language_codes
+--                      (danh sách cách nhau bởi dấu phẩy) bằng FIND_IN_SET.
+--   p_hotel_pickup   : 1 = chỉ tour đón tại khách sạn (pickup_mode = 'hotel_pickup');
+--                      NULL / 0 = không lọc.
 --   Cột trả về: tour_id, title, description, destination_id, destination_name,
 --     category_id, category_name (NULL nếu chưa gán loại hình), provider_name,
 --     duration_minutes, max_group_size, language_codes, pickup_mode, meeting_point,
@@ -2264,7 +2281,13 @@ CREATE PROCEDURE LTP_sp_tour_list(
     IN p_keyword        VARCHAR(100),
     IN p_destination_id CHAR(36),
     IN p_category_id    CHAR(36),
-    IN p_sort           VARCHAR(20)
+    IN p_sort           VARCHAR(20),
+    IN p_date           DATE,
+    IN p_price_min      INT UNSIGNED,
+    IN p_price_max      INT UNSIGNED,
+    IN p_duration       VARCHAR(10),
+    IN p_language       VARCHAR(10),
+    IN p_hotel_pickup   TINYINT
 )
 READS SQL DATA
 BEGIN
@@ -2272,6 +2295,9 @@ BEGIN
     DECLARE v_destination_id CHAR(36) CHARACTER SET utf8mb4 DEFAULT NULL;
     DECLARE v_category_id    CHAR(36) CHARACTER SET utf8mb4 DEFAULT NULL;
     DECLARE v_sort           VARCHAR(20) DEFAULT 'recommended';
+    DECLARE v_duration       VARCHAR(10) DEFAULT NULL;
+    DECLARE v_language       VARCHAR(10) CHARACTER SET utf8mb4 DEFAULT NULL;
+    DECLARE v_hotel_pickup   BOOLEAN DEFAULT FALSE;
     -- Ngừng nhận đặt trước giờ khởi hành bao nhiêu phút (file 28).
     DECLARE v_cutoff_min INT DEFAULT 60;
 
@@ -2296,6 +2322,16 @@ BEGIN
     IF p_sort IN ('upcoming', 'price_asc', 'price_desc') THEN
         SET v_sort = p_sort;
     END IF;
+
+    IF p_duration IN ('short', 'medium', 'long') THEN
+        SET v_duration = p_duration;
+    END IF;
+
+    IF p_language IS NOT NULL AND TRIM(p_language) <> '' THEN
+        SET v_language = LOWER(TRIM(p_language));
+    END IF;
+
+    SET v_hotel_pickup = COALESCE(p_hotel_pickup, 0) = 1;
 
     SELECT
         t.id                            AS tour_id,
@@ -2337,6 +2373,9 @@ BEGIN
                 WHERE s.status = 'open'
                   AND s.starts_at > NOW() + INTERVAL v_cutoff_min MINUTE
                   AND s.remaining > 0
+                  -- Ngày đi (CR3): chỉ lịch khởi hành trong ngày đã chọn
+                  AND (p_date IS NULL
+                       OR (s.starts_at >= p_date AND s.starts_at < p_date + INTERVAL 1 DAY))
                 GROUP BY s.tour_id) bs
            ON bs.tour_id = t.id
     -- Điểm trung bình và số đánh giá đã duyệt
@@ -2367,6 +2406,17 @@ BEGIN
            OR COALESCE(d.name, t.destination) LIKE (v_pattern COLLATE utf8mb4_unicode_ci) ESCAPE '!'
            OR c.name                          LIKE (v_pattern COLLATE utf8mb4_unicode_ci) ESCAPE '!'
            OR p.business_name                 LIKE (v_pattern COLLATE utf8mb4_unicode_ci) ESCAPE '!')
+      -- Bộ lọc CR3
+      AND (p_date IS NULL OR bs.tour_id IS NOT NULL)
+      AND (p_price_min IS NULL OR bs.from_price_vnd >= p_price_min)
+      AND (p_price_max IS NULL OR bs.from_price_vnd <= p_price_max)
+      AND (v_duration IS NULL
+           OR (v_duration = 'short'  AND t.duration_minutes <= 180)
+           OR (v_duration = 'medium' AND t.duration_minutes > 180 AND t.duration_minutes <= 240)
+           OR (v_duration = 'long'   AND t.duration_minutes > 240))
+      AND (v_language IS NULL
+           OR FIND_IN_SET((v_language COLLATE utf8mb4_unicode_ci), REPLACE(t.language_codes, ' ', '')) > 0)
+      AND (v_hotel_pickup = FALSE OR t.pickup_mode = 'hotel_pickup')
     ORDER BY
         CASE WHEN v_sort = 'recommended' THEN (rs.rating_avg IS NULL) END ASC,
         CASE WHEN v_sort = 'recommended' THEN rs.rating_avg END DESC,
@@ -3150,6 +3200,7 @@ DROP PROCEDURE IF EXISTS NTK_sp_tour_image_list;
 -- NTK_sp_tour_review_list(p_tour_id, p_limit)
 --   Chỉ đánh giá moderation_status = 'approved'.
 --   Cột: review_id, reviewer_name (= users.name của tài khoản đã đặt đơn được đánh giá),
+--        reviewer_avatar_url (CR3: users.avatar_url, NULL = chưa có ảnh đại diện),
 --        rating, content,
 --        tour_date (giờ khởi hành của lịch trong đơn được đánh giá).
 --   Sắp xếp: tour_date mới nhất trước. p_limit NULL hoặc 0 = lấy 5 đánh giá.
@@ -3172,6 +3223,7 @@ BEGIN
     SELECT
         r.id            AS review_id,
         c.name          AS reviewer_name,
+        c.avatar_url    AS reviewer_avatar_url,
         r.rating,
         r.content,
         s.starts_at     AS tour_date
@@ -3385,7 +3437,8 @@ DELIMITER ;
 -- ---------------------------------------------------------------------
 -- NTK_sp_user_find_by_email(p_email)
 --   0 hoặc 1 dòng: tài khoản có email này (không phân biệt hoa thường).
---   Cột: user_id, name, email, password_hash (NULL = chưa đặt mật khẩu), role, status.
+--   Cột: user_id, name, email, password_hash (NULL = chưa đặt mật khẩu), role, status,
+--        avatar_url (CR3: ảnh đại diện, cột thêm ở 33_migration_cr3_NTK.sql; NULL = chưa có ảnh).
 --   Ứng dụng tự kiểm tra role = 'customer', status = 'active' và mật khẩu
 --   (password_verify) trước khi cho đăng nhập.
 -- ---------------------------------------------------------------------
@@ -3403,7 +3456,8 @@ BEGIN
         u.email,
         u.password_hash,
         u.role,
-        u.status
+        u.status,
+        u.avatar_url
     FROM users u
     WHERE u.email = (LOWER(TRIM(p_email)) COLLATE utf8mb4_unicode_ci)
     LIMIT 1;
@@ -9628,6 +9682,9 @@ proc: BEGIN
     DELETE FROM tour_packages        WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
     DELETE FROM tour_posts           WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
     DELETE FROM favorite_tours       WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
+    -- CR3 (file 33): lượt thích và bình luận của tour (khóa ngoại RESTRICT).
+    DELETE FROM tour_likes           WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
+    DELETE FROM tour_comments        WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
     DELETE FROM comparison_tours     WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
     -- Sprint 6 (NTK, file 32): tour còn "bản sửa" đang mở thì xóa bản sửa trước (khóa ngoại tours.revision_of).
     CALL NTK_sp_tour_revision_purge_of(p_tour_id);
@@ -14031,3 +14088,1448 @@ BEGIN
                     WHERE i.url = (p_url COLLATE utf8mb4_unicode_ci)) AS in_use;
 END$$
 DELIMITER ;
+-- =====================================================================
+-- LocalTour v0.7 - 33_migration_cr3_NTK.sql
+-- Mục đích  : Bảng và cột mới cho các chức năng của CR3 (tương tác với tour, đánh giá, tài khoản):
+--   1. tour_likes      : lượt "Thích" của tài khoản khách hàng trên tour (mỗi tài khoản – tour một dòng).
+--   2. tour_comments   : bình luận của tài khoản khách hàng trên trang tour. status 'visible' = đang
+--        hiển thị; 'hidden' = quản trị viên đã ẩn (kèm người ẩn, thời điểm, lý do). Người viết tự xóa
+--        bình luận của mình (xóa hẳn dòng). Nội dung 1–1000 ký tự (kiểm tra trong procedure).
+--   3. reviews         : thêm thời điểm gửi và thông tin kiểm duyệt (người duyệt, thời điểm, ghi chú /
+--        lý do từ chối). Đánh giá đã có trong dữ liệu mẫu giữ nguyên trạng thái; created_at của các
+--        dòng cũ = thời điểm chạy file này.
+--   4. users.avatar_url : ảnh đại diện (đường dẫn tương đối từ public/assets/, vd.
+--        'uploads/avatars/<tên ngẫu nhiên>.jpg'); NULL = chưa có ảnh, giao diện hiện chữ cái đầu tên.
+--   Bảng favorite_tours (Lưu tour) đã có từ 01_schema.sql, không đổi.
+-- Phụ trách : Nguyễn Tuấn Khôi (NTK)
+-- Chạy sau  : 01 -> 32. Chạy lại được (CREATE TABLE IF NOT EXISTS, ADD COLUMN IF NOT EXISTS).
+-- =====================================================================
+
+SET NAMES utf8mb4;
+
+CREATE TABLE IF NOT EXISTS tour_likes (
+    id         CHAR(36)  NOT NULL,
+    user_id    CHAR(36)  NOT NULL,
+    tour_id    CHAR(36)  NOT NULL,
+    created_at DATETIME  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_tour_likes_user_tour (user_id, tour_id),
+    KEY idx_tour_likes_tour (tour_id),
+    CONSTRAINT fk_tour_likes_user FOREIGN KEY (user_id)
+        REFERENCES users (id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_tour_likes_tour FOREIGN KEY (tour_id)
+        REFERENCES tours (id) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS tour_comments (
+    id            CHAR(36)      NOT NULL,
+    tour_id       CHAR(36)      NOT NULL,
+    user_id       CHAR(36)      NOT NULL,
+    content       TEXT          NOT NULL,
+    status        ENUM('visible','hidden') NOT NULL DEFAULT 'visible',
+    hidden_by     CHAR(36)      NULL,
+    hidden_at     DATETIME      NULL,
+    hidden_reason VARCHAR(255)  NULL,
+    created_at    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_tour_comments_tour (tour_id, status, created_at),
+    KEY idx_tour_comments_user (user_id),
+    KEY idx_tour_comments_status (status, created_at),
+    CONSTRAINT fk_tour_comments_tour FOREIGN KEY (tour_id)
+        REFERENCES tours (id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_tour_comments_user FOREIGN KEY (user_id)
+        REFERENCES users (id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_tour_comments_hidden_by FOREIGN KEY (hidden_by)
+        REFERENCES users (id) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE reviews
+    ADD COLUMN IF NOT EXISTS created_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS moderated_by    CHAR(36)     NULL,
+    ADD COLUMN IF NOT EXISTS moderated_at    DATETIME     NULL,
+    ADD COLUMN IF NOT EXISTS moderation_note VARCHAR(255) NULL;
+
+ALTER TABLE reviews
+    ADD KEY IF NOT EXISTS idx_reviews_status_created (moderation_status, created_at);
+
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(255) NULL;
+
+-- Khóa ngoại đã có thì MariaDB báo lỗi 1005: kiểm tra trong information_schema trước (như file 31).
+DROP PROCEDURE IF EXISTS NTK_sp_migrate_cr3;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_migrate_cr3()
+MODIFIES SQL DATA
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.TABLE_CONSTRAINTS
+                    WHERE CONSTRAINT_SCHEMA = DATABASE()
+                      AND TABLE_NAME = 'reviews'
+                      AND CONSTRAINT_NAME = 'fk_reviews_moderated_by') THEN
+        ALTER TABLE reviews
+            ADD CONSTRAINT fk_reviews_moderated_by FOREIGN KEY (moderated_by)
+                REFERENCES users (id) ON DELETE RESTRICT ON UPDATE CASCADE;
+    END IF;
+END$$
+DELIMITER ;
+
+CALL NTK_sp_migrate_cr3();
+DROP PROCEDURE IF EXISTS NTK_sp_migrate_cr3;
+-- =====================================================================
+-- LocalTour v0.7 - 34_procedures_NMT_social.sql
+-- Mục đích  : Thích, Lưu tour và số tương tác trên thẻ tour / trang chi tiết tour (CR3):
+--   1. Số lượt thích, số bình luận đang hiển thị, tài khoản đang xem đã thích / đã lưu chưa
+--      (một lần gọi cho cả trang danh sách).
+--   2. Thích / bỏ thích (bảng tour_likes, file 33).
+--   3. Lưu / bỏ lưu (bảng favorite_tours, file 01) và danh sách "Tour đã lưu".
+-- Phụ trách : Nguyễn Minh Thức (NMT) - CR3
+-- Procedures: NMT_sp_tour_social_state, NMT_sp_tour_like_toggle, NMT_sp_tour_save_toggle,
+--             NMT_sp_saved_tour_list
+-- Quy tắc   : Tour đang hiển thị = tour 'approved' của đơn vị 'approved' có tài khoản 'active'
+--             (giống LTP_sp_tour_list, file 03). Chỉ tài khoản khách hàng đang hoạt động được
+--             Thích / Lưu. Tour đã ngừng hiển thị vẫn bỏ thích / bỏ lưu được (để khách dọn
+--             "Tour đã lưu"), nhưng không thích / lưu mới được.
+--             Số bình luận = tour_comments có status 'visible' (file 33).
+-- Chạy sau  : 33_migration_cr3_NTK.sql (bảng tour_likes, tour_comments). Khi gọi
+--             NMT_sp_saved_tour_list cần bảng settings (28_migration_economy_NTK.sql) và
+--             tour_packages (16_migration_sprint5_LTP.sql). Chạy lại được.
+-- =====================================================================
+
+SET NAMES utf8mb4;
+
+-- ---------------------------------------------------------------------
+-- NMT_sp_tour_social_state(p_user_id, p_tour_ids)
+--   p_user_id : tài khoản đang xem; NULL hoặc '' = khách chưa đăng nhập (liked, saved = 0).
+--   p_tour_ids: mã tour cách nhau bởi dấu phẩy, vd. 'c000...0001,c000...0005'. Tối đa 60 mã
+--               (ứng dụng chặn trước); mã không có hoặc tour đang ẩn bị bỏ qua.
+--   Mỗi tour đang hiển thị một dòng, theo thứ tự trong p_tour_ids. Cột:
+--     tour_id, like_count, comment_count (bình luận 'visible'),
+--     liked (1 = tài khoản đã thích), saved (1 = tài khoản đã lưu).
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NMT_sp_tour_social_state;
+
+DELIMITER $$
+CREATE PROCEDURE NMT_sp_tour_social_state(
+    IN p_user_id  CHAR(36),
+    IN p_tour_ids TEXT
+)
+READS SQL DATA
+BEGIN
+    DECLARE v_ids  TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT REPLACE(COALESCE(p_tour_ids, ''), ' ', '');
+    DECLARE v_user CHAR(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULLIF(TRIM(COALESCE(p_user_id, '')), '');
+
+    SELECT
+        t.id AS tour_id,
+        (SELECT COUNT(*) FROM tour_likes l WHERE l.tour_id = t.id)                              AS like_count,
+        (SELECT COUNT(*) FROM tour_comments c WHERE c.tour_id = t.id AND c.status = 'visible')  AS comment_count,
+        IF(v_user IS NULL, 0,
+           EXISTS (SELECT 1 FROM tour_likes l
+                    WHERE l.tour_id = t.id AND l.user_id = v_user))                             AS liked,
+        IF(v_user IS NULL, 0,
+           EXISTS (SELECT 1 FROM favorite_tours f
+                    WHERE f.tour_id = t.id AND f.user_id = v_user))                             AS saved
+    FROM tours t
+    JOIN providers p ON p.id = t.provider_id
+    JOIN users     u ON u.id = p.user_id          -- tài khoản của đơn vị tổ chức
+    WHERE FIND_IN_SET(t.id, v_ids) > 0
+      AND t.approval_status = 'approved'
+      AND p.approval_status = 'approved'
+      AND u.status = 'active'
+    ORDER BY FIND_IN_SET(t.id, v_ids);
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NMT_sp_tour_like_toggle(p_user_id, p_tour_id, p_want)
+--   p_want: 1 = thích, 0 = bỏ thích, NULL = đảo trạng thái hiện tại. Gọi lại với cùng p_want
+--           không đổi gì (bấm hai lần, hai tab cùng mở).
+--   1 dòng: result, liked, like_count.
+--     result = 'ok'        : liked = trạng thái sau khi gọi (1/0), like_count = tổng lượt thích.
+--              'forbidden' : p_user_id không phải tài khoản khách hàng đang hoạt động.
+--              'not_found' : không có tour này, hoặc tour đang ẩn mà tài khoản chưa thích
+--                            (tour đang ẩn chỉ bỏ thích được).
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NMT_sp_tour_like_toggle;
+
+DELIMITER $$
+CREATE PROCEDURE NMT_sp_tour_like_toggle(
+    IN p_user_id CHAR(36),
+    IN p_tour_id CHAR(36),
+    IN p_want    TINYINT
+)
+MODIFIES SQL DATA
+proc: BEGIN
+    DECLARE v_visible   BOOLEAN DEFAULT FALSE;
+    DECLARE v_has       BOOLEAN DEFAULT FALSE;
+    DECLARE v_want      BOOLEAN DEFAULT FALSE;
+    DECLARE v_duplicate BOOLEAN DEFAULT FALSE;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+    -- 1062 = trùng khóa UNIQUE (user_id, tour_id): lần bấm khác vừa thêm cùng dòng.
+    DECLARE CONTINUE HANDLER FOR 1062 SET v_duplicate = TRUE;
+
+    IF NOT EXISTS (SELECT 1 FROM users
+                    WHERE id = (p_user_id COLLATE utf8mb4_unicode_ci)
+                      AND role = 'customer' AND status = 'active') THEN
+        SELECT 'forbidden' AS result, NULL AS liked, NULL AS like_count;
+        LEAVE proc;
+    END IF;
+
+    SET v_visible = EXISTS (SELECT 1
+                              FROM tours t
+                              JOIN providers p ON p.id = t.provider_id
+                              JOIN users     u ON u.id = p.user_id
+                             WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci)
+                               AND t.approval_status = 'approved'
+                               AND p.approval_status = 'approved'
+                               AND u.status = 'active');
+    SET v_has = EXISTS (SELECT 1 FROM tour_likes
+                         WHERE user_id = (p_user_id COLLATE utf8mb4_unicode_ci)
+                           AND tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci));
+    SET v_want = IF(p_want IS NULL, NOT v_has, p_want <> 0);
+
+    IF NOT v_visible AND NOT v_has THEN
+        SELECT 'not_found' AS result, NULL AS liked, NULL AS like_count;
+        LEAVE proc;
+    END IF;
+
+    -- Tới đây: tour đang hiển thị, hoặc đang ẩn nhưng tài khoản đã thích (chỉ bỏ thích được).
+    IF v_want AND NOT v_has THEN
+        INSERT INTO tour_likes (id, user_id, tour_id, created_at)
+        VALUES (UUID(), p_user_id, p_tour_id, NOW());
+    ELSEIF NOT v_want AND v_has THEN
+        DELETE FROM tour_likes
+         WHERE user_id = (p_user_id COLLATE utf8mb4_unicode_ci)
+           AND tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
+    END IF;
+
+    SELECT 'ok' AS result,
+           IF(v_want, 1, 0) AS liked,
+           (SELECT COUNT(*) FROM tour_likes WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci)) AS like_count;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NMT_sp_tour_save_toggle(p_user_id, p_tour_id, p_want)
+--   Lưu tour vào "Tour đã lưu" (bảng favorite_tours).
+--   p_want: 1 = lưu, 0 = bỏ lưu, NULL = đảo trạng thái hiện tại. Gọi lại với cùng p_want
+--           không đổi gì.
+--   1 dòng: result, saved.
+--     result = 'ok'        : saved = trạng thái sau khi gọi (1/0).
+--              'forbidden' : p_user_id không phải tài khoản khách hàng đang hoạt động.
+--              'not_found' : không có tour này, hoặc tour đang ẩn mà tài khoản chưa lưu
+--                            (tour đang ẩn chỉ bỏ lưu được).
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NMT_sp_tour_save_toggle;
+
+DELIMITER $$
+CREATE PROCEDURE NMT_sp_tour_save_toggle(
+    IN p_user_id CHAR(36),
+    IN p_tour_id CHAR(36),
+    IN p_want    TINYINT
+)
+MODIFIES SQL DATA
+proc: BEGIN
+    DECLARE v_visible   BOOLEAN DEFAULT FALSE;
+    DECLARE v_has       BOOLEAN DEFAULT FALSE;
+    DECLARE v_want      BOOLEAN DEFAULT FALSE;
+    DECLARE v_duplicate BOOLEAN DEFAULT FALSE;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+    -- 1062 = trùng khóa UNIQUE (user_id, tour_id): lần bấm khác vừa thêm cùng dòng.
+    DECLARE CONTINUE HANDLER FOR 1062 SET v_duplicate = TRUE;
+
+    IF NOT EXISTS (SELECT 1 FROM users
+                    WHERE id = (p_user_id COLLATE utf8mb4_unicode_ci)
+                      AND role = 'customer' AND status = 'active') THEN
+        SELECT 'forbidden' AS result, NULL AS saved;
+        LEAVE proc;
+    END IF;
+
+    SET v_visible = EXISTS (SELECT 1
+                              FROM tours t
+                              JOIN providers p ON p.id = t.provider_id
+                              JOIN users     u ON u.id = p.user_id
+                             WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci)
+                               AND t.approval_status = 'approved'
+                               AND p.approval_status = 'approved'
+                               AND u.status = 'active');
+    SET v_has = EXISTS (SELECT 1 FROM favorite_tours
+                         WHERE user_id = (p_user_id COLLATE utf8mb4_unicode_ci)
+                           AND tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci));
+    SET v_want = IF(p_want IS NULL, NOT v_has, p_want <> 0);
+
+    IF NOT v_visible AND NOT v_has THEN
+        SELECT 'not_found' AS result, NULL AS saved;
+        LEAVE proc;
+    END IF;
+
+    -- Tới đây: tour đang hiển thị, hoặc đang ẩn nhưng tài khoản đã lưu (chỉ bỏ lưu được).
+    IF v_want AND NOT v_has THEN
+        INSERT INTO favorite_tours (id, user_id, tour_id, created_at)
+        VALUES (UUID(), p_user_id, p_tour_id, NOW());
+    ELSEIF NOT v_want AND v_has THEN
+        DELETE FROM favorite_tours
+         WHERE user_id = (p_user_id COLLATE utf8mb4_unicode_ci)
+           AND tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
+    END IF;
+
+    SELECT 'ok' AS result, IF(v_want, 1, 0) AS saved;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NMT_sp_saved_tour_list(p_user_id)
+--   "Tour đã lưu" của một tài khoản, lưu gần nhất trước. Gồm cả tour đã ngừng hiển thị
+--   (is_visible = 0) để khách thấy và bỏ lưu; tour đó không có giá / lịch.
+--   Cột: tour_id, title, destination_name, category_name, provider_name, duration_minutes,
+--        language_codes, pickup_mode, meeting_point,
+--        from_price_vnd (giá người lớn thấp nhất / người của các lịch đặt được; tour có gói
+--                        đang bán: giá người lớn thấp nhất của các gói – như LTP_sp_tour_list),
+--        next_starts_at (lịch đặt được gần nhất), rating_avg, review_count (đánh giá đã duyệt),
+--        like_count, cover_image_url, cover_alt_text,
+--        is_visible (1 = tour đang hiển thị), bookable (1 = đang hiển thị và có lịch đặt được),
+--        saved_at.
+--   Lịch đặt được: 'open', còn chỗ, có vé 'adult' đang bán và còn hơn
+--   settings.booking_cutoff_minutes phút (mặc định 60) mới tới giờ khởi hành.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NMT_sp_saved_tour_list;
+
+DELIMITER $$
+CREATE PROCEDURE NMT_sp_saved_tour_list(
+    IN p_user_id CHAR(36)
+)
+READS SQL DATA
+BEGIN
+    -- Ngừng nhận đặt trước giờ khởi hành bao nhiêu phút (file 28).
+    DECLARE v_cutoff_min INT DEFAULT 60;
+
+    SET v_cutoff_min = COALESCE((SELECT IF(st.value REGEXP '^[0-9]{1,5}$', CAST(st.value AS UNSIGNED), NULL)
+                                   FROM settings st WHERE st.name = 'booking_cutoff_minutes'), 60);
+
+    SELECT
+        t.id                            AS tour_id,
+        t.title,
+        COALESCE(d.name, t.destination) AS destination_name,
+        c.name                          AS category_name,
+        p.business_name                 AS provider_name,
+        t.duration_minutes,
+        t.language_codes,
+        t.pickup_mode,
+        t.meeting_point,
+        IF((t.approval_status = 'approved' AND p.approval_status = 'approved' AND u.status = 'active'),
+           bs.from_price_vnd, NULL)    AS from_price_vnd,
+        IF((t.approval_status = 'approved' AND p.approval_status = 'approved' AND u.status = 'active'),
+           bs.next_starts_at, NULL)    AS next_starts_at,
+        rs.rating_avg,
+        COALESCE(rs.review_count, 0)    AS review_count,
+        (SELECT COUNT(*) FROM tour_likes l WHERE l.tour_id = t.id) AS like_count,
+        ci.url                          AS cover_image_url,
+        ci.alt_text                     AS cover_alt_text,
+        IF((t.approval_status = 'approved' AND p.approval_status = 'approved' AND u.status = 'active'), 1, 0) AS is_visible,
+        IF((t.approval_status = 'approved' AND p.approval_status = 'approved' AND u.status = 'active')
+           AND bs.next_starts_at IS NOT NULL, 1, 0) AS bookable,
+        f.created_at                    AS saved_at
+    FROM favorite_tours f
+    JOIN tours     t ON t.id = f.tour_id
+    JOIN providers p ON p.id = t.provider_id
+    JOIN users     u ON u.id = p.user_id          -- tài khoản của đơn vị tổ chức
+    LEFT JOIN destinations d ON d.id = t.destination_id
+    LEFT JOIN categories   c ON c.id = t.category_id
+    -- Lịch đặt được của các tour đã lưu: giá "Từ" và lịch khởi hành gần nhất
+    LEFT JOIN (SELECT s.tour_id,
+                      MIN(s.starts_at) AS next_starts_at,
+                      MIN(CASE WHEN tt.name = 'adult' THEN COALESCE(pk.adult_from, tt.price_vnd) END) AS from_price_vnd
+                 FROM schedules s
+                 JOIN ticket_types tt ON tt.schedule_id = s.id AND tt.active = TRUE
+                 -- Tour có gói đang bán: giá người lớn thấp nhất của các gói
+                 LEFT JOIN (SELECT tp.tour_id, MIN(tp.adult_price_vnd) AS adult_from
+                              FROM tour_packages tp
+                             WHERE tp.active = TRUE
+                             GROUP BY tp.tour_id) pk
+                        ON pk.tour_id = s.tour_id
+                WHERE s.status = 'open'
+                  AND s.starts_at > NOW() + INTERVAL v_cutoff_min MINUTE
+                  AND s.remaining > 0
+                  AND s.tour_id IN (SELECT f3.tour_id FROM favorite_tours f3
+                                     WHERE f3.user_id = (p_user_id COLLATE utf8mb4_unicode_ci))
+                GROUP BY s.tour_id) bs
+           ON bs.tour_id = t.id
+    -- Điểm trung bình và số đánh giá đã duyệt
+    LEFT JOIN (SELECT r.tour_id,
+                      CAST(ROUND(AVG(r.rating), 1) AS DECIMAL(2,1)) AS rating_avg,
+                      COUNT(*)                                      AS review_count
+                 FROM reviews r
+                WHERE r.moderation_status = 'approved'
+                GROUP BY r.tour_id) rs
+           ON rs.tour_id = t.id
+    -- Ảnh bìa: đúng 1 ảnh của tour (hoặc không có)
+    LEFT JOIN tour_images ci
+           ON ci.id = (SELECT ti.id
+                         FROM tour_images ti
+                        WHERE ti.tour_id = t.id
+                        ORDER BY ti.sort_order ASC, ti.id ASC
+                        LIMIT 1)
+    WHERE f.user_id = (p_user_id COLLATE utf8mb4_unicode_ci)
+    ORDER BY f.created_at DESC, f.id DESC;
+END$$
+DELIMITER ;
+-- =====================================================================
+-- LocalTour v0.7 - 35_procedures_NMT_comment.sql
+-- Mục đích  : Bình luận trên trang tour (CR3): khách xem bình luận, tài khoản khách hàng viết và
+--             tự xóa bình luận của mình; quản trị viên ẩn / hiện lại bình luận (trang "Bình luận").
+-- Phụ trách : Nguyễn Minh Thức (NMT)
+-- Procedures: NMT_sp_tour_comment_list, NMT_sp_tour_comment_count, NMT_sp_tour_comment_create,
+--             NMT_sp_tour_comment_delete_own, NMT_sp_admin_comment_list,
+--             NMT_sp_admin_comment_set_status
+-- Quy tắc   : Bảng tour_comments (33_migration_cr3_NTK.sql).
+--             Tour đang hiển thị = tours.approval_status = 'approved' VÀ providers.approval_status =
+--             'approved' VÀ users.status = 'active' (tài khoản của nhà cung cấp), như trang chi tiết
+--             tour (file 04). Tour khác hoặc không tồn tại: không đọc / viết bình luận được.
+--             Công khai chỉ hiện bình luận status = 'visible'; 'hidden' = quản trị viên đã ẩn.
+--             Chỉ tài khoản khách hàng (role = 'customer') đang hoạt động mới viết bình luận.
+--             Nội dung 1–1000 ký tự (sau khi bỏ khoảng trắng đầu / cuối; controller đã bỏ ký tự
+--             điều khiển, trừ xuống dòng). Mỗi tài khoản tối đa 5 bình luận trong 10 phút.
+--             Người viết tự xóa bình luận của mình = xóa hẳn dòng.
+--             Ẩn / hiện lại ghi admin_logs (target_type 'tour_comment', action 'comment_hide' /
+--             'comment_show'), lý do ẩn bắt buộc, tối đa 255 ký tự.
+--             UUID dạng chữ, so sánh với COLLATE utf8mb4_unicode_ci.
+-- Chạy sau  : 01 -> 33. Chạy lại được (DROP PROCEDURE IF EXISTS).
+-- =====================================================================
+
+SET NAMES utf8mb4;
+
+-- ---------------------------------------------------------------------
+-- NMT_sp_tour_comment_list(p_tour_id, p_viewer_id, p_limit, p_offset)
+--   Bình luận đang hiển thị của tour đang hiển thị, mới nhất trước (created_at, rồi id).
+--   p_viewer_id: tài khoản đang xem (NULL = khách chưa đăng nhập) để đánh dấu is_mine.
+--   p_limit NULL hoặc 0 = 10, tối đa 50. p_offset NULL = 0.
+--   Cột: comment_id, user_name, avatar_url (users.avatar_url, NULL = chưa có ảnh), content,
+--        created_at, is_mine (1 = bình luận của p_viewer_id).
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NMT_sp_tour_comment_list;
+
+DELIMITER $$
+CREATE PROCEDURE NMT_sp_tour_comment_list(
+    IN p_tour_id   CHAR(36),
+    IN p_viewer_id CHAR(36),
+    IN p_limit     TINYINT UNSIGNED,
+    IN p_offset    INT UNSIGNED
+)
+READS SQL DATA
+BEGIN
+    DECLARE v_limit  INT UNSIGNED DEFAULT 10;
+    DECLARE v_offset INT UNSIGNED DEFAULT COALESCE(p_offset, 0);
+
+    IF p_limit IS NOT NULL AND p_limit > 0 THEN
+        SET v_limit = LEAST(p_limit, 50);
+    END IF;
+
+    SELECT
+        c.id          AS comment_id,
+        cu.name       AS user_name,
+        cu.avatar_url,
+        c.content,
+        c.created_at,
+        IF(p_viewer_id IS NOT NULL AND c.user_id = (p_viewer_id COLLATE utf8mb4_unicode_ci), 1, 0) AS is_mine
+    FROM tour_comments c
+    JOIN users     cu ON cu.id = c.user_id         -- người viết
+    JOIN tours     t  ON t.id  = c.tour_id
+    JOIN providers p  ON p.id  = t.provider_id
+    JOIN users     u  ON u.id  = p.user_id         -- tài khoản của nhà cung cấp
+    WHERE c.tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci)
+      AND c.status = 'visible'
+      AND t.approval_status = 'approved'
+      AND p.approval_status = 'approved'
+      AND u.status = 'active'
+    ORDER BY c.created_at DESC, c.id DESC
+    LIMIT v_limit OFFSET v_offset;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NMT_sp_tour_comment_count(p_tour_id)
+--   Luôn 1 dòng. Cột: tour_visible (1 = tour đang hiển thị), total_count (số bình luận đang
+--   hiển thị; 0 khi tour không hiển thị).
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NMT_sp_tour_comment_count;
+
+DELIMITER $$
+CREATE PROCEDURE NMT_sp_tour_comment_count(
+    IN p_tour_id CHAR(36)
+)
+READS SQL DATA
+BEGIN
+    DECLARE v_visible TINYINT DEFAULT 0;
+
+    SELECT COUNT(*) INTO v_visible
+      FROM tours t
+      JOIN providers p ON p.id = t.provider_id
+      JOIN users     u ON u.id = p.user_id
+     WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci)
+       AND t.approval_status = 'approved'
+       AND p.approval_status = 'approved'
+       AND u.status = 'active';
+
+    SELECT
+        v_visible AS tour_visible,
+        IF(v_visible = 1,
+           (SELECT COUNT(*) FROM tour_comments c
+             WHERE c.tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci)
+               AND c.status = 'visible'),
+           0) AS total_count;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NMT_sp_tour_comment_create(p_user_id, p_tour_id, p_content)
+--   Tài khoản khách hàng viết bình luận. 1 dòng: result, rồi các cột của bình luận mới
+--   (chỉ có giá trị khi result = 'ok'): comment_id, user_name, avatar_url, content, created_at,
+--   is_mine (= 1), total_count (số bình luận đang hiển thị của tour sau khi thêm).
+--     result = 'ok'           : đã thêm.
+--              'forbidden'    : không phải tài khoản khách hàng đang hoạt động.
+--              'not_found'    : tour không tồn tại hoặc không hiển thị.
+--              'invalid'      : nội dung rỗng hoặc quá 1000 ký tự.
+--              'rate_limited' : đã viết 5 bình luận trong 10 phút gần nhất.
+--   Khóa dòng users của người viết (FOR UPDATE) để hai lần gửi cùng lúc không vượt giới hạn.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NMT_sp_tour_comment_create;
+
+DELIMITER $$
+CREATE PROCEDURE NMT_sp_tour_comment_create(
+    IN p_user_id CHAR(36),
+    IN p_tour_id CHAR(36),
+    IN p_content TEXT CHARACTER SET utf8mb4
+)
+MODIFIES SQL DATA
+proc: BEGIN
+    DECLARE v_content TEXT CHARACTER SET utf8mb4 DEFAULT TRIM(p_content);
+    DECLARE v_role    VARCHAR(20) DEFAULT NULL;
+    DECLARE v_recent  INT DEFAULT 0;
+    DECLARE v_id      CHAR(36) DEFAULT UUID();
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    IF v_content IS NULL OR CHAR_LENGTH(v_content) = 0 OR CHAR_LENGTH(v_content) > 1000
+       OR v_content REGEXP '^[[:space:]]*$' THEN
+        SELECT 'invalid' AS result, NULL AS comment_id, NULL AS user_name, NULL AS avatar_url,
+               NULL AS content, NULL AS created_at, 0 AS is_mine, NULL AS total_count;
+        LEAVE proc;
+    END IF;
+
+    START TRANSACTION;
+
+    SELECT role INTO v_role
+      FROM users
+     WHERE id = (p_user_id COLLATE utf8mb4_unicode_ci)
+       AND status = 'active'
+       FOR UPDATE;
+
+    IF v_role IS NULL OR v_role <> 'customer' THEN
+        ROLLBACK;
+        SELECT 'forbidden' AS result, NULL AS comment_id, NULL AS user_name, NULL AS avatar_url,
+               NULL AS content, NULL AS created_at, 0 AS is_mine, NULL AS total_count;
+        LEAVE proc;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1
+                     FROM tours t
+                     JOIN providers p ON p.id = t.provider_id
+                     JOIN users     u ON u.id = p.user_id
+                    WHERE t.id = (p_tour_id COLLATE utf8mb4_unicode_ci)
+                      AND t.approval_status = 'approved'
+                      AND p.approval_status = 'approved'
+                      AND u.status = 'active') THEN
+        ROLLBACK;
+        SELECT 'not_found' AS result, NULL AS comment_id, NULL AS user_name, NULL AS avatar_url,
+               NULL AS content, NULL AS created_at, 0 AS is_mine, NULL AS total_count;
+        LEAVE proc;
+    END IF;
+
+    SELECT COUNT(*) INTO v_recent
+      FROM tour_comments
+     WHERE user_id = (p_user_id COLLATE utf8mb4_unicode_ci)
+       AND created_at > NOW() - INTERVAL 10 MINUTE;
+
+    IF v_recent >= 5 THEN
+        ROLLBACK;
+        SELECT 'rate_limited' AS result, NULL AS comment_id, NULL AS user_name, NULL AS avatar_url,
+               NULL AS content, NULL AS created_at, 0 AS is_mine, NULL AS total_count;
+        LEAVE proc;
+    END IF;
+
+    INSERT INTO tour_comments (id, tour_id, user_id, content, status, created_at)
+    VALUES (v_id, p_tour_id, p_user_id, v_content, 'visible', NOW());
+
+    COMMIT;
+
+    SELECT
+        'ok'         AS result,
+        c.id         AS comment_id,
+        cu.name      AS user_name,
+        cu.avatar_url,
+        c.content,
+        c.created_at,
+        1            AS is_mine,
+        (SELECT COUNT(*) FROM tour_comments x
+          WHERE x.tour_id = c.tour_id AND x.status = 'visible') AS total_count
+    FROM tour_comments c
+    JOIN users cu ON cu.id = c.user_id
+    WHERE c.id = v_id;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NMT_sp_tour_comment_delete_own(p_comment_id, p_user_id)
+--   Người viết xóa bình luận của mình (xóa hẳn dòng; bình luận đã bị ẩn cũng xóa được).
+--   1 dòng: affected_count (1 = đã xóa; 0 = không có bình luận này hoặc không phải của
+--   p_user_id), tour_id (NULL khi không xóa), total_count (số bình luận đang hiển thị của tour
+--   sau khi xóa; NULL khi không xóa).
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NMT_sp_tour_comment_delete_own;
+
+DELIMITER $$
+CREATE PROCEDURE NMT_sp_tour_comment_delete_own(
+    IN p_comment_id CHAR(36),
+    IN p_user_id    CHAR(36)
+)
+MODIFIES SQL DATA
+BEGIN
+    DECLARE v_tour_id  CHAR(36) DEFAULT NULL;
+    DECLARE v_affected INT DEFAULT 0;
+
+    SELECT tour_id INTO v_tour_id
+      FROM tour_comments
+     WHERE id = (p_comment_id COLLATE utf8mb4_unicode_ci)
+       AND user_id = (p_user_id COLLATE utf8mb4_unicode_ci);
+
+    IF v_tour_id IS NOT NULL THEN
+        DELETE FROM tour_comments
+         WHERE id = (p_comment_id COLLATE utf8mb4_unicode_ci)
+           AND user_id = (p_user_id COLLATE utf8mb4_unicode_ci);
+        SET v_affected = ROW_COUNT();
+    END IF;
+
+    SELECT
+        v_affected AS affected_count,
+        IF(v_affected > 0, v_tour_id, NULL) AS tour_id,
+        IF(v_affected > 0,
+           (SELECT COUNT(*) FROM tour_comments c WHERE c.tour_id = v_tour_id AND c.status = 'visible'),
+           NULL) AS total_count;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NMT_sp_admin_comment_list(p_status, p_keyword, p_limit, p_offset)
+--   Trang "Bình luận" của quản trị viên. p_status: 'visible' | 'hidden' | NULL / '' (tất cả).
+--   p_keyword: tìm trong nội dung, tên / email người viết và tên tour (NULL / '' = không lọc).
+--   p_limit NULL hoặc 0 = 20, tối đa 100. Mới nhất trước.
+--   Cột: comment_id, tour_id, tour_title, user_name, user_email, content, status, created_at,
+--        hidden_by_name, hidden_reason, hidden_at, total_count (tổng số dòng khớp bộ lọc).
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NMT_sp_admin_comment_list;
+
+DELIMITER $$
+CREATE PROCEDURE NMT_sp_admin_comment_list(
+    IN p_status  VARCHAR(20),
+    IN p_keyword VARCHAR(100) CHARACTER SET utf8mb4,
+    IN p_limit   TINYINT UNSIGNED,
+    IN p_offset  INT UNSIGNED
+)
+READS SQL DATA
+BEGIN
+    DECLARE v_keyword VARCHAR(100) CHARACTER SET utf8mb4 DEFAULT NULLIF(TRIM(p_keyword), '');
+    DECLARE v_limit   INT UNSIGNED DEFAULT 20;
+    DECLARE v_offset  INT UNSIGNED DEFAULT COALESCE(p_offset, 0);
+
+    IF p_limit IS NOT NULL AND p_limit > 0 THEN
+        SET v_limit = LEAST(p_limit, 100);
+    END IF;
+
+    SELECT
+        c.id          AS comment_id,
+        t.id          AS tour_id,
+        t.title       AS tour_title,
+        cu.name       AS user_name,
+        cu.email      AS user_email,
+        c.content,
+        c.status,
+        c.created_at,
+        hu.name       AS hidden_by_name,
+        c.hidden_reason,
+        c.hidden_at,
+        COUNT(*) OVER () AS total_count
+    FROM tour_comments c
+    JOIN tours t       ON t.id  = c.tour_id
+    JOIN users cu      ON cu.id = c.user_id
+    LEFT JOIN users hu ON hu.id = c.hidden_by
+    WHERE (NULLIF(p_status, '') IS NULL OR c.status = (p_status COLLATE utf8mb4_unicode_ci))
+      AND (v_keyword IS NULL
+           OR LOCATE(v_keyword COLLATE utf8mb4_unicode_ci,
+                     CONCAT_WS(' ', c.content, cu.name, cu.email, t.title)) > 0)
+    ORDER BY c.created_at DESC, c.id DESC
+    LIMIT v_limit OFFSET v_offset;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NMT_sp_admin_comment_set_status(p_comment_id, p_admin_id, p_status, p_reason)
+--   p_status: 'hidden' (ẩn, bắt buộc p_reason, tối đa 255 ký tự) | 'visible' (hiện lại, xóa
+--   thông tin ẩn). Đổi trạng thái và ghi admin_logs trong cùng một transaction.
+--   1 dòng: result, status.
+--     result = 'ok'              : đã đổi; status = trạng thái mới.
+--              'forbidden'       : người thao tác không phải quản trị viên đang hoạt động.
+--              'not_found'       : không có bình luận này.
+--              'invalid'         : p_status sai.
+--              'reason_required' : ẩn mà không có lý do.
+--              'unchanged'       : bình luận đã ở trạng thái p_status.
+--     Khi không 'ok', status = trạng thái hiện tại (NULL nếu không có), không có gì thay đổi.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NMT_sp_admin_comment_set_status;
+
+DELIMITER $$
+CREATE PROCEDURE NMT_sp_admin_comment_set_status(
+    IN p_comment_id CHAR(36),
+    IN p_admin_id   CHAR(36),
+    IN p_status     VARCHAR(20),
+    IN p_reason     VARCHAR(255) CHARACTER SET utf8mb4
+)
+MODIFIES SQL DATA
+proc: BEGIN
+    DECLARE v_old    VARCHAR(20) DEFAULT NULL;
+    DECLARE v_new    VARCHAR(20) DEFAULT COALESCE(p_status, '');
+    DECLARE v_reason VARCHAR(255) CHARACTER SET utf8mb4 DEFAULT NULLIF(TRIM(p_reason), '');
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM users
+                    WHERE id = (p_admin_id COLLATE utf8mb4_unicode_ci)
+                      AND role = 'admin' AND status = 'active') THEN
+        SELECT 'forbidden' AS result, NULL AS status;
+        LEAVE proc;
+    END IF;
+
+    START TRANSACTION;
+
+    SELECT status INTO v_old
+      FROM tour_comments
+     WHERE id = (p_comment_id COLLATE utf8mb4_unicode_ci)
+       FOR UPDATE;
+
+    IF v_old IS NULL THEN
+        ROLLBACK;
+        SELECT 'not_found' AS result, NULL AS status;
+        LEAVE proc;
+    END IF;
+
+    IF v_new NOT IN ('hidden', 'visible') THEN
+        ROLLBACK;
+        SELECT 'invalid' AS result, v_old AS status;
+        LEAVE proc;
+    END IF;
+
+    IF v_new = 'hidden' AND v_reason IS NULL THEN
+        ROLLBACK;
+        SELECT 'reason_required' AS result, v_old AS status;
+        LEAVE proc;
+    END IF;
+
+    IF v_old = v_new THEN
+        ROLLBACK;
+        SELECT 'unchanged' AS result, v_old AS status;
+        LEAVE proc;
+    END IF;
+
+    IF v_new = 'hidden' THEN
+        UPDATE tour_comments
+           SET status = 'hidden', hidden_by = p_admin_id, hidden_at = NOW(), hidden_reason = v_reason
+         WHERE id = (p_comment_id COLLATE utf8mb4_unicode_ci);
+    ELSE
+        UPDATE tour_comments
+           SET status = 'visible', hidden_by = NULL, hidden_at = NULL, hidden_reason = NULL
+         WHERE id = (p_comment_id COLLATE utf8mb4_unicode_ci);
+    END IF;
+
+    INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
+    VALUES (UUID(), p_admin_id, 'tour_comment', p_comment_id,
+            IF(v_new = 'hidden', 'comment_hide', 'comment_show'), v_old, v_new,
+            IF(v_new = 'hidden', v_reason, NULL), NOW());
+
+    COMMIT;
+    SELECT 'ok' AS result, v_new AS status;
+END$$
+DELIMITER ;
+-- =====================================================================
+-- LocalTour v0.7 - 36_procedures_NTK_review.sql
+-- Mục đích  : Đánh giá sao (FR-16, CR3): khách hàng chấm 1–5 sao và viết nhận xét cho đơn đã
+--             hoàn thành; quản trị viên duyệt trước khi đánh giá hiện trên trang tour.
+-- Phụ trách : Nguyễn Tuấn Khôi (NTK)
+-- Procedures: NTK_sp_review_get, NTK_sp_review_save, NTK_sp_review_state_list,
+--             NTK_sp_admin_review_list, NTK_sp_admin_review_summary, NTK_sp_admin_review_decide
+-- Quy tắc   : * Chỉ đơn của chính tài khoản khách hàng, ở trạng thái 'completed' (Đã hoàn thành),
+--               mới đánh giá được; mỗi đơn một đánh giá (reviews.uq_reviews_booking).
+--             * rating là số nguyên 1–5; content 10–1000 ký tự sau khi bỏ khoảng trắng hai đầu.
+--             * Đánh giá mới hoặc vừa sửa ở 'pending' (Chờ duyệt); chỉ 'approved' (Đã duyệt) hiện
+--               trên trang tour và được tính vào điểm trung bình (LTP_sp_tour_list,
+--               NMT_sp_tour_detail, NTK_sp_tour_review_list đều tính trực tiếp từ đánh giá đã
+--               duyệt, không lưu điểm riêng nên không cần cập nhật thêm).
+--             * Khách sửa được khi đánh giá còn 'pending' hoặc 'rejected' (Không được duyệt); sửa
+--               xong quay lại 'pending', xóa ghi chú kiểm duyệt cũ. Đánh giá đã duyệt bị khóa.
+--             * reviews.created_at = lần khách gửi gần nhất (gửi lại sau khi sửa thì cập nhật).
+--             * Quản trị viên: 'pending' -> 'approved' (ghi chú không bắt buộc) hoặc 'rejected'
+--               (bắt buộc lý do); 'approved' -> 'rejected' (gỡ đánh giá đã đăng, bắt buộc lý do).
+--               Mỗi lần xử lý ghi admin_logs (target_type 'review', NFR-09) trong cùng transaction.
+--             Tham số chuỗi được so sánh với COLLATE utf8mb4_unicode_ci; không có DEFINER.
+-- Chạy sau  : 01 -> 33 (33_migration_cr3_NTK.sql thêm reviews.created_at, moderated_by,
+--             moderated_at, moderation_note). Chạy lại được (DROP PROCEDURE IF EXISTS).
+-- =====================================================================
+
+SET NAMES utf8mb4;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_review_get(p_user_id, p_code)
+--   0 dòng: không có đơn mã p_code của tài khoản p_user_id.
+--   1 dòng: booking_id, code, booking_status, tour_id,
+--     can_review (1 = đơn 'completed' và đánh giá chưa duyệt / chưa có: khách gửi hoặc sửa được),
+--     review_id, rating, content, moderation_status, moderation_note, created_at, moderated_at
+--     (các cột đánh giá NULL khi đơn chưa có đánh giá).
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_review_get;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_review_get(
+    IN p_user_id CHAR(36),
+    IN p_code    VARCHAR(20)
+)
+READS SQL DATA
+BEGIN
+    SELECT
+        b.id                  AS booking_id,
+        b.code,
+        b.status              AS booking_status,
+        s.tour_id,
+        (b.status = 'completed' AND COALESCE(r.moderation_status, 'pending') <> 'approved') AS can_review,
+        r.id                  AS review_id,
+        r.rating,
+        r.content,
+        r.moderation_status,
+        r.moderation_note,
+        r.created_at,
+        r.moderated_at
+    FROM bookings b
+    JOIN schedules s     ON s.id = b.schedule_id
+    LEFT JOIN reviews r  ON r.booking_id = b.id
+    WHERE b.user_id = (p_user_id COLLATE utf8mb4_unicode_ci)
+      AND b.code = (UPPER(TRIM(p_code)) COLLATE utf8mb4_unicode_ci);
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_review_save(p_user_id, p_code, p_rating, p_content)
+--   Gửi đánh giá mới hoặc sửa đánh giá đang chờ duyệt / không được duyệt của đơn p_code.
+--   1 dòng: result, field, review_id, moderation_status.
+--     result = 'created'       : đã thêm đánh giá (moderation_status = 'pending').
+--              'updated'       : đã sửa, đánh giá quay lại 'pending'.
+--              'forbidden'     : tài khoản không phải khách hàng đang hoạt động.
+--              'not_found'     : không có đơn mã p_code của tài khoản này.
+--              'not_completed' : đơn chưa ở trạng thái 'completed'.
+--              'locked'        : đánh giá đã được duyệt, không sửa được nữa.
+--              'invalid'       : field = 'rating' (không phải 1–5) | 'content' (dưới 10 hoặc trên
+--                                1000 ký tự sau khi bỏ khoảng trắng hai đầu).
+--   Khóa dòng đơn (FOR UPDATE) để hai lần gửi cùng lúc không tạo hai đánh giá.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_review_save;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_review_save(
+    IN p_user_id CHAR(36),
+    IN p_code    VARCHAR(20),
+    IN p_rating  INT,
+    IN p_content TEXT CHARACTER SET utf8mb4
+)
+MODIFIES SQL DATA
+proc: BEGIN
+    DECLARE v_content    TEXT        CHARACTER SET utf8mb4;
+    DECLARE v_booking_id CHAR(36)    DEFAULT NULL;
+    DECLARE v_status     VARCHAR(30) DEFAULT NULL;
+    DECLARE v_tour_id    CHAR(36)    DEFAULT NULL;
+    DECLARE v_review_id  CHAR(36)    DEFAULT NULL;
+    DECLARE v_moderation VARCHAR(20) DEFAULT NULL;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    SET v_content = TRIM(COALESCE(p_content, ''));
+
+    IF NOT EXISTS (SELECT 1 FROM users
+                    WHERE id = (p_user_id COLLATE utf8mb4_unicode_ci)
+                      AND role = 'customer' AND status = 'active') THEN
+        SELECT 'forbidden' AS result, NULL AS field, NULL AS review_id, NULL AS moderation_status;
+        LEAVE proc;
+    END IF;
+
+    IF p_rating IS NULL OR p_rating < 1 OR p_rating > 5 THEN
+        SELECT 'invalid' AS result, 'rating' AS field, NULL AS review_id, NULL AS moderation_status;
+        LEAVE proc;
+    END IF;
+    IF CHAR_LENGTH(v_content) < 10 OR CHAR_LENGTH(v_content) > 1000 THEN
+        SELECT 'invalid' AS result, 'content' AS field, NULL AS review_id, NULL AS moderation_status;
+        LEAVE proc;
+    END IF;
+
+    START TRANSACTION;
+
+    SELECT b.id, b.status, s.tour_id
+      INTO v_booking_id, v_status, v_tour_id
+      FROM bookings b
+      JOIN schedules s ON s.id = b.schedule_id
+     WHERE b.user_id = (p_user_id COLLATE utf8mb4_unicode_ci)
+       AND b.code = (UPPER(TRIM(p_code)) COLLATE utf8mb4_unicode_ci)
+       FOR UPDATE;
+
+    IF v_booking_id IS NULL THEN
+        ROLLBACK;
+        SELECT 'not_found' AS result, NULL AS field, NULL AS review_id, NULL AS moderation_status;
+        LEAVE proc;
+    END IF;
+
+    IF v_status <> 'completed' THEN
+        ROLLBACK;
+        SELECT 'not_completed' AS result, NULL AS field, NULL AS review_id, NULL AS moderation_status;
+        LEAVE proc;
+    END IF;
+
+    SELECT id, moderation_status
+      INTO v_review_id, v_moderation
+      FROM reviews
+     WHERE booking_id = v_booking_id
+       FOR UPDATE;
+
+    IF v_review_id IS NULL THEN
+        SET v_review_id = UUID();
+        INSERT INTO reviews (id, booking_id, tour_id, rating, content, moderation_status, created_at)
+        VALUES (v_review_id, v_booking_id, v_tour_id, p_rating, v_content, 'pending', NOW());
+        COMMIT;
+        SELECT 'created' AS result, NULL AS field, v_review_id AS review_id, 'pending' AS moderation_status;
+        LEAVE proc;
+    END IF;
+
+    IF v_moderation = 'approved' THEN
+        ROLLBACK;
+        SELECT 'locked' AS result, NULL AS field, v_review_id AS review_id, v_moderation AS moderation_status;
+        LEAVE proc;
+    END IF;
+
+    UPDATE reviews
+       SET rating            = p_rating,
+           content           = v_content,
+           moderation_status = 'pending',
+           created_at        = NOW(),
+           moderated_by      = NULL,
+           moderated_at      = NULL,
+           moderation_note   = NULL
+     WHERE id = v_review_id;
+
+    COMMIT;
+    SELECT 'updated' AS result, NULL AS field, v_review_id AS review_id, 'pending' AS moderation_status;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_review_state_list(p_user_id)
+--   Trạng thái đánh giá của các đơn thuộc tài khoản p_user_id (chỉ đơn đã có đánh giá), dùng cho
+--   nhắc "Viết đánh giá" ở trang "Đơn của tôi".
+--   Cột: booking_id, moderation_status.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_review_state_list;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_review_state_list(
+    IN p_user_id CHAR(36)
+)
+READS SQL DATA
+BEGIN
+    SELECT
+        r.booking_id,
+        r.moderation_status
+    FROM reviews r
+    JOIN bookings b ON b.id = r.booking_id
+    WHERE b.user_id = (p_user_id COLLATE utf8mb4_unicode_ci);
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_admin_review_list(p_status, p_keyword, p_limit, p_offset)
+--   p_status : 'pending' | 'approved' | 'rejected'; NULL / '' = mọi trạng thái.
+--   p_keyword: NULL / '' = không lọc; ngược lại tìm trong mã đơn, tên tour, tên và email khách.
+--   p_limit 1–50 (ngoài khoảng = 20), p_offset >= 0 (NULL = 0).
+--   Cột: review_id, booking_id, booking_code, tour_id, tour_title, customer_name, customer_email,
+--        starts_at (giờ khởi hành của lịch trong đơn), rating, content, moderation_status,
+--        created_at (lần gửi gần nhất), moderated_at, moderation_note, moderator_name
+--        (NULL = chưa xử lý).
+--   Sắp xếp: đánh giá chờ duyệt trước (gửi sớm trước), rồi các đánh giá khác mới gửi trước.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_admin_review_list;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_admin_review_list(
+    IN p_status  VARCHAR(20),
+    IN p_keyword VARCHAR(100) CHARACTER SET utf8mb4,
+    IN p_limit   INT,
+    IN p_offset  INT
+)
+READS SQL DATA
+BEGIN
+    DECLARE v_keyword VARCHAR(100) CHARACTER SET utf8mb4 DEFAULT NULLIF(TRIM(p_keyword), '');
+    DECLARE v_limit   INT DEFAULT 20;
+    DECLARE v_offset  INT DEFAULT 0;
+
+    IF p_limit IS NOT NULL AND p_limit BETWEEN 1 AND 50 THEN
+        SET v_limit = p_limit;
+    END IF;
+    IF p_offset IS NOT NULL AND p_offset > 0 THEN
+        SET v_offset = p_offset;
+    END IF;
+
+    SELECT
+        r.id                AS review_id,
+        b.id                AS booking_id,
+        b.code              AS booking_code,
+        t.id                AS tour_id,
+        t.title             AS tour_title,
+        c.name              AS customer_name,
+        c.email             AS customer_email,
+        s.starts_at,
+        r.rating,
+        r.content,
+        r.moderation_status,
+        r.created_at,
+        r.moderated_at,
+        r.moderation_note,
+        m.name              AS moderator_name
+    FROM reviews r
+    JOIN bookings  b ON b.id = r.booking_id
+    JOIN users     c ON c.id = b.user_id
+    JOIN schedules s ON s.id = b.schedule_id
+    JOIN tours     t ON t.id = r.tour_id
+    LEFT JOIN users m ON m.id = r.moderated_by
+    WHERE (NULLIF(p_status, '') IS NULL OR r.moderation_status = (p_status COLLATE utf8mb4_unicode_ci))
+      AND (v_keyword IS NULL
+           OR LOCATE(v_keyword COLLATE utf8mb4_unicode_ci,
+                     CONCAT_WS(' ', b.code, t.title, c.name, c.email)) > 0)
+    ORDER BY (r.moderation_status = 'pending') DESC,
+             CASE WHEN r.moderation_status = 'pending' THEN r.created_at END ASC,
+             r.created_at DESC,
+             r.id
+    LIMIT v_limit OFFSET v_offset;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_admin_review_summary(p_status, p_keyword)
+--   1 dòng (cùng bộ lọc từ khóa như NTK_sp_admin_review_list):
+--   total (số đánh giá khớp p_status và p_keyword, để chia trang),
+--   pending_count, approved_count, rejected_count, all_count (theo từ khóa, mọi trạng thái).
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_admin_review_summary;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_admin_review_summary(
+    IN p_status  VARCHAR(20),
+    IN p_keyword VARCHAR(100) CHARACTER SET utf8mb4
+)
+READS SQL DATA
+BEGIN
+    DECLARE v_keyword VARCHAR(100) CHARACTER SET utf8mb4 DEFAULT NULLIF(TRIM(p_keyword), '');
+
+    SELECT
+        COALESCE(SUM(NULLIF(p_status, '') IS NULL
+                     OR r.moderation_status = (p_status COLLATE utf8mb4_unicode_ci)), 0) AS total,
+        COALESCE(SUM(r.moderation_status = 'pending'), 0)  AS pending_count,
+        COALESCE(SUM(r.moderation_status = 'approved'), 0) AS approved_count,
+        COALESCE(SUM(r.moderation_status = 'rejected'), 0) AS rejected_count,
+        COUNT(r.id)                                        AS all_count
+    FROM reviews r
+    JOIN bookings  b ON b.id = r.booking_id
+    JOIN users     c ON c.id = b.user_id
+    JOIN tours     t ON t.id = r.tour_id
+    WHERE v_keyword IS NULL
+       OR LOCATE(v_keyword COLLATE utf8mb4_unicode_ci,
+                 CONCAT_WS(' ', b.code, t.title, c.name, c.email)) > 0;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- NTK_sp_admin_review_decide(p_actor_user_id, p_review_id, p_decision, p_note)
+--   p_decision: 'approved' (duyệt, chỉ từ 'pending') | 'rejected' (từ chối đánh giá chờ duyệt
+--   hoặc gỡ đánh giá đã duyệt; bắt buộc p_note). p_note tối đa 255 ký tự.
+--   Đổi trạng thái, ghi người duyệt / thời điểm / ghi chú và admin_logs ('review_approve' /
+--   'review_reject') trong cùng một transaction.
+--   1 dòng: result, moderation_status.
+--     result = 'ok'                 : đã đổi; moderation_status = trạng thái mới.
+--              'forbidden'          : người thao tác không phải quản trị viên đang hoạt động.
+--              'not_found'          : không có đánh giá này.
+--              'invalid'            : p_decision sai hoặc p_note quá 255 ký tự.
+--              'note_required'      : từ chối mà không có lý do.
+--              'invalid_transition' : trạng thái hiện tại không cho phép (vd. duyệt đánh giá đã
+--                                     duyệt, từ chối đánh giá đã từ chối).
+--     Khi không 'ok', moderation_status = trạng thái hiện tại (NULL nếu không có), không đổi gì.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS NTK_sp_admin_review_decide;
+
+DELIMITER $$
+CREATE PROCEDURE NTK_sp_admin_review_decide(
+    IN p_actor_user_id CHAR(36),
+    IN p_review_id     CHAR(36),
+    IN p_decision      VARCHAR(20),
+    IN p_note          TEXT CHARACTER SET utf8mb4
+)
+MODIFIES SQL DATA
+proc: BEGIN
+    DECLARE v_decision VARCHAR(20)  DEFAULT COALESCE(p_decision, '');
+    DECLARE v_note     TEXT         CHARACTER SET utf8mb4;
+    DECLARE v_old      VARCHAR(20)  DEFAULT NULL;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    SET v_note = NULLIF(TRIM(p_note), '');
+
+    IF NOT EXISTS (SELECT 1 FROM users
+                    WHERE id = (p_actor_user_id COLLATE utf8mb4_unicode_ci)
+                      AND role = 'admin' AND status = 'active') THEN
+        SELECT 'forbidden' AS result, NULL AS moderation_status;
+        LEAVE proc;
+    END IF;
+
+    IF v_decision NOT IN ('approved', 'rejected') OR CHAR_LENGTH(COALESCE(v_note, '')) > 255 THEN
+        SELECT 'invalid' AS result, NULL AS moderation_status;
+        LEAVE proc;
+    END IF;
+
+    START TRANSACTION;
+
+    SELECT moderation_status
+      INTO v_old
+      FROM reviews
+     WHERE id = (p_review_id COLLATE utf8mb4_unicode_ci)
+       FOR UPDATE;
+
+    IF v_old IS NULL THEN
+        ROLLBACK;
+        SELECT 'not_found' AS result, NULL AS moderation_status;
+        LEAVE proc;
+    END IF;
+
+    IF (v_decision = 'approved' AND v_old <> 'pending')
+       OR (v_decision = 'rejected' AND v_old = 'rejected') THEN
+        ROLLBACK;
+        SELECT 'invalid_transition' AS result, v_old AS moderation_status;
+        LEAVE proc;
+    END IF;
+
+    IF v_decision = 'rejected' AND v_note IS NULL THEN
+        ROLLBACK;
+        SELECT 'note_required' AS result, v_old AS moderation_status;
+        LEAVE proc;
+    END IF;
+
+    UPDATE reviews
+       SET moderation_status = v_decision,
+           moderated_by      = p_actor_user_id,
+           moderated_at      = NOW(),
+           moderation_note   = v_note
+     WHERE id = (p_review_id COLLATE utf8mb4_unicode_ci);
+
+    INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_status, to_status, note, created_at)
+    VALUES (UUID(), p_actor_user_id, 'review', p_review_id,
+            IF(v_decision = 'approved', 'review_approve', 'review_reject'), v_old, v_decision, v_note, NOW());
+
+    COMMIT;
+    SELECT 'ok' AS result, v_decision AS moderation_status;
+END$$
+DELIMITER ;
+-- =====================================================================
+-- LocalTour v0.7 - 37_procedures_LTP_account.sql
+-- Mục đích  : Trang "Tài khoản" của khách hàng (CR3): xem và sửa họ tên, số điện thoại, ảnh đại
+--             diện (users.avatar_url, cột mới ở 33_migration_cr3_NTK.sql) và đổi / đặt mật khẩu.
+-- Phụ trách : Lê Trung Phong (LTP) - CR3
+-- Procedures: LTP_sp_account_get, LTP_sp_account_update_profile, LTP_sp_account_set_avatar,
+--             LTP_sp_account_get_password_hash, LTP_sp_account_set_password
+-- Quy tắc   : * Chỉ tài khoản khách hàng (role 'customer') đang hoạt động ('active') được đọc /
+--               sửa ở đây; tài khoản khác hoặc đã khóa: result = 'not_found'.
+--             * Email không đổi được (dùng để đăng nhập).
+--             * Kiểm tra định dạng (độ dài họ tên, số điện thoại, loại / dung lượng ảnh, độ dài mật
+--               khẩu) do ứng dụng làm trước khi gọi. Mật khẩu được băm bằng password_hash() của PHP;
+--               database chỉ nhận chuỗi băm.
+--             * avatar_url = đường dẫn tương đối từ public/assets/ (vd. 'uploads/avatars/<32 ký tự
+--               hex>.jpg'); NULL = chưa có ảnh. File ảnh do ứng dụng lưu / xóa.
+--             Tham số chuỗi được so sánh với COLLATE utf8mb4_unicode_ci; không có DEFINER.
+-- Chạy sau  : 01 -> 33 (cần cột users.avatar_url). Chạy lại được (DROP PROCEDURE IF EXISTS).
+-- =====================================================================
+
+SET NAMES utf8mb4;
+
+-- ---------------------------------------------------------------------
+-- LTP_sp_account_get(p_user_id)
+--   0 hoặc 1 dòng: tài khoản khách hàng đang hoạt động.
+--   Cột: user_id, email, name, phone (NULL = chưa có), role, avatar_url (NULL = chưa có ảnh),
+--        has_password (1 = đã đặt mật khẩu, 0 = chưa có mật khẩu).
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS LTP_sp_account_get;
+
+DELIMITER $$
+CREATE PROCEDURE LTP_sp_account_get(
+    IN p_user_id CHAR(36)
+)
+READS SQL DATA
+BEGIN
+    SELECT
+        u.id         AS user_id,
+        u.email,
+        u.name,
+        u.phone,
+        u.role,
+        u.avatar_url,
+        (u.password_hash IS NOT NULL AND u.password_hash <> '') AS has_password
+    FROM users u
+    WHERE u.id = (p_user_id COLLATE utf8mb4_unicode_ci)
+      AND u.role = 'customer'
+      AND u.status = 'active'
+    LIMIT 1;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- LTP_sp_account_update_profile(p_user_id, p_name, p_phone)
+--   Sửa họ tên và số điện thoại. p_phone NULL / '' = xóa số điện thoại.
+--   1 dòng: result ('ok' / 'not_found'), name (họ tên đã lưu, để cập nhật session).
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS LTP_sp_account_update_profile;
+
+DELIMITER $$
+CREATE PROCEDURE LTP_sp_account_update_profile(
+    IN p_user_id CHAR(36),
+    IN p_name    VARCHAR(100) CHARACTER SET utf8mb4,
+    IN p_phone   VARCHAR(20)  CHARACTER SET utf8mb4
+)
+MODIFIES SQL DATA
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM users
+                    WHERE id = (p_user_id COLLATE utf8mb4_unicode_ci)
+                      AND role = 'customer' AND status = 'active') THEN
+        SELECT 'not_found' AS result, NULL AS name;
+    ELSE
+        UPDATE users
+           SET name  = TRIM(p_name),
+               phone = NULLIF(TRIM(p_phone), '')
+         WHERE id = (p_user_id COLLATE utf8mb4_unicode_ci);
+
+        SELECT 'ok' AS result, TRIM(p_name) AS name;
+    END IF;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- LTP_sp_account_set_avatar(p_user_id, p_avatar_url)
+--   Đặt ảnh đại diện mới; p_avatar_url NULL = xóa ảnh.
+--   1 dòng: result ('ok' / 'not_found'), old_avatar_url (ảnh trước đó, NULL = chưa có) để ứng
+--   dụng xóa file cũ. Khóa dòng tài khoản (FOR UPDATE) khi đọc ảnh cũ: hai lần tải lên cùng lúc
+--   không làm mất dấu file nào.
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS LTP_sp_account_set_avatar;
+
+DELIMITER $$
+CREATE PROCEDURE LTP_sp_account_set_avatar(
+    IN p_user_id    CHAR(36),
+    IN p_avatar_url VARCHAR(255)
+)
+MODIFIES SQL DATA
+BEGIN
+    DECLARE v_found BOOLEAN      DEFAULT FALSE;
+    DECLARE v_old   VARCHAR(255) DEFAULT NULL;
+
+    -- Không có dòng nào (sai id, không phải khách hàng, đã khóa): v_found giữ FALSE.
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_found = FALSE;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+
+    SELECT TRUE, u.avatar_url
+      INTO v_found, v_old
+      FROM users u
+     WHERE u.id = (p_user_id COLLATE utf8mb4_unicode_ci)
+       AND u.role = 'customer'
+       AND u.status = 'active'
+     LIMIT 1
+       FOR UPDATE;
+
+    IF NOT v_found THEN
+        ROLLBACK;
+        SELECT 'not_found' AS result, NULL AS old_avatar_url;
+    ELSE
+        UPDATE users
+           SET avatar_url = NULLIF(TRIM(p_avatar_url), '')
+         WHERE id = (p_user_id COLLATE utf8mb4_unicode_ci);
+        COMMIT;
+
+        SELECT 'ok' AS result, v_old AS old_avatar_url;
+    END IF;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- LTP_sp_account_get_password_hash(p_user_id)
+--   0 hoặc 1 dòng: cột password_hash (NULL = chưa đặt mật khẩu) của tài khoản khách hàng đang
+--   hoạt động. Chỉ dùng để kiểm tra mật khẩu hiện tại trước khi đổi (password_verify trong PHP).
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS LTP_sp_account_get_password_hash;
+
+DELIMITER $$
+CREATE PROCEDURE LTP_sp_account_get_password_hash(
+    IN p_user_id CHAR(36)
+)
+READS SQL DATA
+BEGIN
+    SELECT u.password_hash
+      FROM users u
+     WHERE u.id = (p_user_id COLLATE utf8mb4_unicode_ci)
+       AND u.role = 'customer'
+       AND u.status = 'active'
+     LIMIT 1;
+END$$
+DELIMITER ;
+
+-- ---------------------------------------------------------------------
+-- LTP_sp_account_set_password(p_user_id, p_password_hash)
+--   Lưu mật khẩu mới (đã băm). 1 dòng: result ('ok' / 'not_found' / 'invalid' khi chuỗi băm rỗng).
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS LTP_sp_account_set_password;
+
+DELIMITER $$
+CREATE PROCEDURE LTP_sp_account_set_password(
+    IN p_user_id       CHAR(36),
+    IN p_password_hash VARCHAR(255)
+)
+MODIFIES SQL DATA
+BEGIN
+    IF p_password_hash IS NULL OR TRIM(p_password_hash) = '' THEN
+        SELECT 'invalid' AS result;
+    ELSEIF NOT EXISTS (SELECT 1 FROM users
+                        WHERE id = (p_user_id COLLATE utf8mb4_unicode_ci)
+                          AND role = 'customer' AND status = 'active') THEN
+        SELECT 'not_found' AS result;
+    ELSE
+        UPDATE users
+           SET password_hash = p_password_hash
+         WHERE id = (p_user_id COLLATE utf8mb4_unicode_ci);
+
+        SELECT 'ok' AS result;
+    END IF;
+END$$
+DELIMITER ;
+-- =====================================================================
+-- LocalTour v0.7 - 38_seed_cr3_NTK.sql
+-- Mục đích  : Dữ liệu mẫu cho các chức năng của CR3: lượt "Thích" (tour_likes) và bình luận
+--             (tour_comments) trên các tour đang hiển thị, để trang danh sách và trang chi tiết
+--             có số liệu ngay sau khi cài đặt. Có một bình luận đã bị quản trị viên ẩn (minh họa
+--             kiểm duyệt). Tour đã lưu (favorite_tours) và đánh giá mới để trống: người kiểm thử tự
+--             tạo bằng tài khoản của mình.
+--             TẤT CẢ là dữ liệu MINH HỌA của các tài khoản mẫu trong 02_seed.sql.
+-- Phụ trách : Nguyễn Tuấn Khôi (NTK)
+-- Chạy sau  : 02_seed.sql và 33_migration_cr3_NTK.sql. Chạy lại được (xóa các dòng mẫu cũ rồi
+--             thêm lại). Ngày tháng tính tương đối theo NOW() lúc import.
+-- ID       : tour_likes c6000000 · tour_comments c7000000 (cùng cách đánh số với 02_seed.sql).
+-- =====================================================================
+
+SET NAMES utf8mb4;
+
+DELETE FROM tour_likes WHERE id LIKE 'c6000000-%';
+DELETE FROM tour_comments WHERE id LIKE 'c7000000-%';
+
+-- 1. Lượt thích: mỗi tài khoản – tour một dòng.
+INSERT INTO tour_likes (id, user_id, tour_id, created_at) VALUES
+    ('c6000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000101', 'c0000000-0000-4000-8000-000000000001', NOW() - INTERVAL 8 DAY - INTERVAL 5 HOUR),
+    ('c6000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000102', 'c0000000-0000-4000-8000-000000000001', NOW() - INTERVAL 15 DAY - INTERVAL 10 HOUR),
+    ('c6000000-0000-4000-8000-000000000003', 'a0000000-0000-4000-8000-000000000103', 'c0000000-0000-4000-8000-000000000001', NOW() - INTERVAL 2 DAY - INTERVAL 15 HOUR),
+    ('c6000000-0000-4000-8000-000000000004', 'a0000000-0000-4000-8000-000000000104', 'c0000000-0000-4000-8000-000000000001', NOW() - INTERVAL 9 DAY - INTERVAL 20 HOUR),
+    ('c6000000-0000-4000-8000-000000000005', 'a0000000-0000-4000-8000-000000000110', 'c0000000-0000-4000-8000-000000000001', NOW() - INTERVAL 16 DAY - INTERVAL 2 HOUR),
+    ('c6000000-0000-4000-8000-000000000006', 'a0000000-0000-4000-8000-000000000115', 'c0000000-0000-4000-8000-000000000001', NOW() - INTERVAL 3 DAY - INTERVAL 7 HOUR),
+    ('c6000000-0000-4000-8000-000000000007', 'a0000000-0000-4000-8000-000000000123', 'c0000000-0000-4000-8000-000000000001', NOW() - INTERVAL 10 DAY - INTERVAL 12 HOUR),
+    ('c6000000-0000-4000-8000-000000000008', 'a0000000-0000-4000-8000-000000000129', 'c0000000-0000-4000-8000-000000000001', NOW() - INTERVAL 17 DAY - INTERVAL 17 HOUR),
+    ('c6000000-0000-4000-8000-000000000009', 'a0000000-0000-4000-8000-000000000133', 'c0000000-0000-4000-8000-000000000001', NOW() - INTERVAL 4 DAY - INTERVAL 22 HOUR),
+    ('c6000000-0000-4000-8000-000000000010', 'a0000000-0000-4000-8000-000000000105', 'c0000000-0000-4000-8000-000000000002', NOW() - INTERVAL 11 DAY - INTERVAL 4 HOUR),
+    ('c6000000-0000-4000-8000-000000000011', 'a0000000-0000-4000-8000-000000000106', 'c0000000-0000-4000-8000-000000000002', NOW() - INTERVAL 18 DAY - INTERVAL 9 HOUR),
+    ('c6000000-0000-4000-8000-000000000012', 'a0000000-0000-4000-8000-000000000107', 'c0000000-0000-4000-8000-000000000002', NOW() - INTERVAL 5 DAY - INTERVAL 14 HOUR),
+    ('c6000000-0000-4000-8000-000000000013', 'a0000000-0000-4000-8000-000000000117', 'c0000000-0000-4000-8000-000000000002', NOW() - INTERVAL 12 DAY - INTERVAL 19 HOUR),
+    ('c6000000-0000-4000-8000-000000000014', 'a0000000-0000-4000-8000-000000000123', 'c0000000-0000-4000-8000-000000000002', NOW() - INTERVAL 19 DAY - INTERVAL 1 HOUR),
+    ('c6000000-0000-4000-8000-000000000015', 'a0000000-0000-4000-8000-000000000131', 'c0000000-0000-4000-8000-000000000002', NOW() - INTERVAL 6 DAY - INTERVAL 6 HOUR),
+    ('c6000000-0000-4000-8000-000000000016', 'a0000000-0000-4000-8000-000000000108', 'c0000000-0000-4000-8000-000000000003', NOW() - INTERVAL 13 DAY - INTERVAL 11 HOUR),
+    ('c6000000-0000-4000-8000-000000000017', 'a0000000-0000-4000-8000-000000000109', 'c0000000-0000-4000-8000-000000000003', NOW() - INTERVAL 20 DAY - INTERVAL 16 HOUR),
+    ('c6000000-0000-4000-8000-000000000018', 'a0000000-0000-4000-8000-000000000125', 'c0000000-0000-4000-8000-000000000003', NOW() - INTERVAL 7 DAY - INTERVAL 21 HOUR),
+    ('c6000000-0000-4000-8000-000000000019', 'a0000000-0000-4000-8000-000000000110', 'c0000000-0000-4000-8000-000000000004', NOW() - INTERVAL 14 DAY - INTERVAL 3 HOUR),
+    ('c6000000-0000-4000-8000-000000000020', 'a0000000-0000-4000-8000-000000000111', 'c0000000-0000-4000-8000-000000000004', NOW() - INTERVAL 1 DAY - INTERVAL 8 HOUR),
+    ('c6000000-0000-4000-8000-000000000021', 'a0000000-0000-4000-8000-000000000112', 'c0000000-0000-4000-8000-000000000004', NOW() - INTERVAL 8 DAY - INTERVAL 13 HOUR),
+    ('c6000000-0000-4000-8000-000000000022', 'a0000000-0000-4000-8000-000000000113', 'c0000000-0000-4000-8000-000000000004', NOW() - INTERVAL 15 DAY - INTERVAL 18 HOUR),
+    ('c6000000-0000-4000-8000-000000000023', 'a0000000-0000-4000-8000-000000000136', 'c0000000-0000-4000-8000-000000000004', NOW() - INTERVAL 2 DAY - INTERVAL 0 HOUR),
+    ('c6000000-0000-4000-8000-000000000024', 'a0000000-0000-4000-8000-000000000114', 'c0000000-0000-4000-8000-000000000005', NOW() - INTERVAL 9 DAY - INTERVAL 5 HOUR),
+    ('c6000000-0000-4000-8000-000000000025', 'a0000000-0000-4000-8000-000000000115', 'c0000000-0000-4000-8000-000000000005', NOW() - INTERVAL 16 DAY - INTERVAL 10 HOUR),
+    ('c6000000-0000-4000-8000-000000000026', 'a0000000-0000-4000-8000-000000000116', 'c0000000-0000-4000-8000-000000000005', NOW() - INTERVAL 3 DAY - INTERVAL 15 HOUR),
+    ('c6000000-0000-4000-8000-000000000027', 'a0000000-0000-4000-8000-000000000132', 'c0000000-0000-4000-8000-000000000005', NOW() - INTERVAL 10 DAY - INTERVAL 20 HOUR),
+    ('c6000000-0000-4000-8000-000000000028', 'a0000000-0000-4000-8000-000000000117', 'c0000000-0000-4000-8000-000000000006', NOW() - INTERVAL 17 DAY - INTERVAL 2 HOUR),
+    ('c6000000-0000-4000-8000-000000000029', 'a0000000-0000-4000-8000-000000000118', 'c0000000-0000-4000-8000-000000000006', NOW() - INTERVAL 4 DAY - INTERVAL 7 HOUR),
+    ('c6000000-0000-4000-8000-000000000030', 'a0000000-0000-4000-8000-000000000119', 'c0000000-0000-4000-8000-000000000006', NOW() - INTERVAL 11 DAY - INTERVAL 12 HOUR),
+    ('c6000000-0000-4000-8000-000000000031', 'a0000000-0000-4000-8000-000000000120', 'c0000000-0000-4000-8000-000000000006', NOW() - INTERVAL 18 DAY - INTERVAL 17 HOUR),
+    ('c6000000-0000-4000-8000-000000000032', 'a0000000-0000-4000-8000-000000000123', 'c0000000-0000-4000-8000-000000000006', NOW() - INTERVAL 5 DAY - INTERVAL 22 HOUR),
+    ('c6000000-0000-4000-8000-000000000033', 'a0000000-0000-4000-8000-000000000127', 'c0000000-0000-4000-8000-000000000006', NOW() - INTERVAL 12 DAY - INTERVAL 4 HOUR),
+    ('c6000000-0000-4000-8000-000000000034', 'a0000000-0000-4000-8000-000000000134', 'c0000000-0000-4000-8000-000000000006', NOW() - INTERVAL 19 DAY - INTERVAL 9 HOUR),
+    ('c6000000-0000-4000-8000-000000000035', 'a0000000-0000-4000-8000-000000000138', 'c0000000-0000-4000-8000-000000000006', NOW() - INTERVAL 6 DAY - INTERVAL 14 HOUR),
+    ('c6000000-0000-4000-8000-000000000036', 'a0000000-0000-4000-8000-000000000121', 'c0000000-0000-4000-8000-000000000007', NOW() - INTERVAL 13 DAY - INTERVAL 19 HOUR),
+    ('c6000000-0000-4000-8000-000000000037', 'a0000000-0000-4000-8000-000000000122', 'c0000000-0000-4000-8000-000000000007', NOW() - INTERVAL 20 DAY - INTERVAL 1 HOUR),
+    ('c6000000-0000-4000-8000-000000000038', 'a0000000-0000-4000-8000-000000000123', 'c0000000-0000-4000-8000-000000000007', NOW() - INTERVAL 7 DAY - INTERVAL 6 HOUR),
+    ('c6000000-0000-4000-8000-000000000039', 'a0000000-0000-4000-8000-000000000135', 'c0000000-0000-4000-8000-000000000007', NOW() - INTERVAL 14 DAY - INTERVAL 11 HOUR),
+    ('c6000000-0000-4000-8000-000000000040', 'a0000000-0000-4000-8000-000000000124', 'c0000000-0000-4000-8000-000000000008', NOW() - INTERVAL 1 DAY - INTERVAL 16 HOUR),
+    ('c6000000-0000-4000-8000-000000000041', 'a0000000-0000-4000-8000-000000000125', 'c0000000-0000-4000-8000-000000000008', NOW() - INTERVAL 8 DAY - INTERVAL 21 HOUR),
+    ('c6000000-0000-4000-8000-000000000042', 'a0000000-0000-4000-8000-000000000126', 'c0000000-0000-4000-8000-000000000008', NOW() - INTERVAL 15 DAY - INTERVAL 3 HOUR),
+    ('c6000000-0000-4000-8000-000000000043', 'a0000000-0000-4000-8000-000000000128', 'c0000000-0000-4000-8000-000000000008', NOW() - INTERVAL 2 DAY - INTERVAL 8 HOUR),
+    ('c6000000-0000-4000-8000-000000000044', 'a0000000-0000-4000-8000-000000000130', 'c0000000-0000-4000-8000-000000000008', NOW() - INTERVAL 9 DAY - INTERVAL 13 HOUR),
+    ('c6000000-0000-4000-8000-000000000045', 'a0000000-0000-4000-8000-000000000137', 'c0000000-0000-4000-8000-000000000008', NOW() - INTERVAL 16 DAY - INTERVAL 18 HOUR),
+    ('c6000000-0000-4000-8000-000000000046', 'a0000000-0000-4000-8000-000000000139', 'c0000000-0000-4000-8000-000000000008', NOW() - INTERVAL 3 DAY - INTERVAL 0 HOUR),
+    ('c6000000-0000-4000-8000-000000000047', 'a0000000-0000-4000-8000-000000000140', 'c0000000-0000-4000-8000-000000000009', NOW() - INTERVAL 10 DAY - INTERVAL 5 HOUR),
+    ('c6000000-0000-4000-8000-000000000048', 'a0000000-0000-4000-8000-000000000102', 'c0000000-0000-4000-8000-000000000009', NOW() - INTERVAL 17 DAY - INTERVAL 10 HOUR);
+
+-- 2. Bình luận: status visible; một dòng hidden do quản trị viên ẩn.
+INSERT INTO tour_comments (id, tour_id, user_id, content, status, hidden_by, hidden_at, hidden_reason, created_at) VALUES
+    ('c7000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000104', 'Đi tour này với bố mẹ, hướng dẫn viên đi chậm và giải thích từng món rất kỹ. Nên để bụng đói trước khi đi.', 'visible', NULL, NULL, NULL, NOW() - INTERVAL 9 DAY - INTERVAL 3 HOUR),
+    ('c7000000-0000-4000-8000-000000000002', 'c0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000133', 'Cho mình hỏi tour có món chay không ạ? Nhà mình có một người ăn chay.', 'visible', NULL, NULL, NULL, NOW() - INTERVAL 6 DAY - INTERVAL 5 HOUR),
+    ('c7000000-0000-4000-8000-000000000003', 'c0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000102', 'Buổi chiều trời mát, đi bộ không mệt. Phần bún chả là ngon nhất.', 'visible', NULL, NULL, NULL, NOW() - INTERVAL 2 DAY - INTERVAL 1 HOUR),
+    ('c7000000-0000-4000-8000-000000000004', 'c0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000107', 'Cà phê trứng ở điểm cuối rất đáng thử, quán nhỏ nhưng ấm cúng.', 'visible', NULL, NULL, NULL, NOW() - INTERVAL 7 DAY - INTERVAL 2 HOUR),
+    ('c7000000-0000-4000-8000-000000000005', 'c0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000131', 'Tour có hợp với trẻ 6 tuổi không mọi người?', 'visible', NULL, NULL, NULL, NOW() - INTERVAL 3 DAY - INTERVAL 6 HOUR),
+    ('c7000000-0000-4000-8000-000000000006', 'c0000000-0000-4000-8000-000000000004', 'a0000000-0000-4000-8000-000000000113', 'Phải dậy sớm nhưng bình minh trên Sơn Trà rất đẹp. Nhớ mang áo khoác mỏng.', 'visible', NULL, NULL, NULL, NOW() - INTERVAL 5 DAY - INTERVAL 4 HOUR),
+    ('c7000000-0000-4000-8000-000000000007', 'c0000000-0000-4000-8000-000000000006', 'a0000000-0000-4000-8000-000000000120', 'Thả hoa đăng buổi tối là phần mình thích nhất. Phố cổ đông nhưng hướng dẫn viên dẫn đi đường vắng hơn.', 'visible', NULL, NULL, NULL, NOW() - INTERVAL 8 DAY - INTERVAL 7 HOUR),
+    ('c7000000-0000-4000-8000-000000000008', 'c0000000-0000-4000-8000-000000000006', 'a0000000-0000-4000-8000-000000000127', 'Mình đặt cho nhóm 4 người, đến điểm hẹn được đón đúng giờ.', 'visible', NULL, NULL, NULL, NOW() - INTERVAL 4 DAY - INTERVAL 2 HOUR),
+    ('c7000000-0000-4000-8000-000000000009', 'c0000000-0000-4000-8000-000000000006', 'a0000000-0000-4000-8000-000000000138', 'Inbox mình để mua vé tour giá rẻ hơn trên này nhé.', 'hidden', 'a0000000-0000-4000-8000-000000000001', NOW() - INTERVAL 0 DAY, 'Quảng cáo, không liên quan đến nội dung tour.', NOW() - INTERVAL 1 DAY - INTERVAL 3 HOUR),
+    ('c7000000-0000-4000-8000-000000000010', 'c0000000-0000-4000-8000-000000000007', 'a0000000-0000-4000-8000-000000000123', 'Học nấu ăn ở làng rau rất vui, cô chủ nhà hướng dẫn dễ hiểu.', 'visible', NULL, NULL, NULL, NOW() - INTERVAL 6 DAY - INTERVAL 1 HOUR),
+    ('c7000000-0000-4000-8000-000000000011', 'c0000000-0000-4000-8000-000000000008', 'a0000000-0000-4000-8000-000000000125', 'Đi xe máy buổi tối an toàn, tài xế chạy chậm và có mũ bảo hiểm cho khách.', 'visible', NULL, NULL, NULL, NOW() - INTERVAL 3 DAY - INTERVAL 8 HOUR),
+    ('c7000000-0000-4000-8000-000000000012', 'c0000000-0000-4000-8000-000000000008', 'a0000000-0000-4000-8000-000000000139', 'Tour có đón ở khách sạn quận 3 không ạ?', 'visible', NULL, NULL, NULL, NOW() - INTERVAL 2 DAY - INTERVAL 4 HOUR),
+    ('c7000000-0000-4000-8000-000000000013', 'c0000000-0000-4000-8000-000000000009', 'a0000000-0000-4000-8000-000000000140', 'Hẻm nhỏ ở Chợ Lớn nhiều món lạ, nên đi khi đói.', 'visible', NULL, NULL, NULL, NOW() - INTERVAL 1 DAY - INTERVAL 6 HOUR);
