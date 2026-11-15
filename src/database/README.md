@@ -275,7 +275,7 @@ Ca kiểm thử có sẵn:
 - **Thích và bình luận (CR3, file `38`):** 48 lượt thích và 13 bình luận trên tour 1–9; tour 1 có 9 lượt thích, 3 bình luận; tour 6 có 8 lượt thích, 2 bình luận đang hiện và 1 bình luận đã bị quản trị viên ẩn kèm lý do (không hiện trên trang tour, không tính vào số bình luận, có ở trang "Bình luận" khi lọc "Đã ẩn"). Thử thích, lưu và bình luận bằng tài khoản tự đăng ký.
 - **Tên người đánh giá:** lấy từ `users.name` của chủ đơn (`bookings.user_id`); trong dữ liệu mẫu trùng `contact_name` của đơn.
 - **Đơn đã hủy:** đơn 30 (tour 1) có thanh toán `paid` và một khoản hoàn tiền `completed`; không ảnh hưởng màn hình nào.
-- **Ảnh tour:** mỗi file SVG chỉ thuộc một tour. Tour 2 và 9 không có ảnh → "Chưa cập nhật ảnh". Tour 4 có 2 ảnh cùng `sort_order` (ảnh bìa là ảnh có id nhỏ hơn); ảnh bìa của tour 6 có id lớn hơn ảnh thứ hai; tour 8 có 3 ảnh chèn lệch thứ tự, 1 ảnh `alt_text` là `NULL` (chú thích là tên tour).
+- **Ảnh tour:** ảnh chụp địa điểm (JPG trong `public/assets/img/tours/`, nguồn trong `NGUON_ANH.md`), mỗi file chỉ thuộc một tour. Tour 2 và 9 không có ảnh → "Chưa cập nhật ảnh". Tour 4 có 2 ảnh cùng `sort_order` (ảnh bìa là ảnh có id nhỏ hơn); ảnh bìa của tour 6 có id lớn hơn ảnh thứ hai; tour 8 có 3 ảnh chèn lệch thứ tự, 1 ảnh `alt_text` là `NULL` (chú thích là tên tour).
 - **Lịch trình:** tour 1–8 có 4–5 mục `tour_itinerary_items` chèn lệch thứ tự để kiểm tra `ORDER BY sort_order`. Tour 3 có mọi `start_time` là `NULL` (chỉ hiện mô tả); mục trả khách về khách sạn của tour 4 và 8 không ghi giờ.
 - **Dịch vụ bao gồm / không bao gồm:** tour 1–8 có danh sách bao gồm; tour 5 không có dòng không bao gồm → "Chưa cập nhật". Tour 4 chèn dòng không bao gồm trước và lệch `sort_order`, nhưng mục bao gồm luôn ra trước.
 - **Phụ thu / tùy chọn:** được chèn lệch thứ tự (tour 1: tùy chọn chèn trước phụ thu) nhưng phụ thu luôn ra trước. Tour 4 "Phụ thu ngày lễ" và tour 8 tùy chọn quán bar có giá `NULL`; tour 6 "Thuê áo dài chụp ảnh" có giá nhưng không có đơn vị. Tour 4 chỉ có phụ thu, tour 5, 6, 7 chỉ có tùy chọn. Không dòng nào được cộng vào giá "Từ" hay tạm tính tiền vé.
@@ -310,7 +310,7 @@ CALL NMT_sp_tour_schedule_list('c0000000-0000-4000-8000-000000000001');   -- 4 l
 CALL NMT_sp_tour_ticket_list('c0000000-0000-4000-8000-000000000001');     -- 8 vé (người lớn + trẻ em của 4 lịch)
 CALL NTK_sp_tour_review_list('c0000000-0000-4000-8000-000000000001', 5);  -- 4 đánh giá đã duyệt, reviewer_name = users.name
 CALL NTK_sp_tour_cancellation_policy('c0000000-0000-4000-8000-000000000004'); -- version 2
-CALL NMT_sp_tour_image_list('c0000000-0000-4000-8000-000000000001');      -- 1 ảnh: img/tours/hanoi-1.svg
+CALL NMT_sp_tour_image_list('c0000000-0000-4000-8000-000000000001');      -- 1 ảnh: img/tours/hanoi-1.jpg
 CALL NTK_sp_tour_itinerary_list('c0000000-0000-4000-8000-000000000001');  -- 5 mục theo sort_order, mục đầu 17:00
 CALL NTK_sp_tour_itinerary_list('c0000000-0000-4000-8000-000000000003');  -- 5 mục, start_time đều NULL
 CALL NTK_sp_tour_inclusion_list('c0000000-0000-4000-8000-000000000001');  -- 6 dòng: 3 bao gồm trước, rồi 3 không bao gồm

@@ -178,7 +178,7 @@ src/
 │       │                         # tour-social.css, tour-comments.css, review.css, account.css, pages.css (CR3)
 │       ├── js/                   # app.js, tour-list.js, tour-detail.js, booking.js, compare.js, change-request.js,
 │       │                         # tour-social.js, tour-comments.js, booking-review.js, account.js (CR3)
-│       ├── img/                  # Ảnh SVG minh họa; bảng tour_images lưu đường dẫn tới các file này
+│       ├── img/                  # Logo, ảnh thay thế (SVG); img/tours/: ảnh chụp tour mẫu (JPG), bảng tour_images lưu đường dẫn tới các file này
 │       └── uploads/              # Ảnh tải lên, không đưa lên Git: ảnh tour (uploads/tours/), ảnh đại diện
 │                                 # khách hàng (uploads/avatars/, CR3, tự tạo ở lần tải lên đầu tiên)
 ├── routes/
