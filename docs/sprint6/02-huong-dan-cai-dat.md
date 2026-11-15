@@ -124,10 +124,10 @@ LocalTour – cài database
 OK        mysql: C:\xampp\mysql\bin\mysql.exe
 OK        Kết nối MySQL 127.0.0.1:3306 (tài khoản root, 10.4.32-MariaDB)
 OK        Tạo database db_localtour (utf8mb4_unicode_ci)
-          Import 38 file từ …\LocalTour_Project\src\database:
+          Import 42 file từ …\LocalTour_Project\src\database:
 OK        01_schema.sql (0,5 giây)
 …
-OK        Database db_localtour: 39 bảng, 178 procedure (đủ như các file 01_schema.sql → 38_seed_cr3_NTK.sql).
+OK        Database db_localtour: 40 bảng, 184 procedure (đủ như các file 01_schema.sql → 42_map_tours_NTK.sql).
 ```
 
 Số file, số bảng và số procedure thay đổi theo phiên bản mã nguồn; điều cần thấy là dòng `OK` cuối có chữ “đủ như các file”.
@@ -184,10 +184,10 @@ CẢNH BÁO  VNPay sandbox chưa có VNPAY_TMN_CODE / VNPAY_HASH_SECRET (tùy ch
 CẢNH BÁO  VietQR chưa có PAYMENT_BANK_ID / PAYMENT_ACCOUNT_NO hợp lệ (tùy chọn): trang thanh toán hiện "VietQR đang tạm ngưng".
 OK        Kết nối database db_localtour tại 127.0.0.1:3306 (tài khoản root), 10.4.32-MariaDB
 OK        Bảng mã database: utf8mb4_unicode_ci
-OK        Đủ 39 bảng của 38 file 01_schema.sql → 38_seed_cr3_NTK.sql
-OK        Đủ 178 procedure của 38 file 01_schema.sql → 38_seed_cr3_NTK.sql
+OK        Đủ 40 bảng của 42 file 01_schema.sql → 42_map_tours_NTK.sql
+OK        Đủ 184 procedure của 42 file 01_schema.sql → 42_map_tours_NTK.sql
 OK        1 tài khoản quản trị đăng nhập được
-OK        35 lịch khởi hành còn nhận khách
+OK        242 lịch khởi hành còn nhận khách
 …
 OK        Apache: đã bật mod_rewrite
 OK        Apache: htdocs cho phép .htaccess (AllowOverride All)
@@ -218,7 +218,7 @@ Màn hình hiện `PHP 8.2.12 Development Server (http://127.0.0.1:8080) started
 
 | Thử | Kết quả mong đợi |
 | --- | --- |
-| `/tours` | Trang “Bảng tin du lịch” có 9 tour. |
+| `/tours` | Trang “Bảng tin du lịch” có 29 tour. |
 | `/tours/c0000000-0000-4000-8000-000000000001` | Trang chi tiết “Hà Nội qua những món ăn phố cổ”. |
 | `/admin/login`, đăng nhập bằng `admin@localtour.test` và mật khẩu ở mục 7 | Trang “Tổng quan” của quản trị viên. Mật khẩu sai → “Email hoặc mật khẩu không đúng.” |
 | `/register` tạo tài khoản khách hàng, đặt tour 1 cho 1 người lớn | Đơn được giữ chỗ ngay, ở trạng thái “Chờ thanh toán”, và trang thanh toán của đơn mở ra. Khi `.env` chưa có khóa thanh toán thử, trang thanh toán hiện “VNPay đang tạm ngưng” và “VietQR đang tạm ngưng”. |
