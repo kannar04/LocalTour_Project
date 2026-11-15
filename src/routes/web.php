@@ -239,5 +239,12 @@ $router->post('/tai-khoan/profile', [\App\Controllers\AccountController::class, 
 $router->post('/tai-khoan/avatar', [\App\Controllers\AccountController::class, 'uploadAvatar']);
 $router->post('/tai-khoan/avatar/delete', [\App\Controllers\AccountController::class, 'deleteAvatar']);
 $router->post('/tai-khoan/password', [\App\Controllers\AccountController::class, 'changePassword']);
+// Xác minh / đổi email (Nguyễn Tuấn Khôi): chỉ có các đường dẫn này khi đã cấu hình gửi email (MAIL_HOST trong .env).
+if (\App\Services\VerificationMail::enabled()) {
+    $router->post('/tai-khoan/email/code', [\App\Controllers\AccountEmailController::class, 'sendCode']);
+    $router->post('/tai-khoan/email/verify', [\App\Controllers\AccountEmailController::class, 'verify']);
+    $router->post('/tai-khoan/email/change', [\App\Controllers\AccountEmailController::class, 'change']);
+    $router->post('/tai-khoan/email/change/confirm', [\App\Controllers\AccountEmailController::class, 'confirmChange']);
+}
 
 return $router;

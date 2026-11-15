@@ -47,6 +47,8 @@ SET @OLD_FOREIGN_KEY_CHECKS = @@FOREIGN_KEY_CHECKS;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- Bảng do các file sau thêm (12: Sprint 4, 16: Sprint 5, 23 - 25, 28, 33): xóa luôn để chạy lại từ đầu không còn dữ liệu thử cũ.
+-- Bảng mã xác minh email của file 40 (tham chiếu users).
+DROP TABLE IF EXISTS email_verifications;
 DROP TABLE IF EXISTS tour_comments;
 DROP TABLE IF EXISTS tour_likes;
 DROP TABLE IF EXISTS host_payout_items;

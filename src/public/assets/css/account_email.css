@@ -1,0 +1,149 @@
+/*
+ * LocalTour – account_email.css (Nguyễn Tuấn Khôi – NTK)
+ * Ô email khi bật xác minh email (views/account/partials/email_verify.php): nhãn "Đã xác minh" / "Chưa xác minh",
+ * ô nhập mã, mục "Đổi email". Chỉ partial nạp file này (chức năng tắt thì trang không có file này).
+ * Dùng lại .lt-field, .lt-input (tour-detail.css), .lt-status, .lt-book-alert (booking.css), .lt-account-password
+ * (account.css), nút và icon của base.css.
+ */
+
+.lt-email {
+    scroll-margin-top: calc(var(--lt-sticky-top) + 16px);
+}
+
+.lt-email:focus {
+    outline: none;
+}
+
+.lt-email__label-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    margin-bottom: 6px;
+}
+
+.lt-email__label-row .lt-field__label {
+    margin-bottom: 0;
+}
+
+.lt-email__badge {
+    gap: 4px;
+}
+
+.lt-email__alert {
+    margin: 10px 0 0;
+}
+
+.lt-email__box {
+    margin-top: 10px;
+    padding: 12px 14px;
+    border: 1px solid var(--lt-border);
+    border-radius: var(--lt-radius);
+    background: var(--lt-surface-alt);
+}
+
+.lt-email__box .lt-email__alert {
+    margin: 0 0 12px;
+}
+
+.lt-email__code {
+    margin-bottom: 12px;
+}
+
+.lt-email__code-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.lt-email__code-input {
+    flex: 1 1 140px;
+    max-width: 200px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.2em;
+}
+
+.lt-email__code .lt-field__hint,
+.lt-email__code .lt-field__error {
+    margin-top: 6px;
+}
+
+.lt-email__send {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+}
+
+.lt-email__send .lt-field__hint {
+    margin: 0;
+}
+
+.lt-email__note {
+    margin: 0 0 12px;
+}
+
+/* ---------- Đổi email ---------- */
+
+.lt-email__change {
+    margin-top: 12px;
+}
+
+.lt-email__summary {
+    list-style: none;
+    cursor: pointer;
+}
+
+.lt-email__summary::-webkit-details-marker {
+    display: none;
+}
+
+.lt-email__summary::after {
+    content: "";
+    width: 0.5em;
+    height: 0.5em;
+    margin-left: 8px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: translateY(-2px) rotate(45deg);
+}
+
+.lt-email__change[open] > .lt-email__summary::after {
+    transform: translateY(2px) rotate(-135deg);
+}
+
+.lt-email__change-body {
+    margin-top: 12px;
+    padding: 14px;
+    border: 1px solid var(--lt-border);
+    border-radius: var(--lt-radius);
+}
+
+.lt-email__change-body > .lt-email__alert {
+    margin: 0 0 12px;
+}
+
+.lt-email__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.lt-email__code--change {
+    margin: 16px 0 0;
+    padding-top: 14px;
+    border-top: 1px solid var(--lt-border);
+}
+
+@media (max-width: 575.98px) {
+    .lt-email__code-input {
+        max-width: none;
+    }
+
+    .lt-email__send .lt-btn,
+    .lt-email__actions .lt-btn,
+    .lt-email__summary {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+}

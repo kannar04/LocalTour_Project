@@ -132,11 +132,13 @@ $focusField = array_key_first(array_diff_key($profileErrors, ['form' => true]))
                     </div>
 <?php endif; ?>
 
+<?php if (!is_file(__DIR__ . '/partials/email_verify.php') || (require __DIR__ . '/partials/email_verify.php') !== true): ?>
                     <div class="lt-field">
                         <label class="lt-field__label" for="account-email">Email</label>
                         <input class="lt-input" type="email" id="account-email" value="<?= e($account['email']) ?>" readonly aria-describedby="account-email-hint">
                         <p class="lt-field__hint" id="account-email-hint">Email dùng để đăng nhập nên không đổi được.</p>
                     </div>
+<?php endif; ?>
 
                     <form action="<?= e(url('/tai-khoan/profile')) ?>" method="post" novalidate>
                         <?= csrf_field() ?>
