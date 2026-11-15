@@ -2,6 +2,8 @@
  * LocalTour – app.js (Nguyễn Tuấn Khôi)
  * Tiện ích dùng chung cho mọi trang: window.LocalTour = { baseUrl, url(path), formatVnd(n), ... }.
  * Quy ước: dữ liệu từ server chỉ được đưa vào DOM bằng .text() / .attr(), không ghép chuỗi HTML.
+ * CR3: nút "Menu" trên máy tính (ẩn/hiện cột trái của bảng tin, nhớ trong localStorage; trang khác mở ngăn menu nổi)
+ * và ảnh đại diện ở header không tải được thì đổi về chữ cái đầu tên.
  */
 (function (window, document, $) {
     'use strict';
@@ -25,11 +27,6 @@
     /** Icon trang trí: <span class="lt-icon lt-icon--name" aria-hidden="true">. */
     function icon(name) {
         return $('<span>').addClass('lt-icon lt-icon--' + name).attr('aria-hidden', 'true');
-    }
-
-    /** Nhãn nhỏ "Sắp có" cho chức năng chưa làm. */
-    function soonBadge() {
-        return $('<span>').addClass('lt-soon').text('Sắp có');
     }
 
     var UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -116,12 +113,63 @@
             });
     }
 
+    /** localStorage có thể bị chặn (chế độ riêng tư): lỗi thì coi như không lưu. */
+    function storageGet(key) {
+        try {
+            return window.localStorage.getItem(key);
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function storageSet(key, value) {
+        try {
+            if (value === null) {
+                window.localStorage.removeItem(key);
+            } else {
+                window.localStorage.setItem(key, value);
+            }
+        } catch (error) {
+            // Không lưu được thì lần sau dùng trạng thái mặc định.
+        }
+    }
+
+    /** Ảnh đại diện ở header không tải được: đổi về ô chữ cái đầu tên. */
+    function replaceBrokenAvatar(img) {
+        var $img = $(img);
+        var classes = String($img.attr('class') || '').replace(/\b(lt-avatar--img|js-avatar-img)\b/g, '').trim();
+        $img.replaceWith($('<span>').attr({ 'class': classes, 'aria-hidden': 'true' }).text($img.attr('data-initial') || ''));
+    }
+
+    // Sự kiện error của <img> không nổi bọt: nghe ở pha capture. Ảnh lỗi trước khi script chạy được kiểm tra lúc sẵn sàng.
+    document.addEventListener('error', function (event) {
+        var target = event.target;
+        if (target && target.tagName === 'IMG' && $(target).hasClass('js-avatar-img')) {
+            replaceBrokenAvatar(target);
+        }
+    }, true);
+
+    var SIDEBAR_HIDDEN_KEY = 'lt.sidebarHidden';
+
+    /** Bảng tin trên máy tính: ẩn/hiện cột trái (body.lt-sidebar-hidden), nhớ lựa chọn trong localStorage. */
+    function setColumnHidden(hidden, remember) {
+        $('body').toggleClass('lt-sidebar-hidden', hidden);
+        $('.js-menu-desktop').attr('aria-expanded', hidden ? 'false' : 'true');
+        if (remember) {
+            storageSet(SIDEBAR_HIDDEN_KEY, hidden ? '1' : null);
+        }
+    }
+
+    // Áp trạng thái đã nhớ ngay khi script chạy (cuối <body>) để cột trái không nháy lên rồi mới ẩn.
+    if (document.querySelector('.js-menu-desktop[data-menu-mode="column"]') && storageGet(SIDEBAR_HIDDEN_KEY) === '1') {
+        setColumnHidden(true, false);
+    }
+
     window.LocalTour = {
         baseUrl: baseUrl,
         url: url,
         formatVnd: formatVnd,
         icon: icon,
-        soonBadge: soonBadge,
         normaliseId: normaliseId,
         destinationHref: destinationHref,
         renderDestinationNav: renderDestinationNav,
@@ -133,7 +181,7 @@
     };
 
     $(function () {
-        // Link "Sắp có" (nếu có) không bao giờ điều hướng.
+        // Link đang tạm tắt (vd. nút so sánh khi chưa đủ 2 tour) không điều hướng.
         $(document).on('click', 'a[aria-disabled="true"]', function (event) {
             event.preventDefault();
         });
@@ -143,11 +191,24 @@
             window.print();
         });
 
+        $('img.js-avatar-img').each(function () {
+            if (this.complete && this.naturalWidth === 0) {
+                replaceBrokenAvatar(this);
+            }
+        });
+
         var $sidebar = $('#lt-sidebar');
+        var $desktopMenu = $('.js-menu-desktop');
         if (!$sidebar.length) {
             $('.js-menu-toggle').addClass('d-none');
+            $desktopMenu.addClass('d-none');
             return;
         }
+
+        var isDesktop = function () {
+            return window.innerWidth >= 992;
+        };
+        var isDrawer = $desktopMenu.attr('data-menu-mode') === 'drawer';
 
         if ($sidebar.attr('data-destination-mode') === 'link') {
             $sidebar.one('show.bs.collapse', function () {
@@ -155,11 +216,44 @@
             });
         }
 
-        // Thu panel lại bằng phím Esc trên mobile và trả focus cho nút Menu.
+        // Nút "Menu" trên máy tính. Cột trái: ẩn/hiện cột. Trang khác: mở/đóng ngăn menu nổi (cùng collapse với mobile).
+        $desktopMenu.on('click', function () {
+            if (isDrawer) {
+                $sidebar.collapse('toggle');
+            } else {
+                setColumnHidden(!$('body').hasClass('lt-sidebar-hidden'), true);
+            }
+        });
+
+        if (isDrawer) {
+            $sidebar.on('shown.bs.collapse hidden.bs.collapse', function (event) {
+                if (event.target === $sidebar[0]) {
+                    $desktopMenu.attr('aria-expanded', $sidebar.hasClass('show') ? 'true' : 'false');
+                }
+            });
+
+            // Ngăn menu nổi trên máy tính: bấm ra ngoài thì đóng.
+            $(document).on('click', function (event) {
+                if (!isDesktop() || !$sidebar.hasClass('show')) {
+                    return;
+                }
+                if (!$(event.target).closest('#lt-sidebar, .js-menu-desktop, .js-menu-toggle').length) {
+                    $sidebar.collapse('hide');
+                }
+            });
+        }
+
+        // Thu panel / ngăn menu lại bằng phím Esc và trả focus cho nút Menu đang hiện.
         $(document).on('keydown', function (event) {
-            if (event.key === 'Escape' && $sidebar.hasClass('show') && window.innerWidth < 992) {
+            if (event.key !== 'Escape' || !$sidebar.hasClass('show')) {
+                return;
+            }
+            if (!isDesktop()) {
                 $sidebar.collapse('hide');
                 $('.js-menu-toggle').trigger('focus');
+            } else if (isDrawer) {
+                $sidebar.collapse('hide');
+                $desktopMenu.trigger('focus');
             }
         });
     });

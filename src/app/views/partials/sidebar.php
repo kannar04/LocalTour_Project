@@ -2,11 +2,14 @@
 <?php
 /*
  * Thanh bên (Nguyễn Tuấn Khôi).
- * $sidebarMode = 'column' (mặc định, trang danh sách): cột trái trên desktop, panel thu gọn trên mobile;
- *                'mobile' (trang chi tiết / không tìm thấy): chỉ là panel thu gọn dưới 992px.
- * Mục: Bảng tin, "Đơn của tôi" (chỉ tài khoản khách hàng), "So sánh tour" (FR-15, Sprint 5: compare.js gắn
- * các tour đã chọn vào link .js-compare-link), "Bản đồ" (/ban-do, điểm khởi hành của các tour) và
- * "Dành cho đơn vị tổ chức" (/host/login; chỉ hiện khi chưa đăng nhập).
+ * $sidebarMode = 'column' (mặc định, trang danh sách): cột trái trên desktop (nút "Menu" ẩn/hiện cột, nhớ trong
+ *                localStorage), panel thu gọn trên mobile;
+ *                'mobile' (các trang khác): panel thu gọn dưới 992px; từ 992px là ngăn menu nổi dưới header,
+ *                mở bằng nút "Menu" (CR3).
+ * Mục: Bảng tin, "Đơn của tôi" và "Tour đã lưu" (CR3, /tour-da-luu) (chỉ tài khoản khách hàng), "So sánh tour"
+ * (FR-15, Sprint 5: compare.js gắn các tour đã chọn vào link .js-compare-link), "Bản đồ" (/ban-do, điểm khởi hành
+ * của các tour), "Tài khoản" (CR3, /tai-khoan, chỉ tài khoản khách hàng) và "Dành cho đơn vị tổ chức"
+ * (/host/login; chỉ hiện khi chưa đăng nhập). Cuối thanh: "Trợ giúp" (/tro-giup) · "Điều khoản" (/dieu-khoan).
  * Danh sách #sidebar-destinations được JS điền từ /api/destinations
  * (tour-list.js ở chế độ 'column', app.js tải khi mở panel ở chế độ 'mobile').
  */
@@ -16,12 +19,16 @@ $isFeedActive = ($activeNav ?? 'feed') === 'feed';
 $isBookingsActive = ($activeNav ?? 'feed') === 'bookings';
 $isCompareActive = ($activeNav ?? 'feed') === 'compare';
 $isMapActive = ($activeNav ?? 'feed') === 'map';
+$isSavedActive = ($activeNav ?? 'feed') === 'saved';
+$isAccountActive = ($activeNav ?? 'feed') === 'account';
+$isHelpActive = ($activeNav ?? 'feed') === 'help';
+$isTermsActive = ($activeNav ?? 'feed') === 'terms';
 $isCustomer = (current_user()['role'] ?? '') === 'customer';
 // "Dành cho đơn vị tổ chức" (/host/login): chỉ hiện khi chưa đăng nhập. Đơn vị không tự đăng ký, quản trị viên cấp tài khoản.
 $showHostLogin = current_user() === null;
 ?>
 <?php if (!$isColumn): ?>
-<div class="container-xl lt-container d-lg-none">
+<div class="container-xl lt-container lt-sidebar-wrap">
 <?php endif; ?>
 <nav id="lt-sidebar"
      class="collapse lt-sidebar <?= $isColumn ? 'd-lg-block lt-sidebar--column' : 'lt-sidebar--mobile' ?>"
@@ -44,6 +51,12 @@ $showHostLogin = current_user() === null;
                     <span class="lt-nav__label">Đơn của tôi</span>
                 </a>
             </li>
+            <li>
+                <a class="lt-nav__link<?= $isSavedActive ? ' is-active' : '' ?>" href="<?= e(url('/tour-da-luu')) ?>"<?= $isSavedActive ? ' aria-current="page"' : '' ?>>
+                    <span class="lt-icon lt-icon--bookmark" aria-hidden="true"></span>
+                    <span class="lt-nav__label">Tour đã lưu</span>
+                </a>
+            </li>
 <?php endif; ?>
             <li>
                 <a class="lt-nav__link js-compare-link<?= $isCompareActive ? ' is-active' : '' ?>" href="<?= e(url('/compare')) ?>"<?= $isCompareActive ? ' aria-current="page"' : '' ?>>
@@ -57,6 +70,14 @@ $showHostLogin = current_user() === null;
                     <span class="lt-nav__label">Bản đồ</span>
                 </a>
             </li>
+<?php if ($isCustomer): ?>
+            <li>
+                <a class="lt-nav__link<?= $isAccountActive ? ' is-active' : '' ?>" href="<?= e(url('/tai-khoan')) ?>"<?= $isAccountActive ? ' aria-current="page"' : '' ?>>
+                    <span class="lt-icon lt-icon--settings" aria-hidden="true"></span>
+                    <span class="lt-nav__label">Tài khoản</span>
+                </a>
+            </li>
+<?php endif; ?>
 <?php if ($showHostLogin): ?>
             <li>
                 <a class="lt-nav__link" href="<?= e(url('/host/login')) ?>">
@@ -75,9 +96,9 @@ $showHostLogin = current_user() === null;
         </div>
 
         <div class="lt-sidebar__footer">
-            <button type="button" class="lt-linklike" disabled title="Sắp có">Trợ giúp</button>
+            <a class="lt-linklike<?= $isHelpActive ? ' is-active' : '' ?>" href="<?= e(url('/tro-giup')) ?>"<?= $isHelpActive ? ' aria-current="page"' : '' ?>>Trợ giúp</a>
             <span aria-hidden="true">·</span>
-            <button type="button" class="lt-linklike" disabled title="Sắp có">Điều khoản</button>
+            <a class="lt-linklike<?= $isTermsActive ? ' is-active' : '' ?>" href="<?= e(url('/dieu-khoan')) ?>"<?= $isTermsActive ? ' aria-current="page"' : '' ?>>Điều khoản</a>
         </div>
     </div>
 </nav>
