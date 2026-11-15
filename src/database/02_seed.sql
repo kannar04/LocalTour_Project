@@ -68,7 +68,8 @@
 --   * Tour 4, 8: đón tại khách sạn (hotel_pickup); các tour còn lại có điểm hẹn.
 --   * Đơn 30 (tour 1) đã hủy: thanh toán 'paid' (đã trả) + khoản hoàn tiền 'completed'
 --     trong bảng refunds (payments không có trạng thái "đã hoàn tiền").
---   * Ảnh: mỗi file SVG chỉ thuộc 1 tour. Tour 2 không có ảnh (Hà Nội chỉ có 3 file cho
+--   * Ảnh: ảnh chụp địa điểm (JPG, nguồn trong img/tours/NGUON_ANH.md), mỗi file chỉ
+--     thuộc 1 tour. Tour 2 không có ảnh (Hà Nội chỉ có 3 file cho
 --     4 tour). Tour 4: 2 ảnh cùng sort_order -> ảnh bìa là ảnh có id nhỏ hơn. Tour 6: ảnh
 --     bìa có id lớn hơn ảnh thứ 2. Tour 8: 3 ảnh chèn lệch thứ tự, 1 ảnh alt_text NULL.
 --   * Điểm đến (destinations): bộ lọc và thanh bên chỉ hiện điểm đến có tour hiển thị:
@@ -1116,36 +1117,36 @@ INSERT INTO reviews (id, booking_id, tour_id, rating, content, moderation_status
 INSERT INTO tour_images (id, tour_id, url, alt_text, sort_order) VALUES
 -- Tour 1 (Hà Nội)
 ('80000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001',
-    'img/tours/hanoi-1.svg', 'Dãy nhà ống phố cổ Hà Nội lúc chiều tối', 1),
+    'img/tours/hanoi-1.jpg', 'Dãy nhà ống phố cổ Hà Nội về đêm', 1),
 -- Tour 3 (Hà Nội)
 ('80000000-0000-4000-8000-000000000002', 'c0000000-0000-4000-8000-000000000003',
-    'img/tours/hanoi-3.svg', 'Tháp Rùa giữa hồ Hoàn Kiếm buổi sáng', 1),
+    'img/tours/hanoi-3.jpg', 'Tháp Rùa giữa hồ Hoàn Kiếm buổi sáng', 1),
 -- Tour 4 (Đà Nẵng): 2 ảnh cùng sort_order 1 -> ảnh bìa là ảnh có id nhỏ hơn (danang-3)
 ('80000000-0000-4000-8000-000000000003', 'c0000000-0000-4000-8000-000000000004',
-    'img/tours/danang-3.svg', 'Ngôi chùa nhỏ trên núi xanh trong sương sớm', 1),
+    'img/tours/danang-3.jpg', 'Chánh điện chùa Linh Ứng trên bán đảo Sơn Trà giữa vườn bonsai, mây mù phủ núi phía sau', 1),
 ('80000000-0000-4000-8000-000000000004', 'c0000000-0000-4000-8000-000000000004',
-    'img/tours/danang-2.svg', 'Bãi biển Đà Nẵng với hàng dừa và ô che nắng', 1),
+    'img/tours/danang-2.jpg', 'Bãi biển Đà Nẵng với hàng dừa và ô che nắng', 1),
 -- Tour 5 (Đà Nẵng)
 ('80000000-0000-4000-8000-000000000005', 'c0000000-0000-4000-8000-000000000005',
-    'img/tours/danang-1.svg', 'Cầu Rồng bắc qua sông Hàn lên đèn về đêm', 1),
+    'img/tours/danang-1.jpg', 'Cầu Rồng bắc qua sông Hàn lên đèn về đêm', 1),
 -- Tour 6 (Hội An): ảnh bìa hoian-1 (sort_order 1) có id LỚN hơn ảnh sort_order 2
 ('80000000-0000-4000-8000-000000000006', 'c0000000-0000-4000-8000-000000000006',
-    'img/tours/hoian-3.svg', 'Thuyền và hoa đăng trên sông Hoài lúc hoàng hôn', 2),
+    'img/tours/hoian-3.jpg', 'Thuyền gỗ thắp đèn lồng chở du khách thả hoa đăng trên sông Hoài, Hội An về đêm', 2),
 ('80000000-0000-4000-8000-000000000007', 'c0000000-0000-4000-8000-000000000006',
-    'img/tours/hoian-1.svg', 'Dãy đèn lồng nhiều màu ở phố cổ Hội An về đêm', 1),
+    'img/tours/hoian-1.jpg', 'Dãy đèn lồng nhiều màu ở phố cổ Hội An về đêm', 1),
 -- Tour 7 (Hội An)
 ('80000000-0000-4000-8000-000000000008', 'c0000000-0000-4000-8000-000000000007',
-    'img/tours/hoian-2.svg', 'Chùa Cầu và dãy nhà vàng bên sông ở Hội An', 1),
+    'img/tours/hoian-2.jpg', 'Những luống rau xanh và cột tưới nước ở làng rau Trà Quế, Hội An, phía sau là nhà dân', 1),
 -- Tour 8 (TP. Hồ Chí Minh): chèn theo thứ tự 3, 1, 2; ảnh hcm-1 không có alt_text (NULL)
 ('80000000-0000-4000-8000-000000000009', 'c0000000-0000-4000-8000-000000000008',
-    'img/tours/hcm-1.svg', NULL, 3),
+    'img/tours/hcm-1.jpg', NULL, 3),
 ('80000000-0000-4000-8000-000000000010', 'c0000000-0000-4000-8000-000000000008',
-    'img/tours/hcm-3.svg', 'Sài Gòn về đêm với biển hiệu neon và vệt đèn xe', 1),
+    'img/tours/hcm-3.jpg', 'Sài Gòn về đêm với biển hiệu neon và vệt đèn xe', 1),
 ('80000000-0000-4000-8000-000000000011', 'c0000000-0000-4000-8000-000000000008',
-    'img/tours/hcm-2.svg', 'Tòa nhà cổ có tháp đồng hồ, xe máy chạy phía trước', 2),
+    'img/tours/hcm-2.jpg', 'Tòa nhà cổ có tháp đồng hồ, xe máy chạy phía trước', 2),
 -- Tour 10 (Hà Nội): tour đang chờ duyệt, ảnh không bao giờ được hiển thị
 ('80000000-0000-4000-8000-000000000012', 'c0000000-0000-4000-8000-000000000010',
-    'img/tours/hanoi-2.svg', 'Quán ăn sáng vỉa hè với nồi nước dùng bốc khói', 1);
+    'img/tours/hanoi-2.jpg', 'Hai cây trụi lá soi bóng xuống mặt nước ven Hồ Tây buổi sáng mờ sương', 1);
 
 -- ---------------------------------------------------------------------
 -- 17. tour_itinerary_items (LỊCH_TRÌNH_TOUR) - FR-03

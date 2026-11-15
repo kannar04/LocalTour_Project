@@ -227,7 +227,7 @@ CREATE TABLE tours (
 
 -- ẢNH_TOUR (FR-01 ảnh bìa, FR-02 bộ ảnh): ảnh riêng của từng tour
 -- (không dùng chung ảnh giữa các tour).
--- url: đường dẫn tương đối từ src/public/assets/ (vd. 'img/tours/hanoi-1.svg')
+-- url: đường dẫn tương đối từ src/public/assets/ (vd. 'img/tours/hanoi-1.jpg')
 --      hoặc URL đầy đủ http(s)://...
 -- Ảnh bìa = ảnh có sort_order nhỏ nhất (cùng sort_order thì id nhỏ hơn).
 CREATE TABLE tour_images (

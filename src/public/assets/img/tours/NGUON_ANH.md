@@ -1,9 +1,21 @@
-# Nguồn ảnh tour mẫu (file 41)
+# Nguồn ảnh tour mẫu
 
-20 ảnh của các tour mẫu ở Sa Pa, Ninh Bình, Huế, Đà Lạt, Cần Thơ, Phú Quốc là ảnh chụp lấy từ Wikimedia Commons, đã cắt về khung 16:9 và thu nhỏ còn 1280 x 720. Mỗi ảnh dùng theo giấy phép ghi bên cạnh; đơn vị tổ chức và tour trong dữ liệu mẫu là dữ liệu minh họa.
+32 ảnh của các tour mẫu là ảnh chụp lấy từ Wikimedia Commons, đã cắt về khung 16:9 và thu nhỏ còn 1280 x 720: 12 ảnh của file 02 (Hà Nội, Đà Nẵng, Hội An, TP. Hồ Chí Minh) và 20 ảnh của file 41 (Sa Pa, Ninh Bình, Huế, Đà Lạt, Cần Thơ, Phú Quốc). Mỗi ảnh dùng theo giấy phép ghi bên cạnh; đơn vị tổ chức và tour trong dữ liệu mẫu là dữ liệu minh họa.
 
 | File | Ảnh | Tác giả | Giấy phép |
 | --- | --- | --- | --- |
+| `hanoi-1.jpg` | [File:Tạ Hiện Street, Hanoi, Vietnam 15.jpg](https://commons.wikimedia.org/wiki/File:T%E1%BA%A1_Hi%E1%BB%87n_Street,_Hanoi,_Vietnam_15.jpg) | Ltn12345 | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) |
+| `hanoi-2.jpg` | [File:Hô Tây, Hanoi (4282156200).jpg](https://commons.wikimedia.org/wiki/File:H%C3%B4_T%C3%A2y,_Hanoi_(4282156200).jpg) | Joe Le Merou from Taipei, Taiwan | [CC BY 2.0](https://creativecommons.org/licenses/by/2.0) |
+| `hanoi-3.jpg` | [File:Hanoi (9658552752).jpg](https://commons.wikimedia.org/wiki/File:Hanoi_(9658552752).jpg) | Jorge Cancela | [CC BY 2.0](https://creativecommons.org/licenses/by/2.0) |
+| `danang-1.jpg` | [File:Da Nang Dragon Bridge (II).jpg](https://commons.wikimedia.org/wiki/File:Da_Nang_Dragon_Bridge_(II).jpg) | Supanut Arunoprayote | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0) |
+| `danang-2.jpg` | [File:My Khe Beach, Da Nang, Vietnam.jpg](https://commons.wikimedia.org/wiki/File:My_Khe_Beach,_Da_Nang,_Vietnam.jpg) | Ray in Manila | [CC BY 2.0](https://creativecommons.org/licenses/by/2.0) |
+| `danang-3.jpg` | [File:Chùa Linh Ứng Buddhist Temple, Danang, Vietnam (54161781835).jpg](https://commons.wikimedia.org/wiki/File:Ch%C3%B9a_Linh_%E1%BB%A8ng_Buddhist_Temple,_Danang,_Vietnam_(54161781835).jpg) | Mustang Joe | [CC0](http://creativecommons.org/publicdomain/zero/1.0/deed.en) |
+| `hoian-1.jpg` | [File:Hội An lantern festival (45536262991).jpg](https://commons.wikimedia.org/wiki/File:H%E1%BB%99i_An_lantern_festival_(45536262991).jpg) | Raita Futo from Tokyo, Japan | [CC BY 2.0](https://creativecommons.org/licenses/by/2.0) |
+| `hoian-2.jpg` | [File:Vegetables in Trà Quế 2.jpg](https://commons.wikimedia.org/wiki/File:Vegetables_in_Tr%C3%A0_Qu%E1%BA%BF_2.jpg) | Christophe95 | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) |
+| `hoian-3.jpg` | [File:Hoi An, Vietnam.jpg](https://commons.wikimedia.org/wiki/File:Hoi_An,_Vietnam.jpg) | Ray in Manila | [CC BY 2.0](https://creativecommons.org/licenses/by/2.0) |
+| `hcm-1.jpg` | [File:Evening streetscene (14424306687).jpg](https://commons.wikimedia.org/wiki/File:Evening_streetscene_(14424306687).jpg) | Erwin Verbruggen from Amsterdam, The Netherlands | [CC BY-SA 2.0](https://creativecommons.org/licenses/by-sa/2.0) |
+| `hcm-2.jpg` | [File:Bến Thành, Quận 1, TPHCM, Vietnam - panoramio (26).jpg](https://commons.wikimedia.org/wiki/File:B%E1%BA%BFn_Th%C3%A0nh,_Qu%E1%BA%ADn_1,_TPHCM,_Vietnam_-_panoramio_(26).jpg) | trungydang | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0) |
+| `hcm-3.jpg` | [File:Night in Saigon (12791947485).jpg](https://commons.wikimedia.org/wiki/File:Night_in_Saigon_(12791947485).jpg) | Bem photography | [CC BY 2.0](https://creativecommons.org/licenses/by/2.0) |
 | `sapa-1.jpg` | [File:Rice terraces in Tả Van 16.jpg](https://commons.wikimedia.org/wiki/File:Rice_terraces_in_T%E1%BA%A3_Van_16.jpg) | Christophe95 | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) |
 | `sapa-2.jpg` | [File:Cat Cat Waterfalls, Sa Pa, Vietnam, 20240126 1228 3619.jpg](https://commons.wikimedia.org/wiki/File:Cat_Cat_Waterfalls,_Sa_Pa,_Vietnam,_20240126_1228_3619.jpg) | Jakub Hałun | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0) |
 | `sapa-3.jpg` | [File:Church of Sa Pa.jpg](https://commons.wikimedia.org/wiki/File:Church_of_Sa_Pa.jpg) | Christophe95 | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) |
