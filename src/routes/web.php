@@ -213,4 +213,31 @@ $router->get('/host/payouts/{id}', [\App\Controllers\HostPayoutController::class
 $router->get('/host/bank', [\App\Controllers\HostPayoutController::class, 'bank']);
 $router->post('/host/bank', [\App\Controllers\HostPayoutController::class, 'saveBank']);
 
+// CR3 – Thích / Lưu tour / Chia sẻ và "Tour đã lưu" (Nguyễn Minh Thức)
+$router->get('/api/social/tours', [\App\Controllers\TourSocialController::class, 'apiState']);
+$router->post('/api/tours/{id}/like', [\App\Controllers\TourSocialController::class, 'like']);
+$router->post('/api/tours/{id}/save', [\App\Controllers\TourSocialController::class, 'save']);
+$router->get('/tour-da-luu', [\App\Controllers\TourSocialController::class, 'saved']);
+// CR3 – Bình luận trên trang tour và kiểm duyệt bình luận (Nguyễn Minh Thức)
+$router->get('/api/tours/{id}/comments', [\App\Controllers\TourCommentController::class, 'index']);
+$router->post('/api/tours/{id}/comments', [\App\Controllers\TourCommentController::class, 'store']);
+$router->post('/api/comments/{id}/delete', [\App\Controllers\TourCommentController::class, 'destroy']);
+$router->get('/admin/comments', [\App\Controllers\AdminCommentController::class, 'index']);
+$router->post('/admin/comments/{id}/hide', [\App\Controllers\AdminCommentController::class, 'hide']);
+$router->post('/admin/comments/{id}/show', [\App\Controllers\AdminCommentController::class, 'show']);
+// CR3 – Đánh giá sao FR-16: khách gửi / sửa đánh giá đơn đã hoàn thành, quản trị viên duyệt (Nguyễn Tuấn Khôi)
+$router->post('/bookings/{code}/review', [\App\Controllers\ReviewController::class, 'save']);
+$router->get('/admin/reviews', [\App\Controllers\AdminReviewController::class, 'index']);
+$router->post('/admin/reviews/{id}/approve', [\App\Controllers\AdminReviewController::class, 'approve']);
+$router->post('/admin/reviews/{id}/reject', [\App\Controllers\AdminReviewController::class, 'reject']);
+// CR3 – Trợ giúp và Điều khoản sử dụng (Nguyễn Tuấn Khôi)
+$router->get('/tro-giup', [\App\Controllers\PageController::class, 'help']);
+$router->get('/dieu-khoan', [\App\Controllers\PageController::class, 'terms']);
+// CR3 – Tài khoản: ảnh đại diện, thông tin cá nhân, mật khẩu (Lê Trung Phong)
+$router->get('/tai-khoan', [\App\Controllers\AccountController::class, 'show']);
+$router->post('/tai-khoan/profile', [\App\Controllers\AccountController::class, 'updateProfile']);
+$router->post('/tai-khoan/avatar', [\App\Controllers\AccountController::class, 'uploadAvatar']);
+$router->post('/tai-khoan/avatar/delete', [\App\Controllers\AccountController::class, 'deleteAvatar']);
+$router->post('/tai-khoan/password', [\App\Controllers\AccountController::class, 'changePassword']);
+
 return $router;
