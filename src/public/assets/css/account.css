@@ -1,0 +1,206 @@
+/*
+ * LocalTour – account.css (CR3 – Lê Trung Phong)
+ * Trang "Tài khoản" của khách hàng: ảnh đại diện, thông tin cá nhân, mật khẩu, lối tắt.
+ * Nạp sau tour-detail.css và booking.css: dùng lại breadcrumb, thẻ .lt-book-card, ô nhập .lt-field / .lt-input,
+ * thông báo .lt-book-alert; màu, nút và icon của base.css.
+ */
+
+.lt-account-layout {
+    display: grid;
+    gap: 0 24px;
+    align-items: start;
+}
+
+@media (min-width: 992px) {
+    .lt-account-layout {
+        /* Cột form chiếm phần còn lại; "Lối tắt" ở cột phải, thẳng hàng với cột phải của header. */
+        grid-template-columns: minmax(0, 1fr) var(--lt-col-aside);
+    }
+
+    .lt-account-aside {
+        position: sticky;
+        top: calc(var(--lt-sticky-top) + 16px);
+    }
+}
+
+.lt-account-card {
+    scroll-margin-top: calc(var(--lt-sticky-top) + 16px);
+}
+
+.lt-account-alert--success {
+    background: var(--lt-teal-50);
+    color: var(--lt-teal-800);
+}
+
+/* ---------- Ảnh đại diện ---------- */
+
+.lt-account-avatar-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+.lt-account-avatar {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 96px;
+    height: 96px;
+    overflow: hidden;
+    border: 1px solid var(--lt-border);
+    border-radius: 50%;
+    background: var(--lt-teal-50);
+    color: var(--lt-teal);
+    font-size: 2.25rem;
+    font-weight: 700;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.lt-account-avatar img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.lt-account-avatar-forms {
+    display: flex;
+    flex: 1 1 240px;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+}
+
+.lt-account-upload {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.lt-account-file__btn {
+    margin: 0;
+    cursor: pointer;
+}
+
+/* Ô chọn file bị ẩn (sr-only) nhưng vẫn nhận phím Tab: hiện viền focus trên nút "Chọn ảnh". */
+.lt-account-file:focus + .lt-account-file__btn,
+.lt-account-file:focus-visible + .lt-account-file__btn {
+    border-color: var(--lt-teal);
+    box-shadow: var(--lt-focus-ring);
+}
+
+.lt-account-upload__hint,
+.lt-account-upload .lt-field__error {
+    flex: 1 1 100%;
+    margin-top: 0;
+}
+
+.lt-account-upload__name {
+    display: block;
+    margin-top: 2px;
+    color: var(--lt-text-soft);
+    font-weight: 500;
+    word-break: break-all;
+}
+
+.lt-account-upload__name:empty {
+    display: none;
+}
+
+.lt-account-remove {
+    align-self: flex-start;
+}
+
+/* ---------- Form ---------- */
+
+.lt-account-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 18px;
+}
+
+.lt-account-password {
+    position: relative;
+}
+
+.lt-account-password .lt-input {
+    padding-right: 48px;
+}
+
+.lt-account-password__toggle {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--lt-radius);
+    background: transparent;
+    color: var(--lt-muted-strong);
+    cursor: pointer;
+}
+
+.lt-account-password__toggle:hover {
+    color: var(--lt-teal);
+}
+
+.lt-account-password__toggle:focus {
+    outline: none;
+    box-shadow: var(--lt-focus-ring);
+}
+
+.lt-account-password__toggle[hidden] {
+    display: none;
+}
+
+/* ---------- Lối tắt ---------- */
+
+.lt-account-links {
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.lt-account-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--lt-radius);
+    color: var(--lt-text);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.lt-account-link:hover,
+.lt-account-link:focus {
+    background: var(--lt-teal-50);
+    color: var(--lt-teal-800);
+    text-decoration: none;
+}
+
+.lt-account-link .lt-icon {
+    color: var(--lt-teal);
+}
+
+@media (max-width: 575.98px) {
+    .lt-account-avatar {
+        width: 80px;
+        height: 80px;
+        font-size: 1.875rem;
+    }
+
+    .lt-account-actions .lt-btn {
+        flex: 1 1 100%;
+    }
+}

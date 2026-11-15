@@ -6,6 +6,7 @@ src/storage/logs/*
 # Ảnh tour quản trị viên tải lên (chỉ có trên máy chạy web)
 src/public/assets/uploads/*
 !src/public/assets/uploads/.gitkeep
+!src/public/assets/uploads/.htaccess
 
 # Hệ điều hành / editor
 .DS_Store
