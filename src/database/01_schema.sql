@@ -3,10 +3,10 @@
 -- Mục đích  : Tạo lược đồ CSDL db_localtour: lược đồ GỘP giữa ERD (trang 01 "Lõi đặt
 --             tour" + trang 02 "Khám phá & vận hành") và bảng yêu cầu chức năng (FR
 --             board), tổng 27 bảng trong file này (các file migration sau thêm bảng: database
---             đầy đủ sau file 28 có 37 bảng). Mỗi bảng / cột thêm mới có ghi chú FR mà nó phục vụ.
+--             đầy đủ sau file 33 có 39 bảng). Mỗi bảng / cột thêm mới có ghi chú FR mà nó phục vụ.
 --
--- ĐÃ BỎ 2 bảng của ERD: post_comments, post_interactions (nút Thích / Bình luận /
---   Chia sẻ trên giao diện chỉ hiện "Sắp có").
+-- ĐÃ BỎ 2 bảng của ERD: post_comments, post_interactions. Thích / Bình luận của CR3 dùng
+--   2 bảng tour_likes, tour_comments do file 33 tạo (gắn thẳng với tour).
 -- Các bảng thông báo, bài đăng tour, yêu thích, so sánh và các bảng danh mục/chi tiết
 -- tour của thiết kế trước đã được triển khai lại theo khóa UUID của lược đồ hiện tại.
 -- Bảng reviews được giữ lại vì trang danh sách và chi tiết hiển thị đánh giá.
@@ -46,7 +46,9 @@
 SET @OLD_FOREIGN_KEY_CHECKS = @@FOREIGN_KEY_CHECKS;
 SET FOREIGN_KEY_CHECKS = 0;
 
--- Bảng do các file sau thêm (12: Sprint 4, 16: Sprint 5, 23 - 25, 28): xóa luôn để chạy lại từ đầu không còn dữ liệu thử cũ.
+-- Bảng do các file sau thêm (12: Sprint 4, 16: Sprint 5, 23 - 25, 28, 33): xóa luôn để chạy lại từ đầu không còn dữ liệu thử cũ.
+DROP TABLE IF EXISTS tour_comments;
+DROP TABLE IF EXISTS tour_likes;
 DROP TABLE IF EXISTS host_payout_items;
 DROP TABLE IF EXISTS host_payouts;
 DROP TABLE IF EXISTS settings;
