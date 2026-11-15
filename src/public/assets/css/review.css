@@ -1,0 +1,282 @@
+/*
+ * LocalTour – review.css (Nguyễn Tuấn Khôi)
+ * Đánh giá sao (FR-16, CR3): thẻ "Đánh giá tour" và bộ chọn sao trên trang đơn, nhắc "Viết đánh giá" trong
+ * "Đơn của tôi", danh sách "Duyệt đánh giá" của quản trị viên.
+ */
+
+/* ---------- Sao hiển thị (dùng được cả ở trang quản trị, không cần tour-detail.css) ---------- */
+
+.lt-review-stars {
+    --lt-rating: 0;
+    display: inline-block;
+    flex-shrink: 0;
+    width: 5.5em;
+    height: 1em;
+    background: linear-gradient(90deg, var(--lt-star) calc(var(--lt-rating) / 5 * 100%), #d9dce1 0);
+    font-size: 16px;
+    vertical-align: -0.15em;
+    -webkit-mask: var(--lt-star-mask) left center / 1.1em 1em repeat-x;
+    mask: var(--lt-star-mask) left center / 1.1em 1em repeat-x;
+}
+
+/* ---------- Thẻ "Đánh giá tour" trên trang đơn ---------- */
+
+.lt-review-card {
+    scroll-margin-top: calc(var(--lt-sticky-top) + 16px);
+}
+
+.lt-review-card__notice {
+    margin: 10px 0 14px;
+}
+
+.lt-review-mine {
+    margin: 10px 0 12px;
+    padding: 14px 16px;
+    border-radius: var(--lt-radius);
+    background: var(--lt-surface-alt);
+}
+
+.lt-review-mine__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    margin-bottom: 8px;
+}
+
+.lt-review-mine__score {
+    color: var(--lt-text-soft);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.lt-review-mine__text {
+    margin-bottom: 6px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.lt-review-card__state {
+    margin-bottom: 10px;
+}
+
+.lt-review-card__state--rejected {
+    padding: 10px 12px;
+    border-left: 4px solid var(--lt-danger);
+    border-radius: var(--lt-radius);
+    background: var(--lt-danger-bg);
+}
+
+.lt-review-card__state--rejected + .lt-field__hint {
+    margin-bottom: 14px;
+}
+
+.lt-review-edit {
+    margin-top: 4px;
+}
+
+.lt-review-edit > summary {
+    display: inline-flex;
+    list-style: none;
+    cursor: pointer;
+}
+
+.lt-review-edit > summary::-webkit-details-marker {
+    display: none;
+}
+
+.lt-review-edit[open] > summary {
+    margin-bottom: 14px;
+}
+
+.lt-review-form .lt-book-actions {
+    margin-bottom: 8px;
+}
+
+/* ---------- Bộ chọn sao (nhóm radio, dùng được bằng bàn phím) ---------- */
+
+.lt-star-picker {
+    min-width: 0;
+    margin: 0 0 14px;
+    padding: 0;
+    border: 0;
+}
+
+.lt-star-picker__options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.lt-star-picker__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.lt-star-picker__label {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 58px;
+    margin: 0;
+    padding: 8px 6px 6px;
+    border: 1px solid var(--lt-border-strong);
+    border-radius: var(--lt-radius);
+    background: var(--lt-surface);
+    color: var(--lt-text-soft);
+    font-size: 0.8125rem;
+    cursor: pointer;
+    transition: border-color 0.15s, background-color 0.15s;
+}
+
+.lt-star-picker__label:hover {
+    border-color: var(--lt-star);
+}
+
+.lt-star-picker__star {
+    display: block;
+    width: 26px;
+    height: 26px;
+    background: #d9dce1;
+    -webkit-mask: var(--lt-star-mask) center / contain no-repeat;
+    mask: var(--lt-star-mask) center / contain no-repeat;
+}
+
+.lt-star-picker__label.is-lit .lt-star-picker__star,
+.lt-star-picker__input:checked + .lt-star-picker__label .lt-star-picker__star {
+    background: var(--lt-star);
+}
+
+.lt-star-picker__input:checked + .lt-star-picker__label {
+    border-color: var(--lt-star);
+    background: #fff8e6;
+    color: var(--lt-text);
+    font-weight: 600;
+}
+
+.lt-star-picker__input:focus-visible + .lt-star-picker__label {
+    border-color: var(--lt-teal);
+    box-shadow: var(--lt-focus-ring);
+}
+
+.lt-star-picker__input[aria-invalid="true"] + .lt-star-picker__label {
+    border-color: var(--lt-danger);
+}
+
+/* ---------- "Đơn của tôi": nhắc viết đánh giá ---------- */
+
+.lt-order__review {
+    color: var(--lt-highlight-text);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.lt-order__review .lt-icon {
+    width: 12px;
+    height: 12px;
+    margin-right: 3px;
+    vertical-align: -1px;
+}
+
+/* ---------- Quản trị: danh sách "Duyệt đánh giá" ---------- */
+
+.lt-review-queue {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.lt-review-item {
+    padding: 16px 0;
+    border-top: 1px solid var(--lt-border);
+}
+
+.lt-review-item:first-child {
+    padding-top: 4px;
+    border-top: 0;
+}
+
+.lt-review-item__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px 12px;
+    margin-bottom: 4px;
+}
+
+.lt-review-item__title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 600;
+}
+
+.lt-review-item__meta,
+.lt-review-item__moderation {
+    margin-bottom: 8px;
+    color: var(--lt-muted);
+    font-size: 0.8125rem;
+}
+
+.lt-review-item__text {
+    margin-bottom: 8px;
+    overflow-wrap: anywhere;
+}
+
+.lt-review-item__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.lt-review-item__actions form {
+    margin: 0;
+}
+
+.lt-review-item__reject {
+    flex: 1 1 260px;
+}
+
+.lt-review-item__reject > summary {
+    display: inline-flex;
+    list-style: none;
+    cursor: pointer;
+}
+
+.lt-review-item__reject > summary::-webkit-details-marker {
+    display: none;
+}
+
+.lt-review-item__reject[open] > summary {
+    margin-bottom: 10px;
+}
+
+.lt-review-item__reject textarea {
+    margin-bottom: 8px;
+}
+
+.lt-pager {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--lt-border);
+}
+
+.lt-pager__info {
+    color: var(--lt-muted);
+    font-size: 0.8125rem;
+}

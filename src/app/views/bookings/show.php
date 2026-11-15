@@ -8,6 +8,7 @@
  *       $payNotice (kết quả thanh toán: [loại, nội dung] hoặc null), $changeQuote (LTP_sp_change_quote), $title.
  * Sprint 4: "Chờ thanh toán" có nút thanh toán VNPay / VietQR và hạn giữ chỗ; đơn đã xác nhận có voucher.
  * Sprint 5: gói tour đã chọn; thẻ "Đổi ngày / hủy tour" (gửi yêu cầu hoặc xem yêu cầu đang chờ xử lý).
+ * CR3 (FR-16): thẻ "Đánh giá tour" (review-card.php; biến $review, $reviewFlash).
  */
 $missing = or_missing(null);
 $bookingStatus = (string) $booking['status'];
@@ -159,6 +160,8 @@ $steps = [
 <?php endif; ?>
                 </section>
 <?php endif; ?>
+
+<?php require __DIR__ . '/review-card.php'; ?>
 
                 <section class="lt-book-card" aria-labelledby="order-trip-title">
                     <h2 class="lt-book-card__title" id="order-trip-title">Chuyến đi</h2>

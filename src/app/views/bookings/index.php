@@ -2,7 +2,9 @@
 <?php
 /*
  * Đơn của tôi (M4, Nguyễn Tuấn Khôi): các đơn đặt tour của tài khoản đang đăng nhập, mới đặt trước.
- * Biến: $bookings (NTK_sp_customer_booking_list), $notice (kết quả thanh toán không gắn được với đơn, '' = không có), $title.
+ * Biến: $bookings (NTK_sp_customer_booking_list), $notice (kết quả thanh toán không gắn được với đơn, '' = không có), $title,
+ *       $reviewStates (CR3, FR-16: booking_id => trạng thái đánh giá; đơn đã hoàn thành chưa có đánh giá hoặc đánh giá
+ *       không được duyệt hiện nhắc "Viết đánh giá" / "Sửa đánh giá").
  */
 ?>
 <?php $sidebarMode = 'mobile'; require __DIR__ . '/../partials/sidebar.php'; ?>
@@ -46,6 +48,12 @@
 <?php
     $coverUrl = $booking['cover_url'] === null ? null : image_src((string) $booking['cover_url']);
     $statusKey = preg_replace('/[^a-z_]/', '', (string) $booking['status']);
+    $reviewState = $reviewStates[(string) $booking['booking_id']] ?? null;
+    $reviewPrompt = $booking['status'] !== 'completed' ? '' : match ($reviewState) {
+        null => 'Viết đánh giá',
+        'rejected' => 'Sửa đánh giá',
+        default => '',
+    };
 ?>
             <li>
                 <a class="lt-order" href="<?= e(url('/bookings/' . $booking['code'])) ?>">
@@ -71,7 +79,7 @@
 <?php if ($booking['status'] === 'awaiting_payment' && $booking['hold_expires_at'] !== null): ?>
                             <span class="lt-order__due">Thanh toán trước <?= e(format_datetime((string) $booking['hold_expires_at'])) ?></span>
 <?php else: ?>
-                            <span>Đặt lúc <?= e(format_datetime((string) $booking['created_at'])) ?></span>
+                            <span>Đặt lúc <?= e(format_datetime((string) $booking['created_at'])) ?><?php if ($reviewPrompt !== ''): ?> · <span class="lt-order__review"><span class="lt-icon lt-icon--star" aria-hidden="true"></span><?= e($reviewPrompt) ?></span><?php endif; ?></span>
 <?php endif; ?>
                             <strong class="lt-order__total"><?= e(format_vnd($booking['total_vnd'])) ?></strong>
                         </span>

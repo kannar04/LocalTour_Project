@@ -9,6 +9,7 @@ use App\Models\ChangeRequestModel;
 use App\Models\CustomerBookingModel;
 use App\Models\PaymentModel;
 use App\Models\PaymentResultModel;
+use App\Models\ReviewModel;
 use App\Services\MomoGateway;
 use App\Services\VnpayGateway;
 use Core\Auth;
@@ -20,6 +21,8 @@ use Core\Router;
  * lý do từ chối / hủy, danh sách khách và chính sách hủy đã áp dụng.
  * Sprint 4: phụ thu / tùy chọn đã chọn, hạn và nút thanh toán, kết quả VNPay / VietQR / MoMo (?pay=), voucher và lịch sử đơn.
  * Sprint 5: gói tour đã chọn và lối vào "Đổi ngày / hủy tour" (ChangeRequestController).
+ * CR3 (FR-16): thẻ "Đánh giá tour" trên trang đơn đã hoàn thành (form gửi tới ReviewController) và nhắc
+ * "Viết đánh giá" trong danh sách đơn.
  * Đơn quá hạn thanh toán được tự hủy trước khi mở trang (4.5.4.1).
  * Chế độ khách được chuyển tới đăng nhập; đơn của tài khoản khác hiện "Không tìm thấy đơn" (không lộ đơn).
  */
@@ -80,8 +83,9 @@ final class CustomerBookingController extends Controller
             'title' => 'Đơn của tôi',
             'activeNav' => 'bookings',
             'bookings' => $this->bookings->list($this->user['user_id']),
+            'reviewStates' => (new ReviewModel())->statesForUser($this->user['user_id']),
             'notice' => self::LIST_NOTICES[$this->query('pay')] ?? '',
-            'pageStyles' => ['css/tour-detail.css', 'css/booking.css'],
+            'pageStyles' => ['css/tour-detail.css', 'css/booking.css', 'css/review.css'],
         ]);
     }
 
@@ -120,7 +124,10 @@ final class CustomerBookingController extends Controller
             'changeQuote' => (new ChangeRequestModel())->quote($userId, $code),
             'justCreated' => $this->query('new') === '1',
             'payNotice' => $this->payNotice(),
-            'pageStyles' => ['css/tour-detail.css', 'css/booking.css'],
+            'review' => (new ReviewModel())->forBooking($userId, $code),
+            'reviewFlash' => ReviewController::pullFlash($code),
+            'pageStyles' => ['css/tour-detail.css', 'css/booking.css', 'css/review.css'],
+            'pageScripts' => ['js/booking-review.js'],
         ]);
     }
 
