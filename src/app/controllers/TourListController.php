@@ -6,6 +6,8 @@ namespace App\Controllers;
 
 use App\Models\TourListModel;
 use Core\Controller;
+use DateTimeImmutable;
+use Throwable;
 
 /**
  * Trang danh sách tour và các endpoint JSON cấp dữ liệu cho nó (WBS 3.2.3 – Lê Trung Phong).
@@ -22,20 +24,40 @@ final class TourListController extends Controller
         $this->tours = new TourListModel();
     }
 
-    /** GET / và /tours – khung trang; danh sách được tải bằng AJAX từ /api/tours. */
+    /**
+     * GET / và /tours – khung trang; danh sách được tải bằng AJAX từ /api/tours.
+     * Bộ lọc nâng cao (CR3) được tour-list.js đọc từ URL; ở đây chỉ đưa lựa chọn cho ô "Ngày đi" và "Bộ lọc".
+     */
     public function index(): void
     {
+        $today = new DateTimeImmutable('today');
+        try {
+            $languages = $this->tours->languageOptions();
+        } catch (Throwable) {
+            // Không đọc được CSDL: vẫn hiện khung trang (tour-list.js tự báo lỗi), bộ lọc dùng danh sách đầy đủ.
+            $languages = TourListModel::LANGUAGES;
+        }
+
         $this->render('tours/index', [
             'title' => 'Bảng tin du lịch',
             'initialQuery' => mb_substr($this->query('q'), 0, TourListModel::KEYWORD_MAX_LENGTH),
             'initialDestinationId' => self::parseUuid($this->query('destination_id')) ?? '',
             'initialCategoryId' => self::parseUuid($this->query('category_id')) ?? '',
-            'pageStyles' => ['css/tour-list.css', 'css/compare.css'],
-            'pageScripts' => ['js/compare.js', 'js/tour-list.js'],
+            'dateMin' => $today->format('Y-m-d'),
+            'dateMax' => $today->modify('+' . TourListModel::DATE_MAX_DAYS . ' days')->format('Y-m-d'),
+            'durationOptions' => TourListModel::DURATIONS,
+            'languageOptions' => $languages,
+            'allLanguages' => TourListModel::LANGUAGES,
+            'priceMax' => TourListModel::PRICE_MAX,
+            'pageStyles' => ['css/tour-list.css', 'css/compare.css', 'css/tour-social.css'],
+            'pageScripts' => ['js/compare.js', 'js/tour-social.js', 'js/tour-list.js'],
         ]);
     }
 
-    /** GET /api/tours?q=&destination_id=&category_id=&sort= */
+    /**
+     * GET /api/tours?q=&destination_id=&category_id=&sort=
+     *   &date=YYYY-MM-DD&price_min=&price_max=&duration=short|medium|long&language=&hotel_pickup=1 (CR3)
+     */
     public function apiIndex(): void
     {
         $keyword = $this->query('q');
@@ -59,7 +81,8 @@ final class TourListController extends Controller
             $keyword,
             self::parseUuid($destinationId),
             self::parseUuid($categoryId),
-            $sort === '' ? TourListModel::DEFAULT_SORT : $sort
+            $sort === '' ? TourListModel::DEFAULT_SORT : $sort,
+            $this->advancedFilters()
         );
         $tours = array_map([$this, 'presentTour'], $rows);
 
@@ -68,6 +91,68 @@ final class TourListController extends Controller
             $tours === [] ? 'Không có tour phù hợp.' : '',
             ['tours' => $tours, 'total' => count($tours)]
         );
+    }
+
+    /**
+     * Ngày đi + bộ lọc nâng cao của /api/tours (CR3, Lê Trung Phong). Tham số rỗng = không lọc;
+     * giá trị sai thì trả 422 kèm thông báo và dừng.
+     *
+     * @return array{date: ?string, price_min: ?int, price_max: ?int, duration: ?string, language: ?string, hotel_pickup: bool}
+     */
+    private function advancedFilters(): array
+    {
+        $filters = ['date' => null, 'price_min' => null, 'price_max' => null, 'duration' => null, 'language' => null, 'hotel_pickup' => false];
+
+        $date = $this->query('date');
+        if ($date !== '') {
+            $day = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+            if ($day === false || $day->format('Y-m-d') !== $date) {
+                $this->json(false, 'Ngày đi không hợp lệ.', null, 422);
+            }
+            $today = new DateTimeImmutable('today');
+            if ($day < $today || $day > $today->modify('+' . TourListModel::DATE_MAX_DAYS . ' days')) {
+                $this->json(false, 'Ngày đi phải từ hôm nay đến ' . TourListModel::DATE_MAX_DAYS . ' ngày tới.', null, 422);
+            }
+            $filters['date'] = $date;
+        }
+
+        foreach (['price_min', 'price_max'] as $key) {
+            $value = $this->query($key);
+            if ($value === '') {
+                continue;
+            }
+            if (!preg_match('/^\d{1,9}$/', $value) || (int) $value > TourListModel::PRICE_MAX) {
+                $this->json(false, 'Giá phải là số nguyên từ 0 đến ' . format_vnd(TourListModel::PRICE_MAX) . '.', null, 422);
+            }
+            $filters[$key] = (int) $value;
+        }
+        if ($filters['price_min'] !== null && $filters['price_max'] !== null && $filters['price_min'] > $filters['price_max']) {
+            $this->json(false, 'Giá thấp nhất không được lớn hơn giá cao nhất.', null, 422);
+        }
+
+        $duration = $this->query('duration');
+        if ($duration !== '') {
+            if (!array_key_exists($duration, TourListModel::DURATIONS)) {
+                $this->json(false, 'Thời lượng không hợp lệ.', null, 422);
+            }
+            $filters['duration'] = $duration;
+        }
+
+        $language = $this->query('language');
+        if ($language !== '') {
+            if (!array_key_exists($language, TourListModel::LANGUAGES)) {
+                $this->json(false, 'Ngôn ngữ hướng dẫn không hợp lệ.', null, 422);
+            }
+            $filters['language'] = $language;
+        }
+
+        $pickup = $this->query('hotel_pickup');
+        if ($pickup !== '' && $pickup !== '0' && $pickup !== '1') {
+            $this->json(false, 'Lựa chọn đón tại khách sạn không hợp lệ.', null, 422);
+        }
+        $filters['hotel_pickup'] = $pickup === '1';
+
+        return $filters;
     }
 
     /** GET /api/destinations */
