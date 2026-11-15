@@ -8,14 +8,20 @@ use App\Models\AccountModel;
 use App\Models\UserModel;
 use Core\Auth;
 use Core\Controller;
+use DateTimeImmutable;
 use finfo;
 use GdImage;
 
 /**
- * Trang "Tài khoản" của khách hàng (CR3 – Lê Trung Phong): ảnh đại diện, họ tên, số điện thoại và mật khẩu.
+ * Trang "Tài khoản" của khách hàng (CR3 – Lê Trung Phong): ảnh đại diện, thông tin cá nhân (họ tên, số điện thoại,
+ * số CCCD, ngày sinh, giới tính, địa chỉ) và mật khẩu.
  * Chỉ tài khoản khách hàng; chế độ khách được chuyển tới đăng nhập (quay lại /tai-khoan), tài khoản quản trị viên /
  * đơn vị tổ chức thấy trang 403 như "Đơn của tôi". Email không đổi được (dùng để đăng nhập).
  * Form gửi lên rồi chuyển hướng về /tai-khoan?msg=... khi lưu xong; lỗi thì hiện lại trang kèm lỗi từng ô.
+ *
+ * Thông tin cá nhân (đều không bắt buộc trừ họ tên): số CCCD đúng 12 chữ số; ngày sinh là ngày có thật từ năm 1900,
+ * không ở tương lai và đủ MIN_AGE (10) tuổi; giới tính Nam / Nữ / Khác (trống = không nêu); địa chỉ tối đa 255 ký tự.
+ * Số CCCD là thông tin nhạy cảm: chỉ hiện cho chủ tài khoản ở trang này, không có trong thông báo lỗi hay nhật ký.
  *
  * Ảnh đại diện: JPG / PNG / WebP tối đa 2 MB, cạnh 64–4096 px (kiểm tra bằng finfo + getimagesize, không tin đuôi
  * file hay loại do trình duyệt gửi). Lưu ở public/assets/uploads/avatars/<32 ký tự hex>.<đuôi> (thư mục tự tạo khi
@@ -30,6 +36,14 @@ final class AccountController extends Controller
     /** Cạnh ảnh sau khi cắt vuông (khi có GD). */
     private const AVATAR_OUTPUT_SIDE = 256;
     private const NAME_MIN_LENGTH = 2;
+    /** Tuổi tối thiểu theo ngày sinh. */
+    public const MIN_AGE = 10;
+    public const BIRTH_YEAR_MIN = 1900;
+    public const ADDRESS_MAX_LENGTH = 255;
+    /** Giá trị users.gender → nhãn; '' (không chọn) = không nêu. */
+    public const GENDERS = ['male' => 'Nam', 'female' => 'Nữ', 'other' => 'Khác'];
+    /** Các ô của form thông tin cá nhân. */
+    private const PROFILE_FIELDS = ['name', 'phone', 'citizen_id', 'date_of_birth', 'gender', 'address'];
     private const AVATAR_DIR = 'uploads/avatars';
     /** MIME (finfo) → đuôi file và loại ảnh của getimagesize(). */
     private const AVATAR_TYPES = [
@@ -76,11 +90,16 @@ final class AccountController extends Controller
         $this->renderPage($account, [], self::MESSAGES[$this->query('msg')] ?? '');
     }
 
-    /** POST /tai-khoan/profile – name, phone, _csrf */
+    /** POST /tai-khoan/profile – name, phone, citizen_id, date_of_birth, gender, address, _csrf */
     public function updateProfile(): void
     {
         $account = $this->accountOrLeave();
-        $old = ['name' => $this->input('name'), 'phone' => $this->input('phone')];
+        $old = [];
+        foreach (self::PROFILE_FIELDS as $field) {
+            $old[$field] = $this->input($field);
+        }
+        // Trình duyệt không có ô chọn ngày gửi dd/mm/yyyy: đổi về yyyy-mm-dd (giá trị của <input type="date">).
+        $old['date_of_birth'] = self::parseDate($old['date_of_birth'])?->format('Y-m-d') ?? $old['date_of_birth'];
 
         if (!Auth::verifyCsrf($_POST['_csrf'] ?? null)) {
             $this->renderPage($account, ['form' => self::CSRF_FAILED], '', 403, $old);
@@ -93,7 +112,7 @@ final class AccountController extends Controller
             return;
         }
 
-        if (!$this->accounts->updateProfile($account['user_id'], $old['name'], $old['phone'])) {
+        if (!$this->accounts->updateProfile($account['user_id'], $old)) {
             $this->renderPage($account, ['profile' => ['form' => self::SAVE_FAILED]], '', 500, $old);
             return;
         }
@@ -237,17 +256,30 @@ final class AccountController extends Controller
     /**
      * @param array<string, mixed> $account
      * @param array<string, mixed> $errors 'form' (lỗi chung), 'profile' / 'password' (lỗi theo ô), 'avatar' (chuỗi)
-     * @param array{name: string, phone: string}|null $old Giá trị vừa nhập ở form thông tin cá nhân
+     * @param array<string, string>|null $old Giá trị vừa nhập ở form thông tin cá nhân (khóa = PROFILE_FIELDS)
      */
     private function renderPage(array $account, array $errors, string $success, int $status = 200, ?array $old = null): void
     {
+        if ($old === null) {
+            $old = [];
+            foreach (self::PROFILE_FIELDS as $field) {
+                $old[$field] = (string) ($account[$field] ?? '');
+            }
+        }
+        $today = new DateTimeImmutable('today');
+
         $this->render('account/settings', [
             'title' => 'Tài khoản',
             'activeNav' => 'account',
             'account' => $account,
-            'old' => $old ?? ['name' => $account['name'], 'phone' => (string) ($account['phone'] ?? '')],
+            'old' => $old,
             'errors' => $errors,
             'success' => $success,
+            'genders' => self::GENDERS,
+            'birthMin' => self::BIRTH_YEAR_MIN . '-01-01',
+            'birthMax' => $today->modify('-' . self::MIN_AGE . ' years')->format('Y-m-d'),
+            'minAge' => self::MIN_AGE,
+            'addressMaxLength' => self::ADDRESS_MAX_LENGTH,
             'avatarMaxBytes' => self::AVATAR_MAX_BYTES,
             'avatarMinSide' => self::AVATAR_MIN_SIDE,
             'avatarMaxSide' => self::AVATAR_MAX_SIDE,
@@ -274,7 +306,9 @@ final class AccountController extends Controller
     /**
      * Lỗi theo ô của form thông tin cá nhân; [] khi hợp lệ.
      *
-     * @param array{name: string, phone: string} $old
+     * Thông báo lỗi không bao giờ chứa giá trị đã nhập (số CCCD là thông tin nhạy cảm).
+     *
+     * @param array<string, string> $old Khóa = PROFILE_FIELDS; date_of_birth đã đổi về Y-m-d nếu đọc được
      * @return array<string, string>
      */
     private static function validateProfile(array $old): array
@@ -295,7 +329,48 @@ final class AccountController extends Controller
             $errors['phone'] = 'Số điện thoại không hợp lệ.';
         }
 
+        if ($old['citizen_id'] !== '' && !preg_match('/^[0-9]{12}$/D', $old['citizen_id'])) {
+            $errors['citizen_id'] = 'Số CCCD gồm đúng 12 chữ số.';
+        }
+
+        if ($old['date_of_birth'] !== '') {
+            $birth = self::parseDate($old['date_of_birth']);
+            $today = new DateTimeImmutable('today');
+            if ($birth === null) {
+                $errors['date_of_birth'] = 'Ngày sinh không hợp lệ.';
+            } elseif ((int) $birth->format('Y') < self::BIRTH_YEAR_MIN) {
+                $errors['date_of_birth'] = 'Ngày sinh phải từ năm ' . self::BIRTH_YEAR_MIN . ' trở đi.';
+            } elseif ($birth > $today) {
+                $errors['date_of_birth'] = 'Ngày sinh không được ở tương lai.';
+            } elseif ($birth > $today->modify('-' . self::MIN_AGE . ' years')) {
+                $errors['date_of_birth'] = 'Bạn cần đủ ' . self::MIN_AGE . ' tuổi.';
+            }
+        }
+
+        if ($old['gender'] !== '' && !array_key_exists($old['gender'], self::GENDERS)) {
+            $errors['gender'] = 'Vui lòng chọn giới tính trong danh sách.';
+        }
+
+        if (mb_strlen($old['address']) > self::ADDRESS_MAX_LENGTH) {
+            $errors['address'] = 'Địa chỉ tối đa ' . self::ADDRESS_MAX_LENGTH . ' ký tự.';
+        } elseif (preg_match('/[\x00-\x1F\x7F]/u', $old['address'])) {
+            $errors['address'] = 'Địa chỉ có ký tự không hợp lệ.';
+        }
+
         return $errors;
+    }
+
+    /** Ngày có thật dạng yyyy-mm-dd (ô chọn ngày) hoặc dd/mm/yyyy; null khi sai dạng / không có ngày đó (vd. 31/02). */
+    private static function parseDate(string $value): ?DateTimeImmutable
+    {
+        foreach (['Y-m-d', 'd/m/Y'] as $format) {
+            $date = DateTimeImmutable::createFromFormat('!' . $format, $value);
+            if ($date !== false && $date->format($format) === $value) {
+                return $date;
+            }
+        }
+
+        return null;
     }
 
     private static function tooBigMessage(): string
