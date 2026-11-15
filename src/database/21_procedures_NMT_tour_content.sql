@@ -921,6 +921,9 @@ proc: BEGIN
     DELETE FROM tour_packages        WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
     DELETE FROM tour_posts           WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
     DELETE FROM favorite_tours       WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
+    -- CR3 (file 33): lượt thích và bình luận của tour (khóa ngoại RESTRICT).
+    DELETE FROM tour_likes           WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
+    DELETE FROM tour_comments        WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
     DELETE FROM comparison_tours     WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
     -- Sprint 6 (NTK, file 32): tour còn "bản sửa" đang mở thì xóa bản sửa trước (khóa ngoại tours.revision_of).
     CALL NTK_sp_tour_revision_purge_of(p_tour_id);
