@@ -7,7 +7,9 @@ namespace Core;
 /**
  * Phiên đăng nhập của khách hàng và mã CSRF cho mọi form POST (WBS 3.2.8 – Lê Trung Phong).
  * Chưa đăng nhập = chế độ khách: chỉ xem tour, không đặt được.
- * Session chỉ lưu thông tin hiển thị của tài khoản (user_id, name, email, role), không lưu mật khẩu.
+ * Session chỉ lưu thông tin hiển thị của tài khoản (user_id, name, email, role, avatar_url), không lưu mật khẩu.
+ * CR3 (Lê Trung Phong): thêm avatar_url (ảnh đại diện, đường dẫn trong public/assets/, null = chưa có ảnh) và
+ * refresh() để trang "Tài khoản" cập nhật họ tên / ảnh trong session sau khi lưu.
  */
 final class Auth
 {
@@ -37,7 +39,7 @@ final class Auth
     /**
      * Tài khoản đang đăng nhập; null = chế độ khách.
      *
-     * @return array{user_id: string, name: string, email: string, role: string}|null
+     * @return array{user_id: string, name: string, email: string, role: string, avatar_url?: string|null}|null
      */
     public static function user(): ?array
     {
@@ -56,6 +58,7 @@ final class Auth
      * Ghi tài khoản vào session sau khi kiểm tra mật khẩu. Đổi session id để chống chiếm phiên (session fixation).
      *
      * @param array<string, mixed> $user Dòng từ NTK_sp_user_find_by_email (hoặc tài khoản vừa đăng ký).
+     *        Thiếu avatar_url (tài khoản vừa đăng ký, đăng nhập Google / Facebook) = chưa có ảnh.
      */
     public static function login(array $user): void
     {
@@ -66,9 +69,39 @@ final class Auth
             'name' => (string) $user['name'],
             'email' => (string) $user['email'],
             'role' => (string) $user['role'],
+            'avatar_url' => self::avatarOrNull($user['avatar_url'] ?? null),
         ];
         // Phiên mới thì mã CSRF mới.
         unset($_SESSION[self::CSRF_KEY]);
+    }
+
+    /**
+     * Cập nhật thông tin hiển thị của tài khoản đang đăng nhập (sau khi sửa ở trang "Tài khoản").
+     * Chỉ nhận khóa 'name' và 'avatar_url'; chưa đăng nhập thì không làm gì.
+     *
+     * @param array{name?: string, avatar_url?: string|null} $changes
+     */
+    public static function refresh(array $changes): void
+    {
+        self::start();
+        if (!is_array($_SESSION[self::USER_KEY] ?? null)) {
+            return;
+        }
+        if (array_key_exists('name', $changes) && is_string($changes['name']) && $changes['name'] !== '') {
+            $_SESSION[self::USER_KEY]['name'] = $changes['name'];
+        }
+        if (array_key_exists('avatar_url', $changes)) {
+            $_SESSION[self::USER_KEY]['avatar_url'] = self::avatarOrNull($changes['avatar_url']);
+        }
+    }
+
+    /**
+     * Đổi session id, giữ nguyên tài khoản đăng nhập (vd. sau khi đổi mật khẩu): phiên cũ bị lộ không còn dùng được.
+     */
+    public static function regenerate(): void
+    {
+        self::start();
+        session_regenerate_id(true);
     }
 
     /** Xóa toàn bộ session và cookie phiên. */
@@ -106,6 +139,12 @@ final class Auth
         $expected = $_SESSION[self::CSRF_KEY] ?? null;
 
         return is_string($token) && $token !== '' && is_string($expected) && hash_equals($expected, $token);
+    }
+
+    /** avatar_url hợp lệ để in ra: chuỗi không rỗng; còn lại null (giao diện hiện chữ cái đầu tên). */
+    private static function avatarOrNull(mixed $value): ?string
+    {
+        return is_string($value) && trim($value) !== '' ? $value : null;
     }
 
     private static function isHttps(): bool
