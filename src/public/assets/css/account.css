@@ -1,8 +1,8 @@
 /*
  * LocalTour – account.css (CR3 – Lê Trung Phong)
  * Trang "Tài khoản" của khách hàng: ảnh đại diện, thông tin cá nhân, mật khẩu, lối tắt.
- * Nạp sau tour-detail.css và booking.css: dùng lại breadcrumb, thẻ .lt-book-card, ô nhập .lt-field / .lt-input,
- * thông báo .lt-book-alert; màu, nút và icon của base.css.
+ * Nạp sau tour-detail.css và booking.css: dùng lại breadcrumb, thẻ .lt-book-card, ô nhập .lt-field / .lt-input /
+ * .lt-select, hàng hai cột .lt-book-grid (ngày sinh + giới tính), thông báo .lt-book-alert; màu, nút và icon của base.css.
  */
 
 .lt-account-layout {
@@ -122,6 +122,21 @@
     flex-wrap: wrap;
     gap: 8px;
     margin-top: 18px;
+}
+
+/* Ô ngày sinh: không tràn cột trên điện thoại (Safari iOS đặt chiều rộng tối thiểu), chữ canh trái như các ô khác. */
+.lt-account-card input[type="date"].lt-input {
+    min-width: 0;
+    text-align: left;
+}
+
+.lt-account-card input[type="date"].lt-input::-webkit-date-and-time-value {
+    text-align: left;
+}
+
+.lt-account-card input[type="date"].lt-input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.6;
 }
 
 .lt-account-password {

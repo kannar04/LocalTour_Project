@@ -2,12 +2,16 @@
 <?php
 /*
  * Trang "Tài khoản" của khách hàng (CR3 – Lê Trung Phong): ảnh đại diện, thông tin cá nhân, mật khẩu và lối tắt.
- * Biến: $account (LTP_sp_account_get: user_id, email, name, phone, avatar_url, has_password),
- *       $old (name, phone đang hiện trong form thông tin cá nhân), $success (thông báo sau khi lưu, '' = không có),
+ * Biến: $account (LTP_sp_account_get: user_id, email, name, phone, citizen_id, date_of_birth, gender, address,
+ *       avatar_url, has_password), $old (name, phone, citizen_id, date_of_birth, gender, address đang hiện trong form
+ *       thông tin cá nhân), $success (thông báo sau khi lưu, '' = không có),
  *       $errors ('form' = lỗi chung như hết phiên; 'avatar' = lỗi ảnh; 'profile' / 'password' = lỗi theo ô,
- *       khóa 'form' bên trong = lỗi chung của form đó), $avatarMaxBytes, $avatarMinSide, $avatarMaxSide, $title.
- * Không bao giờ in lại mật khẩu. account.js: xem trước ảnh, kiểm tra loại / dung lượng / kích thước trước khi gửi,
- * hỏi lại trước khi xóa ảnh, nút hiện / ẩn mật khẩu.
+ *       khóa 'form' bên trong = lỗi chung của form đó), $genders (giá trị → nhãn giới tính), $birthMin / $birthMax
+ *       (khoảng ngày sinh chọn được, Y-m-d), $minAge, $addressMaxLength, $avatarMaxBytes, $avatarMinSide,
+ *       $avatarMaxSide, $title.
+ * Không bao giờ in lại mật khẩu. Số CCCD chỉ hiện trong ô của chính chủ tài khoản (không đưa vào thông báo lỗi).
+ * account.js: xem trước ảnh, kiểm tra loại / dung lượng / kích thước trước khi gửi, hỏi lại trước khi xóa ảnh,
+ * nút hiện / ẩn mật khẩu.
  */
 $avatarUrl = $account['avatar_url'];
 // File không có trên máy đang chạy (database chép từ máy khác): hiện chữ cái đầu tên, không hiện ảnh vỡ.
@@ -19,9 +23,14 @@ $passwordErrors = is_array($errors['password'] ?? null) ? $errors['password'] : 
 $avatarError = is_string($errors['avatar'] ?? null) ? $errors['avatar'] : '';
 $maxMb = $avatarMaxBytes / 1024 / 1024;
 
+// 'row': 'start' / 'end' = mở / đóng một hàng hai cột (.lt-book-grid: hai cột từ 768 px, một cột trên điện thoại).
 $profileFields = [
     ['name' => 'name', 'label' => 'Họ tên', 'type' => 'text', 'maxlength' => 100, 'autocomplete' => 'name', 'required' => true, 'optional' => false, 'hint' => ''],
     ['name' => 'phone', 'label' => 'Số điện thoại', 'type' => 'tel', 'maxlength' => 20, 'autocomplete' => 'tel', 'required' => false, 'optional' => true, 'hint' => 'Dùng khi đơn vị tổ chức cần liên hệ về tour.'],
+    ['name' => 'citizen_id', 'label' => 'Số CCCD', 'type' => 'text', 'maxlength' => 12, 'autocomplete' => 'off', 'inputmode' => 'numeric', 'required' => false, 'optional' => true, 'hint' => '12 chữ số trên thẻ căn cước. Chỉ bạn xem được số này.'],
+    ['name' => 'date_of_birth', 'label' => 'Ngày sinh', 'type' => 'date', 'autocomplete' => 'bday', 'min' => $birthMin, 'max' => $birthMax, 'required' => false, 'optional' => true, 'hint' => 'Bạn cần đủ ' . $minAge . ' tuổi.', 'row' => 'start'],
+    ['name' => 'gender', 'label' => 'Giới tính', 'type' => 'select', 'options' => ['' => 'Không nêu'] + $genders, 'autocomplete' => 'sex', 'required' => false, 'optional' => true, 'hint' => '', 'row' => 'end'],
+    ['name' => 'address', 'label' => 'Địa chỉ', 'type' => 'text', 'maxlength' => $addressMaxLength, 'autocomplete' => 'street-address', 'required' => false, 'optional' => true, 'hint' => ''],
 ];
 $passwordFields = array_values(array_filter([
     $hasPassword ? ['name' => 'current_password', 'label' => 'Mật khẩu hiện tại', 'autocomplete' => 'current-password', 'hint' => ''] : null,
@@ -114,7 +123,7 @@ $focusField = array_key_first(array_diff_key($profileErrors, ['form' => true]))
 
                 <section class="lt-book-card lt-account-card" id="thong-tin" tabindex="-1" aria-labelledby="profile-title">
                     <h2 class="lt-book-card__title" id="profile-title">Thông tin cá nhân</h2>
-                    <p class="lt-book-card__lead">Họ tên và số điện thoại được điền sẵn khi bạn đặt tour.</p>
+                    <p class="lt-book-card__lead">Họ tên và số điện thoại được điền sẵn khi bạn đặt tour. Các thông tin còn lại chỉ bạn xem được.</p>
 
 <?php if (is_string($profileErrors['form'] ?? null)): ?>
                     <div class="lt-book-alert" role="alert">
@@ -123,29 +132,47 @@ $focusField = array_key_first(array_diff_key($profileErrors, ['form' => true]))
                     </div>
 <?php endif; ?>
 
+                    <div class="lt-field">
+                        <label class="lt-field__label" for="account-email">Email</label>
+                        <input class="lt-input" type="email" id="account-email" value="<?= e($account['email']) ?>" readonly aria-describedby="account-email-hint">
+                        <p class="lt-field__hint" id="account-email-hint">Email dùng để đăng nhập nên không đổi được.</p>
+                    </div>
+
                     <form action="<?= e(url('/tai-khoan/profile')) ?>" method="post" novalidate>
                         <?= csrf_field() ?>
-                        <div class="lt-field">
-                            <label class="lt-field__label" for="account-email">Email</label>
-                            <input class="lt-input" type="email" id="account-email" value="<?= e($account['email']) ?>" readonly aria-describedby="account-email-hint">
-                            <p class="lt-field__hint" id="account-email-hint">Email dùng để đăng nhập nên không đổi được.</p>
-                        </div>
 <?php foreach ($profileFields as $field): ?>
 <?php
     $name = $field['name'];
-    $id = 'account-' . $name;
+    $id = 'account-' . str_replace('_', '-', $name);
     $error = (string) ($profileErrors[$name] ?? '');
     $describedBy = trim(($field['hint'] !== '' ? $id . '-hint ' : '') . ($error !== '' ? $id . '-error' : ''));
+    $value = (string) ($old[$name] ?? '');
+    $attributes = 'id="' . e($id) . '" name="' . e($name) . '" autocomplete="' . e($field['autocomplete']) . '"'
+        . ($field['required'] ? ' required' : '')
+        . ($error !== '' ? ' aria-invalid="true"' : '')
+        . ($describedBy !== '' ? ' aria-describedby="' . e($describedBy) . '"' : '')
+        . ($name === $focusField ? ' autofocus' : '');
 ?>
+<?php if (($field['row'] ?? '') === 'start'): ?>
+                        <div class="lt-book-grid">
+<?php endif; ?>
                         <div class="lt-field">
                             <label class="lt-field__label" for="<?= e($id) ?>">
                                 <?= e($field['label']) ?><?php if ($field['optional']): ?> <span class="lt-field__optional">(không bắt buộc)</span><?php endif; ?>
                             </label>
-                            <input class="lt-input<?= $error !== '' ? ' is-invalid' : '' ?>" type="<?= e($field['type']) ?>" id="<?= e($id) ?>"
-                                   name="<?= e($name) ?>" value="<?= e($old[$name] ?? '') ?>" maxlength="<?= e($field['maxlength']) ?>"
-                                   autocomplete="<?= e($field['autocomplete']) ?>" <?= $field['required'] ? 'required' : '' ?>
-                                   <?= $error !== '' ? 'aria-invalid="true"' : '' ?> <?= $describedBy !== '' ? 'aria-describedby="' . e($describedBy) . '"' : '' ?>
-                                   <?= $name === $focusField ? 'autofocus' : '' ?>>
+<?php if ($field['type'] === 'select'): ?>
+                            <select class="lt-input lt-select<?= $error !== '' ? ' is-invalid' : '' ?>" <?= $attributes ?>>
+<?php foreach ($field['options'] as $optionValue => $optionLabel): ?>
+                                <option value="<?= e($optionValue) ?>"<?= (string) $optionValue === $value ? ' selected' : '' ?>><?= e($optionLabel) ?></option>
+<?php endforeach; ?>
+                            </select>
+<?php elseif ($field['type'] === 'date'): ?>
+                            <input class="lt-input<?= $error !== '' ? ' is-invalid' : '' ?>" type="date" <?= $attributes ?>
+                                   value="<?= e($value) ?>" min="<?= e($field['min']) ?>" max="<?= e($field['max']) ?>">
+<?php else: ?>
+                            <input class="lt-input<?= $error !== '' ? ' is-invalid' : '' ?>" type="<?= e($field['type']) ?>" <?= $attributes ?>
+                                   value="<?= e($value) ?>" maxlength="<?= e($field['maxlength']) ?>"<?= isset($field['inputmode']) ? ' inputmode="' . e($field['inputmode']) . '"' : '' ?>>
+<?php endif; ?>
 <?php if ($field['hint'] !== ''): ?>
                             <p class="lt-field__hint" id="<?= e($id) ?>-hint"><?= e($field['hint']) ?></p>
 <?php endif; ?>
@@ -153,6 +180,9 @@ $focusField = array_key_first(array_diff_key($profileErrors, ['form' => true]))
                             <p class="lt-field__error" id="<?= e($id) ?>-error"><?= e($error) ?></p>
 <?php endif; ?>
                         </div>
+<?php if (($field['row'] ?? '') === 'end'): ?>
+                        </div>
+<?php endif; ?>
 <?php endforeach; ?>
                         <div class="lt-account-actions">
                             <button class="lt-btn lt-btn--primary" type="submit">Lưu thông tin</button>
