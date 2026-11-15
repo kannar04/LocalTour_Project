@@ -17,9 +17,9 @@
 --               * giá, thời lượng, số khách tối đa: tham khảo khoảng giá, thời lượng phổ biến của
 --                 tour địa phương; giá làm tròn tới 10.000đ, vé trẻ em khoảng 70% giá người lớn;
 --               * NFR-07: source_url NULL, verified_at NULL, verification_status 'unverified';
---               * mỗi tour có 1 ảnh minh họa tự vẽ (SVG trong src/public/assets/img/tours/, tên
---                 file theo điểm đến: sapa, ninhbinh, hue, dalat, cantho, phuquoc), không phải ảnh
---                 chụp, không có logo hay chữ;
+--               * mỗi tour có 1 ảnh chụp địa điểm lấy từ Wikimedia Commons (JPG 1280x720 trong
+--                 src/public/assets/img/tours/, tên file theo điểm đến: sapa, ninhbinh, hue, dalat,
+--                 cantho, phuquoc); tác giả và giấy phép của từng ảnh ghi trong NGUON_ANH.md cùng thư mục;
 --               * không có đánh giá, đơn đặt, lượt thích hay bình luận: người kiểm thử tự tạo bằng
 --                 tài khoản của mình.
 -- Chạy sau  : 01 -> 38 (cần categories và điểm đến Huế của 02_seed.sql, tour_packages của file 16).
@@ -1980,63 +1980,63 @@ INSERT INTO tour_extras (id, tour_id, kind, name, price_vnd, price_unit, conditi
 INSERT INTO tour_images (id, tour_id, url, alt_text, sort_order) VALUES
 -- Tour 1 (Sa Pa)
 ('80000000-0041-4000-8000-000000000001', 'c0000000-0041-4000-8000-000000000001',
-    'img/tours/sapa-1.svg', 'Ruộng bậc thang thung lũng Mường Hoa trong sương sớm', 1),
+    'img/tours/sapa-1.jpg', 'Ruộng bậc thang xanh và đường mòn ở Tả Van, thung lũng Mường Hoa, Sa Pa', 1),
 -- Tour 2 (Sa Pa)
 ('80000000-0041-4000-8000-000000000002', 'c0000000-0041-4000-8000-000000000002',
-    'img/tours/sapa-2.svg', 'Nhà gỗ, guồng nước và thác nhỏ ở bản Cát Cát lúc chiều muộn', 1),
+    'img/tours/sapa-2.jpg', 'Nhà gỗ, thác nước và dòng suối ở bản Cát Cát, Sa Pa', 1),
 -- Tour 3 (Sa Pa)
 ('80000000-0041-4000-8000-000000000003', 'c0000000-0041-4000-8000-000000000003',
-    'img/tours/sapa-3.svg', 'Lẩu cá hồi, bếp nướng và nhà thờ đá Sa Pa về đêm', 1),
+    'img/tours/sapa-3.jpg', 'Nhà thờ đá Sa Pa lúc chạng vạng, đèn đường đã lên', 1),
 -- Tour 4 (Ninh Bình)
 ('80000000-0041-4000-8000-000000000004', 'c0000000-0041-4000-8000-000000000004',
-    'img/tours/ninhbinh-1.svg', 'Thuyền chèo giữa núi đá vôi Tràng An, chòi trên đỉnh Hang Múa', 1),
+    'img/tours/ninhbinh-1.jpg', 'Thuyền chèo trên sông giữa núi đá vôi ở Tràng An, Ninh Bình', 1),
 -- Tour 5 (Ninh Bình)
 ('80000000-0041-4000-8000-000000000005', 'c0000000-0041-4000-8000-000000000005',
-    'img/tours/ninhbinh-2.svg', 'Xe đạp trên đường làng giữa đồng lúa Tam Cốc lúc hoàng hôn', 1),
+    'img/tours/ninhbinh-2.jpg', 'Du khách đạp xe giữa đồng lúa và núi đá vôi ở Tam Cốc, Ninh Bình', 1),
 -- Tour 6 (Ninh Bình)
 ('80000000-0041-4000-8000-000000000006', 'c0000000-0041-4000-8000-000000000006',
-    'img/tours/ninhbinh-3.svg', 'Thuyền nan và cò trắng trên đầm Vân Long lúc bình minh', 1),
+    'img/tours/ninhbinh-3.jpg', 'Thuyền nan chở khách trên đầm Vân Long giữa núi đá vôi, Ninh Bình', 1),
 -- Tour 7 (Huế)
 ('80000000-0041-4000-8000-000000000007', 'c0000000-0041-4000-8000-000000000007',
-    'img/tours/hue-1.svg', 'Cổng Ngọ Môn và hồ sen ở Đại Nội Huế', 1),
+    'img/tours/hue-1.jpg', 'Cổng Ngọ Môn, lối vào chính của Hoàng thành Huế', 1),
 -- Tour 8 (Huế)
 ('80000000-0041-4000-8000-000000000008', 'c0000000-0041-4000-8000-000000000008',
-    'img/tours/hue-2.svg', 'Thuyền rồng và đèn hoa đăng trên sông Hương, cầu Trường Tiền về đêm', 1),
+    'img/tours/hue-2.jpg', 'Thuyền rồng chở du khách trên sông Hương ở Huế', 1),
 -- Tour 9 (Huế)
 ('80000000-0041-4000-8000-000000000009', 'c0000000-0041-4000-8000-000000000009',
-    'img/tours/hue-3.svg', 'Bún bò Huế, bánh bèo và chiếc nón lá trên bàn gỗ', 1),
+    'img/tours/hue-3.jpg', 'Tô bún bò Huế với thịt bò, chả và đĩa rau sống', 1),
 -- Tour 10 (Đà Lạt)
 ('80000000-0041-4000-8000-000000000010', 'c0000000-0041-4000-8000-000000000010',
-    'img/tours/dalat-1.svg', 'Ly cà phê phin bên lan can, đồi thông và nhà kính Đà Lạt lúc sáng sớm', 1),
+    'img/tours/dalat-1.jpg', 'Hồ Xuân Hương ở Đà Lạt trong sương sớm', 1),
 -- Tour 11 (Đà Lạt)
 ('80000000-0041-4000-8000-000000000011', 'c0000000-0041-4000-8000-000000000011',
-    'img/tours/dalat-2.svg', 'Người đu dây vượt thác giữa rừng thông Đà Lạt', 1),
+    'img/tours/dalat-2.jpg', 'Thác Datanla đổ qua những phiến đá ở ngoại ô Đà Lạt', 1),
 -- Tour 12 (Đà Lạt)
 ('80000000-0041-4000-8000-000000000012', 'c0000000-0041-4000-8000-000000000012',
-    'img/tours/dalat-3.svg', 'Bánh tráng nướng, sữa đậu nành và dây đèn ở chợ đêm Đà Lạt', 1),
+    'img/tours/dalat-3.jpg', 'Khu chợ Đà Lạt và các hàng quán sáng đèn về đêm', 1),
 -- Tour 13 (Đà Lạt)
 ('80000000-0041-4000-8000-000000000013', 'c0000000-0041-4000-8000-000000000013',
-    'img/tours/dalat-4.svg', 'Xe máy trên đường quanh co giữa các luống hoa và đồi thông', 1),
+    'img/tours/dalat-4.jpg', 'Con đường uốn quanh đồi thông ở Đà Lạt', 1),
 -- Tour 14 (Cần Thơ)
 ('80000000-0041-4000-8000-000000000014', 'c0000000-0041-4000-8000-000000000014',
-    'img/tours/cantho-1.svg', 'Ghe chở nông sản và cây bẹo trên chợ nổi Cái Răng lúc bình minh', 1),
+    'img/tours/cantho-1.jpg', 'Ghe hàng chở đầy rau củ trên chợ nổi Cái Răng, Cần Thơ, trong nắng sớm', 1),
 -- Tour 15 (Cần Thơ)
 ('80000000-0041-4000-8000-000000000015', 'c0000000-0041-4000-8000-000000000015',
-    'img/tours/cantho-2.svg', 'Xe đạp trên đường ven kênh, cầu khỉ và vườn trái cây Phong Điền', 1),
+    'img/tours/cantho-2.jpg', 'Con đường đất rợp bóng dừa nước ven kênh ở miệt vườn Phong Điền, Cần Thơ', 1),
 -- Tour 16 (Cần Thơ)
 ('80000000-0041-4000-8000-000000000016', 'c0000000-0041-4000-8000-000000000016',
-    'img/tours/cantho-3.svg', 'Bánh xèo, rau sống và ly chè bên sông Cần Thơ lúc chạng vạng', 1),
+    'img/tours/cantho-3.jpg', 'Bến Ninh Kiều lung linh ánh đèn về đêm bên sông Cần Thơ', 1),
 -- Tour 17 (Phú Quốc)
 ('80000000-0041-4000-8000-000000000017', 'c0000000-0041-4000-8000-000000000017',
-    'img/tours/phuquoc-1.svg', 'Người lặn ống thở giữa san hô và đàn cá ở quần đảo An Thới', 1),
+    'img/tours/phuquoc-1.jpg', 'Bãi cát nhỏ dưới rặng dừa và làn nước trong xanh lộ rạn san hô ở quần đảo An Thới, Phú Quốc', 1),
 -- Tour 18 (Phú Quốc)
 ('80000000-0041-4000-8000-000000000018', 'c0000000-0041-4000-8000-000000000018',
-    'img/tours/phuquoc-2.svg', 'Hoàng hôn trên biển Phú Quốc và thuyền câu mực thắp đèn', 1),
+    'img/tours/phuquoc-2.jpg', 'Thuyền gỗ đánh cá neo trên biển Phú Quốc lúc hoàng hôn', 1),
 -- Tour 19 (Phú Quốc)
 ('80000000-0041-4000-8000-000000000019', 'c0000000-0041-4000-8000-000000000019',
-    'img/tours/phuquoc-3.svg', 'Vườn tiêu, thùng gỗ ủ nước mắm và nia tiêu phơi ở Phú Quốc', 1),
+    'img/tours/phuquoc-3.jpg', 'Dãy thùng gỗ ủ nước mắm trong nhà thùng ở Phú Quốc', 1),
 -- Tour 20 (Huế)
 ('80000000-0041-4000-8000-000000000020', 'c0000000-0041-4000-8000-000000000020',
-    'img/tours/hue-4.svg', 'Nhang phơi xòe hình quạt và chồng nón lá ở làng hương Thủy Xuân', 1);
+    'img/tours/hue-4.jpg', 'Những bó hương nhiều màu xòe ra phơi ở làng hương Thủy Xuân, Huế', 1);
 
 COMMIT;
