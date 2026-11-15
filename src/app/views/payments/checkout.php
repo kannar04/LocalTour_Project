@@ -96,7 +96,7 @@ $adjustment = $totalVnd - (int) $booking['tickets_vnd'] - (int) $booking['extras
                         <form class="lt-pay-method" action="<?= e(url('/bookings/' . $code . '/pay/vietqr')) ?>" method="post">
                             <?= csrf_field() ?>
                             <h3 class="lt-pay-method__title">Chuyển khoản VietQR</h3>
-                            <p class="lt-pay-method__text">Quét mã bằng ứng dụng ngân hàng, MoMo hoặc ZaloPay. LocalTour đối chiếu chuyển khoản rồi xác nhận đơn; chỗ được giữ trong lúc chờ đối chiếu.</p>
+                            <p class="lt-pay-method__text">Quét mã bằng ứng dụng ngân hàng. LocalTour đối chiếu chuyển khoản rồi xác nhận đơn; chỗ được giữ trong lúc chờ đối chiếu.</p>
 <?php if ($vietqrEnabled): ?>
                             <button class="lt-btn lt-btn--outline lt-btn--block" type="submit">Lấy mã VietQR</button>
 <?php else: ?>
