@@ -3,7 +3,7 @@
 /*
  * Thanh bên của trang quản trị: cột trái trên desktop, panel thu gọn (nút "Menu" ở header) dưới 992px.
  * Biến: $adminNav = 'dashboard' | 'tours' | 'providers' | 'bookings' | 'change-requests' | 'payments' | 'payouts' |
- *       'settings' (mục đang mở).
+ *       'reviews' | 'comments' | 'settings' (mục đang mở).
  * Khu đơn vị tổ chức (/host): $host = đơn vị đang đăng nhập → chỉ có "Tour của tôi", "Thêm tour", "Đơn đặt tour",
  * "Doanh thu & chi trả" và "Tài khoản nhận tiền" ($adminNav = 'tours' | 'tour-new' | 'bookings' | 'payouts' | 'bank'),
  * đăng xuất ở /host/logout.
@@ -18,6 +18,8 @@ $adminItems = [
     ['key' => 'change-requests', 'href' => '/admin/change-requests', 'icon' => 'message', 'label' => 'Đổi ngày / hủy tour'],
     ['key' => 'payments', 'href' => '/admin/payments', 'icon' => 'clipboard', 'label' => 'Đối chiếu thanh toán'],
     ['key' => 'payouts', 'href' => '/admin/payouts', 'icon' => 'share', 'label' => 'Chi trả đơn vị tổ chức'],
+    ['key' => 'reviews', 'href' => '/admin/reviews', 'icon' => 'star', 'label' => 'Duyệt đánh giá'],
+    ['key' => 'comments', 'href' => '/admin/comments', 'icon' => 'message', 'label' => 'Bình luận'],
     ['key' => 'settings', 'href' => '/admin/settings', 'icon' => 'sliders', 'label' => 'Thông số vận hành'],
 ];
 if ($navHost !== null) {
