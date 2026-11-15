@@ -124,10 +124,10 @@ LocalTour – cài database
 OK        mysql: C:\xampp\mysql\bin\mysql.exe
 OK        Kết nối MySQL 127.0.0.1:3306 (tài khoản root, 10.4.32-MariaDB)
 OK        Tạo database db_localtour (utf8mb4_unicode_ci)
-          Import 32 file từ …\LocalTour_Project\src\database:
+          Import 38 file từ …\LocalTour_Project\src\database:
 OK        01_schema.sql (0,5 giây)
 …
-OK        Database db_localtour: 37 bảng, 157 procedure (đủ như các file 01_schema.sql → 32_procedures_NTK_tour_revision.sql).
+OK        Database db_localtour: 39 bảng, 178 procedure (đủ như các file 01_schema.sql → 38_seed_cr3_NTK.sql).
 ```
 
 Số file, số bảng và số procedure thay đổi theo phiên bản mã nguồn; điều cần thấy là dòng `OK` cuối có chữ “đủ như các file”.
@@ -138,7 +138,7 @@ Số file, số bảng và số procedure thay đổi theo phiên bản mã ngu�
   scripts\install_database.bat --fresh
   ```
 
-  Script hỏi `Gõ tên database (db_localtour) rồi Enter để xóa và cài lại, Enter để thoát:`. Gõ đúng tên database rồi Enter. Mọi dữ liệu trong database đó (tài khoản đã đăng ký, đơn đặt thử, danh sách ảnh tour đã tải lên) bị xóa.
+  Script hỏi `Gõ tên database (db_localtour) rồi Enter để xóa và cài lại, Enter để thoát:`. Gõ đúng tên database rồi Enter. Mọi dữ liệu trong database đó (tài khoản đã đăng ký, đơn đặt thử, danh sách ảnh tour đã tải lên, lượt thích, bình luận, đánh giá) bị xóa.
 - Cài vào database khác mà không sửa `.env`: `scripts\install_database.bat --database=ten_khac` (thêm `--fresh` nếu database đó đã có dữ liệu). Script nhắc sửa `DB_DATABASE` nếu muốn web dùng database này.
 
 **Cách 2 – Import file gộp bằng phpMyAdmin.** Cần Start cả Apache và MySQL.
@@ -184,8 +184,8 @@ CẢNH BÁO  VNPay sandbox chưa có VNPAY_TMN_CODE / VNPAY_HASH_SECRET (tùy ch
 CẢNH BÁO  VietQR chưa có PAYMENT_BANK_ID / PAYMENT_ACCOUNT_NO hợp lệ (tùy chọn): trang thanh toán hiện "VietQR đang tạm ngưng".
 OK        Kết nối database db_localtour tại 127.0.0.1:3306 (tài khoản root), 10.4.32-MariaDB
 OK        Bảng mã database: utf8mb4_unicode_ci
-OK        Đủ 37 bảng của 32 file 01_schema.sql → 32_procedures_NTK_tour_revision.sql
-OK        Đủ 157 procedure của 32 file 01_schema.sql → 32_procedures_NTK_tour_revision.sql
+OK        Đủ 39 bảng của 38 file 01_schema.sql → 38_seed_cr3_NTK.sql
+OK        Đủ 178 procedure của 38 file 01_schema.sql → 38_seed_cr3_NTK.sql
 OK        1 tài khoản quản trị đăng nhập được
 OK        35 lịch khởi hành còn nhận khách
 …
@@ -223,7 +223,7 @@ Màn hình hiện `PHP 8.2.12 Development Server (http://127.0.0.1:8080) started
 | `/admin/login`, đăng nhập bằng `admin@localtour.test` và mật khẩu ở mục 7 | Trang “Tổng quan” của quản trị viên. Mật khẩu sai → “Email hoặc mật khẩu không đúng.” |
 | `/register` tạo tài khoản khách hàng, đặt tour 1 cho 1 người lớn | Đơn được giữ chỗ ngay, ở trạng thái “Chờ thanh toán”, và trang thanh toán của đơn mở ra. Khi `.env` chưa có khóa thanh toán thử, trang thanh toán hiện “VNPay đang tạm ngưng” và “VietQR đang tạm ngưng”. |
 
-Các ca kiểm tra chi tiết hơn (đăng nhập, quản trị, đặt tour, thanh toán, so sánh tour, đổi ngày / hủy tour) ở `src/README.md`, Bước 5–11.
+Các ca kiểm tra chi tiết hơn (đăng nhập, quản trị, đặt tour, thanh toán, so sánh tour, đổi ngày / hủy tour, lọc tour, thích / lưu tour, bình luận, đánh giá, tài khoản) ở `src/README.md`, Bước 5–13.
 
 ## 9. Lịch tự hủy đơn quá hạn thanh toán và việc sau tour
 
@@ -276,7 +276,7 @@ C:\xampp\php\php.exe scripts\create_admin.php --email=admin@localtour.test --gen
 C:\xampp\php\php.exe scripts\check_install.php
 ```
 
-Cài lại xóa mọi tài khoản và đơn đã tạo thử, nên phải tạo lại mật khẩu quản trị. Database có ảnh tour tải lên ở máy khác thì chép kèm thư mục `src\public\assets\uploads\tours` từ máy đó; ảnh thiếu file hiện ảnh thay thế, `check_install.php` liệt kê các ảnh thiếu.
+Cài lại xóa mọi tài khoản và đơn đã tạo thử, nên phải tạo lại mật khẩu quản trị. Database có ảnh tour tải lên ở máy khác thì chép kèm thư mục `src\public\assets\uploads\tours` từ máy đó; ảnh thiếu file hiện ảnh thay thế, `check_install.php` liệt kê các ảnh thiếu. Ảnh đại diện của khách hàng nằm ở `src\public\assets\uploads\avatars` (thư mục tự tạo khi có người tải ảnh đại diện đầu tiên); có thư mục này thì chép kèm luôn.
 
 ## 12. Xử lý sự cố
 
@@ -295,6 +295,7 @@ Chạy `C:\xampp\php\php.exe scripts\check_install.php` trước: phần lớn l
 | Tiếng Việt hiển thị sai (`Ã¡`, `?`), tìm kiếm có dấu không ra kết quả, trang chi tiết tour lỗi 500; `storage\logs\app.log` có `COLLATION 'utf8mb4_unicode_ci' is not valid for CHARACTER SET 'latin1'`; `check_install.php` báo “Database dùng bảng mã latin1” | Database tạo tay với bảng mã mặc định (`latin1`), hoặc file SQL được import với bảng mã khác UTF-8. | `scripts\install_database.bat --fresh`: script tạo lại database với `utf8mb4_unicode_ci`. Import bằng phpMyAdmin thì luôn chọn character set `utf-8`. |
 | Đăng nhập `/admin/login` báo “Email hoặc mật khẩu không đúng.”; `check_install.php` báo “Chưa có tài khoản quản trị đăng nhập được” | Tài khoản mẫu không có mật khẩu, hoặc database vừa được cài lại. | `C:\xampp\php\php.exe scripts\create_admin.php --email=admin@localtour.test --generate` (mục 7). |
 | Ảnh tour chỉ hiện ảnh thay thế; `check_install.php` báo `CẢNH BÁO … ảnh tour không có file trên máy này` | Database có ảnh tải lên ở máy khác, file ảnh không có trên máy này. | Chép thư mục `src\public\assets\uploads\tours` từ máy đã tải ảnh lên. |
+| Tải ảnh đại diện ở `/tai-khoan` báo “Chưa lưu được ảnh trên máy chủ, vui lòng thử lại.” | Web không ghi được thư mục `src\public\assets\uploads` (thư mục `avatars` bên trong được tạo khi tải ảnh đầu tiên). | Cho tài khoản chạy Apache quyền ghi thư mục `src\public\assets\uploads`, rồi tải lại ảnh. |
 | Dưới Apache, mọi trang trừ trang chủ báo 404 của Apache; mở được cả `…/src/.env` hoặc `…/src/` | Apache chưa bật `mod_rewrite`, hoặc bỏ qua `.htaccess` (`AllowOverride None`): khi đó `.env` **không được chặn**. `check_install.php` báo `CẢNH BÁO Apache …`. | Trong `C:\xampp\apache\conf\httpd.conf`: bỏ dấu `#` trước `LoadModule rewrite_module modules/mod_rewrite.so`; trong khối `<Directory "C:/xampp/htdocs">` đặt `AllowOverride All`. Stop rồi Start lại Apache. |
 | Apache không Start được; `C:\xampp\apache\logs\error.log` có `(OS 10048)Only one usage of each socket address …` và `AH00072: make_sock: could not bind to address` | Cổng 80 (hoặc 443) đã bị chương trình khác chiếm. | `netstat -ano \| findstr :80` và `tasklist /FI "PID eq <PID>"` để tìm chương trình; tắt chương trình đó, hoặc chạy web bằng PHP built-in server (mục 8, Cách 2). |
 | PHP built-in server báo `started` nhưng trình duyệt mở ra trang cũ / trang của chương trình khác | Cổng đã bị chiếm (thường là cửa sổ built-in server mở từ trước). Trên Windows, server mới vẫn báo `started` dù cổng đã bị chiếm. | `netstat -ano \| findstr :8080` để xem cổng có đang bị giữ không; đóng cửa sổ cũ (`Ctrl+C`), hoặc chạy với cổng khác. |
