@@ -1,0 +1,331 @@
+/*
+ * LocalTour – tour-comments.css (CR3 – Nguyễn Minh Thức)
+ * Mục "Bình luận" trên trang chi tiết tour (comments-section.php, tour-comments.js)
+ * và vài chi tiết của trang "Bình luận" cho quản trị viên (admin/comments/index.php).
+ * Dùng biến màu và thành phần chung của base.css / tour-detail.css (lt-section, lt-avatar, lt-btn...).
+ */
+
+/* ---------- Trang chi tiết tour ---------- */
+
+.lt-comments__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    height: 22px;
+    margin-left: 6px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: var(--lt-teal-50);
+    color: var(--lt-teal-700);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    vertical-align: 0.15em;
+}
+
+.lt-comments .lt-btn--sm {
+    min-height: 36px;
+    padding: 6px 14px;
+    font-size: 0.875rem;
+}
+
+.lt-comments img.lt-avatar {
+    object-fit: cover;
+    background: var(--lt-teal-50);
+}
+
+.lt-comment-form {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.lt-comment-form__body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.lt-comment-form__label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--lt-text);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.lt-comment-form__as {
+    color: var(--lt-muted);
+    font-weight: 400;
+}
+
+.lt-comment-form__input {
+    display: block;
+    width: 100%;
+    min-height: 88px;
+    padding: 10px 12px;
+    border: 1px solid var(--lt-border-strong);
+    border-radius: var(--lt-radius);
+    background: var(--lt-surface);
+    color: var(--lt-text);
+    font-family: inherit;
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    resize: vertical;
+}
+
+.lt-comment-form__input:focus {
+    border-color: var(--lt-teal);
+    outline: none;
+    box-shadow: var(--lt-focus-ring);
+}
+
+.lt-comment-form__input.is-invalid {
+    border-color: var(--lt-danger);
+}
+
+.lt-comment-form__input.is-invalid:focus {
+    box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.2);
+}
+
+.lt-comment-form__error {
+    margin-top: 6px;
+    color: var(--lt-danger);
+    font-size: 0.8125rem;
+}
+
+.lt-comment-form__error a {
+    color: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+.lt-comment-form__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.lt-comment-form__counter {
+    color: var(--lt-muted);
+    font-size: 0.75rem;
+}
+
+.lt-comment-form__counter.is-over {
+    color: var(--lt-danger);
+    font-weight: 600;
+}
+
+.lt-comment-cta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding: 14px 16px;
+    border: 1px dashed var(--lt-border-strong);
+    border-radius: var(--lt-radius);
+    background: var(--lt-surface-alt);
+}
+
+.lt-comment-cta__text {
+    flex: 1 1 220px;
+    color: var(--lt-text-soft);
+    font-size: 0.875rem;
+}
+
+.lt-comment-note {
+    margin-bottom: 8px;
+}
+
+.lt-comments__rules {
+    margin-bottom: 16px;
+    color: var(--lt-muted);
+    font-size: 0.75rem;
+}
+
+.lt-comments__rules a {
+    color: var(--lt-teal);
+    text-decoration: underline;
+}
+
+.lt-comments__status {
+    padding: 12px 0;
+    color: var(--lt-muted);
+    font-size: 0.875rem;
+}
+
+.lt-comments__list {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.lt-comment {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 0;
+    border-top: 1px solid var(--lt-border);
+}
+
+.lt-comment:first-child {
+    border-top: 0;
+}
+
+.lt-comment.is-new .lt-comment__body {
+    animation: lt-comment-new 1.6s ease-out;
+}
+
+@keyframes lt-comment-new {
+    from { background: var(--lt-teal-50); }
+    to { background: transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lt-comment.is-new .lt-comment__body {
+        animation: none;
+    }
+}
+
+.lt-comment__body {
+    flex: 1 1 auto;
+    min-width: 0;
+    border-radius: var(--lt-radius);
+}
+
+.lt-comment__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 8px;
+    margin-bottom: 4px;
+}
+
+.lt-comment__name {
+    color: var(--lt-text);
+    font-size: 0.9375rem;
+    font-weight: 600;
+}
+
+.lt-comment__mine {
+    padding: 0 8px;
+    border-radius: 999px;
+    background: var(--lt-teal-50);
+    color: var(--lt-teal-700);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1.6;
+}
+
+.lt-comment__time {
+    color: var(--lt-muted);
+    font-size: 0.75rem;
+}
+
+.lt-comment__text {
+    color: var(--lt-text-soft);
+    line-height: 1.6;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+.lt-comment__delete {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+    font-size: 0.8125rem;
+    cursor: pointer;
+}
+
+.lt-comment__delete:hover,
+.lt-comment__delete:focus-visible {
+    color: var(--lt-danger);
+    text-decoration: underline;
+}
+
+.lt-comments__more {
+    display: flex;
+    justify-content: center;
+}
+
+.lt-comments__more .lt-btn {
+    margin-top: 8px;
+}
+
+@media (max-width: 575.98px) {
+    .lt-comment-form .lt-avatar {
+        display: none;
+    }
+
+    .lt-comment-form__foot .lt-btn {
+        flex: 1 1 100%;
+    }
+}
+
+/* ---------- Trang "Bình luận" của quản trị viên ---------- */
+
+.lt-admin-comment__text {
+    display: -webkit-box;
+    max-width: 520px;
+    margin-bottom: 4px;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    overflow-wrap: anywhere;
+}
+
+.lt-admin-comment__actions {
+    min-width: 220px;
+}
+
+.lt-admin-comment__hide {
+    display: flex;
+    gap: 6px;
+}
+
+.lt-admin-comment__hide .lt-admin-input {
+    min-height: 32px;
+    padding: 4px 10px;
+    font-size: 0.8125rem;
+}
+
+.lt-admin-pager {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.lt-admin-pager__info {
+    color: var(--lt-muted-strong);
+    font-size: 0.875rem;
+}
+
+.lt-admin-comment__full {
+    margin-bottom: 4px;
+    font-size: 0.8125rem;
+}
+
+.lt-admin-comment__full summary {
+    color: var(--lt-teal);
+    cursor: pointer;
+}
+
+.lt-admin-comment__full p {
+    max-width: 520px;
+    margin-top: 6px;
+    padding: 8px 10px;
+    border-radius: var(--lt-radius);
+    background: var(--lt-surface-alt);
+    overflow-wrap: anywhere;
+}

@@ -55,7 +55,7 @@
     min-width: 0;
 }
 
-/* Thích / Bình luận / Chia sẻ / Lưu tour: sắp có, luôn tắt. */
+/* Thích / Bình luận / Chia sẻ / Lưu tour (CR3): tour-social.js điền nút vào khối này. */
 .lt-detail-actions {
     display: flex;
     flex-wrap: wrap;

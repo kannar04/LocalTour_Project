@@ -15,7 +15,8 @@
  * Dữ liệu thiếu hiển thị "Chưa cập nhật" (FR-01..05), không lấy từ tour khác và không tự suy diễn.
  * Thẻ đặt tour là form GET tới /tours/{id}/book (trang "Hoàn tất thông tin đặt tour") kèm lịch và số khách đã chọn.
  * Chế độ khách: nút "Đăng nhập để đặt tour" (đăng nhập xong vào thẳng trang đặt tour với lựa chọn hiện tại).
- * Tài khoản khách hàng: nút "Đặt tour". Thích / Bình luận / Chia sẻ / Lưu tour: sắp có.
+ * Tài khoản khách hàng: nút "Đặt tour". Thích / Bình luận / Chia sẻ / Lưu tour (CR3): tour-social.js điền vào
+ * khối .js-tour-social; mục "Bình luận" ở comments-section.php (tour-comments.js).
  * Tour chia gói (US06-S5-01): giá "Từ" là giá người lớn rẻ nhất trong các gói, thẻ đặt tour có ô chọn gói
  * (package_id gửi kèm sang trang đặt tour). Nút "Thêm vào so sánh" (US04-S5-01) do compare.js xử lý.
  */
@@ -203,6 +204,7 @@ $sections += [
     'dich-vu' => 'Dịch vụ',
     'chinh-sach' => 'Chính sách',
     'danh-gia' => 'Đánh giá',
+    'binh-luan' => 'Bình luận',
 ];
 ?>
 <?php $sidebarMode = 'mobile'; require __DIR__ . '/../partials/sidebar.php'; ?>
@@ -253,15 +255,9 @@ $sections += [
                     </li>
                 </ul>
             </div>
-            <div class="lt-detail-actions" role="group" aria-label="Tương tác (sắp có)">
-<?php foreach (['heart' => 'Thích', 'message' => 'Bình luận', 'share' => 'Chia sẻ', 'bookmark' => 'Lưu tour'] as $actionIcon => $actionLabel): ?>
-                <button type="button" class="lt-detail-action" disabled title="<?= e($actionLabel) ?> – sắp có">
-                    <span class="lt-icon lt-icon--<?= e($actionIcon) ?>" aria-hidden="true"></span>
-                    <span><?= e($actionLabel) ?></span>
-                </button>
-<?php endforeach; ?>
-                <span class="lt-soon">Sắp có</span>
-            </div>
+            <div class="lt-detail-actions js-tour-social" role="group" aria-label="Tương tác với tour"
+                 data-tour-id="<?= e($tour['tour_id']) ?>" data-variant="detail"
+                 data-tour-title="<?= e($tour['title']) ?>" data-tour-url="<?= e(url($tourPath)) ?>"></div>
         </div>
 
         <div class="lt-gallery<?= $galleryLayout !== '' ? ' ' . e($galleryLayout) : '' ?>">
@@ -478,7 +474,7 @@ $sections += [
                         <span class="lt-empty-card__icon" aria-hidden="true"><span class="lt-icon lt-icon--message"></span></span>
                         <div>
                             <p class="lt-empty-card__title">Chưa có đánh giá</p>
-                            <p class="lt-empty-card__text">Tour này chưa có đánh giá nào. Đánh giá sẽ hiển thị sau khi khách tham gia tour.</p>
+                            <p class="lt-empty-card__text">Tour này chưa có đánh giá nào. Khách đã đi tour gửi đánh giá từ trang đơn của mình; đánh giá hiện ở đây sau khi LocalTour duyệt.</p>
                         </div>
                     </div>
 <?php else: ?>
@@ -489,10 +485,18 @@ $sections += [
     $reviewRating = (int) $review['rating'];
     $reviewContent = trim((string) $review['content']);
     $tourDate = format_date($review['tour_date'] === null ? null : (string) $review['tour_date']);
+    // CR3: ảnh đại diện của người đánh giá (đường dẫn trong public/assets/uploads/avatars), không có thì hiện chữ cái đầu.
+    $reviewerAvatar = (string) ($review['reviewer_avatar_url'] ?? '');
+    $reviewerAvatarSrc = preg_match('#^uploads/avatars/[A-Za-z0-9_-]+\.(?:jpe?g|png|webp)$#D', $reviewerAvatar)
+        && is_file(BASE_PATH . '/public/assets/' . $reviewerAvatar) ? asset($reviewerAvatar) : null;
 ?>
                         <li class="lt-review">
                             <div class="lt-review__head">
+<?php if ($reviewerAvatarSrc !== null): ?>
+                                <img class="lt-avatar lt-avatar--sm lt-avatar--img" src="<?= e($reviewerAvatarSrc) ?>" alt="" width="34" height="34" loading="lazy">
+<?php else: ?>
                                 <span class="lt-avatar lt-avatar--sm" aria-hidden="true"><?= e(mb_strtoupper(mb_substr($reviewerName, 0, 1))) ?></span>
+<?php endif; ?>
                                 <div class="lt-review__who">
                                     <p class="lt-review__name"><?= e($reviewerName) ?></p>
                                     <p class="lt-review__meta">
@@ -512,6 +516,8 @@ $sections += [
 <?php endif; ?>
 <?php endif; ?>
                 </section>
+
+<?php require __DIR__ . '/comments-section.php'; ?>
                 </div>
 
                 <section class="lt-provider" aria-labelledby="provider-title">

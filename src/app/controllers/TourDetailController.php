@@ -50,8 +50,8 @@ final class TourDetailController extends Controller
             'title' => $tour['title'],
             'tour' => $tour,
             'mapPoint' => $mapPoint,
-            'pageStyles' => array_merge(['css/tour-detail.css', 'css/compare.css'], $mapAssets ? ['css/tour-map.css'] : []),
-            'pageScripts' => array_merge(['js/compare.js', 'js/tour-detail.js'], $mapAssets ? ['js/tour-map.js'] : []),
+            'pageStyles' => array_merge(['css/tour-detail.css', 'css/compare.css', 'css/tour-social.css', 'css/tour-comments.css'], $mapAssets ? ['css/tour-map.css'] : []),
+            'pageScripts' => array_merge(['js/compare.js', 'js/tour-social.js', 'js/tour-comments.js', 'js/tour-detail.js'], $mapAssets ? ['js/tour-map.js'] : []),
         ] + $this->sections($tourId, $tour));
     }
 
