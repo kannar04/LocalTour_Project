@@ -3,6 +3,10 @@
  * Bảng tin du lịch: tải /api/destinations, /api/categories và /api/tours bằng AJAX, hiển thị skeleton /
  * thẻ tour / trạng thái rỗng / lỗi; tìm kiếm, lọc điểm đến và loại hình (theo ID), sắp xếp không tải lại
  * trang và giữ URL đồng bộ.
+ * CR3 (Lê Trung Phong): ô "Ngày đi" và bảng "Bộ lọc" (khoảng giá, thời lượng, ngôn ngữ hướng dẫn, đón tại khách sạn).
+ * Mọi bộ lọc nằm trên URL (date, price_min, price_max, duration, language, hotel_pickup) và được đọc lại khi tải
+ * trang hoặc khi bấm lùi / tiến. Thẻ tour có khối trống .js-tour-social để tour-social.js điền nút Thích / Bình luận /
+ * Chia sẻ / Lưu; sau mỗi lần dựng danh sách, file này phát sự kiện 'lt:tours-rendered' trên document.
  * Mọi dữ liệu từ server được đưa vào DOM bằng .text() / .attr().
  */
 (function (window, document, $) {
@@ -19,6 +23,10 @@
     var REQUEST_TIMEOUT_MS = 15000;
     var GENERIC_ERROR = 'Máy chủ đang bận hoặc mất kết nối. Vui lòng thử lại sau ít phút.';
     var TIMEOUT_ERROR = 'Máy chủ phản hồi quá lâu. Vui lòng thử lại.';
+    // Bộ lọc CR3: mã thời lượng giống TourListModel::DURATIONS; giá tối đa 9 chữ số.
+    var DURATIONS = ['short', 'medium', 'long'];
+    var DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+    var PRICE_DIGITS_MAX = 9;
 
     $(function () {
         var LT = window.LocalTour;
@@ -42,14 +50,38 @@
         var $errorMessage = $('#tour-error-message');
         var $sidebar = $('#lt-sidebar');
         var $sidebarList = $('#sidebar-destinations');
+        // Ngày đi + Bộ lọc (CR3)
+        var $date = $('#filter-date');
+        var $dateClear = $('#filter-date-clear');
+        var $moreToggle = $('#filter-more-toggle');
+        var $moreCount = $('#filter-more-count');
+        var $panel = $('#filter-panel');
+        var $panelError = $('#filter-panel-error');
+        var $priceMin = $('#filter-price-min');
+        var $priceMax = $('#filter-price-max');
+        var $pricePresets = $panel.find('.js-price-preset');
+        var $durationInputs = $panel.find('input[name="duration"]');
+        var $language = $('#filter-language');
+        var $hotelPickup = $('#filter-hotel-pickup');
 
-        var urlSort = new URLSearchParams(window.location.search).get('sort');
-        var state = {
+        var dateMin = String($page.attr('data-date-min') || '');
+        var dateMax = String($page.attr('data-date-max') || '');
+        var priceMax = parseInt($page.attr('data-price-max'), 10) || 100000000;
+        var languageNames = {};
+        try {
+            languageNames = JSON.parse($language.attr('data-all-languages') || '{}') || {};
+        } catch (ignore) {
+            languageNames = {};
+        }
+
+        var urlParams = new URLSearchParams(window.location.search);
+        var urlSort = urlParams.get('sort');
+        var state = $.extend({
             q: String($page.attr('data-initial-query') || '').trim().slice(0, QUERY_MAX_LENGTH),
             destinationId: LT.normaliseId($page.attr('data-initial-destination-id')),
             categoryId: LT.normaliseId($page.attr('data-initial-category-id')),
             sort: SORTS.indexOf(urlSort) !== -1 ? urlSort : DEFAULT_SORT
-        };
+        }, readAdvanced(urlParams));
         // Tên hiển thị theo ID, để dòng đếm ghi "Hà Nội · Ẩm thực" thay vì UUID.
         var destinationNames = {};
         var categoryNames = {};
@@ -58,6 +90,201 @@
         var requestSeq = 0;
         var currentRequest = null;
         var searchTimer = null;
+
+        /* ---------- Ngày đi + Bộ lọc nâng cao (CR3) ---------- */
+
+        /** 'YYYY-MM-DD' có thật và nằm trong khoảng ô "Ngày đi" cho chọn (hôm nay → 365 ngày tới). */
+        function isValidDate(value) {
+            var match = DATE_PATTERN.exec(String(value || ''));
+            if (!match) {
+                return false;
+            }
+            var day = new Date(Date.UTC(+match[1], +match[2] - 1, +match[3]));
+            var sameDay = day.getUTCFullYear() === +match[1] && day.getUTCMonth() === +match[2] - 1 && day.getUTCDate() === +match[3];
+            return sameDay && (!dateMin || value >= dateMin) && (!dateMax || value <= dateMax);
+        }
+
+        /** Chuỗi giá người dùng gõ ("500.000", "500000đ") → số dạng chuỗi; '' = bỏ trống; null = không hợp lệ. */
+        function parsePrice(value) {
+            var text = String(value === undefined || value === null ? '' : value).trim();
+            if (text === '') {
+                return '';
+            }
+            if (!/^[\d.,\s]+(đ|₫|vnd)?$/i.test(text)) {
+                return null;
+            }
+            var digits = text.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+            if (digits === '' || digits.length > PRICE_DIGITS_MAX || parseInt(digits, 10) > priceMax) {
+                return null;
+            }
+            return String(parseInt(digits, 10));
+        }
+
+        /** 500000 -> '500.000' (ô nhập giá). */
+        function groupDigits(value) {
+            return value === '' ? '' : String(value).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        }
+
+        /** Đọc bộ lọc nâng cao từ URL; giá trị sai bị bỏ qua (URL được ghi lại sạch ở syncUrl). */
+        function readAdvanced(params) {
+            var date = params.get('date') || '';
+            var minPrice = parsePrice(params.get('price_min'));
+            var maxPrice = parsePrice(params.get('price_max'));
+            var duration = params.get('duration') || '';
+            var language = String(params.get('language') || '');
+            if (minPrice === null) {
+                minPrice = '';
+            }
+            if (maxPrice === null) {
+                maxPrice = '';
+            }
+            if (minPrice !== '' && maxPrice !== '' && +minPrice > +maxPrice) {
+                minPrice = '';
+                maxPrice = '';
+            }
+            return {
+                date: isValidDate(date) ? date : '',
+                priceMin: minPrice,
+                priceMax: maxPrice,
+                duration: DURATIONS.indexOf(duration) !== -1 ? duration : '',
+                language: Object.prototype.hasOwnProperty.call(languageNames, language) ? language : '',
+                hotelPickup: params.get('hotel_pickup') === '1'
+            };
+        }
+
+        function advancedCount() {
+            return (state.priceMin !== '' || state.priceMax !== '' ? 1 : 0)
+                + (state.duration ? 1 : 0)
+                + (state.language ? 1 : 0)
+                + (state.hotelPickup ? 1 : 0);
+        }
+
+        function formatDay(value) {
+            var match = DATE_PATTERN.exec(value);
+            return match ? match[3] + '/' + match[2] + '/' + match[1] : value;
+        }
+
+        function priceText(min, max) {
+            if (min !== '' && max !== '') {
+                return 'giá ' + LT.formatVnd(min) + ' – ' + LT.formatVnd(max);
+            }
+            return min !== '' ? 'giá từ ' + LT.formatVnd(min) : 'giá đến ' + LT.formatVnd(max);
+        }
+
+        function durationLabel(code) {
+            return $.trim($durationInputs.filter(function () { return this.value === code; }).closest('label').text());
+        }
+
+        /** Ô "Ngày đi" + nút xóa ngày + số bộ lọc nâng cao trên nút "Bộ lọc". */
+        function syncDateAndBadge() {
+            if ($date.val() !== state.date) {
+                $date.val(state.date);
+            }
+            $dateClear.prop('hidden', !state.date);
+            $page.find('.lt-filter--date').toggleClass('is-active', !!state.date);
+
+            var count = advancedCount();
+            $moreToggle.toggleClass('is-active', count > 0);
+            $moreCount.prop('hidden', count === 0).empty();
+            if (count > 0) {
+                $moreCount.append(
+                    $('<span>').attr('aria-hidden', 'true').text(String(count)),
+                    $('<span>').addClass('sr-only').text(' (' + count + ' bộ lọc đang áp dụng)')
+                );
+            }
+        }
+
+        /** Đánh dấu nút giá có sẵn trùng với hai ô giá đang nhập. */
+        function syncPricePresets() {
+            var min = parsePrice($priceMin.val());
+            var max = parsePrice($priceMax.val());
+            $pricePresets.each(function () {
+                var pressed = min === String($(this).attr('data-min')) && max === String($(this).attr('data-max'));
+                $(this).toggleClass('is-active', pressed).attr('aria-pressed', pressed ? 'true' : 'false');
+            });
+        }
+
+        /** Điền bảng "Bộ lọc" theo bộ lọc đang áp dụng (bỏ phần đang sửa dở chưa bấm "Áp dụng"). */
+        function fillPanel() {
+            $priceMin.val(groupDigits(state.priceMin));
+            $priceMax.val(groupDigits(state.priceMax));
+            $durationInputs.each(function () {
+                this.checked = this.value === state.duration;
+            });
+            $language.find('option[data-unknown]').remove();
+            if (state.language && !$language.find('option').filter(function () { return this.value === state.language; }).length) {
+                // Ngôn ngữ trên URL hiện chưa có tour: vẫn hiện để người dùng biết đang lọc.
+                $language.append($('<option>').attr('data-unknown', '1').val(state.language).text(languageNames[state.language] + ' (0)'));
+            }
+            $language.val(state.language);
+            $hotelPickup.prop('checked', state.hotelPickup);
+            showPanelError('');
+            syncPricePresets();
+            syncDurationChips();
+        }
+
+        /** Chip thời lượng đang chọn (CSS :has() chưa có ở mọi trình duyệt). */
+        function syncDurationChips() {
+            $durationInputs.each(function () {
+                $(this).closest('.lt-chip').toggleClass('is-active', this.checked);
+            });
+        }
+
+        function showPanelError(message) {
+            $panelError.text(message).prop('hidden', message === '');
+        }
+
+        function isPanelOpen() {
+            return !$panel.prop('hidden');
+        }
+
+        function openPanel() {
+            fillPanel();
+            $panel.prop('hidden', false);
+            $moreToggle.attr('aria-expanded', 'true');
+        }
+
+        function closePanel(returnFocus) {
+            $panel.prop('hidden', true);
+            $moreToggle.attr('aria-expanded', 'false');
+            if (returnFocus) {
+                $moreToggle.trigger('focus');
+            }
+        }
+
+        /** Kiểm tra bảng "Bộ lọc"; hợp lệ thì áp dụng, tải lại danh sách và đóng bảng. */
+        function applyPanel() {
+            var min = parsePrice($priceMin.val());
+            var max = parsePrice($priceMax.val());
+            if (min === null || max === null) {
+                showPanelError('Giá phải là số từ 0 đến ' + LT.formatVnd(priceMax) + '.');
+                (min === null ? $priceMin : $priceMax).trigger('focus');
+                return;
+            }
+            if (min !== '' && max !== '' && +min > +max) {
+                showPanelError('Giá “Từ” không được lớn hơn giá “Đến”.');
+                $priceMin.trigger('focus');
+                return;
+            }
+            var duration = String($durationInputs.filter(':checked').val() || '');
+            var language = String($language.val() || '');
+            state.priceMin = min;
+            state.priceMax = max;
+            state.duration = DURATIONS.indexOf(duration) !== -1 ? duration : '';
+            state.language = Object.prototype.hasOwnProperty.call(languageNames, language) ? language : '';
+            state.hotelPickup = $hotelPickup.prop('checked');
+            closePanel(true);
+            syncDateAndBadge();
+            refresh();
+        }
+
+        function clearAdvanced() {
+            state.priceMin = '';
+            state.priceMax = '';
+            state.duration = '';
+            state.language = '';
+            state.hotelPickup = false;
+        }
 
         /* ---------- Đồng bộ điều khiển và URL ---------- */
 
@@ -97,10 +324,14 @@
             syncDestinationControls();
             syncCategoryControls();
             syncSortControls();
+            syncDateAndBadge();
+            if (isPanelOpen()) {
+                fillPanel();
+            }
         }
 
         function hasFilters() {
-            return !!(state.q || state.destinationId || state.categoryId);
+            return !!(state.q || state.destinationId || state.categoryId || state.date || advancedCount() > 0);
         }
 
         function syncUrl() {
@@ -120,8 +351,35 @@
             if (state.sort !== DEFAULT_SORT) {
                 params.set('sort', state.sort);
             }
+            $.each(advancedParams(), function (key, value) {
+                params.set(key, value);
+            });
             var query = params.toString();
             window.history.replaceState(window.history.state, '', window.location.pathname + (query ? '?' + query : '') + window.location.hash);
+        }
+
+        /** Ngày đi + bộ lọc nâng cao dưới dạng tham số URL / API (chỉ những bộ lọc đang bật). */
+        function advancedParams() {
+            var params = {};
+            if (state.date) {
+                params.date = state.date;
+            }
+            if (state.priceMin !== '') {
+                params.price_min = state.priceMin;
+            }
+            if (state.priceMax !== '') {
+                params.price_max = state.priceMax;
+            }
+            if (state.duration) {
+                params.duration = state.duration;
+            }
+            if (state.language) {
+                params.language = state.language;
+            }
+            if (state.hotelPickup) {
+                params.hotel_pickup = '1';
+            }
+            return params;
         }
 
         /* ---------- Trạng thái hiển thị ---------- */
@@ -143,6 +401,23 @@
             }
             if (state.categoryId && categoryNames[state.categoryId]) {
                 parts.push(categoryNames[state.categoryId]);
+            }
+            if (state.date) {
+                parts.push('ngày ' + formatDay(state.date));
+            }
+            if (state.priceMin !== '' || state.priceMax !== '') {
+                parts.push(priceText(state.priceMin, state.priceMax));
+            }
+            if (state.duration) {
+                parts.push(durationLabel(state.duration).toLowerCase());
+            }
+            if (state.language && languageNames[state.language]) {
+                // "Tiếng Anh" → "hướng dẫn tiếng Anh"
+                var languageName = String(languageNames[state.language]);
+                parts.push('hướng dẫn ' + languageName.charAt(0).toLowerCase() + languageName.slice(1));
+            }
+            if (state.hotelPickup) {
+                parts.push('đón tại khách sạn');
             }
             return parts;
         }
@@ -194,14 +469,6 @@
 
         function hasPrice(tour) {
             return typeof tour.price_text === 'string' && tour.price_text !== '';
-        }
-
-        function disabledAction(iconName, label) {
-            return $('<button>')
-                .attr({ type: 'button', title: label + ' – sắp có', 'aria-label': label + ' (sắp có)' })
-                .prop('disabled', true)
-                .addClass('lt-action')
-                .append(LT.icon(iconName), $('<span>').addClass('lt-action__label').text(label));
         }
 
         /** Nút chọn / bỏ so sánh (compare.js xử lý bấm và trạng thái đã chọn). */
@@ -318,14 +585,17 @@
                     .text('Xem chi tiết')
             );
 
-            // Thích / Bình luận / Chia sẻ / Lưu tour: chưa làm, luôn tắt. So sánh tour (FR-15, Sprint 5): compare.js.
-            var $social = $('<div>').addClass('lt-tour-card__social').attr({ role: 'group', 'aria-label': 'Tương tác (sắp có)' }).append(
-                disabledAction('heart', 'Thích'),
-                disabledAction('message', 'Bình luận'),
-                disabledAction('share', 'Chia sẻ'),
-                disabledAction('bookmark', 'Lưu tour'),
-                LT.soonBadge()
-            );
+            // Thích / Bình luận / Chia sẻ / Lưu tour (CR3): khối trống, tour-social.js điền nút khi nhận
+            // 'lt:tours-rendered'. So sánh tour (FR-15, Sprint 5): compare.js.
+            var $social = $('<div>').addClass('lt-card-social js-tour-social').attr({
+                'data-tour-id': tourId,
+                'data-variant': 'card',
+                'data-tour-title': String(tour.title || ''),
+                'data-tour-url': LT.url('/tours/' + encodeURIComponent(tourId))
+            });
+            if (!tourId) {
+                $social.removeClass('js-tour-social');
+            }
             var $actions = $('<div>').addClass('lt-tour-card__actions').append(
                 $social,
                 compareAction(tour, tourId)
@@ -348,7 +618,7 @@
             $feed.empty();
             if (!tours.length) {
                 $emptyText.text(hasFilters()
-                    ? 'Thử từ khóa khác hoặc chọn điểm đến, loại hình khác nhé.'
+                    ? 'Thử bỏ bớt bộ lọc, chọn ngày khác hoặc đổi từ khóa nhé. Bấm “Xóa bộ lọc” để xem mọi tour.'
                     : 'Hiện chưa có tour nào đang mở. Vui lòng quay lại sau.');
                 $('#tour-clear-filters').prop('hidden', !hasFilters());
                 setCount('Không có tour');
@@ -378,6 +648,8 @@
             if (window.LocalTourCompare) {
                 window.LocalTourCompare.sync();
             }
+            // tour-social.js (CR3) điền nút Thích / Bình luận / Chia sẻ / Lưu vào các khối .js-tour-social mới.
+            $(document).trigger('lt:tours-rendered');
         }
 
         /* ---------- AJAX ---------- */
@@ -398,6 +670,7 @@
             if (state.categoryId) {
                 params.category_id = state.categoryId;
             }
+            $.extend(params, advancedParams());
 
             showState('loading');
             $count.empty().text('Đang tải tour…');
@@ -546,6 +819,8 @@
             window.clearTimeout(searchTimer);
             state.q = '';
             state.categoryId = '';
+            state.date = '';
+            clearAdvanced();
             state.destinationId = LT.normaliseId($(this).attr('data-destination-id'));
             syncControls();
             refresh();
@@ -591,9 +866,120 @@
             state.q = '';
             state.destinationId = '';
             state.categoryId = '';
+            state.date = '';
+            clearAdvanced();
             syncControls();
             refresh();
             $searchInput.trigger('focus');
+        });
+
+        /* Ngày đi: áp dụng ngay khi chọn được ngày hợp lệ; ngày gõ dở / ngoài khoảng thì trả lại ngày đang lọc khi rời ô. */
+        $date.on('change', function () {
+            var value = String($date.val() || '');
+            if (value === state.date) {
+                return;
+            }
+            if (value === '' || isValidDate(value)) {
+                state.date = value;
+                syncDateAndBadge();
+                refresh();
+            }
+        });
+
+        $date.on('blur', function () {
+            if (String($date.val() || '') !== state.date) {
+                $date.val(state.date);
+            }
+        });
+
+        $dateClear.on('click', function () {
+            state.date = '';
+            syncDateAndBadge();
+            refresh();
+            $date.trigger('focus');
+        });
+
+        /* Bảng "Bộ lọc" */
+        $moreToggle.on('click', function () {
+            if (isPanelOpen()) {
+                closePanel(false);
+            } else {
+                openPanel();
+            }
+        });
+
+        $('#filter-panel-close').on('click', function () {
+            closePanel(true);
+        });
+
+        $panel.on('keydown', function (event) {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                closePanel(true);
+            }
+        });
+
+        $panel.on('submit', function (event) {
+            event.preventDefault();
+            applyPanel();
+        });
+
+        $('#filter-panel-reset').on('click', function () {
+            clearAdvanced();
+            closePanel(true);
+            syncDateAndBadge();
+            refresh();
+        });
+
+        $pricePresets.on('click', function () {
+            var $preset = $(this);
+            if ($preset.attr('aria-pressed') === 'true') {
+                $priceMin.val('');
+                $priceMax.val('');
+            } else {
+                $priceMin.val(groupDigits(String($preset.attr('data-min') || '')));
+                $priceMax.val(groupDigits(String($preset.attr('data-max') || '')));
+            }
+            showPanelError('');
+            syncPricePresets();
+        });
+
+        $durationInputs.on('change', syncDurationChips);
+
+        $priceMin.add($priceMax).on('input', function () {
+            showPanelError('');
+            syncPricePresets();
+        }).on('blur', function () {
+            // Gõ "500000" → hiện "500.000"; giá trị sai giữ nguyên để báo lỗi khi bấm "Áp dụng".
+            var parsed = parsePrice($(this).val());
+            if (parsed !== null) {
+                $(this).val(groupDigits(parsed));
+            }
+        });
+
+        /* Bấm lùi / tiến của trình duyệt: đọc lại mọi bộ lọc trên URL. */
+        $(window).on('popstate', function () {
+            var params = new URLSearchParams(window.location.search);
+            var sort = params.get('sort');
+            var next = $.extend({
+                q: String(params.get('q') || '').trim().slice(0, QUERY_MAX_LENGTH),
+                destinationId: LT.normaliseId(params.get('destination_id')),
+                categoryId: LT.normaliseId(params.get('category_id')),
+                sort: SORTS.indexOf(sort) !== -1 ? sort : DEFAULT_SORT
+            }, readAdvanced(params));
+            var changed = false;
+            $.each(next, function (key, value) {
+                if (state[key] !== value) {
+                    changed = true;
+                }
+            });
+            if (!changed) {
+                return;
+            }
+            window.clearTimeout(searchTimer);
+            state = next;
+            syncControls();
+            loadTours();
         });
 
         /* ---------- Khởi động ---------- */
