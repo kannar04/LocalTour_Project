@@ -1,5 +1,5 @@
 /*
- * LocalTour – tour-social.js (CR3, Nguyễn Minh Thức)
+ * LocalTour – tour-social.js (CR2, Nguyễn Minh Thức)
  * Thích / Bình luận / Chia sẻ / Lưu tour.
  *  - Khối .js-tour-social (data-tour-id, data-variant = "card" | "detail", data-tour-title, data-tour-url) được điền
  *    nút khi trang tải xong và sau sự kiện 'lt:tours-rendered' (tour-list.js vẽ lại thẻ tour).

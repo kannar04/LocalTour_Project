@@ -4,7 +4,7 @@
  * Bảng tin du lịch – khung trang danh sách tour (UIEx1, Nguyễn Tuấn Khôi).
  * Không in dữ liệu tour ở đây: tour-list.js tải /api/destinations, /api/categories và /api/tours bằng AJAX.
  * Biến: $title, $initialQuery (string), $initialDestinationId, $initialCategoryId (UUID, '' = tất cả).
- * Ngày đi + Bộ lọc nâng cao (CR3, Lê Trung Phong): $dateMin, $dateMax (Y-m-d), $durationOptions, $languageOptions
+ * Ngày đi + Bộ lọc nâng cao (CR2, Lê Trung Phong): $dateMin, $dateMax (Y-m-d), $durationOptions, $languageOptions
  * (mã → nhãn; ngôn ngữ đang có tour), $allLanguages (mọi mã hợp lệ), $priceMax. Giá trị đang lọc nằm trên URL,
  * tour-list.js đọc và điền vào các ô.
  */

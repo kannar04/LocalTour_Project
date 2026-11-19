@@ -21,7 +21,7 @@ use Core\Router;
  * lý do từ chối / hủy, danh sách khách và chính sách hủy đã áp dụng.
  * Sprint 4: phụ thu / tùy chọn đã chọn, hạn và nút thanh toán, kết quả VNPay / VietQR / MoMo (?pay=), voucher và lịch sử đơn.
  * Sprint 5: gói tour đã chọn và lối vào "Đổi ngày / hủy tour" (ChangeRequestController).
- * CR3 (FR-16): thẻ "Đánh giá tour" trên trang đơn đã hoàn thành (form gửi tới ReviewController) và nhắc
+ * CR2 (FR-16): thẻ "Đánh giá tour" trên trang đơn đã hoàn thành (form gửi tới ReviewController) và nhắc
  * "Viết đánh giá" trong danh sách đơn.
  * Đơn quá hạn thanh toán được tự hủy trước khi mở trang (4.5.4.1).
  * Chế độ khách được chuyển tới đăng nhập; đơn của tài khoản khác hiện "Không tìm thấy đơn" (không lộ đơn).

@@ -11,7 +11,7 @@ use Core\Controller;
 use Core\Router;
 
 /**
- * Đánh giá sao của khách hàng (FR-16, CR3 – Nguyễn Tuấn Khôi): gửi hoặc sửa đánh giá cho đơn đã hoàn thành.
+ * Đánh giá sao của khách hàng (FR-16, CR2 – Nguyễn Tuấn Khôi): gửi hoặc sửa đánh giá cho đơn đã hoàn thành.
  * Form nằm trên trang chi tiết đơn (bookings/show.php, thẻ "Đánh giá tour"); gửi xong quay lại trang đơn kèm thông báo.
  * Thông báo và nội dung khách đã nhập (khi có lỗi) được giữ một lần trong session (pullFlash()), không đưa lên URL.
  * Đánh giá mới hoặc vừa sửa chờ quản trị viên duyệt (AdminReviewController); đánh giá đã duyệt không sửa được.

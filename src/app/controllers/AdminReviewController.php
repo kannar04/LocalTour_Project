@@ -7,7 +7,7 @@ namespace App\Controllers;
 use App\Models\ReviewModel;
 
 /**
- * Duyệt đánh giá sao (FR-16, CR3 – Nguyễn Tuấn Khôi): danh sách theo trạng thái kiểm duyệt, tìm theo mã đơn / tour /
+ * Duyệt đánh giá sao (FR-16, CR2 – Nguyễn Tuấn Khôi): danh sách theo trạng thái kiểm duyệt, tìm theo mã đơn / tour /
  * khách, chia trang. Duyệt đánh giá chờ duyệt; từ chối (bắt buộc lý do) hoặc gỡ đánh giá đã đăng.
  * Chỉ đánh giá "Đã duyệt" hiện trên trang tour và được tính vào điểm trung bình. Mỗi lần xử lý ghi admin_logs (NFR-09).
  * Thao tác ngay trên trang danh sách; xử lý xong quay về đúng bộ lọc, từ khóa và trang đang xem.

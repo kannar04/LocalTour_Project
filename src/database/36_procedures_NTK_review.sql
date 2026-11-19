@@ -1,6 +1,6 @@
 -- =====================================================================
 -- LocalTour v0.7 - 36_procedures_NTK_review.sql
--- Mục đích  : Đánh giá sao (FR-16, CR3): khách hàng chấm 1–5 sao và viết nhận xét cho đơn đã
+-- Mục đích  : Đánh giá sao (FR-16, CR2): khách hàng chấm 1–5 sao và viết nhận xét cho đơn đã
 --             hoàn thành; quản trị viên duyệt trước khi đánh giá hiện trên trang tour.
 -- Phụ trách : Nguyễn Tuấn Khôi (NTK)
 -- Procedures: NTK_sp_review_get, NTK_sp_review_save, NTK_sp_review_state_list,
@@ -19,7 +19,7 @@
 --               (bắt buộc lý do); 'approved' -> 'rejected' (gỡ đánh giá đã đăng, bắt buộc lý do).
 --               Mỗi lần xử lý ghi admin_logs (target_type 'review', NFR-09) trong cùng transaction.
 --             Tham số chuỗi được so sánh với COLLATE utf8mb4_unicode_ci; không có DEFINER.
--- Chạy sau  : 01 -> 33 (33_migration_cr3_NTK.sql thêm reviews.created_at, moderated_by,
+-- Chạy sau  : 01 -> 33 (33_migration_cr2_NTK.sql thêm reviews.created_at, moderated_by,
 --             moderated_at, moderation_note). Chạy lại được (DROP PROCEDURE IF EXISTS).
 -- =====================================================================
 

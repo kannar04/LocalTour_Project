@@ -5,10 +5,10 @@
  * $sidebarMode = 'column' (mặc định, trang danh sách): cột trái trên desktop (nút "Menu" ẩn/hiện cột, nhớ trong
  *                localStorage), panel thu gọn trên mobile;
  *                'mobile' (các trang khác): panel thu gọn dưới 992px; từ 992px là ngăn menu nổi dưới header,
- *                mở bằng nút "Menu" (CR3).
- * Mục: Bảng tin, "Đơn của tôi" và "Tour đã lưu" (CR3, /tour-da-luu) (chỉ tài khoản khách hàng), "So sánh tour"
+ *                mở bằng nút "Menu" (CR2).
+ * Mục: Bảng tin, "Đơn của tôi" và "Tour đã lưu" (CR2, /tour-da-luu) (chỉ tài khoản khách hàng), "So sánh tour"
  * (FR-15, Sprint 5: compare.js gắn các tour đã chọn vào link .js-compare-link), "Bản đồ" (/ban-do, điểm khởi hành
- * của các tour), "Tài khoản" (CR3, /tai-khoan, chỉ tài khoản khách hàng) và "Dành cho đơn vị tổ chức"
+ * của các tour), "Tài khoản" (CR2, /tai-khoan, chỉ tài khoản khách hàng) và "Dành cho đơn vị tổ chức"
  * (/host/login; chỉ hiện khi chưa đăng nhập). Cuối thanh: "Trợ giúp" (/tro-giup) · "Điều khoản" (/dieu-khoan).
  * Danh sách #sidebar-destinations được JS điền từ /api/destinations
  * (tour-list.js ở chế độ 'column', app.js tải khi mở panel ở chế độ 'mobile').

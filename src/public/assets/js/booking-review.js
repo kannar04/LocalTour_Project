@@ -1,6 +1,6 @@
 /*
  * LocalTour – booking-review.js (Nguyễn Tuấn Khôi)
- * Thẻ "Đánh giá tour" trên trang đơn (FR-16, CR3): tô các sao tới số sao đã chọn, hiện lời mô tả (Tệ … Tuyệt vời)
+ * Thẻ "Đánh giá tour" trên trang đơn (FR-16, CR2): tô các sao tới số sao đã chọn, hiện lời mô tả (Tệ … Tuyệt vời)
  * và đếm ký tự nhận xét. Không có JavaScript thì form vẫn gửi được (server kiểm tra lại mọi ô).
  */
 (function ($) {

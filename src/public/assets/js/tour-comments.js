@@ -1,5 +1,5 @@
 /*
- * LocalTour – tour-comments.js (CR3 – Nguyễn Minh Thức)
+ * LocalTour – tour-comments.js (CR2 – Nguyễn Minh Thức)
  * Mục "Bình luận" trên trang chi tiết tour (views/tours/comments-section.php):
  *   - tải bình luận qua GET /api/tours/{id}/comments?page=N (10 bình luận mỗi lần, mới nhất trước), nút "Xem thêm";
  *   - tài khoản khách hàng gửi bình luận (POST /api/tours/{id}/comments, 1–1000 ký tự) và xóa bình luận của mình

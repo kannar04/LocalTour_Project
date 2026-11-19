@@ -3,7 +3,7 @@
  * Bảng tin du lịch: tải /api/destinations, /api/categories và /api/tours bằng AJAX, hiển thị skeleton /
  * thẻ tour / trạng thái rỗng / lỗi; tìm kiếm, lọc điểm đến và loại hình (theo ID), sắp xếp không tải lại
  * trang và giữ URL đồng bộ.
- * CR3 (Lê Trung Phong): ô "Ngày đi" và bảng "Bộ lọc" (khoảng giá, thời lượng, ngôn ngữ hướng dẫn, đón tại khách sạn).
+ * CR2 (Lê Trung Phong): ô "Ngày đi" và bảng "Bộ lọc" (khoảng giá, thời lượng, ngôn ngữ hướng dẫn, đón tại khách sạn).
  * Mọi bộ lọc nằm trên URL (date, price_min, price_max, duration, language, hotel_pickup) và được đọc lại khi tải
  * trang hoặc khi bấm lùi / tiến. Thẻ tour có khối trống .js-tour-social để tour-social.js điền nút Thích / Bình luận /
  * Chia sẻ / Lưu; sau mỗi lần dựng danh sách, file này phát sự kiện 'lt:tours-rendered' trên document.
@@ -23,7 +23,7 @@
     var REQUEST_TIMEOUT_MS = 15000;
     var GENERIC_ERROR = 'Máy chủ đang bận hoặc mất kết nối. Vui lòng thử lại sau ít phút.';
     var TIMEOUT_ERROR = 'Máy chủ phản hồi quá lâu. Vui lòng thử lại.';
-    // Bộ lọc CR3: mã thời lượng giống TourListModel::DURATIONS; giá tối đa 9 chữ số.
+    // Bộ lọc CR2: mã thời lượng giống TourListModel::DURATIONS; giá tối đa 9 chữ số.
     var DURATIONS = ['short', 'medium', 'long'];
     var DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
     var PRICE_DIGITS_MAX = 9;
@@ -50,7 +50,7 @@
         var $errorMessage = $('#tour-error-message');
         var $sidebar = $('#lt-sidebar');
         var $sidebarList = $('#sidebar-destinations');
-        // Ngày đi + Bộ lọc (CR3)
+        // Ngày đi + Bộ lọc (CR2)
         var $date = $('#filter-date');
         var $dateClear = $('#filter-date-clear');
         var $moreToggle = $('#filter-more-toggle');
@@ -91,7 +91,7 @@
         var currentRequest = null;
         var searchTimer = null;
 
-        /* ---------- Ngày đi + Bộ lọc nâng cao (CR3) ---------- */
+        /* ---------- Ngày đi + Bộ lọc nâng cao (CR2) ---------- */
 
         /** 'YYYY-MM-DD' có thật và nằm trong khoảng ô "Ngày đi" cho chọn (hôm nay → 365 ngày tới). */
         function isValidDate(value) {
@@ -585,7 +585,7 @@
                     .text('Xem chi tiết')
             );
 
-            // Thích / Bình luận / Chia sẻ / Lưu tour (CR3): khối trống, tour-social.js điền nút khi nhận
+            // Thích / Bình luận / Chia sẻ / Lưu tour (CR2): khối trống, tour-social.js điền nút khi nhận
             // 'lt:tours-rendered'. So sánh tour (FR-15, Sprint 5): compare.js.
             var $social = $('<div>').addClass('lt-card-social js-tour-social').attr({
                 'data-tour-id': tourId,
@@ -648,7 +648,7 @@
             if (window.LocalTourCompare) {
                 window.LocalTourCompare.sync();
             }
-            // tour-social.js (CR3) điền nút Thích / Bình luận / Chia sẻ / Lưu vào các khối .js-tour-social mới.
+            // tour-social.js (CR2) điền nút Thích / Bình luận / Chia sẻ / Lưu vào các khối .js-tour-social mới.
             $(document).trigger('lt:tours-rendered');
         }
 

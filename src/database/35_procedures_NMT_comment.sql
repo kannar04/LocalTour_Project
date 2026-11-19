@@ -1,12 +1,12 @@
 -- =====================================================================
 -- LocalTour v0.7 - 35_procedures_NMT_comment.sql
--- Mục đích  : Bình luận trên trang tour (CR3): khách xem bình luận, tài khoản khách hàng viết và
+-- Mục đích  : Bình luận trên trang tour (CR2): khách xem bình luận, tài khoản khách hàng viết và
 --             tự xóa bình luận của mình; quản trị viên ẩn / hiện lại bình luận (trang "Bình luận").
 -- Phụ trách : Nguyễn Minh Thức (NMT)
 -- Procedures: NMT_sp_tour_comment_list, NMT_sp_tour_comment_count, NMT_sp_tour_comment_create,
 --             NMT_sp_tour_comment_delete_own, NMT_sp_admin_comment_list,
 --             NMT_sp_admin_comment_set_status
--- Quy tắc   : Bảng tour_comments (33_migration_cr3_NTK.sql).
+-- Quy tắc   : Bảng tour_comments (33_migration_cr2_NTK.sql).
 --             Tour đang hiển thị = tours.approval_status = 'approved' VÀ providers.approval_status =
 --             'approved' VÀ users.status = 'active' (tài khoản của nhà cung cấp), như trang chi tiết
 --             tour (file 04). Tour khác hoặc không tồn tại: không đọc / viết bình luận được.

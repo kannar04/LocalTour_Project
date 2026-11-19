@@ -9,7 +9,7 @@ use Core\Auth;
 use Core\Controller;
 
 /**
- * Thích / Lưu tour / Chia sẻ và trang "Tour đã lưu" (CR3 – Nguyễn Minh Thức).
+ * Thích / Lưu tour / Chia sẻ và trang "Tour đã lưu" (CR2 – Nguyễn Minh Thức).
  * Mọi người (kể cả khách chưa đăng nhập) xem được số lượt thích và số bình luận; chỉ tài khoản khách hàng
  * thích / lưu được. Chia sẻ làm hoàn toàn ở trình duyệt (tour-social.js), không cần endpoint.
  *

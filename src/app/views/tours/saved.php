@@ -1,7 +1,7 @@
 <?php declare(strict_types=1); ?>
 <?php
 /*
- * "Tour đã lưu" (CR3 – Nguyễn Minh Thức): các tour tài khoản khách hàng đã bấm "Lưu", lưu gần nhất trước.
+ * "Tour đã lưu" (CR2 – Nguyễn Minh Thức): các tour tài khoản khách hàng đã bấm "Lưu", lưu gần nhất trước.
  * Biến: $tours (TourSocialController::presentSaved()), $title.
  * Nút "Bỏ lưu" (.js-saved-remove) do tour-social.js gửi POST /api/tours/{id}/save (saved=0) rồi gỡ thẻ.
  * Tour đã ngừng hiển thị vẫn nằm trong danh sách (mờ, không có link) để khách bỏ lưu.

@@ -7,7 +7,7 @@ namespace App\Controllers;
 use App\Models\TourCommentModel;
 
 /**
- * Trang "Bình luận" của quản trị viên (CR3 – Nguyễn Minh Thức): xem bình luận của khách trên các tour, lọc theo
+ * Trang "Bình luận" của quản trị viên (CR2 – Nguyễn Minh Thức): xem bình luận của khách trên các tour, lọc theo
  * trạng thái, tìm theo nội dung / người viết / tên tour; ẩn bình luận (bắt buộc lý do) hoặc hiện lại.
  * Bình luận bị ẩn không còn hiện trên trang tour. Mỗi lần ẩn / hiện được ghi vào admin_logs (file 35).
  */

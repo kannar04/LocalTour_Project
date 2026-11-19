@@ -8,7 +8,7 @@ use App\Models\SettingModel;
 use Core\Controller;
 
 /**
- * Trang thông tin chung (CR3 – Nguyễn Tuấn Khôi): "Trợ giúp" (GET /tro-giup, câu hỏi thường gặp) và
+ * Trang thông tin chung (CR2 – Nguyễn Tuấn Khôi): "Trợ giúp" (GET /tro-giup, câu hỏi thường gặp) và
  * "Điều khoản sử dụng" (GET /dieu-khoan). Khách chưa đăng nhập và mọi vai trò đều xem được.
  * Thời gian giữ chỗ, hạn nhận đặt, hạn nhận chuyển khoản VietQR và % phí dịch vụ lấy từ "Thông số vận hành"
  * (SettingModel, NTK_sp_setting_list); thiếu dòng thì dùng giá trị mặc định như các procedure.

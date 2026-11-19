@@ -298,7 +298,7 @@ summary:focus-visible,
     font-size: 1.375rem;
 }
 
-/* Ảnh đại diện (CR3): <img class="lt-avatar lt-avatar--img">, cắt vuông giữa ảnh. */
+/* Ảnh đại diện (CR2): <img class="lt-avatar lt-avatar--img">, cắt vuông giữa ảnh. */
 .lt-avatar--img {
     display: inline-block;
     object-fit: cover;
@@ -544,7 +544,7 @@ summary:focus-visible,
     min-width: 0;
 }
 
-/* Tài khoản khách hàng (CR3): tên / ảnh là link tới /tai-khoan. */
+/* Tài khoản khách hàng (CR2): tên / ảnh là link tới /tai-khoan. */
 a.lt-header-user--link {
     /* Lề âm bù phần đệm: nền khi rê chuột không làm header rộng thêm. */
     margin: -3px -6px -3px -3px;
@@ -586,7 +586,7 @@ a.lt-header-user--link:focus-visible {
     color: var(--lt-teal);
 }
 
-/* Cột trái đang hiện là trạng thái thường của bảng tin: nút "Menu" không tô màu (CR3). */
+/* Cột trái đang hiện là trạng thái thường của bảng tin: nút "Menu" không tô màu (CR2). */
 .lt-header-btn.js-menu-desktop[data-menu-mode="column"][aria-expanded="true"]:not(:hover) {
     border-color: var(--lt-border);
     background: #fff;
@@ -612,12 +612,12 @@ a.lt-header-user--link:focus-visible {
         max-width: var(--lt-col-sidebar);
     }
 
-    /* Nút "Menu" trên máy tính (CR3): ẩn cột trái của bảng tin, cột nội dung (col-lg) giãn ra. */
+    /* Nút "Menu" trên máy tính (CR2): ẩn cột trái của bảng tin, cột nội dung (col-lg) giãn ra. */
     body.lt-sidebar-hidden .lt-col-sidebar {
         display: none;
     }
 
-    /* Trang khác (CR3): thanh bên là ngăn menu nổi dưới header, mở bằng nút "Menu". */
+    /* Trang khác (CR2): thanh bên là ngăn menu nổi dưới header, mở bằng nút "Menu". */
     .lt-sidebar--mobile {
         position: fixed;
         top: calc(var(--lt-header-h) + 8px);
@@ -925,7 +925,7 @@ a.lt-linklike.is-active {
 .lt-icon--star { --lt-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'%3E%3Cpolygon points='12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'/%3E%3C/svg%3E"); }
 .lt-icon--clipboard { --lt-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2'/%3E%3Crect x='8' y='2' width='8' height='4' rx='1' ry='1'/%3E%3C/svg%3E"); }
 :root { --lt-star-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'%3E%3Cpolygon points='12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'/%3E%3C/svg%3E"); }
-/* CR3 (Nguyễn Tuấn Khôi): biểu tượng cho Thích / Lưu / Chia sẻ / Tài khoản / Trợ giúp / Bộ lọc. */
+/* CR2 (Nguyễn Tuấn Khôi): biểu tượng cho Thích / Lưu / Chia sẻ / Tài khoản / Trợ giúp / Bộ lọc. */
 .lt-icon--heart-fill { --lt-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z'/%3E%3C/svg%3E"); }
 .lt-icon--bookmark-fill { --lt-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z'/%3E%3C/svg%3E"); }
 .lt-icon--link { --lt-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71'/%3E%3Cpath d='M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'/%3E%3C/svg%3E"); }

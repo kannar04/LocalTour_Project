@@ -8,7 +8,7 @@ use Core\Database;
 use Throwable;
 
 /**
- * Trang "Tài khoản" của khách hàng (CR3 – Lê Trung Phong): họ tên, số điện thoại, số CCCD, ngày sinh, giới tính,
+ * Trang "Tài khoản" của khách hàng (CR2 – Lê Trung Phong): họ tên, số điện thoại, số CCCD, ngày sinh, giới tính,
  * địa chỉ, ảnh đại diện và mật khẩu.
  * Procedure: LTP_sp_account_get, LTP_sp_account_update_profile, LTP_sp_account_set_avatar,
  *            LTP_sp_account_get_password_hash, LTP_sp_account_set_password (37_procedures_LTP_account.sql;

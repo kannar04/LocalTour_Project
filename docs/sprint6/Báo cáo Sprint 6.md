@@ -15,7 +15,7 @@ Mục tiêu Sprint 6 là hoàn thiện bản demo, tài liệu hướng dẫn, k
 | Installation Guide | Đã hoàn thiện hướng dẫn cài đặt và cấu hình | Hoàn thành |
 | User Guide | Đã hoàn thiện hướng dẫn cho khách hàng, quản trị viên và đơn vị tổ chức | Hoàn thành |
 | Đóng gói demo | Đã chuẩn bị mã nguồn, database mẫu và công cụ hỗ trợ cài đặt | Hoàn thành |
-| Thử cài đặt | Đã thử trên máy của nhóm và máy chủ demo; chưa có biên bản trên máy Windows chưa từng chạy LocalTour | Chưa đủ minh chứng |
+| Thử cài đặt (Task 6.4) | Đã thử cài đặt trên máy Windows khác theo xác nhận của Project Manager; repository không bổ sung hồi tố thông số máy hoặc chữ ký | Hoàn thành |
 | Chức năng bổ sung theo CR2 | Đã triển khai và cập nhật tài liệu liên quan | Hoàn thành |
 | UAT chính thức | Đã bàn giao bản demo và checklist cho nhóm PCG | Chờ kết quả |
 | Sửa lỗi từ UAT | Chưa có defect log chính thức để xử lý | Chưa hoàn thành |
@@ -55,7 +55,6 @@ Kết quả kiểm thử nội bộ chỉ dùng để kiểm tra trước UAT, k
 
 | Công việc | Tình trạng | Hướng xử lý |
 |---|---|---|
-| Biên bản thử cài đặt trên máy Windows chưa từng chạy LocalTour | Chưa có biên bản hoàn chỉnh | Chuyển sang task 7.5 |
 | 6.5 – Thực hiện UAT | Chưa nhận đủ kết quả từng ca và biên bản | Thực hiện đầu Sprint 7 |
 | 6.6 – Sửa lỗi chặn UAT | Chưa có defect log chính thức | Xử lý sau khi nhận kết quả UAT |
 | 6.7 – Tổng hợp nghiệm thu | Chưa đủ dữ liệu để kết luận | Hoàn thành sau UAT và retest |
@@ -102,7 +101,7 @@ Sprint 7 diễn ra từ ngày 20/11/2026 đến ngày 26/11/2026. Mục tiêu ch
 | 7.2 | Chốt Risk, Issue và Change | Hải, Thành | 20–21/11 |
 | 7.3 | Tổng hợp bài học kinh nghiệm | Hải, Thành | 22–23/11 |
 | 7.4 | Hoàn thiện báo cáo tổng kết dự án | Hải, Thành | 23–24/11 |
-| 7.5 | Kiểm tra gói bàn giao và thử cài trên máy mới | Phong, Thức, Khôi | 24–25/11 |
+| 7.5 | Kiểm tra tính đầy đủ của gói bàn giao và đối chiếu hướng dẫn cài đặt | Phong, Thức, Khôi | 24–25/11 |
 | 7.6 | Chuẩn bị slide và tổng duyệt | Hải, Thành | 25/11 |
 | 7.7 | Hoàn thiện hồ sơ và nộp báo cáo | Hải, Thành | 26/11 |
 
@@ -110,4 +109,4 @@ Nếu chưa nhận được kết quả UAT, nhóm giữ I17 ở trạng thái c
 
 ## 9. Kết luận
 
-Sprint 6 đã hoàn thành bản demo, tài liệu và nhóm chức năng bổ sung theo CR2. Hệ thống đã được kiểm thử nội bộ với 64 ca. Phần thử cài đặt trên máy mới, UAT và nghiệm thu chính thức được chuyển sang Sprint 7 để hoàn tất.
+Sprint 6 đã hoàn thành bản demo, tài liệu, nhóm chức năng bổ sung theo CR2 và Task 6.4 thử cài đặt trên máy Windows khác. Hệ thống được ghi nhận đã chạy thử nội bộ 64 ca nhưng chưa có kết quả từng ca trong repository. UAT và nghiệm thu chính thức vẫn chờ dữ liệu xác nhận từ nhóm PCG.

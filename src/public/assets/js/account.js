@@ -1,5 +1,5 @@
 /*
- * LocalTour – account.js (CR3 – Lê Trung Phong)
+ * LocalTour – account.js (CR2 – Lê Trung Phong)
  * Trang "Tài khoản": xem trước ảnh đại diện và kiểm tra loại / dung lượng / kích thước ngay khi chọn file
  * (máy chủ vẫn kiểm tra lại), hỏi lại trước khi xóa ảnh, nút hiện / ẩn mật khẩu.
  * Dữ liệu chỉ đưa vào DOM bằng .text() / .attr().

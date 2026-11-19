@@ -1,6 +1,6 @@
 -- =====================================================================
--- LocalTour v0.7 - 33_migration_cr3_NTK.sql
--- Mục đích  : Bảng và cột mới cho các chức năng của CR3 (tương tác với tour, đánh giá, tài khoản):
+-- LocalTour v0.7 - 33_migration_cr2_NTK.sql
+-- Mục đích  : Bảng và cột mới cho các chức năng của CR2 (tương tác với tour, đánh giá, tài khoản):
 --   1. tour_likes      : lượt "Thích" của tài khoản khách hàng trên tour (mỗi tài khoản – tour một dòng).
 --   2. tour_comments   : bình luận của tài khoản khách hàng trên trang tour. status 'visible' = đang
 --        hiển thị; 'hidden' = quản trị viên đã ẩn (kèm người ẩn, thời điểm, lý do). Người viết tự xóa
@@ -66,10 +66,10 @@ ALTER TABLE users
     ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(255) NULL;
 
 -- Khóa ngoại đã có thì MariaDB báo lỗi 1005: kiểm tra trong information_schema trước (như file 31).
-DROP PROCEDURE IF EXISTS NTK_sp_migrate_cr3;
+DROP PROCEDURE IF EXISTS NTK_sp_migrate_cr2;
 
 DELIMITER $$
-CREATE PROCEDURE NTK_sp_migrate_cr3()
+CREATE PROCEDURE NTK_sp_migrate_cr2()
 MODIFIES SQL DATA
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.TABLE_CONSTRAINTS
@@ -83,5 +83,5 @@ BEGIN
 END$$
 DELIMITER ;
 
-CALL NTK_sp_migrate_cr3();
-DROP PROCEDURE IF EXISTS NTK_sp_migrate_cr3;
+CALL NTK_sp_migrate_cr2();
+DROP PROCEDURE IF EXISTS NTK_sp_migrate_cr2;

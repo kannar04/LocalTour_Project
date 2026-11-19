@@ -1,7 +1,7 @@
 <?php declare(strict_types=1); ?>
 <?php
 /*
- * Mục "Bình luận" trên trang chi tiết tour (CR3 – Nguyễn Minh Thức). show.php require file này ngay sau mục "Đánh giá".
+ * Mục "Bình luận" trên trang chi tiết tour (CR2 – Nguyễn Minh Thức). show.php require file này ngay sau mục "Đánh giá".
  * Biến dùng từ show.php: $tour (tour_id), $tourPath ('/tours/<uuid>').
  * Danh sách bình luận do tour-comments.js tải qua GET /api/tours/{id}/comments (mỗi lần 10 bình luận, mới nhất trước).
  * Tài khoản khách hàng: ô viết bình luận (1–1000 ký tự). Khách chưa đăng nhập: nút đăng nhập, quay lại đúng mục này.

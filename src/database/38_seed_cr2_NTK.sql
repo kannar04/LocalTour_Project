@@ -1,13 +1,13 @@
 -- =====================================================================
--- LocalTour v0.7 - 38_seed_cr3_NTK.sql
--- Mục đích  : Dữ liệu mẫu cho các chức năng của CR3: lượt "Thích" (tour_likes) và bình luận
+-- LocalTour v0.7 - 38_seed_cr2_NTK.sql
+-- Mục đích  : Dữ liệu mẫu cho các chức năng của CR2: lượt "Thích" (tour_likes) và bình luận
 --             (tour_comments) trên các tour đang hiển thị, để trang danh sách và trang chi tiết
 --             có số liệu ngay sau khi cài đặt. Có một bình luận đã bị quản trị viên ẩn (minh họa
 --             kiểm duyệt). Tour đã lưu (favorite_tours) và đánh giá mới để trống: người kiểm thử tự
 --             tạo bằng tài khoản của mình.
 --             TẤT CẢ là dữ liệu MINH HỌA của các tài khoản mẫu trong 02_seed.sql.
 -- Phụ trách : Nguyễn Tuấn Khôi (NTK)
--- Chạy sau  : 02_seed.sql và 33_migration_cr3_NTK.sql. Chạy lại được (xóa các dòng mẫu cũ rồi
+-- Chạy sau  : 02_seed.sql và 33_migration_cr2_NTK.sql. Chạy lại được (xóa các dòng mẫu cũ rồi
 --             thêm lại). Ngày tháng tính tương đối theo NOW() lúc import.
 -- ID       : tour_likes c6000000 · tour_comments c7000000 (cùng cách đánh số với 02_seed.sql).
 -- =====================================================================

@@ -9,7 +9,7 @@ use Core\Auth;
 use Core\Controller;
 
 /**
- * Bình luận trên trang tour (CR3 – Nguyễn Minh Thức). Endpoint JSON cho tour-comments.js:
+ * Bình luận trên trang tour (CR2 – Nguyễn Minh Thức). Endpoint JSON cho tour-comments.js:
  * mọi người xem bình luận đang hiển thị; tài khoản khách hàng viết bình luận (1–1000 ký tự, tối đa 5 bình luận
  * trong 10 phút) và tự xóa bình luận của mình. Quản trị viên ẩn / hiện lại ở AdminCommentController.
  */

@@ -7,7 +7,7 @@ namespace App\Models;
 use Core\Database;
 
 /**
- * Thích, Lưu tour và "Tour đã lưu" (CR3 – Nguyễn Minh Thức).
+ * Thích, Lưu tour và "Tour đã lưu" (CR2 – Nguyễn Minh Thức).
  * Procedure: NMT_sp_tour_social_state, NMT_sp_tour_like_toggle, NMT_sp_tour_save_toggle,
  *            NMT_sp_saved_tour_list (file 34).
  */

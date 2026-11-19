@@ -8,7 +8,7 @@ namespace Core;
  * Phiên đăng nhập của khách hàng và mã CSRF cho mọi form POST (WBS 3.2.8 – Lê Trung Phong).
  * Chưa đăng nhập = chế độ khách: chỉ xem tour, không đặt được.
  * Session chỉ lưu thông tin hiển thị của tài khoản (user_id, name, email, role, avatar_url), không lưu mật khẩu.
- * CR3 (Lê Trung Phong): thêm avatar_url (ảnh đại diện, đường dẫn trong public/assets/, null = chưa có ảnh) và
+ * CR2 (Lê Trung Phong): thêm avatar_url (ảnh đại diện, đường dẫn trong public/assets/, null = chưa có ảnh) và
  * refresh() để trang "Tài khoản" cập nhật họ tên / ảnh trong session sau khi lưu.
  */
 final class Auth

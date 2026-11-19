@@ -9,7 +9,7 @@ SET NAMES utf8mb4;
 --             board), tổng 27 bảng trong file này (các file migration sau thêm bảng: database
 --             đầy đủ sau file 33 có 39 bảng). Mỗi bảng / cột thêm mới có ghi chú FR mà nó phục vụ.
 --
--- ĐÃ BỎ 2 bảng của ERD: post_comments, post_interactions. Thích / Bình luận của CR3 dùng
+-- ĐÃ BỎ 2 bảng của ERD: post_comments, post_interactions. Thích / Bình luận của CR2 dùng
 --   2 bảng tour_likes, tour_comments do file 33 tạo (gắn thẳng với tour).
 -- Các bảng thông báo, bài đăng tour, yêu thích, so sánh và các bảng danh mục/chi tiết
 -- tour của thiết kế trước đã được triển khai lại theo khóa UUID của lược đồ hiện tại.
@@ -2248,7 +2248,7 @@ INSERT INTO admin_logs (id, actor_user_id, target_type, target_id, action, from_
 --     upcoming   : next_starts_at tăng dần, tour chưa có lịch đặt được xếp cuối
 --     price_asc / price_desc: from_price_vnd, tour chưa có giá (NULL) xếp cuối
 --     Cùng thứ hạng thì xếp theo title, rồi id.
---   Bộ lọc "Ngày đi" và "Bộ lọc" nâng cao (CR3, Lê Trung Phong). NULL = không lọc:
+--   Bộ lọc "Ngày đi" và "Bộ lọc" nâng cao (CR2, Lê Trung Phong). NULL = không lọc:
 --   p_date           : chỉ tour có lịch đặt được (quy tắc ở đầu file) khởi hành trong ngày này.
 --                      schedules.starts_at là giờ Việt Nam (kết nối đặt time_zone '+07:00', file
 --                      core/Database.php) nên so trực tiếp: p_date <= starts_at < p_date + 1 ngày.
@@ -2376,7 +2376,7 @@ BEGIN
                 WHERE s.status = 'open'
                   AND s.starts_at > NOW() + INTERVAL v_cutoff_min MINUTE
                   AND s.remaining > 0
-                  -- Ngày đi (CR3): chỉ lịch khởi hành trong ngày đã chọn
+                  -- Ngày đi (CR2): chỉ lịch khởi hành trong ngày đã chọn
                   AND (p_date IS NULL
                        OR (s.starts_at >= p_date AND s.starts_at < p_date + INTERVAL 1 DAY))
                 GROUP BY s.tour_id) bs
@@ -2409,7 +2409,7 @@ BEGIN
            OR COALESCE(d.name, t.destination) LIKE (v_pattern COLLATE utf8mb4_unicode_ci) ESCAPE '!'
            OR c.name                          LIKE (v_pattern COLLATE utf8mb4_unicode_ci) ESCAPE '!'
            OR p.business_name                 LIKE (v_pattern COLLATE utf8mb4_unicode_ci) ESCAPE '!')
-      -- Bộ lọc CR3
+      -- Bộ lọc CR2
       AND (p_date IS NULL OR bs.tour_id IS NOT NULL)
       AND (p_price_min IS NULL OR bs.from_price_vnd >= p_price_min)
       AND (p_price_max IS NULL OR bs.from_price_vnd <= p_price_max)
@@ -3203,7 +3203,7 @@ DROP PROCEDURE IF EXISTS NTK_sp_tour_image_list;
 -- NTK_sp_tour_review_list(p_tour_id, p_limit)
 --   Chỉ đánh giá moderation_status = 'approved'.
 --   Cột: review_id, reviewer_name (= users.name của tài khoản đã đặt đơn được đánh giá),
---        reviewer_avatar_url (CR3: users.avatar_url, NULL = chưa có ảnh đại diện),
+--        reviewer_avatar_url (CR2: users.avatar_url, NULL = chưa có ảnh đại diện),
 --        rating, content,
 --        tour_date (giờ khởi hành của lịch trong đơn được đánh giá).
 --   Sắp xếp: tour_date mới nhất trước. p_limit NULL hoặc 0 = lấy 5 đánh giá.
@@ -3441,7 +3441,7 @@ DELIMITER ;
 -- NTK_sp_user_find_by_email(p_email)
 --   0 hoặc 1 dòng: tài khoản có email này (không phân biệt hoa thường).
 --   Cột: user_id, name, email, password_hash (NULL = chưa đặt mật khẩu), role, status,
---        avatar_url (CR3: ảnh đại diện, cột thêm ở 33_migration_cr3_NTK.sql; NULL = chưa có ảnh).
+--        avatar_url (CR2: ảnh đại diện, cột thêm ở 33_migration_cr2_NTK.sql; NULL = chưa có ảnh).
 --   Ứng dụng tự kiểm tra role = 'customer', status = 'active' và mật khẩu
 --   (password_verify) trước khi cho đăng nhập.
 -- ---------------------------------------------------------------------
@@ -9685,7 +9685,7 @@ proc: BEGIN
     DELETE FROM tour_packages        WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
     DELETE FROM tour_posts           WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
     DELETE FROM favorite_tours       WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
-    -- CR3 (file 33): lượt thích và bình luận của tour (khóa ngoại RESTRICT).
+    -- CR2 (file 33): lượt thích và bình luận của tour (khóa ngoại RESTRICT).
     DELETE FROM tour_likes           WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
     DELETE FROM tour_comments        WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
     DELETE FROM comparison_tours     WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
@@ -14092,8 +14092,8 @@ BEGIN
 END$$
 DELIMITER ;
 -- =====================================================================
--- LocalTour v0.7 - 33_migration_cr3_NTK.sql
--- Mục đích  : Bảng và cột mới cho các chức năng của CR3 (tương tác với tour, đánh giá, tài khoản):
+-- LocalTour v0.7 - 33_migration_cr2_NTK.sql
+-- Mục đích  : Bảng và cột mới cho các chức năng của CR2 (tương tác với tour, đánh giá, tài khoản):
 --   1. tour_likes      : lượt "Thích" của tài khoản khách hàng trên tour (mỗi tài khoản – tour một dòng).
 --   2. tour_comments   : bình luận của tài khoản khách hàng trên trang tour. status 'visible' = đang
 --        hiển thị; 'hidden' = quản trị viên đã ẩn (kèm người ẩn, thời điểm, lý do). Người viết tự xóa
@@ -14159,10 +14159,10 @@ ALTER TABLE users
     ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(255) NULL;
 
 -- Khóa ngoại đã có thì MariaDB báo lỗi 1005: kiểm tra trong information_schema trước (như file 31).
-DROP PROCEDURE IF EXISTS NTK_sp_migrate_cr3;
+DROP PROCEDURE IF EXISTS NTK_sp_migrate_cr2;
 
 DELIMITER $$
-CREATE PROCEDURE NTK_sp_migrate_cr3()
+CREATE PROCEDURE NTK_sp_migrate_cr2()
 MODIFIES SQL DATA
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.TABLE_CONSTRAINTS
@@ -14176,16 +14176,16 @@ BEGIN
 END$$
 DELIMITER ;
 
-CALL NTK_sp_migrate_cr3();
-DROP PROCEDURE IF EXISTS NTK_sp_migrate_cr3;
+CALL NTK_sp_migrate_cr2();
+DROP PROCEDURE IF EXISTS NTK_sp_migrate_cr2;
 -- =====================================================================
 -- LocalTour v0.7 - 34_procedures_NMT_social.sql
--- Mục đích  : Thích, Lưu tour và số tương tác trên thẻ tour / trang chi tiết tour (CR3):
+-- Mục đích  : Thích, Lưu tour và số tương tác trên thẻ tour / trang chi tiết tour (CR2):
 --   1. Số lượt thích, số bình luận đang hiển thị, tài khoản đang xem đã thích / đã lưu chưa
 --      (một lần gọi cho cả trang danh sách).
 --   2. Thích / bỏ thích (bảng tour_likes, file 33).
 --   3. Lưu / bỏ lưu (bảng favorite_tours, file 01) và danh sách "Tour đã lưu".
--- Phụ trách : Nguyễn Minh Thức (NMT) - CR3
+-- Phụ trách : Nguyễn Minh Thức (NMT) - CR2
 -- Procedures: NMT_sp_tour_social_state, NMT_sp_tour_like_toggle, NMT_sp_tour_save_toggle,
 --             NMT_sp_saved_tour_list
 -- Quy tắc   : Tour đang hiển thị = tour 'approved' của đơn vị 'approved' có tài khoản 'active'
@@ -14193,7 +14193,7 @@ DROP PROCEDURE IF EXISTS NTK_sp_migrate_cr3;
 --             Thích / Lưu. Tour đã ngừng hiển thị vẫn bỏ thích / bỏ lưu được (để khách dọn
 --             "Tour đã lưu"), nhưng không thích / lưu mới được.
 --             Số bình luận = tour_comments có status 'visible' (file 33).
--- Chạy sau  : 33_migration_cr3_NTK.sql (bảng tour_likes, tour_comments). Khi gọi
+-- Chạy sau  : 33_migration_cr2_NTK.sql (bảng tour_likes, tour_comments). Khi gọi
 --             NMT_sp_saved_tour_list cần bảng settings (28_migration_economy_NTK.sql) và
 --             tour_packages (16_migration_sprint5_LTP.sql). Chạy lại được.
 -- =====================================================================
@@ -14485,13 +14485,13 @@ END$$
 DELIMITER ;
 -- =====================================================================
 -- LocalTour v0.7 - 35_procedures_NMT_comment.sql
--- Mục đích  : Bình luận trên trang tour (CR3): khách xem bình luận, tài khoản khách hàng viết và
+-- Mục đích  : Bình luận trên trang tour (CR2): khách xem bình luận, tài khoản khách hàng viết và
 --             tự xóa bình luận của mình; quản trị viên ẩn / hiện lại bình luận (trang "Bình luận").
 -- Phụ trách : Nguyễn Minh Thức (NMT)
 -- Procedures: NMT_sp_tour_comment_list, NMT_sp_tour_comment_count, NMT_sp_tour_comment_create,
 --             NMT_sp_tour_comment_delete_own, NMT_sp_admin_comment_list,
 --             NMT_sp_admin_comment_set_status
--- Quy tắc   : Bảng tour_comments (33_migration_cr3_NTK.sql).
+-- Quy tắc   : Bảng tour_comments (33_migration_cr2_NTK.sql).
 --             Tour đang hiển thị = tours.approval_status = 'approved' VÀ providers.approval_status =
 --             'approved' VÀ users.status = 'active' (tài khoản của nhà cung cấp), như trang chi tiết
 --             tour (file 04). Tour khác hoặc không tồn tại: không đọc / viết bình luận được.
@@ -14876,7 +14876,7 @@ END$$
 DELIMITER ;
 -- =====================================================================
 -- LocalTour v0.7 - 36_procedures_NTK_review.sql
--- Mục đích  : Đánh giá sao (FR-16, CR3): khách hàng chấm 1–5 sao và viết nhận xét cho đơn đã
+-- Mục đích  : Đánh giá sao (FR-16, CR2): khách hàng chấm 1–5 sao và viết nhận xét cho đơn đã
 --             hoàn thành; quản trị viên duyệt trước khi đánh giá hiện trên trang tour.
 -- Phụ trách : Nguyễn Tuấn Khôi (NTK)
 -- Procedures: NTK_sp_review_get, NTK_sp_review_save, NTK_sp_review_state_list,
@@ -14895,7 +14895,7 @@ DELIMITER ;
 --               (bắt buộc lý do); 'approved' -> 'rejected' (gỡ đánh giá đã đăng, bắt buộc lý do).
 --               Mỗi lần xử lý ghi admin_logs (target_type 'review', NFR-09) trong cùng transaction.
 --             Tham số chuỗi được so sánh với COLLATE utf8mb4_unicode_ci; không có DEFINER.
--- Chạy sau  : 01 -> 33 (33_migration_cr3_NTK.sql thêm reviews.created_at, moderated_by,
+-- Chạy sau  : 01 -> 33 (33_migration_cr2_NTK.sql thêm reviews.created_at, moderated_by,
 --             moderated_at, moderation_note). Chạy lại được (DROP PROCEDURE IF EXISTS).
 -- =====================================================================
 
@@ -15270,10 +15270,10 @@ END$$
 DELIMITER ;
 -- =====================================================================
 -- LocalTour v0.7 - 37_procedures_LTP_account.sql
--- Mục đích  : Trang "Tài khoản" của khách hàng (CR3): xem và sửa họ tên, số điện thoại, số CCCD,
+-- Mục đích  : Trang "Tài khoản" của khách hàng (CR2): xem và sửa họ tên, số điện thoại, số CCCD,
 --             ngày sinh, giới tính, địa chỉ (cột mới ở 39_migration_profile_LTP.sql), ảnh đại diện
---             (users.avatar_url, cột mới ở 33_migration_cr3_NTK.sql) và đổi / đặt mật khẩu.
--- Phụ trách : Lê Trung Phong (LTP) - CR3
+--             (users.avatar_url, cột mới ở 33_migration_cr2_NTK.sql) và đổi / đặt mật khẩu.
+-- Phụ trách : Lê Trung Phong (LTP) - CR2
 -- Procedures: LTP_sp_account_get, LTP_sp_account_update_profile, LTP_sp_account_set_avatar,
 --             LTP_sp_account_get_password_hash, LTP_sp_account_set_password
 -- Quy tắc   : * Chỉ tài khoản khách hàng (role 'customer') đang hoạt động ('active') được đọc /
@@ -15484,15 +15484,15 @@ BEGIN
 END$$
 DELIMITER ;
 -- =====================================================================
--- LocalTour v0.7 - 38_seed_cr3_NTK.sql
--- Mục đích  : Dữ liệu mẫu cho các chức năng của CR3: lượt "Thích" (tour_likes) và bình luận
+-- LocalTour v0.7 - 38_seed_cr2_NTK.sql
+-- Mục đích  : Dữ liệu mẫu cho các chức năng của CR2: lượt "Thích" (tour_likes) và bình luận
 --             (tour_comments) trên các tour đang hiển thị, để trang danh sách và trang chi tiết
 --             có số liệu ngay sau khi cài đặt. Có một bình luận đã bị quản trị viên ẩn (minh họa
 --             kiểm duyệt). Tour đã lưu (favorite_tours) và đánh giá mới để trống: người kiểm thử tự
 --             tạo bằng tài khoản của mình.
 --             TẤT CẢ là dữ liệu MINH HỌA của các tài khoản mẫu trong 02_seed.sql.
 -- Phụ trách : Nguyễn Tuấn Khôi (NTK)
--- Chạy sau  : 02_seed.sql và 33_migration_cr3_NTK.sql. Chạy lại được (xóa các dòng mẫu cũ rồi
+-- Chạy sau  : 02_seed.sql và 33_migration_cr2_NTK.sql. Chạy lại được (xóa các dòng mẫu cũ rồi
 --             thêm lại). Ngày tháng tính tương đối theo NOW() lúc import.
 -- ID       : tour_likes c6000000 · tour_comments c7000000 (cùng cách đánh số với 02_seed.sql).
 -- =====================================================================
@@ -15570,7 +15570,7 @@ INSERT INTO tour_comments (id, tour_id, user_id, content, status, hidden_by, hid
     ('c7000000-0000-4000-8000-000000000013', 'c0000000-0000-4000-8000-000000000009', 'a0000000-0000-4000-8000-000000000140', 'Hẻm nhỏ ở Chợ Lớn nhiều món lạ, nên đi khi đói.', 'visible', NULL, NULL, NULL, NOW() - INTERVAL 1 DAY - INTERVAL 6 HOUR);
 -- =====================================================================
 -- LocalTour v0.7 - 39_migration_profile_LTP.sql
--- Mục đích  : Thông tin cá nhân thêm ở trang "Tài khoản" của khách hàng (CR3): 4 cột mới của bảng
+-- Mục đích  : Thông tin cá nhân thêm ở trang "Tài khoản" của khách hàng (CR2): 4 cột mới của bảng
 --             users, đều không bắt buộc (NULL = chưa cập nhật):
 --   1. citizen_id    : số căn cước công dân (CCCD), đúng 12 chữ số. Thông tin nhạy cảm: chỉ chủ tài
 --        khoản xem ở trang "Tài khoản"; không hiện ở trang quản trị, không ghi vào nhật ký / thông báo lỗi.
@@ -16072,7 +16072,7 @@ END$$
 DELIMITER ;
 -- =====================================================================
 -- LocalTour v0.7 - 41_seed_tours_NMT.sql
--- Mục đích  : Thêm tour mẫu cho trang danh sách tour và các bộ lọc của CR3 (ngày đi, khoảng giá,
+-- Mục đích  : Thêm tour mẫu cho trang danh sách tour và các bộ lọc của CR2 (ngày đi, khoảng giá,
 --             thời lượng, ngôn ngữ hướng dẫn, đón tại khách sạn): 7 nhà cung cấp địa phương với
 --             20 tour đã duyệt ở 6 điểm đến chưa có tour hiển thị: Sa Pa, Ninh Bình, Huế, Đà Lạt,
 --             Cần Thơ, Phú Quốc. Mỗi tour có đủ thông tin như tour 1-8 của 02_seed.sql: loại hình,

@@ -1,7 +1,7 @@
 <?php declare(strict_types=1); ?>
 <?php
 /*
- * Trang "Tài khoản" của khách hàng (CR3 – Lê Trung Phong): ảnh đại diện, thông tin cá nhân, mật khẩu và lối tắt.
+ * Trang "Tài khoản" của khách hàng (CR2 – Lê Trung Phong): ảnh đại diện, thông tin cá nhân, mật khẩu và lối tắt.
  * Biến: $account (LTP_sp_account_get: user_id, email, name, phone, citizen_id, date_of_birth, gender, address,
  *       avatar_url, has_password), $old (name, phone, citizen_id, date_of_birth, gender, address đang hiện trong form
  *       thông tin cá nhân), $success (thông báo sau khi lưu, '' = không có),

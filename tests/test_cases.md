@@ -1,45 +1,92 @@
-# Ca kiểm thử sơ bộ
+# BỘ TEST CASE HỆ THỐNG LOCALTOUR
 
-Các ca dưới đây cần được cập nhật theo yêu cầu và giao diện đã thống nhất. Tất cả đang ở trạng thái **Not Run**.
+| Thuộc tính | Giá trị |
+|---|---|
+| Baseline | SRS v1.2; Product Backlog US-01–US-39; CR1 và CR2 |
+| Phạm vi | FR-01–FR-36; NFR-01–NFR-10 |
+| UAT tham chiếu | UAT-01–UAT-64 trong `docs/sprint6/04-uat-checklist.md` |
+| Trạng thái ban đầu | Not Run; chưa có Evidence/Defect theo từng ca trong repository |
 
-| Mã | Chức năng / Tình huống | Điều kiện ban đầu | Bước thực hiện | Kết quả mong đợi |
-| --- | --- | --- | --- | --- |
-| TC-01 | Xem danh sách tour | Có dữ liệu tour mẫu | Mở trang danh sách tour | Hiển thị các tour với thông tin cơ bản đúng dữ liệu. |
-| TC-02 | Xem chi tiết tour | Có tour mẫu | Chọn một tour trong danh sách | Hiển thị đúng địa điểm, giá, thời lượng, lịch trình và dịch vụ đi kèm. |
-| TC-03 | Tìm kiếm có kết quả | Có tour phù hợp từ khóa | Nhập từ khóa và thực hiện tìm kiếm | Hiển thị kết quả phù hợp theo quy tắc tìm kiếm đã thống nhất. |
-| TC-04 | Tìm kiếm không có kết quả | Không có tour phù hợp từ khóa | Tìm kiếm bằng từ khóa không khớp dữ liệu | Hiển thị thông báo không có kết quả; có thể thay đổi điều kiện tìm kiếm. |
-| TC-05 | Lọc tour | Có tour khác địa điểm, giá và thời lượng | Áp dụng từng bộ lọc, sau đó kết hợp các bộ lọc | Kết quả đáp ứng các điều kiện đã chọn. |
-| TC-06 | Xóa bộ lọc | Đang áp dụng bộ lọc | Xóa các điều kiện lọc | Danh sách trở về kết quả tương ứng khi không áp dụng bộ lọc. |
-| TC-07 | Sắp xếp theo giá | Có tour với giá khác nhau | Chọn giá tăng dần, sau đó giảm dần | Thứ tự tour đúng với lựa chọn sắp xếp. |
-| TC-08 | So sánh tour | Có ít nhất hai tour | Chọn các tour và mở phần so sánh | Thông tin đúng tour, trình bày cùng tiêu chí để so sánh. |
-| TC-09 | Xem đánh giá | Có tour có đánh giá và tour chưa có đánh giá | Mở chi tiết từng tour | Hiển thị đúng đánh giá hiện có; thông báo phù hợp khi chưa có đánh giá. |
-| TC-10 | Đặt tour hợp lệ | Có tour có thể đặt và dữ liệu mẫu hợp lệ | Điền các trường bắt buộc và gửi form đặt tour | Tạo booking, lưu đúng tour và thông tin đã nhập; hiển thị xác nhận. |
-| TC-11 | Đặt tour thiếu thông tin | Có form đặt tour | Bỏ trống trường bắt buộc và gửi form | Hiển thị lỗi rõ ràng; không tạo booking không hợp lệ. |
-| TC-12 | Đặt tour với dữ liệu sai | Có quy tắc xác thực đã thống nhất | Nhập dữ liệu sai định dạng hoặc số lượng khách không hợp lệ | Từ chối dữ liệu sai ở phía máy chủ và hiển thị thông báo phù hợp. |
-| TC-13 | Thêm và sửa tour | Có quyền quản lý tour | Thêm tour hợp lệ, sau đó sửa thông tin | Dữ liệu được lưu đúng và thông tin cập nhật xuất hiện khi xem tour. |
-| TC-14 | Truy cập quản trị không có quyền | Có chức năng phân quyền | Truy cập trang hoặc gửi yêu cầu quản lý tour bằng người dùng không có quyền | Từ chối truy cập và không thay đổi dữ liệu tour. |
-| TC-15 | Giao diện trên màn hình nhỏ | MVP chạy được | Mở danh sách, chi tiết, so sánh và form đặt tour trên màn hình điện thoại | Nội dung đọc được, các nút thao tác được và form sử dụng được. |
-| TC-16 | Lỗi kết nối khi đặt tour | Có thể mô phỏng lỗi kết nối | Gửi form trong lúc kết nối/dịch vụ gặp lỗi | Không thông báo đặt tour thành công khi chưa xác nhận lưu; hiển thị lỗi phù hợp. |
-| TC-17 | Mở trang quản trị khi chưa đăng nhập | Chưa đăng nhập | Mở `/admin` | Chuyển tới trang “Đăng nhập quản trị” (`/admin/login`); đăng nhập quản trị xong quay lại `/admin`. |
-| TC-18 | Tài khoản khách hàng mở trang quản trị | Đã đăng nhập bằng tài khoản khách hàng ở `/login` | Mở `/admin`, `/admin/tours` và `/admin/bookings` | Trang 403 “Bạn không có quyền truy cập trang này.”; không thấy dữ liệu quản trị. |
-| TC-19 | Số liệu trang Tổng quan | Vừa import lại database; đã đăng nhập quản trị | Mở `/admin`; chọn “Theo năm”, để trống ngày, bấm “Xem thống kê” | 40 tài khoản khách hàng (39 đang hoạt động · 1 bị khóa); 12 tour (2 chờ duyệt · 9 đã duyệt · 1 bị từ chối); 3 yêu cầu chờ xác nhận trên tổng 39. Theo trạng thái: Chờ xác nhận 3, Chờ thanh toán 2, Đã xác nhận 2, Đã hoàn thành 29, Từ chối 1, Đã hủy 2. Doanh thu tổng: 32 lượt, 39.780.000đ, hoàn tiền −1.300.000đ, thuần 38.480.000đ. |
-| TC-20 | Phê duyệt tour | Đã đăng nhập quản trị; tour “Một buổi chiều trong Đại Nội Huế” đang chờ duyệt | Mở `/admin/tours`, mở tour đó, bấm “Phê duyệt tour”; sau đó mở `/tours` | Báo “Đã phê duyệt tour.”; tour “Đã duyệt”, “Đang hiển thị cho khách”. Trang `/tours` có 10 tour và bộ lọc điểm đến có Huế. |
-| TC-21 | Từ chối không nhập lý do | Đã đăng nhập quản trị; có tour chờ duyệt và yêu cầu chờ xác nhận | Ở tour chờ duyệt, nhập lý do chỉ có khoảng trắng rồi bấm “Từ chối tour”; ở yêu cầu chờ xác nhận, chọn “Từ chối yêu cầu”, để trống lý do rồi bấm “Cập nhật trạng thái” | Báo “Vui lòng nhập lý do từ chối.” và “Từ chối hoặc hủy yêu cầu cần nhập lý do.”; trạng thái tour và yêu cầu không đổi. |
-| TC-22 | Xác nhận chỗ và giá | Đã đăng nhập quản trị; có yêu cầu “Chờ xác nhận” | Mở `/admin/bookings`, tab “Chờ xác nhận”, mở một yêu cầu, chọn “Xác nhận chỗ và giá”, bấm “Cập nhật trạng thái” | Báo “Đã cập nhật trạng thái yêu cầu.”; trạng thái “Chờ thanh toán”, có “Hạn thanh toán” sau 24 giờ; tab “Chờ xác nhận” bớt một yêu cầu. |
-| TC-23 | Xác nhận đã thanh toán | Đã đăng nhập quản trị; yêu cầu ở TC-22 chưa có thanh toán; có yêu cầu “Chờ thanh toán” với chuyển khoản VietQR “Chờ đối chiếu” | Ở yêu cầu của TC-22, chọn “Xác nhận đã thanh toán” và cập nhật; làm lại với yêu cầu có chuyển khoản VietQR | Lần đầu báo “Yêu cầu chưa có thanh toán thành công hoặc khoản chuyển khoản VietQR chờ đối chiếu, chưa xác nhận được.”, trạng thái không đổi. Lần sau: trạng thái “Đã xác nhận”, thanh toán “Thành công”, có thời điểm thanh toán. |
-| TC-24 | Đánh dấu tour đã diễn ra | Đã đăng nhập quản trị; có yêu cầu “Đã xác nhận” chưa tới giờ khởi hành và yêu cầu “Đã xác nhận” đã qua giờ khởi hành | Ở từng yêu cầu, chọn “Tour đã diễn ra” và cập nhật | Yêu cầu chưa khởi hành báo “Tour chưa tới giờ khởi hành, chưa đánh dấu hoàn thành được.”, trạng thái không đổi. Yêu cầu đã khởi hành chuyển “Đã hoàn thành” và không còn form cập nhật. |
-| TC-25 | Ghi lịch sử xử lý | Đã chạy TC-20 → TC-24 | Mở chi tiết tour và chi tiết các yêu cầu vừa xử lý, xem mục “Lịch sử xử lý” | Mỗi thao tác thành công có thêm một dòng: thời điểm, người xử lý, trạng thái cũ → trạng thái mới và lý do (nếu có). Các lần báo lỗi ở TC-21, TC-23, TC-24 không thêm dòng nào. |
+Mỗi ca dưới đây là ca System/Integration Testing. Cột UAT chỉ tạo liên kết truy vết, không đồng nhất kết quả nội bộ với kết quả UAT chính thức.
 
-TC-17 → TC-25 kiểm thử trang quản trị (CR1). Trước khi chạy: import lại `db_localtour.sql` và tạo tài khoản quản trị viên thử theo `src/README.md`, bước 7. Bản ghi mẫu dùng cho từng ca xem [02 – Lược đồ dữ liệu](../docs/sprint3/02-luoc-do-du-lieu.md), mục 8.3.
+## 1. Test Case chức năng và User Story
 
-## Ghi nhận một lần thực hiện
+| Test Case ID | Requirement ID | User Story ID | Mục tiêu | Tiền điều kiện | Dữ liệu kiểm thử | Các bước thực hiện | Kết quả mong đợi | Ưu tiên | Trạng thái | Evidence / Defect ID | UAT Case |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| TC-01 | FR-01 | US-01 | Xem danh sách tour công khai | Có tour ở nhiều trạng thái | Tour đã duyệt/chờ duyệt/từ chối | Mở `/tours`; đối chiếu dữ liệu | Chỉ tour công khai hiển thị; thông tin tóm tắt đúng | Must | Not Run | — | UAT-01 |
+| TC-02 | FR-02, FR-03, FR-04, FR-05, FR-16 | US-02 | Xem đầy đủ chi tiết tour | Có tour công khai với lịch trình/chính sách/đánh giá | Một tour đủ dữ liệu và một tour thiếu trường tùy chọn | Mở từng tour; kiểm tra các mục | Nội dung đúng tour; thiếu dữ liệu không bị suy diễn; chỉ đánh giá đã duyệt hiển thị | Must | Not Run | — | UAT-02, UAT-06 |
+| TC-03 | FR-06 | US-03 | Tìm kiếm, lọc cơ bản và sắp xếp | Có dữ liệu nhiều điểm đến/giá | Từ khóa có/không có kết quả; giá tăng/giảm | Tìm kiếm; lọc; sắp xếp; xóa lọc | Kết quả và URL đúng điều kiện; trạng thái không kết quả rõ ràng | Must | Not Run | — | UAT-03, UAT-04 |
+| TC-04 | FR-15 | US-04 | So sánh 2–3 tour | Có ít nhất ba tour công khai | Hai, ba và bốn tour | Chọn tour; mở so sánh; thử vượt giới hạn | So sánh đúng tiêu chí; giới hạn 2–3; không trộn giá khác đơn vị | Must | Not Run | — | UAT-05 |
+| TC-05 | FR-04, FR-05, FR-10 | US-05 | Hiển thị giá, phụ thu và chính sách minh bạch | Tour có giá, tùy chọn và chính sách | Số người lớn/trẻ em; phụ thu | Mở chi tiết/đặt tour; thay lựa chọn | Thành phần giá, đơn vị, tổng dự kiến và điều kiện áp dụng đúng | Must | Not Run | — | UAT-09 |
+| TC-06 | FR-07, FR-08, FR-09, FR-11, FR-30 | US-06 | Đặt tour và giữ chỗ ngay | Khách đăng nhập; lịch còn chỗ và còn hơn 60 phút | Tour có/không có gói; dữ liệu khách hợp lệ | Chọn lịch/gói; nhập khách; xác nhận đặt | Tạo một đơn `Chờ thanh toán`, giữ chỗ ngay, mã duy nhất, hạn mặc định 30 phút; không chờ Admin xác nhận | Must | Not Run | — | UAT-10, UAT-11, UAT-49 |
+| TC-07 | FR-13 | US-07 | Admin quản lý nội dung tour/đơn vị | Admin đăng nhập | Dữ liệu tour hợp lệ và không hợp lệ | Tạo/sửa tour; lưu; mở lại | Dữ liệu hợp lệ lưu đúng; dữ liệu sai bị từ chối phía máy chủ; không ảnh hưởng tour khác | Must | Not Run | — | UAT-31, UAT-32, UAT-34 |
+| TC-08 | FR-14 | US-08 | Kiểm soát lịch, sức chứa và đặt vượt chỗ | Lịch có sức chứa xác định | Số khách bằng/vượt chỗ còn | Đặt đồng thời/tuần tự; kiểm tra chỗ | Không vượt sức chứa; số chỗ cập nhật nhất quán | Must | Not Run | — | UAT-17 |
+| TC-09 | FR-11, FR-17, FR-25 | US-09 | Chỉ xác nhận đơn khi thanh toán hợp lệ | Có đơn `Chờ thanh toán` | Đơn chưa trả; VNPay hợp lệ; VietQR đã/chưa đối chiếu | Thử xác nhận từng trường hợp | Chưa thanh toán không được xác nhận; thanh toán hợp lệ chuyển `Đã xác nhận` và phát hành voucher | Must | Not Run | — | UAT-13, UAT-14, UAT-15 |
+| TC-10 | FR-11, FR-17, FR-18 | US-10 | Xem đơn của tôi và thanh toán VNPay sandbox | Khách có đơn `Chờ thanh toán` còn hạn | Phản hồi VNPay đúng/sai chữ ký hoặc số tiền | Mở đơn; thanh toán; mô phỏng callback | Chỉ giao dịch xác minh hợp lệ thành công; khách chỉ thấy đơn mình | Must | Not Run | — | UAT-21, UAT-22, UAT-24 |
+| TC-11 | FR-17, FR-30 | US-11 | Thanh toán VietQR đúng hạn | Có đơn còn ít nhất/ít hơn 24 giờ trước khởi hành | Hai mốc biên thời gian | Mở thanh toán; chọn VietQR; gửi thông tin | Chỉ cho VietQR khi đủ giới hạn; trạng thái chờ đối chiếu không tự xác nhận | Must | Not Run | — | UAT-18, UAT-50 |
+| TC-12 | FR-17, FR-25 | US-12 | Đối chiếu VietQR và VNPay chưa rõ kết quả | Admin và các giao dịch mẫu | Đủ/thiếu/sai tiền; callback trùng | Đối chiếu từng giao dịch; gọi lại callback | Kết quả idempotent; chỉ đủ điều kiện mới thành công; có lịch sử xử lý | Must | Not Run | — | UAT-19, UAT-20, UAT-23, UAT-24 |
+| TC-13 | FR-08, FR-11, FR-30 | US-13 | Tự hủy đơn quá hạn và nhả chỗ | Có đơn chưa thanh toán | Hạn giữ chỗ 30 phút; giao dịch chờ đối chiếu | Chạy xử lý hết hạn trước/sau mốc | Đơn quá hạn hợp lệ bị hủy và nhả chỗ; giao dịch chờ đối chiếu không bị hủy sai | Must | Not Run | — | UAT-25, UAT-26, UAT-48 |
+| TC-14 | FR-12, FR-25 | US-14 | Gửi và xử lý yêu cầu đổi ngày/hủy | Khách có đơn đủ điều kiện | Lý do rỗng/hợp lệ; ngày hợp lệ | Khách gửi yêu cầu; Admin xử lý | Áp đúng chính sách của tour; lưu trạng thái/lý do; hủy đã trả tiền tạo yêu cầu hoàn tiền | Should | Not Run | — | UAT-27, UAT-28, UAT-29 |
+| TC-15 | FR-16 | US-15 | Xem điểm và đánh giá đã duyệt | Tour có đánh giá ở ba trạng thái | Pending/approved/rejected | Mở trang tour; đối chiếu điểm/số lượng | Chỉ approved hiển thị và được tính; tour chưa có hiển thị đúng | Must | Not Run | — | UAT-06 |
+| TC-16 | FR-18 | US-16 | Đăng ký, đăng nhập, đăng xuất | Email mới và tài khoản có sẵn | Dữ liệu hợp lệ/sai; mật khẩu biên | Đăng ký; đăng nhập; đăng xuất; thử CSRF sai | Tài khoản hợp lệ hoạt động; mật khẩu băm; lỗi rõ; phiên và CSRF được kiểm tra | Must | Not Run | — | UAT-07, UAT-08, UAT-30 |
+| TC-17 | FR-19 | US-17 | Thống kê tài khoản khách | Admin đăng nhập; dữ liệu xác định | Tài khoản active/locked | Mở Tổng quan; đối chiếu truy vấn | Tổng và phân nhóm đúng; không trộn tài khoản Admin/đơn vị | Must | Not Run | — | UAT-35 |
+| TC-18 | FR-20 | US-18 | Thống kê tour | Admin đăng nhập | Tour pending/approved/rejected | Mở Tổng quan; đối chiếu dữ liệu | Tổng và từng trạng thái đúng quy tắc | Must | Not Run | — | UAT-35 |
+| TC-19 | FR-21, FR-22 | US-19 | Thống kê đơn theo trạng thái/thời gian | Admin đăng nhập; đơn ở sáu trạng thái | Khoảng ngày/tháng/năm | Lọc thống kê; đối chiếu ngày tạo | Số liệu theo sáu trạng thái và ngày tạo chính xác | Must | Not Run | — | UAT-36 |
+| TC-20 | FR-23 | US-20 | Thống kê doanh thu thuần | Có thanh toán và hoàn tiền | Giao dịch ở nhiều ngày | Lọc ngày/tháng/năm; tính lại | Doanh thu = đã thanh toán − đã hoàn, nhóm theo ngày thanh toán | Must | Not Run | — | UAT-37 |
+| TC-21 | FR-24 | US-21 | Duyệt/từ chối tour và bản sửa | Admin; tour/bản sửa chờ duyệt | Lý do rỗng/hợp lệ | Duyệt; từ chối; so sánh bản sửa | Chỉ Admin xử lý; từ chối cần lý do; khách chỉ thấy nội dung đã duyệt | Must | Not Run | — | UAT-32, UAT-33, UAT-41, UAT-42 |
+| TC-22 | FR-25 | US-22 | Admin xem/tìm chi tiết đơn | Admin đăng nhập | Mã đơn, trạng thái, khách | Lọc/tìm; mở chi tiết | Danh sách/chi tiết đúng; dữ liệu nhạy cảm chỉ hiện theo phạm vi | Must | Not Run | — | UAT-12, UAT-30 |
+| TC-23 | FR-11, FR-25 | US-23 | Quy trình mới không có bước xác nhận chỗ | Có đơn mới `Chờ thanh toán` và đơn cũ `Chờ xác nhận` | Hai loại đơn | Mở chi tiết; thử hành động quản trị | Đơn mới không có bước xác nhận chỗ/giá; thao tác cũ chỉ áp dụng dữ liệu legacy | Must | Not Run | — | UAT-13, UAT-19 |
+| TC-24 | FR-25 | US-24 | Admin hủy đơn kèm lý do | Có đơn được phép hủy | Lý do trống/hợp lệ | Chọn hủy; gửi form | Thiếu lý do bị từ chối; thành công ghi lịch sử; đơn đã trả tạo hoàn tiền | Must | Not Run | — | UAT-15, UAT-16 |
+| TC-25 | FR-26 | US-25 | Tài khoản đơn vị tổ chức tách biệt | Admin và đơn vị mẫu | Trạng thái active/inactive; mật khẩu | Admin tạo/đổi mật khẩu; đơn vị đăng nhập | Chỉ đơn vị hợp tác/active đăng nhập khu riêng; không vào khu Admin/khách | Must | Not Run | — | UAT-38, UAT-39 |
+| TC-26 | FR-27 | US-26 | Đơn vị quản lý tour và vòng duyệt | Đơn vị đăng nhập | Tour nháp/từ chối/đã duyệt | Tạo; sửa; gửi duyệt; tạo bản sửa; ngừng hiển thị | Chuyển trạng thái đúng; không sửa lúc chờ; chỉ thao tác tour mình | Must | Not Run | — | UAT-40–UAT-45, UAT-47 |
+| TC-27 | FR-28 | US-27 | Đơn vị chỉ xem đơn thuộc tour mình | Hai đơn vị có tour/đơn riêng | ID đơn của mình/người khác | Mở danh sách; đổi ID trên URL/request | Chỉ xem đúng trường và đúng quyền sở hữu; đơn khác trả không tìm thấy/403; không có thao tác xử lý | Must | Not Run | — | UAT-46, UAT-47 |
+| TC-28 | FR-29 | US-28 | Tính phí dịch vụ và chi trả | Ngày khởi hành kết thúc; nghiệp vụ liên quan đã đóng | Tiền thu, hoàn, tỉ lệ phí | Chạy lập chi trả; xác minh tài khoản; ghi trả | Tối đa một khoản/ngày; công thức đúng; chỉ trả khi tài khoản đã xác minh và có mã giao dịch | Must | Not Run | — | UAT-51, UAT-53, UAT-54 |
+| TC-29 | FR-30 | US-29 | Quản lý thông số vận hành | Admin đăng nhập | Giá trị biên/hợp lệ/sai | Sửa từng thông số; đặt tour/thanh toán kiểm chứng | Kiểm tra giới hạn; giá trị hợp lệ áp dụng; thiếu/sai dùng mặc định; có người/thời điểm đổi | Must | Not Run | — | UAT-48, UAT-51, UAT-52 |
+| TC-30 | FR-06 | US-30 | Lọc nâng cao tour | Có tour khác ngày, giá, thời lượng, ngôn ngữ, điểm đón | Ngày trong 365 ngày; giá 0–100 triệu; tổ hợp lọc | Áp từng/tổ hợp; tải lại; quay lại; xóa lọc | Kết quả đúng; min > max báo lỗi; URL giữ lọc; xóa lọc phục hồi danh sách | Must | Not Run | — | UAT-55 |
+| TC-31 | FR-31 | US-31 | Thích/bỏ thích tour | Khách, khách vãng lai, Admin và đơn vị | Tour công khai/ẩn | Thích hai lần; thử các vai trò | Khách hàng toggles idempotent; số đếm đúng; khách vãng lai về đăng nhập; vai trò khác bị chặn phía máy chủ | Must | Not Run | — | UAT-56 |
+| TC-32 | FR-32 | US-32 | Lưu tour và danh sách riêng | Hai khách; tour công khai rồi bị ẩn | Tour của từng khách | Lưu; mở `/tour-da-luu`; bỏ lưu; truy cập chéo | Mỗi khách chỉ thấy danh sách mình; tour ẩn hiện mờ/chỉ bỏ lưu; quyền kiểm tra phía máy chủ | Must | Not Run | — | UAT-57 |
+| TC-33 | FR-33 | US-33 | Chia sẻ tour | Trình duyệt có/không Web Share | URL tour | Bấm Chia sẻ trong hai môi trường | Mở bảng chia sẻ hoặc sao chép đúng URL; không cần đăng nhập | Must | Not Run | — | UAT-58 |
+| TC-34 | FR-34 | US-34 | Khách bình luận/xóa bình luận | Khách đăng nhập; tour công khai | 0, 1, 1000, 1001 ký tự; 6 lần/10 phút | Gửi dữ liệu biên; xóa mình; thử xóa của người khác | Chỉ 1–1000; giới hạn 5/10 phút; chỉ xóa bình luận mình; số đếm đúng | Must | Not Run | — | UAT-59 |
+| TC-35 | FR-34 | US-35 | Admin ẩn/hiện bình luận | Có bình luận visible/hidden | Lý do rỗng/hợp lệ | Ẩn; kiểm tra trang tour; hiện lại | Ẩn bắt buộc lý do; bình luận/số đếm công khai cập nhật; có nhật ký; chỉ Admin thao tác | Must | Not Run | — | UAT-60 |
+| TC-36 | FR-16 | US-36 | Khách đánh giá đơn hoàn thành | Khách có đơn của mình completed và đơn chưa completed | Sao 1–5; nhận xét 9/10/1000/1001 ký tự | Gửi/sửa/gửi lại; thử đơn khác | Mỗi đơn một đánh giá; chỉ đơn completed của mình; pending/rejected sửa được; approved khóa | Must | Not Run | — | UAT-61 |
+| TC-37 | FR-16 | US-37 | Admin duyệt/từ chối/gỡ đánh giá | Admin; đánh giá pending/approved/rejected | Lý do trống/hợp lệ | Duyệt; từ chối; gửi lại; gỡ | Chuyển trạng thái đúng; từ chối/gỡ cần lý do; không duyệt thẳng rejected; điểm công khai cập nhật | Must | Not Run | — | UAT-62 |
+| TC-38 | FR-35 | US-38 | Quản lý tài khoản và dữ liệu cá nhân | Khách đăng nhập | Ảnh hợp lệ/sai; dữ liệu biên; mật khẩu | Tải/xóa ảnh; sửa hồ sơ; đổi mật khẩu; thử vai trò khác | Xác thực toàn bộ phía máy chủ; lưu nguyên tử; CCCD chỉ chủ tài khoản thấy; mật khẩu đổi an toàn | Must | Not Run | — | UAT-63 |
+| TC-39 | FR-36 | US-39 | Trợ giúp, điều khoản và Menu | Không yêu cầu đăng nhập | Desktop/mobile; cấu hình vận hành | Mở hai trang; ẩn/hiện Menu; duyệt các trang | Nội dung công khai/nhất quán thông số; Menu giữ trạng thái phù hợp; không còn nhãn “Sắp có” | Must | Not Run | — | UAT-64 |
 
-| Trường | Nội dung cần ghi |
-| --- | --- |
-| Mã ca kiểm thử | TC-xx |
-| Phiên bản / Commit | Phiên bản sản phẩm được kiểm thử |
-| Môi trường | Trình duyệt, kích thước màn hình, môi trường ứng dụng |
-| Người thực hiện / Ngày | Tên người kiểm thử và ngày thực hiện |
-| Kết quả thực tế | Mô tả hành vi quan sát được |
-| Trạng thái | Not Run / Pass / Fail / Blocked |
-| Minh chứng / Lỗi | Đường dẫn ảnh, báo cáo lỗi hoặc ghi chú |
+## 2. Test Case phi chức năng
+
+| Test Case ID | Requirement ID | User Story ID | Mục tiêu | Tiền điều kiện | Dữ liệu kiểm thử | Các bước thực hiện | Kết quả mong đợi | Ưu tiên | Trạng thái | Evidence / Defect ID | UAT Case |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| TC-40 | NFR-01 | US-01–US-06 | Khả dụng và dễ đọc | Bản chạy ổn định | Kịch bản xem/tìm/đặt | Người dùng mục tiêu hoàn thành không hướng dẫn miệng | Tiêu đề/nội dung chính dễ tìm; lỗi có thể hành động | Must | Not Run | — | UAT-01–UAT-11 |
+| TC-41 | NFR-02 | US-01–US-39 | Tương thích thiết bị | Chrome/Edge; viewport desktop và 360 px | Các trang chính | Mở danh sách, chi tiết, form, ba khu vực | Không mất nội dung chính, không cuộn ngang toàn trang, nút thao tác được | Must | Not Run | — | UAT-01–UAT-64 |
+| TC-42 | NFR-03 | US-01–US-03 | Hiệu năng | Môi trường và dữ liệu được ghi nhận | Danh sách/chi tiết | Xóa cache theo quy ước; đo tải nội dung chính nhiều lần | Mục tiêu ≤3 giây hoặc báo cáo sai lệch kèm môi trường; không tự suy diễn | Must | Not Run | — | UAT-01–UAT-06 |
+| TC-43 | NFR-04 | US-06, US-22–US-39 | Phân quyền phía máy chủ và CSRF | Bốn vai trò/ba phiên | URL/ID/tokens hợp lệ và giả | Gọi trực tiếp route, sửa ID, thiếu/sai CSRF | Khách/Admin/đơn vị bị giới hạn đúng quyền và quyền sở hữu; không đổi dữ liệu trái phép | Must | Not Run | — | UAT-07, UAT-30, UAT-38–UAT-64 |
+| TC-44 | NFR-05 | US-06, US-10, US-27, US-38 | Bảo vệ dữ liệu cá nhân | Có hồ sơ/đơn/bình luận/đánh giá | CCCD, email, phone, ảnh | Kiểm tra màn hình, lỗi, request trái quyền và tệp ảnh | Chỉ thu thập/hiển thị đúng phạm vi; không lộ CCCD/thẻ/token; ảnh được kiểm tra | Must | Not Run | — | UAT-30, UAT-46, UAT-63 |
+| TC-45 | NFR-06 | US-06–US-14, US-26–US-29 | Toàn vẹn dữ liệu | Database có khóa/ràng buộc | ID không tồn tại, request trùng, lỗi transaction | Gửi request sai/trùng; mô phỏng lỗi giữa transaction | Không có bản ghi mồ côi/mã trùng; rollback đầy đủ; sức chứa/tiền nhất quán | Must | Not Run | — | UAT-10–UAT-29, UAT-40–UAT-54 |
+| TC-46 | NFR-07 | US-07, US-21, US-26 | Truy vết nguồn tour | Admin/đơn vị có quyền | URL nguồn/ngày xác minh trống/hợp lệ | Tạo/sửa/duyệt tour; kiểm tra metadata | Lưu nguồn và lần xác minh khi có; thiếu thì ghi chưa xác minh, không tạo ngày giả | Must | Not Run | — | UAT-31–UAT-34, UAT-40–UAT-45 |
+| TC-47 | NFR-08 | US-07, US-26 | Khả năng bảo trì nội dung | Có hai tour | Tên/lịch trình/điều khoản mới | Sửa qua khu quản lý; mở trang khách | Không cần sửa mã giao diện; chỉ tour mục tiêu thay đổi | Must | Not Run | — | UAT-32–UAT-34, UAT-40–UAT-45 |
+| TC-48 | NFR-09 | US-06, US-09, US-12, US-24 | Phục hồi và nhật ký | Có thể mô phỏng lỗi lưu/kết nối | Booking/thanh toán/chuyển trạng thái | Gây lỗi; thử lại; xem lịch sử | Không báo thành công/cấp mã khi chưa commit; thao tác quan trọng có người/thời điểm; retry không nhân đôi | Must | Not Run | — | UAT-10–UAT-26 |
+| TC-49 | NFR-10 | US-01–US-39 | Tương thích trình duyệt | Chrome và Edge; bổ sung trình duyệt khác khi có | Luồng chính theo vai trò | Chạy smoke trên từng trình duyệt/viewport | Luồng chính hoạt động nhất quán; sai lệch được ghi thành Defect | Must | Not Run | — | UAT-01–UAT-64 |
+
+## 3. Tổng hợp truy vết
+
+| Đối tượng | Bao phủ bởi Test Case | Tình trạng |
+|---|---|---|
+| US-01–US-39 | TC-01–TC-39, mỗi User Story có ít nhất một Test Case | 39/39 được liên kết |
+| FR-01–FR-36 | TC-01–TC-39 | 36/36 được liên kết; FR-12 kiểm tra theo phạm vi đổi/hủy hiện có |
+| NFR-01–NFR-10 | TC-40–TC-49 | 10/10 được liên kết |
+| UAT-01–UAT-64 | Cột `UAT Case` | 64/64 được tham chiếu; giữ nguyên mã UAT |
+
+## 4. Mẫu ghi nhận một lần thực hiện
+
+| Trường | Nội dung bắt buộc |
+|---|---|
+| Test Case ID | TC-xx |
+| Phiên bản/commit | Chỉ ghi giá trị thực tế đã kiểm thử |
+| Môi trường | URL/máy, hệ điều hành, trình duyệt/viewport, database |
+| Người thực hiện/ngày | Chỉ ghi khi có dữ liệu thực tế |
+| Kết quả thực tế | Hành vi quan sát được |
+| Trạng thái | Pass / Fail / Blocked / Not Run |
+| Evidence / Defect ID | Đường dẫn Evidence thật hoặc mã lỗi đã tồn tại; chưa có để `—` |
+
+Không chuyển trạng thái sang Pass chỉ từ thông tin “đã chạy”. Kết quả System Testing, chạy thử nội bộ, UAT và nghiệm thu chính thức phải được báo cáo tách biệt.

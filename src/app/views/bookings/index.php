@@ -3,7 +3,7 @@
 /*
  * Đơn của tôi (M4, Nguyễn Tuấn Khôi): các đơn đặt tour của tài khoản đang đăng nhập, mới đặt trước.
  * Biến: $bookings (NTK_sp_customer_booking_list), $notice (kết quả thanh toán không gắn được với đơn, '' = không có), $title,
- *       $reviewStates (CR3, FR-16: booking_id => trạng thái đánh giá; đơn đã hoàn thành chưa có đánh giá hoặc đánh giá
+ *       $reviewStates (CR2, FR-16: booking_id => trạng thái đánh giá; đơn đã hoàn thành chưa có đánh giá hoặc đánh giá
  *       không được duyệt hiện nhắc "Viết đánh giá" / "Sửa đánh giá").
  */
 ?>

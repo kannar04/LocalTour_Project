@@ -1,6 +1,6 @@
 -- =====================================================================
 -- LocalTour v0.7 - 41_seed_tours_NMT.sql
--- Mục đích  : Thêm tour mẫu cho trang danh sách tour và các bộ lọc của CR3 (ngày đi, khoảng giá,
+-- Mục đích  : Thêm tour mẫu cho trang danh sách tour và các bộ lọc của CR2 (ngày đi, khoảng giá,
 --             thời lượng, ngôn ngữ hướng dẫn, đón tại khách sạn): 7 nhà cung cấp địa phương với
 --             20 tour đã duyệt ở 6 điểm đến chưa có tour hiển thị: Sa Pa, Ninh Bình, Huế, Đà Lạt,
 --             Cần Thơ, Phú Quốc. Mỗi tour có đủ thông tin như tour 1-8 của 02_seed.sql: loại hình,

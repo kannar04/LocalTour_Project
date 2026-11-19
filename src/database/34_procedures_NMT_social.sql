@@ -1,11 +1,11 @@
 -- =====================================================================
 -- LocalTour v0.7 - 34_procedures_NMT_social.sql
--- Mục đích  : Thích, Lưu tour và số tương tác trên thẻ tour / trang chi tiết tour (CR3):
+-- Mục đích  : Thích, Lưu tour và số tương tác trên thẻ tour / trang chi tiết tour (CR2):
 --   1. Số lượt thích, số bình luận đang hiển thị, tài khoản đang xem đã thích / đã lưu chưa
 --      (một lần gọi cho cả trang danh sách).
 --   2. Thích / bỏ thích (bảng tour_likes, file 33).
 --   3. Lưu / bỏ lưu (bảng favorite_tours, file 01) và danh sách "Tour đã lưu".
--- Phụ trách : Nguyễn Minh Thức (NMT) - CR3
+-- Phụ trách : Nguyễn Minh Thức (NMT) - CR2
 -- Procedures: NMT_sp_tour_social_state, NMT_sp_tour_like_toggle, NMT_sp_tour_save_toggle,
 --             NMT_sp_saved_tour_list
 -- Quy tắc   : Tour đang hiển thị = tour 'approved' của đơn vị 'approved' có tài khoản 'active'
@@ -13,7 +13,7 @@
 --             Thích / Lưu. Tour đã ngừng hiển thị vẫn bỏ thích / bỏ lưu được (để khách dọn
 --             "Tour đã lưu"), nhưng không thích / lưu mới được.
 --             Số bình luận = tour_comments có status 'visible' (file 33).
--- Chạy sau  : 33_migration_cr3_NTK.sql (bảng tour_likes, tour_comments). Khi gọi
+-- Chạy sau  : 33_migration_cr2_NTK.sql (bảng tour_likes, tour_comments). Khi gọi
 --             NMT_sp_saved_tour_list cần bảng settings (28_migration_economy_NTK.sql) và
 --             tour_packages (16_migration_sprint5_LTP.sql). Chạy lại được.
 -- =====================================================================

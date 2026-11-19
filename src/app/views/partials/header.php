@@ -6,7 +6,7 @@
  * Đã đăng nhập: "Đơn của tôi" (tài khoản khách hàng), tên khách hàng và nút "Đăng xuất" (form POST kèm mã CSRF).
  * Trên trang danh sách, tour-list.js chặn submit và tải lại kết quả bằng AJAX.
  * "Menu" dưới 992px: mở/đóng thanh bên #lt-sidebar (Bootstrap collapse).
- * CR3 (Nguyễn Tuấn Khôi):
+ * CR2 (Nguyễn Tuấn Khôi):
  *   - Nút "Menu" trên máy tính (.js-menu-desktop, app.js): trang có cột trái ($sidebarMode 'column', bảng tin) thì
  *     ẩn/hiện cột để nội dung rộng hơn (nhớ trong localStorage); trang khác mở ngăn menu nổi. Trang không có thanh
  *     bên (chưa gọi partials/sidebar.php) thì không có nút này. View chạy trước layout nên $sidebarMode đã có ở đây.

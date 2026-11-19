@@ -1,6 +1,6 @@
 -- =====================================================================
 -- LocalTour v0.7 - 39_migration_profile_LTP.sql
--- Mục đích  : Thông tin cá nhân thêm ở trang "Tài khoản" của khách hàng (CR3): 4 cột mới của bảng
+-- Mục đích  : Thông tin cá nhân thêm ở trang "Tài khoản" của khách hàng (CR2): 4 cột mới của bảng
 --             users, đều không bắt buộc (NULL = chưa cập nhật):
 --   1. citizen_id    : số căn cước công dân (CCCD), đúng 12 chữ số. Thông tin nhạy cảm: chỉ chủ tài
 --        khoản xem ở trang "Tài khoản"; không hiện ở trang quản trị, không ghi vào nhật ký / thông báo lỗi.

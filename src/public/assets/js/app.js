@@ -2,7 +2,7 @@
  * LocalTour – app.js (Nguyễn Tuấn Khôi)
  * Tiện ích dùng chung cho mọi trang: window.LocalTour = { baseUrl, url(path), formatVnd(n), ... }.
  * Quy ước: dữ liệu từ server chỉ được đưa vào DOM bằng .text() / .attr(), không ghép chuỗi HTML.
- * CR3: nút "Menu" trên máy tính (ẩn/hiện cột trái của bảng tin, nhớ trong localStorage; trang khác mở ngăn menu nổi)
+ * CR2: nút "Menu" trên máy tính (ẩn/hiện cột trái của bảng tin, nhớ trong localStorage; trang khác mở ngăn menu nổi)
  * và ảnh đại diện ở header không tải được thì đổi về chữ cái đầu tên.
  */
 (function (window, document, $) {

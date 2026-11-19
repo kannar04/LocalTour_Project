@@ -1,7 +1,7 @@
 <?php declare(strict_types=1); ?>
 <?php
 /*
- * Thẻ "Đánh giá tour" trên trang chi tiết đơn (FR-16, CR3 – Nguyễn Tuấn Khôi), require từ bookings/show.php.
+ * Thẻ "Đánh giá tour" trên trang chi tiết đơn (FR-16, CR2 – Nguyễn Tuấn Khôi), require từ bookings/show.php.
  * Biến: $review (NTK_sp_review_get: đơn + đánh giá, cột đánh giá NULL khi chưa có), $reviewFlash
  *       (ReviewController::pullFlash: type, message, errors, old; null = không có), $code, $isPublic, $tourUrl.
  * Đơn đã xác nhận (chuyến đi sắp tới): một dòng nhắc. Đơn chờ xác nhận / chờ thanh toán / bị từ chối / đã hủy: không hiện.

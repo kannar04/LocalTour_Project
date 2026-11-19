@@ -42,7 +42,7 @@
 --     upcoming   : next_starts_at tăng dần, tour chưa có lịch đặt được xếp cuối
 --     price_asc / price_desc: from_price_vnd, tour chưa có giá (NULL) xếp cuối
 --     Cùng thứ hạng thì xếp theo title, rồi id.
---   Bộ lọc "Ngày đi" và "Bộ lọc" nâng cao (CR3, Lê Trung Phong). NULL = không lọc:
+--   Bộ lọc "Ngày đi" và "Bộ lọc" nâng cao (CR2, Lê Trung Phong). NULL = không lọc:
 --   p_date           : chỉ tour có lịch đặt được (quy tắc ở đầu file) khởi hành trong ngày này.
 --                      schedules.starts_at là giờ Việt Nam (kết nối đặt time_zone '+07:00', file
 --                      core/Database.php) nên so trực tiếp: p_date <= starts_at < p_date + 1 ngày.
@@ -170,7 +170,7 @@ BEGIN
                 WHERE s.status = 'open'
                   AND s.starts_at > NOW() + INTERVAL v_cutoff_min MINUTE
                   AND s.remaining > 0
-                  -- Ngày đi (CR3): chỉ lịch khởi hành trong ngày đã chọn
+                  -- Ngày đi (CR2): chỉ lịch khởi hành trong ngày đã chọn
                   AND (p_date IS NULL
                        OR (s.starts_at >= p_date AND s.starts_at < p_date + INTERVAL 1 DAY))
                 GROUP BY s.tour_id) bs
@@ -203,7 +203,7 @@ BEGIN
            OR COALESCE(d.name, t.destination) LIKE (v_pattern COLLATE utf8mb4_unicode_ci) ESCAPE '!'
            OR c.name                          LIKE (v_pattern COLLATE utf8mb4_unicode_ci) ESCAPE '!'
            OR p.business_name                 LIKE (v_pattern COLLATE utf8mb4_unicode_ci) ESCAPE '!')
-      -- Bộ lọc CR3
+      -- Bộ lọc CR2
       AND (p_date IS NULL OR bs.tour_id IS NOT NULL)
       AND (p_price_min IS NULL OR bs.from_price_vnd >= p_price_min)
       AND (p_price_max IS NULL OR bs.from_price_vnd <= p_price_max)

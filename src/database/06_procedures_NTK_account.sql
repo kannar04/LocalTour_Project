@@ -57,7 +57,7 @@ DELIMITER ;
 -- NTK_sp_user_find_by_email(p_email)
 --   0 hoặc 1 dòng: tài khoản có email này (không phân biệt hoa thường).
 --   Cột: user_id, name, email, password_hash (NULL = chưa đặt mật khẩu), role, status,
---        avatar_url (CR3: ảnh đại diện, cột thêm ở 33_migration_cr3_NTK.sql; NULL = chưa có ảnh).
+--        avatar_url (CR2: ảnh đại diện, cột thêm ở 33_migration_cr2_NTK.sql; NULL = chưa có ảnh).
 --   Ứng dụng tự kiểm tra role = 'customer', status = 'active' và mật khẩu
 --   (password_verify) trước khi cho đăng nhập.
 -- ---------------------------------------------------------------------

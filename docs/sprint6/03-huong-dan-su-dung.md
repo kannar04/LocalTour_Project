@@ -3,11 +3,11 @@
 | Mục | Nội dung |
 | --- | --- |
 | Sprint | Sprint 6 – Chuẩn bị demo, hướng dẫn và nghiệm thu UAT (13/11 – 19/11/2026) |
-| WBS | 6.2 – User Guide đặt tour; 6.11 – Cập nhật tài liệu theo CR2; 6.18 – Cập nhật tài liệu theo CR3 |
+| WBS | 6.2 – User Guide đặt tour; 6.11 – Cập nhật tài liệu theo CR2; 6.18 – Cập nhật tài liệu theo CR2 |
 | Người phụ trách | Hồ Duy Hải, Đỗ Sơn Thành |
-| Căn cứ | Giao diện bản tích hợp Sprint 6, gồm yêu cầu thay đổi CR2 (đặt tour giữ chỗ ngay, tài khoản đơn vị tổ chức, phí dịch vụ và chi trả, thông số vận hành) và CR3 (lọc theo ngày đi và bộ lọc nâng cao; thích, lưu, chia sẻ, bình luận; đánh giá sau chuyến đi; trang tài khoản; Trợ giúp, Điều khoản sử dụng, nút Menu); Product Backlog (US-01 → US-39); [Sprint 5 – Yêu cầu và luồng](../sprint5/01-yeu-cau-va-luong-sprint5.md); [Sprint 4 – Yêu cầu và luồng đặt tour](../sprint4/02-yeu-cau-va-luong-dat-tour.md) |
+| Căn cứ | Giao diện bản tích hợp Sprint 6 và hai đợt của cùng CR2: đợt bổ sung ban đầu (đặt tour giữ chỗ ngay, tài khoản đơn vị tổ chức, phí dịch vụ/chi trả, thông số vận hành) và đợt cập nhật mở rộng (lọc nâng cao; thích, lưu, chia sẻ, bình luận; đánh giá; tài khoản; Trợ giúp, Điều khoản, Menu); Product Backlog US-01 → US-39; [Sprint 5 – Yêu cầu và luồng](../sprint5/01-yeu-cau-va-luong-sprint5.md); [Sprint 4 – Yêu cầu và luồng đặt tour](../sprint4/02-yeu-cau-va-luong-dat-tour.md) |
 | Tài liệu liên quan | [01 – Kế hoạch Sprint 6](01-ke-hoach-sprint6.md), [04 – Kế hoạch và checklist UAT](04-uat-checklist.md) |
-| Trạng thái | Bản nháp; nội dung đã cập nhật theo CR2 và CR3. Ảnh minh họa đã chụp lại trên bản tích hợp có CR3 (15/11/2026); đối chiếu với trang demo sau khi cập nhật CR3, chốt trước buổi UAT ngày 16/11/2026. |
+| Trạng thái | Bản hướng dẫn đã cập nhật theo đợt bổ sung ban đầu và đợt cập nhật mở rộng của CR2. Ảnh minh họa được ghi nhận từ bản tích hợp ngày 15/11/2026; không dùng các ảnh này để thay thế Evidence kết quả UAT. |
 
 Tên nút, nhãn và thông báo trong tài liệu chép đúng như trên màn hình. Ảnh minh họa dùng dữ liệu thử (tài khoản `khach.a@localtour.test` và `khach.b@localtour.test`, đơn LT224019, đơn vị tổ chức “Hà Nội Local”); tài khoản ngân hàng trong ảnh là số mẫu, ảnh đại diện là hình vẽ minh họa.
 

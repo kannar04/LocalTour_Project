@@ -16,7 +16,7 @@ final class TourListModel
     public const DEFAULT_SORT = 'recommended';
     public const KEYWORD_MAX_LENGTH = 100;
 
-    /** Bộ lọc nâng cao (CR3): khoảng giá tối đa nhận được (VND) và số ngày tới tối đa cho "Ngày đi". */
+    /** Bộ lọc nâng cao (CR2): khoảng giá tối đa nhận được (VND) và số ngày tới tối đa cho "Ngày đi". */
     public const PRICE_MAX = 100000000;
     public const DATE_MAX_DAYS = 365;
 
@@ -39,7 +39,7 @@ final class TourListModel
 
     /**
      * Tour đang công khai, lọc theo từ khóa, điểm đến và loại hình (UUID, null = tất cả) rồi sắp xếp.
-     * $filters (CR3, đã kiểm tra ở controller; thiếu khóa = không lọc):
+     * $filters (CR2, đã kiểm tra ở controller; thiếu khóa = không lọc):
      *   date (Y-m-d), price_min, price_max (int VND), duration (khóa của DURATIONS),
      *   language (khóa của LANGUAGES), hotel_pickup (bool).
      *

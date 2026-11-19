@@ -921,7 +921,7 @@ proc: BEGIN
     DELETE FROM tour_packages        WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
     DELETE FROM tour_posts           WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
     DELETE FROM favorite_tours       WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
-    -- CR3 (file 33): lượt thích và bình luận của tour (khóa ngoại RESTRICT).
+    -- CR2 (file 33): lượt thích và bình luận của tour (khóa ngoại RESTRICT).
     DELETE FROM tour_likes           WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
     DELETE FROM tour_comments        WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);
     DELETE FROM comparison_tours     WHERE tour_id = (p_tour_id COLLATE utf8mb4_unicode_ci);

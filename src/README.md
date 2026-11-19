@@ -1,11 +1,11 @@
 # LocalTour – Mã nguồn ứng dụng
 
-Thư mục `src/` chứa LocalTour Increment v0.4: trang danh sách tour, trang chi tiết tour, tài khoản khách hàng (đăng ký, đăng nhập, đăng xuất), trang quản trị (duyệt tour, xử lý yêu cầu đặt tour, thống kê) của Sprint 3; luồng đặt tour MVP (M4: chọn lịch và số khách, nhập danh sách khách, gửi yêu cầu đặt tour, trang "Đơn của tôi"); và Sprint 4: chọn phụ thu / hoạt động tùy chọn khi đặt, chốt giá, thanh toán VNPay (sandbox) và chuyển khoản VietQR, đối chiếu chuyển khoản, voucher, tự hủy đơn quá hạn, lịch sử đơn, quản lý đơn vị tổ chức, thêm / sửa tour và lịch khởi hành; Sprint 5: so sánh 2–3 tour, gói tour, yêu cầu đổi ngày / hủy tour và xử lý thủ công của quản trị viên, quản lý gói, ảnh, lịch trình, dịch vụ, chính sách hủy và xóa tour. Từ file database `28`–`30`: đặt ngay (đơn mới giữ chỗ luôn ở "Chờ thanh toán", không chờ quản trị viên xác nhận chỗ), thông số vận hành, phí dịch vụ LocalTour và chi trả cho đơn vị tổ chức. File `31`, `32`: quy tắc khu đơn vị tổ chức (tour nháp, gửi duyệt, bản sửa của tour đã duyệt, xác minh tài khoản nhận tiền). CR3 (file `33`–`38`): lọc tour theo ngày đi và bộ lọc nâng cao, thích, lưu tour và trang "Tour đã lưu", chia sẻ, bình luận và kiểm duyệt bình luận, đánh giá sao sau chuyến đi và duyệt đánh giá, trang "Tài khoản" (ảnh đại diện, họ tên, số điện thoại, mật khẩu), trang Trợ giúp và Điều khoản sử dụng. Ứng dụng đọc và ghi dữ liệu MySQL qua stored procedure. Toàn bộ dữ liệu tour, giá, tài khoản và đánh giá là dữ liệu minh họa.
+Thư mục `src/` chứa LocalTour Increment v0.4: trang danh sách tour, trang chi tiết tour, tài khoản khách hàng (đăng ký, đăng nhập, đăng xuất), trang quản trị (duyệt tour, xử lý yêu cầu đặt tour, thống kê) của Sprint 3; luồng đặt tour MVP (M4: chọn lịch và số khách, nhập danh sách khách, gửi yêu cầu đặt tour, trang "Đơn của tôi"); và Sprint 4: chọn phụ thu / hoạt động tùy chọn khi đặt, chốt giá, thanh toán VNPay (sandbox) và chuyển khoản VietQR, đối chiếu chuyển khoản, voucher, tự hủy đơn quá hạn, lịch sử đơn, quản lý đơn vị tổ chức, thêm / sửa tour và lịch khởi hành; Sprint 5: so sánh 2–3 tour, gói tour, yêu cầu đổi ngày / hủy tour và xử lý thủ công của quản trị viên, quản lý gói, ảnh, lịch trình, dịch vụ, chính sách hủy và xóa tour. Từ file database `28`–`30`: đặt ngay (đơn mới giữ chỗ luôn ở "Chờ thanh toán", không chờ quản trị viên xác nhận chỗ), thông số vận hành, phí dịch vụ LocalTour và chi trả cho đơn vị tổ chức. File `31`, `32`: quy tắc khu đơn vị tổ chức (tour nháp, gửi duyệt, bản sửa của tour đã duyệt, xác minh tài khoản nhận tiền). CR2 (file `33`–`38`): lọc tour theo ngày đi và bộ lọc nâng cao, thích, lưu tour và trang "Tour đã lưu", chia sẻ, bình luận và kiểm duyệt bình luận, đánh giá sao sau chuyến đi và duyệt đánh giá, trang "Tài khoản" (ảnh đại diện, họ tên, số điện thoại, mật khẩu), trang Trợ giúp và Điều khoản sử dụng. Ứng dụng đọc và ghi dữ liệu MySQL qua stored procedure. Toàn bộ dữ liệu tour, giá, tài khoản và đánh giá là dữ liệu minh họa.
 
 Tài liệu thiết kế đi kèm:
 
 - [01 – Danh mục trường dữ liệu](../docs/sprint3/01-truong-du-lieu.md)
-- [02 – Lược đồ dữ liệu](../docs/sprint3/02-luoc-do-du-lieu.md)
+- [01 – Danh mục trường dữ liệu Sprint 3](../docs/sprint3/01-truong-du-lieu.md)
 - [03 – Route và quy ước lỗi](../docs/sprint3/03-route-va-quy-uoc-loi.md)
 - Sprint 4: [01 – Rà soát M3 và tồn đọng](../docs/sprint4/R%C3%A0%20so%C3%A1t%20k%E1%BA%BFt%20qu%E1%BA%A3%20M3%20v%C3%A0%20t%E1%BB%93n%20%C4%91%E1%BB%8Dng.docx), [02 – Yêu cầu và luồng đặt tour](../docs/sprint4/02-yeu-cau-va-luong-dat-tour.md), [03 – Cấu trúc dữ liệu Booking](../docs/sprint4/03-cau-truc-du-lieu-booking.md)
 - Sprint 5: [01 – Yêu cầu và luồng Sprint 5](../docs/sprint5/01-yeu-cau-va-luong-sprint5.md), [02 – Cấu trúc dữ liệu Sprint 5](../docs/sprint5/02-cau-truc-du-lieu-sprint5.md), [Test Plan và RTM Sprint 5](../docs/sprint5/Test%20Plan%20v%C3%A0%20RTM%20Sprint%205.docx)
@@ -62,13 +62,13 @@ src/
 │   │   ├── HostTourContentController.php # Đơn vị quản lý ảnh, lịch trình, dịch vụ, chính sách hủy
 │   │   ├── HostBookingController.php     # Đơn vị xem đơn đặt tour của tour mình (chỉ xem)
 │   │   ├── HostPayoutController.php      # Đơn vị xem khoản chi trả, khai tài khoản nhận tiền
-│   │   ├── TourSocialController.php      # CR3: thích, lưu tour, "Tour đã lưu"
-│   │   ├── TourCommentController.php     # CR3: bình luận trên trang tour (API)
-│   │   ├── ReviewController.php          # CR3: khách gửi / sửa đánh giá đơn đã hoàn thành
-│   │   ├── AdminReviewController.php     # CR3: duyệt, từ chối, gỡ đánh giá
-│   │   ├── AdminCommentController.php    # CR3: ẩn / hiện lại bình luận
-│   │   ├── AccountController.php         # CR3: trang "Tài khoản", ảnh đại diện, mật khẩu
-│   │   └── PageController.php            # CR3: Trợ giúp, Điều khoản sử dụng
+│   │   ├── TourSocialController.php      # CR2: thích, lưu tour, "Tour đã lưu"
+│   │   ├── TourCommentController.php     # CR2: bình luận trên trang tour (API)
+│   │   ├── ReviewController.php          # CR2: khách gửi / sửa đánh giá đơn đã hoàn thành
+│   │   ├── AdminReviewController.php     # CR2: duyệt, từ chối, gỡ đánh giá
+│   │   ├── AdminCommentController.php    # CR2: ẩn / hiện lại bình luận
+│   │   ├── AccountController.php         # CR2: trang "Tài khoản", ảnh đại diện, mật khẩu
+│   │   └── PageController.php            # CR2: Trợ giúp, Điều khoản sử dụng
 │   ├── models/
 │   │   ├── TourListModel.php
 │   │   ├── TourDetailModel.php
@@ -97,28 +97,28 @@ src/
 │   │   ├── TourRevisionModel.php     # Gửi duyệt, ngừng hiển thị, bản sửa của tour đã duyệt
 │   │   ├── PayoutModel.php           # Việc sau tour, khoản chi trả, tài khoản nhận tiền, hoàn tiền
 │   │   ├── SettingModel.php          # Thông số vận hành
-│   │   ├── TourSocialModel.php       # CR3: thích, lưu tour
-│   │   ├── TourCommentModel.php      # CR3: bình luận
-│   │   ├── ReviewModel.php           # CR3: đánh giá sao, duyệt đánh giá
-│   │   └── AccountModel.php          # CR3: tài khoản khách hàng, ảnh đại diện
+│   │   ├── TourSocialModel.php       # CR2: thích, lưu tour
+│   │   ├── TourCommentModel.php      # CR2: bình luận
+│   │   ├── ReviewModel.php           # CR2: đánh giá sao, duyệt đánh giá
+│   │   └── AccountModel.php          # CR2: tài khoản khách hàng, ảnh đại diện
 │   ├── services/                 # VnpayGateway.php (tạo URL, kiểm tra chữ ký), VietQr.php (ảnh mã QR)
 │   └── views/
 │       ├── admin/                # login.php, dashboard.php, tours/ (có content.php, partials/revision_compare.php), bookings/, payments/,
 │       │                         # providers/, schedules/, packages/, change-requests/, payouts/, settings/, reviews/, comments/,
 │       │                         # partials/nav.php
-│       ├── account/              # settings.php (trang "Tài khoản", CR3)
+│       ├── account/              # settings.php (trang "Tài khoản", CR2)
 │       ├── auth/                 # login.php, register.php
 │       ├── bookings/             # create.php (đặt tour), index.php, show.php (đơn của tôi), message.php, change.php (đổi ngày / hủy),
-│       │                         # review-card.php (thẻ "Đánh giá tour", CR3)
+│       │                         # review-card.php (thẻ "Đánh giá tour", CR2)
 │       ├── errors/               # 403.php, 404.php, 500.php
 │       ├── host/                 # login.php, tours/ (index.php, show.php), bookings/ (index.php, show.php),
 │       │                         # payouts/ (index.php, show.php, bank.php); form tour, lịch, nội dung dùng chung view của admin/
 │       ├── layouts/              # main.php
-│       ├── pages/                # help.php (Trợ giúp), terms.php (Điều khoản sử dụng), CR3
+│       ├── pages/                # help.php (Trợ giúp), terms.php (Điều khoản sử dụng), CR2
 │       ├── payments/             # checkout.php (chọn phương thức), transfer.php (VietQR)
 │       ├── partials/             # header.php (Đơn của tôi, ảnh đại diện và tên tài khoản), sidebar.php, footer.php
 │       ├── tours/                # index.php, show.php, compare.php, not-found.php, saved.php (Tour đã lưu),
-│       │                         # comments-section.php (bình luận), CR3
+│       │                         # comments-section.php (bình luận), CR2
 │       └── vouchers/             # show.php (in được)
 ├── config/                       # app.php, database.php, payment.php (đọc giá trị từ .env)
 ├── core/                         # bootstrap.php, Router.php, Controller.php, Database.php,
@@ -157,12 +157,12 @@ src/
 │   ├── 30_procedures_NTK_payout.sql
 │   ├── 31_migration_host_rules_NTK.sql
 │   ├── 32_procedures_NTK_tour_revision.sql
-│   ├── 33_migration_cr3_NTK.sql
+│   ├── 33_migration_cr2_NTK.sql
 │   ├── 34_procedures_NMT_social.sql
 │   ├── 35_procedures_NMT_comment.sql
 │   ├── 36_procedures_NTK_review.sql
 │   ├── 37_procedures_LTP_account.sql
-│   ├── 38_seed_cr3_NTK.sql
+│   ├── 38_seed_cr2_NTK.sql
 │   ├── 39_migration_profile_LTP.sql
 │   ├── 40_email_verify_NTK.sql
 │   ├── 41_seed_tours_NMT.sql
@@ -175,12 +175,12 @@ src/
 │   ├── router.php                # Router cho PHP built-in server
 │   └── assets/
 │       ├── css/                  # base.css, tour-list.css, tour-detail.css, auth.css, admin.css, booking.css, compare.css,
-│       │                         # tour-social.css, tour-comments.css, review.css, account.css, pages.css (CR3)
+│       │                         # tour-social.css, tour-comments.css, review.css, account.css, pages.css (CR2)
 │       ├── js/                   # app.js, tour-list.js, tour-detail.js, booking.js, compare.js, change-request.js,
-│       │                         # tour-social.js, tour-comments.js, booking-review.js, account.js (CR3)
+│       │                         # tour-social.js, tour-comments.js, booking-review.js, account.js (CR2)
 │       ├── img/                  # Logo, ảnh thay thế (SVG); img/tours/: ảnh chụp tour mẫu (JPG), bảng tour_images lưu đường dẫn tới các file này
 │       └── uploads/              # Ảnh tải lên, không đưa lên Git: ảnh tour (uploads/tours/), ảnh đại diện
-│                                 # khách hàng (uploads/avatars/, CR3, tự tạo ở lần tải lên đầu tiên)
+│                                 # khách hàng (uploads/avatars/, CR2, tự tạo ở lần tải lên đầu tiên)
 ├── routes/
 │   └── web.php                   # Khai báo route
 ├── scripts/
@@ -201,8 +201,8 @@ Tiền tố tên procedure cho biết người phụ trách: `LTP_` – Lê Trun
 
 | Phương thức | Đường dẫn | Xử lý | Ghi chú |
 | --- | --- | --- | --- |
-| GET | `/`, `/tours` | `TourListController@index` | Tham số: `q`, `destination_id`, `category_id`, `sort`; CR3 thêm `date`, `price_min`, `price_max`, `duration`, `language`, `hotel_pickup` (ô "Ngày đi" và "Bộ lọc", giữ trên URL, ý nghĩa như `/api/tours`). |
-| GET | `/api/tours` | `TourListController@apiIndex` | JSON `{ tours, total }`; 400 nếu `q` quá 100 ký tự hoặc `destination_id` / `category_id` sai UUID. CR3: `date` (`YYYY-MM-DD`, từ hôm nay tới 365 ngày sau; giá "Từ" và lịch gần nhất tính theo ngày đó), `price_min`, `price_max` (giá vé người lớn, cùng số với giá "Từ" trên thẻ; 0–100.000.000, gồm hai đầu, giá thấp nhất không lớn hơn giá cao nhất; tour chưa có giá bị loại), `duration` (`short` đến 3 giờ, `medium` trên 3 – 4 giờ, `long` trên 4 giờ), `language` (mã ngôn ngữ hướng dẫn), `hotel_pickup=1` (có đón tại khách sạn); giá trị sai → 422. |
+| GET | `/`, `/tours` | `TourListController@index` | Tham số: `q`, `destination_id`, `category_id`, `sort`; CR2 thêm `date`, `price_min`, `price_max`, `duration`, `language`, `hotel_pickup` (ô "Ngày đi" và "Bộ lọc", giữ trên URL, ý nghĩa như `/api/tours`). |
+| GET | `/api/tours` | `TourListController@apiIndex` | JSON `{ tours, total }`; 400 nếu `q` quá 100 ký tự hoặc `destination_id` / `category_id` sai UUID. CR2: `date` (`YYYY-MM-DD`, từ hôm nay tới 365 ngày sau; giá "Từ" và lịch gần nhất tính theo ngày đó), `price_min`, `price_max` (giá vé người lớn, cùng số với giá "Từ" trên thẻ; 0–100.000.000, gồm hai đầu, giá thấp nhất không lớn hơn giá cao nhất; tour chưa có giá bị loại), `duration` (`short` đến 3 giờ, `medium` trên 3 – 4 giờ, `long` trên 4 giờ), `language` (mã ngôn ngữ hướng dẫn), `hotel_pickup=1` (có đón tại khách sạn); giá trị sai → 422. |
 | GET | `/api/destinations` | `TourListController@apiDestinations` | JSON `{ destinations }`. |
 | GET | `/api/categories` | `TourListController@apiCategories` | JSON `{ categories }`. |
 | GET | `/tours/{id}` | `TourDetailController@show` | Trang 404 nếu không tìm thấy hoặc tour không công khai. |
@@ -281,22 +281,22 @@ Tiền tố tên procedure cho biết người phụ trách: `LTP_` – Lê Trun
 | GET | `/api/tours/{id}/places` | `TourMapController@apiPlaces` | JSON quán ăn, bar, giải trí, quán nước trong 1,5 km quanh điểm khởi hành (Overpass API gọi từ máy chủ, lưu đệm 7 ngày ở `map_place_cache`); lỗi thì dùng bản lưu cũ hoặc báo "Chưa tải được địa điểm, thử lại sau.". |
 | GET, POST | `/admin/tours/{id}/location` | `AdminTourLocationController` | Đặt / xóa tọa độ điểm khởi hành của tour (bấm trên bản đồ hoặc nhập số). |
 | GET | `/auth/google`, `/auth/google/callback` | `SocialAuthController` | Đăng nhập / đăng ký khách hàng bằng Google (OAuth 2.0); tự liên kết với tài khoản khách hàng đang hoạt động cùng email. Nút chỉ hiện khi đã điền khóa. |
-| GET | `/tro-giup`, `/dieu-khoan` | `PageController` | CR3: trang "Trợ giúp" (câu hỏi thường gặp) và "Điều khoản sử dụng"; mọi người xem được. |
-| GET | `/api/social/tours` | `TourSocialController@apiState` | CR3: `ids` là mã tour cách nhau bởi dấu phẩy, tối đa 60. JSON `{ viewer, tours }`: số lượt thích, số bình luận đang hiển thị, `liked`, `saved` của từng tour đang hiển thị; 400 khi mã sai hoặc quá 60 tour. |
-| POST | `/api/tours/{id}/like`, `/api/tours/{id}/save` | `TourSocialController` | CR3: `liked` / `saved` (`1` / `0`, trống = đảo trạng thái), `next`, `_csrf`. Chỉ tài khoản khách hàng: chưa đăng nhập → 401 kèm `login_url` (đăng nhập xong quay lại trang đang xem), tài khoản khác → 403. Chỉ thích / lưu được tour đang hiển thị (404); tour đã ngừng hiển thị vẫn bỏ thích / bỏ lưu được. |
-| GET | `/tour-da-luu` | `TourSocialController@saved` | CR3: "Tour đã lưu" của tài khoản khách hàng, lưu gần nhất trước; tour đã ngừng hiển thị hiện mờ, chỉ còn nút "Bỏ lưu". Chưa đăng nhập → trang đăng nhập; tài khoản khác → 403. |
-| GET | `/api/tours/{id}/comments` | `TourCommentController@index` | CR3: `page` (mặc định 1, mỗi trang 10). JSON `{ comments, total, page, page_size, has_more }`, chỉ bình luận đang hiển thị, mới nhất trước; 400 mã sai, 404 tour không có hoặc đang ẩn. |
-| POST | `/api/tours/{id}/comments` | `TourCommentController@store` | CR3: `content` (1–1000 ký tự), `_csrf`. 201 đã đăng; 401 chưa đăng nhập, 403 không phải tài khoản khách hàng, 422 nội dung sai, 429 khi đã gửi 5 bình luận trong 10 phút. |
-| POST | `/api/comments/{id}/delete` | `TourCommentController@destroy` | CR3: `_csrf`; người viết xóa bình luận của mình (bình luận không sửa được); 404 khi không phải bình luận của mình. |
-| POST | `/bookings/{code}/review` | `ReviewController@save` | CR3 (FR-16): `rating` (1–5), `content` (10–1000 ký tự), `_csrf`. Chỉ đơn "Đã hoàn thành" của chính tài khoản, mỗi đơn một đánh giá; gửi hoặc sửa xong về thẻ "Đánh giá tour" của trang đơn, đánh giá ở "Chờ duyệt". Sửa được khi "Chờ duyệt" / "Không được duyệt"; đánh giá đã duyệt (thẻ đơn ghi "Đã đăng") không sửa được. |
-| GET | `/tai-khoan` | `AccountController@show` | CR3: trang "Tài khoản" của tài khoản khách hàng (ảnh đại diện, thông tin cá nhân, mật khẩu). Chưa đăng nhập → trang đăng nhập; tài khoản khác → 403. |
-| POST | `/tai-khoan/profile` | `AccountController@updateProfile` | CR3: `name` (2–100 ký tự), `phone` (không bắt buộc; 8–20 ký tự gồm chữ số và khoảng trắng, có thể bắt đầu bằng `+`), `citizen_id` (số CCCD, không bắt buộc, đúng 12 chữ số), `date_of_birth` (không bắt buộc; `yyyy-mm-dd` hoặc `dd/mm/yyyy`, từ năm 1900, không ở tương lai, đủ 10 tuổi), `gender` (`male` / `female` / `other`, trống = không nêu), `address` (không bắt buộc, tối đa 255 ký tự), `_csrf`; 422 lỗi theo ô, không lưu gì. |
-| POST | `/tai-khoan/avatar`, `/tai-khoan/avatar/delete` | `AccountController` | CR3: đặt / xóa ảnh đại diện; `avatar` (multipart: JPG / PNG / WebP tối đa 2 MB, cạnh 64–4096 px; không nhận SVG), `_csrf`; 422 ảnh không hợp lệ, 413 file quá lớn. Đổi hoặc xóa ảnh thì xóa file cũ. |
-| POST | `/tai-khoan/password` | `AccountController@changePassword` | CR3: `current_password` (bắt buộc khi tài khoản đã có mật khẩu), `password` (tối thiểu 8 ký tự như khi đăng ký), `password_confirm`, `_csrf`; 422 lỗi theo ô. |
-| GET | `/admin/reviews` | `AdminReviewController@index` | CR3: "Duyệt đánh giá"; `status` `pending` (mặc định, "Chờ duyệt"), `approved` ("Đã duyệt"), `rejected` ("Không được duyệt"), `all`; `q` (mã đơn, tên tour, tên / email khách), `page`. |
-| POST | `/admin/reviews/{id}/approve`, `/admin/reviews/{id}/reject` | `AdminReviewController` | CR3: `note` (bắt buộc khi từ chối, tối đa 255 ký tự), `status`, `q`, `page`, `_csrf`. "Duyệt" chỉ với đánh giá "Chờ duyệt"; `reject` là "Từ chối" (đánh giá chờ duyệt) hoặc "Gỡ đánh giá" (đánh giá đã duyệt), cả hai về "Không được duyệt". Không duyệt thẳng đánh giá "Không được duyệt". Ghi `admin_logs`. |
-| GET | `/admin/comments` | `AdminCommentController@index` | CR3: "Bình luận"; `status` `visible` (mặc định, "Đang hiển thị"), `hidden` ("Đã ẩn"), `all`; `q` (nội dung, người viết, tên tour), `page`. |
-| POST | `/admin/comments/{id}/hide`, `/admin/comments/{id}/show` | `AdminCommentController` | CR3: ẩn (`reason` bắt buộc, tối đa 255 ký tự) / hiện lại bình luận; `back`, `_csrf`. Ghi `admin_logs`. |
+| GET | `/tro-giup`, `/dieu-khoan` | `PageController` | CR2: trang "Trợ giúp" (câu hỏi thường gặp) và "Điều khoản sử dụng"; mọi người xem được. |
+| GET | `/api/social/tours` | `TourSocialController@apiState` | CR2: `ids` là mã tour cách nhau bởi dấu phẩy, tối đa 60. JSON `{ viewer, tours }`: số lượt thích, số bình luận đang hiển thị, `liked`, `saved` của từng tour đang hiển thị; 400 khi mã sai hoặc quá 60 tour. |
+| POST | `/api/tours/{id}/like`, `/api/tours/{id}/save` | `TourSocialController` | CR2: `liked` / `saved` (`1` / `0`, trống = đảo trạng thái), `next`, `_csrf`. Chỉ tài khoản khách hàng: chưa đăng nhập → 401 kèm `login_url` (đăng nhập xong quay lại trang đang xem), tài khoản khác → 403. Chỉ thích / lưu được tour đang hiển thị (404); tour đã ngừng hiển thị vẫn bỏ thích / bỏ lưu được. |
+| GET | `/tour-da-luu` | `TourSocialController@saved` | CR2: "Tour đã lưu" của tài khoản khách hàng, lưu gần nhất trước; tour đã ngừng hiển thị hiện mờ, chỉ còn nút "Bỏ lưu". Chưa đăng nhập → trang đăng nhập; tài khoản khác → 403. |
+| GET | `/api/tours/{id}/comments` | `TourCommentController@index` | CR2: `page` (mặc định 1, mỗi trang 10). JSON `{ comments, total, page, page_size, has_more }`, chỉ bình luận đang hiển thị, mới nhất trước; 400 mã sai, 404 tour không có hoặc đang ẩn. |
+| POST | `/api/tours/{id}/comments` | `TourCommentController@store` | CR2: `content` (1–1000 ký tự), `_csrf`. 201 đã đăng; 401 chưa đăng nhập, 403 không phải tài khoản khách hàng, 422 nội dung sai, 429 khi đã gửi 5 bình luận trong 10 phút. |
+| POST | `/api/comments/{id}/delete` | `TourCommentController@destroy` | CR2: `_csrf`; người viết xóa bình luận của mình (bình luận không sửa được); 404 khi không phải bình luận của mình. |
+| POST | `/bookings/{code}/review` | `ReviewController@save` | CR2 (FR-16): `rating` (1–5), `content` (10–1000 ký tự), `_csrf`. Chỉ đơn "Đã hoàn thành" của chính tài khoản, mỗi đơn một đánh giá; gửi hoặc sửa xong về thẻ "Đánh giá tour" của trang đơn, đánh giá ở "Chờ duyệt". Sửa được khi "Chờ duyệt" / "Không được duyệt"; đánh giá đã duyệt (thẻ đơn ghi "Đã đăng") không sửa được. |
+| GET | `/tai-khoan` | `AccountController@show` | CR2: trang "Tài khoản" của tài khoản khách hàng (ảnh đại diện, thông tin cá nhân, mật khẩu). Chưa đăng nhập → trang đăng nhập; tài khoản khác → 403. |
+| POST | `/tai-khoan/profile` | `AccountController@updateProfile` | CR2: `name` (2–100 ký tự), `phone` (không bắt buộc; 8–20 ký tự gồm chữ số và khoảng trắng, có thể bắt đầu bằng `+`), `citizen_id` (số CCCD, không bắt buộc, đúng 12 chữ số), `date_of_birth` (không bắt buộc; `yyyy-mm-dd` hoặc `dd/mm/yyyy`, từ năm 1900, không ở tương lai, đủ 10 tuổi), `gender` (`male` / `female` / `other`, trống = không nêu), `address` (không bắt buộc, tối đa 255 ký tự), `_csrf`; 422 lỗi theo ô, không lưu gì. |
+| POST | `/tai-khoan/avatar`, `/tai-khoan/avatar/delete` | `AccountController` | CR2: đặt / xóa ảnh đại diện; `avatar` (multipart: JPG / PNG / WebP tối đa 2 MB, cạnh 64–4096 px; không nhận SVG), `_csrf`; 422 ảnh không hợp lệ, 413 file quá lớn. Đổi hoặc xóa ảnh thì xóa file cũ. |
+| POST | `/tai-khoan/password` | `AccountController@changePassword` | CR2: `current_password` (bắt buộc khi tài khoản đã có mật khẩu), `password` (tối thiểu 8 ký tự như khi đăng ký), `password_confirm`, `_csrf`; 422 lỗi theo ô. |
+| GET | `/admin/reviews` | `AdminReviewController@index` | CR2: "Duyệt đánh giá"; `status` `pending` (mặc định, "Chờ duyệt"), `approved` ("Đã duyệt"), `rejected` ("Không được duyệt"), `all`; `q` (mã đơn, tên tour, tên / email khách), `page`. |
+| POST | `/admin/reviews/{id}/approve`, `/admin/reviews/{id}/reject` | `AdminReviewController` | CR2: `note` (bắt buộc khi từ chối, tối đa 255 ký tự), `status`, `q`, `page`, `_csrf`. "Duyệt" chỉ với đánh giá "Chờ duyệt"; `reject` là "Từ chối" (đánh giá chờ duyệt) hoặc "Gỡ đánh giá" (đánh giá đã duyệt), cả hai về "Không được duyệt". Không duyệt thẳng đánh giá "Không được duyệt". Ghi `admin_logs`. |
+| GET | `/admin/comments` | `AdminCommentController@index` | CR2: "Bình luận"; `status` `visible` (mặc định, "Đang hiển thị"), `hidden` ("Đã ẩn"), `all`; `q` (nội dung, người viết, tên tour), `page`. |
+| POST | `/admin/comments/{id}/hide`, `/admin/comments/{id}/show` | `AdminCommentController` | CR2: ẩn (`reason` bắt buộc, tối đa 255 ký tự) / hiện lại bình luận; `back`, `_csrf`. Ghi `admin_logs`. |
 
 Mọi trang `/admin…` (trừ `/admin/login`): chưa đăng nhập thì chuyển tới `/admin/login`, đăng nhập bằng tài khoản không phải quản trị viên thì nhận trang 403. Mọi trang `/host…` (trừ `/host/login`): chưa đăng nhập thì chuyển tới `/host/login`; đơn vị chỉ mở được tour, đơn đặt tour và khoản chi trả của chính mình.
 
@@ -360,9 +360,9 @@ Chọn một trong hai cách.
 
 Cách nhanh hơn, không cần phpMyAdmin: sau khi tạo `.env` (Bước 3), đứng ở thư mục `src` chạy `scripts\install_database.bat`. Script import mọi file `NN_*.sql` theo thứ tự vào database ghi trong `.env` và đếm lại bảng / procedure; database đã có dữ liệu thì dừng, trừ khi thêm `--fresh`.
 
-Nếu không có file gộp: tạo database `db_localtour` với collation `utf8mb4_unicode_ci`, chọn database đó, rồi import lần lượt `01_schema.sql`, `02_seed.sql`, `03_procedures_LTP.sql`, `04_procedures_NMT.sql`, `05_procedures_NTK.sql`, `06_procedures_NTK_account.sql`, `07_procedures_NTK_admin.sql`, `08_migration_booking_NMT.sql`, `09_procedures_NMT_booking.sql`, `10_procedures_LTP_booking.sql`, `11_procedures_NTK_booking.sql`, `12_migration_sprint4_NMT.sql`, `13_procedures_NMT_catalog.sql`, `14_procedures_NMT_payment.sql`, `15_procedures_LTP_payment.sql`, `16_migration_sprint5_LTP.sql`, `17_procedures_NMT_compare.sql`, `18_procedures_LTP_package.sql`, `19_procedures_LTP_change.sql`, `20_procedures_LTP_change_admin.sql`, `21_procedures_NMT_tour_content.sql`, `22_payment_momo_NTK.sql`, `23_map_places_NTK.sql`, `24_social_login_NTK.sql`, `25_email_NTK.sql`, `26_procedures_NTK_setup.sql`, `27_procedures_NTK_host.sql`, `28_migration_economy_NTK.sql`, `29_procedures_NTK_instant_booking.sql`, `30_procedures_NTK_payout.sql`, `31_migration_host_rules_NTK.sql`, `32_procedures_NTK_tour_revision.sql`, `33_migration_cr3_NTK.sql`, `34_procedures_NMT_social.sql`, `35_procedures_NMT_comment.sql`, `36_procedures_NTK_review.sql`, `37_procedures_LTP_account.sql`, `38_seed_cr3_NTK.sql`, `39_migration_profile_LTP.sql`, `40_email_verify_NTK.sql`, `41_seed_tours_NMT.sql`, `42_map_tours_NTK.sql`.
+Nếu không có file gộp: tạo database `db_localtour` với collation `utf8mb4_unicode_ci`, chọn database đó, rồi import lần lượt `01_schema.sql`, `02_seed.sql`, `03_procedures_LTP.sql`, `04_procedures_NMT.sql`, `05_procedures_NTK.sql`, `06_procedures_NTK_account.sql`, `07_procedures_NTK_admin.sql`, `08_migration_booking_NMT.sql`, `09_procedures_NMT_booking.sql`, `10_procedures_LTP_booking.sql`, `11_procedures_NTK_booking.sql`, `12_migration_sprint4_NMT.sql`, `13_procedures_NMT_catalog.sql`, `14_procedures_NMT_payment.sql`, `15_procedures_LTP_payment.sql`, `16_migration_sprint5_LTP.sql`, `17_procedures_NMT_compare.sql`, `18_procedures_LTP_package.sql`, `19_procedures_LTP_change.sql`, `20_procedures_LTP_change_admin.sql`, `21_procedures_NMT_tour_content.sql`, `22_payment_momo_NTK.sql`, `23_map_places_NTK.sql`, `24_social_login_NTK.sql`, `25_email_NTK.sql`, `26_procedures_NTK_setup.sql`, `27_procedures_NTK_host.sql`, `28_migration_economy_NTK.sql`, `29_procedures_NTK_instant_booking.sql`, `30_procedures_NTK_payout.sql`, `31_migration_host_rules_NTK.sql`, `32_procedures_NTK_tour_revision.sql`, `33_migration_cr2_NTK.sql`, `34_procedures_NMT_social.sql`, `35_procedures_NMT_comment.sql`, `36_procedures_NTK_review.sql`, `37_procedures_LTP_account.sql`, `38_seed_cr2_NTK.sql`, `39_migration_profile_LTP.sql`, `40_email_verify_NTK.sql`, `41_seed_tours_NMT.sql`, `42_map_tours_NTK.sql`.
 
-Import lại bất cứ lúc nào để đưa dữ liệu về trạng thái ban đầu: `01_schema.sql` xóa và tạo lại 27 bảng, đồng thời xóa 2 bảng đã bỏ (`post_comments`, `post_interactions`) và 13 bảng do các file sau thêm; `12_migration_sprint4_NMT.sql` thêm 2 bảng Sprint 4, `16_migration_sprint5_LTP.sql` thêm 2 bảng Sprint 5, `23`, `24`, `25` mỗi file thêm 1 bảng, `28_migration_economy_NTK.sql` thêm 3 bảng `settings`, `host_payouts`, `host_payout_items`, `33_migration_cr3_NTK.sql` thêm 2 bảng `tour_likes`, `tour_comments`, `40` thêm 1 bảng (27 + 2 + 2 + 3 + 3 + 2 + 1 = tổng 40 bảng). Tài khoản đã đăng ký thử (kể cả tour đã lưu, bình luận, đánh giá của các tài khoản đó) cũng bị xóa. Database đang có dữ liệu mà chỉ cần thêm CR3 thì nâng cấp tại chỗ theo đoạn "CR3" của `src/database/README.md`, không import lại. Ngày khởi hành mẫu được tính theo ngày import, vì vậy nên import lại trước mỗi buổi kiểm thử hoặc demo. Chi tiết xem [02 – Lược đồ dữ liệu](../docs/sprint3/02-luoc-do-du-lieu.md) và `src/database/README.md`.
+Import lại bất cứ lúc nào để đưa dữ liệu về trạng thái ban đầu: `01_schema.sql` xóa và tạo lại 27 bảng, đồng thời xóa 2 bảng đã bỏ (`post_comments`, `post_interactions`) và 13 bảng do các file sau thêm; `12_migration_sprint4_NMT.sql` thêm 2 bảng Sprint 4, `16_migration_sprint5_LTP.sql` thêm 2 bảng Sprint 5, `23`, `24`, `25` mỗi file thêm 1 bảng, `28_migration_economy_NTK.sql` thêm 3 bảng `settings`, `host_payouts`, `host_payout_items`, `33_migration_cr2_NTK.sql` thêm 2 bảng `tour_likes`, `tour_comments`, `40` thêm 1 bảng (27 + 2 + 2 + 3 + 3 + 2 + 1 = tổng 40 bảng). Tài khoản đã đăng ký thử (kể cả tour đã lưu, bình luận, đánh giá của các tài khoản đó) cũng bị xóa. Database đang có dữ liệu mà chỉ cần thêm CR2 thì nâng cấp tại chỗ theo đoạn "CR2" của `src/database/README.md`, không import lại. Ngày khởi hành mẫu được tính theo ngày import, vì vậy nên import lại trước mỗi buổi kiểm thử hoặc demo. Chi tiết xem [01 – Danh mục trường dữ liệu Sprint 3](../docs/sprint3/01-truong-du-lieu.md) và `src/database/README.md`.
 
 ### Bước 3. Tạo file `.env`
 
@@ -554,7 +554,7 @@ Khách trả đúng giá niêm yết cho LocalTour. Sau khi lịch khởi hành 
 
 Khoản chi trả chỉ được lập cho lịch kết thúc sau mốc bắt đầu (thời điểm `28_migration_economy_NTK.sql` chạy lần đầu, ghi ở hai trang quản trị trên), nên các lịch mẫu đã qua không có khoản chi trả. Đơn "Đã xác nhận" của lịch đã kết thúc tự chuyển "Đã hoàn thành", khoản chi trả được lập khi mở trang đơn, trang quản trị hoặc khi `scripts/expire_holds.php` chạy (task ở Bước 9); không cần bấm gì thêm. Route: `GET /admin/payouts`, `GET /admin/payouts/{id}`, `POST /admin/payouts/{id}/pay`, `POST /admin/payouts/{id}/bank/verify`, `POST /admin/refunds/{id}/complete`, `GET`, `POST /admin/settings`, `GET /host/payouts`, `GET /host/payouts/{id}`, `GET`, `POST /host/bank`.
 
-### Bước 13. Thử các chức năng CR3
+### Bước 13. Thử các chức năng CR2
 
 Dùng tài khoản khách hàng tự tạo ở Bước 6 và tài khoản quản trị ở Bước 7. File `38` có sẵn 48 lượt thích và 13 bình luận mẫu (1 bình luận đã bị ẩn); tour đã lưu và đánh giá mới phải tự tạo.
 
@@ -570,20 +570,20 @@ Dùng tài khoản khách hàng tự tạo ở Bước 6 và tài khoản quản
 | `/tai-khoan` (bấm tên ở header) | Sửa họ tên (2–100 ký tự), số điện thoại, số CCCD, ngày sinh, giới tính, địa chỉ (đều không bắt buộc) → header đổi tên ngay, tải lại trang vẫn thấy thông tin đã lưu; số CCCD 11 chữ số báo "Số CCCD gồm đúng 12 chữ số.", ngày sinh ở tương lai báo "Ngày sinh không được ở tương lai.", không lưu gì. Tải ảnh JPG / PNG / WebP tối đa 2 MB → ảnh hiện ở header, bình luận và đánh giá; file SVG hoặc file không phải ảnh báo lỗi; xóa ảnh thì về chữ cái đầu. Đổi mật khẩu: nhập mật khẩu hiện tại và mật khẩu mới tối thiểu 8 ký tự. |
 | `/tro-giup`, `/dieu-khoan` | Trang "Trợ giúp" và "Điều khoản sử dụng", mở từ menu bên trái và chân trang, không cần đăng nhập. |
 
-Ảnh đại diện lưu ở `src/public/assets/uploads/avatars/` trên máy chạy web, không có trong Git; thư mục tự tạo ở lần tải lên đầu tiên, nên `src/public/assets/uploads/` phải ghi được. Ảnh được kiểm tra trước khi lưu; máy chủ có thư viện xử lý ảnh (GD) thì ảnh được cắt vuông và lưu 256 × 256 px, không có thì giữ ảnh gốc đã kiểm tra. Khi chép database sang máy khác, chép kèm thư mục này cùng `uploads/tours/`. Route của CR3 xem bảng ở mục "Route".
+Ảnh đại diện lưu ở `src/public/assets/uploads/avatars/` trên máy chạy web, không có trong Git; thư mục tự tạo ở lần tải lên đầu tiên, nên `src/public/assets/uploads/` phải ghi được. Ảnh được kiểm tra trước khi lưu; máy chủ có thư viện xử lý ảnh (GD) thì ảnh được cắt vuông và lưu 256 × 256 px, không có thì giữ ảnh gốc đã kiểm tra. Khi chép database sang máy khác, chép kèm thư mục này cùng `uploads/tours/`. Route của CR2 xem bảng ở mục "Route".
 
 ## Bảo mật
 
 - Mật khẩu chỉ được băm bằng `password_hash(PASSWORD_DEFAULT)` và kiểm tra bằng `password_verify()`; database chỉ lưu chuỗi băm. Không lưu, ghi log hay điền lại mật khẩu gốc vào form.
 - Đăng nhập sai vì bất kỳ lý do nào cũng chỉ hiện một thông báo chung, không cho biết email có tồn tại hay không.
-- Cookie phiên `httponly`, `SameSite=Lax`, `secure` khi chạy HTTPS; bật `session.use_strict_mode` và đổi session id sau khi đăng nhập. Session chỉ lưu `user_id`, `name`, `email`, `role` và `avatar_url` (CR3). Đổi mật khẩu ở trang "Tài khoản" cần đúng mật khẩu hiện tại (khi tài khoản đã có mật khẩu) và đổi session id sau khi lưu.
+- Cookie phiên `httponly`, `SameSite=Lax`, `secure` khi chạy HTTPS; bật `session.use_strict_mode` và đổi session id sau khi đăng nhập. Session chỉ lưu `user_id`, `name`, `email`, `role` và `avatar_url` (CR2). Đổi mật khẩu ở trang "Tài khoản" cần đúng mật khẩu hiện tại (khi tài khoản đã có mật khẩu) và đổi session id sau khi lưu.
 - Mọi form POST có ô ẩn `_csrf` (`csrf_field()`); controller kiểm tra bằng `Auth::verifyCsrf()` trước khi xử lý. Đăng xuất chỉ bằng POST.
 - Tham số `next` chỉ nhận đường dẫn trong ứng dụng (`safe_next_path()`), không chuyển hướng ra trang ngoài.
 - Trang `/admin…` chỉ cho tài khoản `admin`; procedure ghi dữ liệu của trang quản trị kiểm tra lại người thao tác là quản trị viên đang hoạt động. Mọi lần phê duyệt tour và đổi trạng thái yêu cầu đặt tour được ghi vào `admin_logs` (người thao tác, thời điểm, trạng thái cũ, trạng thái mới, lý do). Không có route hay procedure nào nâng quyền tài khoản.
 - Đặt tour: `user_id` của đơn lấy từ phiên đăng nhập, không nhận từ form. Giá và tổng tiền được tính lại trong `LTP_sp_booking_create` từ giá vé đang bán; số tiền gửi lên chỉ để phát hiện giá đã đổi. Mỗi lần mở form có một `request_token`; gửi lại cùng mã (bấm hai lần, mạng lỗi) không tạo đơn thứ hai. Trang "Đơn của tôi" chỉ trả đơn của chính tài khoản và không cho trình duyệt lưu đệm (`Cache-Control: no-store`).
 - Ảnh tour tải lên (Sprint 5): chỉ trang quản trị nhận; kiểm tra kích thước (tối đa 2 MB) và nội dung file thật là JPG / PNG / WebP, lưu tên ngẫu nhiên, không dùng tên file gốc. Ảnh qua đường dẫn chỉ nhận `https://`. Yêu cầu đổi ngày / hủy chỉ gửi được cho đơn của chính tài khoản; quyết định của quản trị viên ghi vào `admin_logs`; số tiền hoàn không vượt tiền đã trả và không tự chuyển tiền.
-- Ảnh đại diện (CR3): chỉ tài khoản khách hàng tải lên ở `/tai-khoan`; kiểm tra kích thước (tối đa 2 MB, cạnh 64–4096 px) và nội dung file thật là JPG / PNG / WebP (không nhận SVG), lưu tên ngẫu nhiên, không dùng tên file gốc; đổi hoặc xóa ảnh thì xóa file cũ. Thích, lưu, bình luận và đánh giá chỉ nhận tài khoản khách hàng đang hoạt động, `user_id` lấy từ phiên đăng nhập; bình luận tối đa 5 lần trong 10 phút (429); nội dung bình luận, đánh giá được escape khi in ra. Ẩn / hiện bình luận và duyệt / từ chối / gỡ đánh giá ghi vào `admin_logs`.
-- Số CCCD (CR3): chỉ chủ tài khoản xem ở `/tai-khoan`; trang quản trị không hiện số này, thông báo lỗi không chứa giá trị đã nhập.
+- Ảnh đại diện (CR2): chỉ tài khoản khách hàng tải lên ở `/tai-khoan`; kiểm tra kích thước (tối đa 2 MB, cạnh 64–4096 px) và nội dung file thật là JPG / PNG / WebP (không nhận SVG), lưu tên ngẫu nhiên, không dùng tên file gốc; đổi hoặc xóa ảnh thì xóa file cũ. Thích, lưu, bình luận và đánh giá chỉ nhận tài khoản khách hàng đang hoạt động, `user_id` lấy từ phiên đăng nhập; bình luận tối đa 5 lần trong 10 phút (429); nội dung bình luận, đánh giá được escape khi in ra. Ẩn / hiện bình luận và duyệt / từ chối / gỡ đánh giá ghi vào `admin_logs`.
+- Số CCCD (CR2): chỉ chủ tài khoản xem ở `/tai-khoan`; trang quản trị không hiện số này, thông báo lỗi không chứa giá trị đã nhập.
 - Không commit `.env`, mật khẩu, khóa bí mật, địa chỉ IP thật, file log hay tài khoản thử.
 
 ## Khuyến nghị cho máy host database chung (Phong)
@@ -617,7 +617,7 @@ GRANT EXECUTE ON db_localtour.* TO 'localtour_app'@'<tiền tố IP của VPN>.%
 | `http://localhost/LocalTour_Project/src/` báo 403 | Hành vi đúng: `src/.htaccess` chặn mọi thứ ngoài `public/`. | Mở `http://localhost/LocalTour_Project/src/public/`. |
 | Tiếng Việt hiển thị sai (`Ã¡`, `?`) | File SQL được import với bảng mã khác UTF-8, hoặc database tạo sai collation. | Import lại `db_localtour.sql`, chọn character set `utf-8`; database phải dùng `utf8mb4` và `utf8mb4_unicode_ci`. |
 | Trang lỗi 500, log có `PROCEDURE db_localtour.… does not exist` | Chưa import đủ các file procedure. | Import lại `db_localtour.sql`, hoặc import `03` đến `38` theo thứ tự. |
-| Trang lỗi 500, log có `Unknown column` (ví dụ `request_token`) hoặc `Table 'db_localtour.…' doesn't exist` | Database vẫn là lược đồ cũ (chưa chạy `08_migration_booking_NMT.sql` / `12_migration_sprint4_NMT.sql` / `16_migration_sprint5_LTP.sql` / `31_migration_host_rules_NTK.sql` / `33_migration_cr3_NTK.sql` / `28_migration_economy_NTK.sql` – thiếu bảng `settings` thì trang danh sách, chi tiết và đặt tour đều lỗi; hoặc trước lược đồ 27 bảng), hoặc file gộp được sinh từ bản cũ. | Sinh lại `db_localtour.sql` từ `01`–`38` mới nhất rồi import lại. Database dùng chung đang có dữ liệu: chạy `28` → `32` rồi chạy lại các file procedure đã đổi (danh sách ở `src/database/README.md`); đã có tới `32` thì chạy `33`, chạy lại `03`, `05`, `06`, `21`, rồi `34` → `37`, cuối cùng `38` (không chạy lại `01`). |
+| Trang lỗi 500, log có `Unknown column` (ví dụ `request_token`) hoặc `Table 'db_localtour.…' doesn't exist` | Database vẫn là lược đồ cũ (chưa chạy `08_migration_booking_NMT.sql` / `12_migration_sprint4_NMT.sql` / `16_migration_sprint5_LTP.sql` / `31_migration_host_rules_NTK.sql` / `33_migration_cr2_NTK.sql` / `28_migration_economy_NTK.sql` – thiếu bảng `settings` thì trang danh sách, chi tiết và đặt tour đều lỗi; hoặc trước lược đồ 27 bảng), hoặc file gộp được sinh từ bản cũ. | Sinh lại `db_localtour.sql` từ `01`–`38` mới nhất rồi import lại. Database dùng chung đang có dữ liệu: chạy `28` → `32` rồi chạy lại các file procedure đã đổi (danh sách ở `src/database/README.md`); đã có tới `32` thì chạy `33`, chạy lại `03`, `05`, `06`, `21`, rồi `34` → `37`, cuối cùng `38` (không chạy lại `01`). |
 | Tải ảnh tour báo "Chưa lưu được ảnh trên máy chủ" | PHP không tạo / ghi được thư mục `src/public/assets/uploads/tours/`. | Cho tài khoản chạy Apache / PHP quyền ghi vào `src/public/assets/uploads/` (repo có sẵn file `.gitkeep`). |
 | Tải ảnh đại diện báo "Chưa lưu được ảnh trên máy chủ, vui lòng thử lại." | PHP không tạo / ghi được thư mục `src/public/assets/uploads/avatars/`. | Cho tài khoản chạy Apache / PHP quyền ghi vào `src/public/assets/uploads/`; thư mục `avatars` tự tạo ở lần tải lên đầu tiên. |
 | Ảnh đại diện không được cắt vuông 256 × 256 px | PHP chưa bật thư viện GD; ứng dụng vẫn lưu ảnh gốc đã kiểm tra. | Không bắt buộc. Muốn cắt ảnh: mở `C:\xampp\php\php.ini`, bỏ dấu `;` trước `extension=gd`, khởi động lại Apache hoặc built-in server. |

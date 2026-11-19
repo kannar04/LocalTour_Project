@@ -5,7 +5,7 @@
 --             board), tổng 27 bảng trong file này (các file migration sau thêm bảng: database
 --             đầy đủ sau file 33 có 39 bảng). Mỗi bảng / cột thêm mới có ghi chú FR mà nó phục vụ.
 --
--- ĐÃ BỎ 2 bảng của ERD: post_comments, post_interactions. Thích / Bình luận của CR3 dùng
+-- ĐÃ BỎ 2 bảng của ERD: post_comments, post_interactions. Thích / Bình luận của CR2 dùng
 --   2 bảng tour_likes, tour_comments do file 33 tạo (gắn thẳng với tour).
 -- Các bảng thông báo, bài đăng tour, yêu thích, so sánh và các bảng danh mục/chi tiết
 -- tour của thiết kế trước đã được triển khai lại theo khóa UUID của lược đồ hiện tại.

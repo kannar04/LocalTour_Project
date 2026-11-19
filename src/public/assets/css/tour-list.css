@@ -2,7 +2,7 @@
  * LocalTour – tour-list.css (Nguyễn Tuấn Khôi)
  * Bảng tin du lịch (UIEx1): cột bảng tin, bộ lọc, tab sắp xếp, thẻ tour, skeleton,
  * trạng thái rỗng/lỗi và cột phải (so sánh tour).
- * CR3 (Lê Trung Phong): ô "Ngày đi", nút và bảng "Bộ lọc" (giá, thời lượng, ngôn ngữ, đón tại khách sạn).
+ * CR2 (Lê Trung Phong): ô "Ngày đi", nút và bảng "Bộ lọc" (giá, thời lượng, ngôn ngữ, đón tại khách sạn).
  */
 
 /* ---------- Cột ---------- */
@@ -143,7 +143,7 @@
     pointer-events: none;
 }
 
-/* Ngày đi (CR3): ô chọn ngày gốc của trình duyệt, cùng kiểu với các ô lọc khác. */
+/* Ngày đi (CR2): ô chọn ngày gốc của trình duyệt, cùng kiểu với các ô lọc khác. */
 .lt-filter--date {
     flex: 0 1 auto;
     padding-right: 8px;
@@ -273,7 +273,7 @@
     }
 }
 
-/* ---------- Bảng "Bộ lọc" (CR3) ---------- */
+/* ---------- Bảng "Bộ lọc" (CR2) ---------- */
 
 .lt-filter-panel {
     margin: -6px 0 18px;
@@ -1202,7 +1202,7 @@
     font-weight: 700;
 }
 
-/* Thích / Bình luận / Chia sẻ / Lưu tour (CR3): khối do tour-social.js điền; trên màn hình hẹp chỉ hiện icon. */
+/* Thích / Bình luận / Chia sẻ / Lưu tour (CR2): khối do tour-social.js điền; trên màn hình hẹp chỉ hiện icon. */
 .lt-card-social {
     display: flex;
     flex-wrap: wrap;

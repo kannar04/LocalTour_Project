@@ -8,7 +8,7 @@
  *       $payNotice (kết quả thanh toán: [loại, nội dung] hoặc null), $changeQuote (LTP_sp_change_quote), $title.
  * Sprint 4: "Chờ thanh toán" có nút thanh toán VNPay / VietQR và hạn giữ chỗ; đơn đã xác nhận có voucher.
  * Sprint 5: gói tour đã chọn; thẻ "Đổi ngày / hủy tour" (gửi yêu cầu hoặc xem yêu cầu đang chờ xử lý).
- * CR3 (FR-16): thẻ "Đánh giá tour" (review-card.php; biến $review, $reviewFlash).
+ * CR2 (FR-16): thẻ "Đánh giá tour" (review-card.php; biến $review, $reviewFlash).
  */
 $missing = or_missing(null);
 $bookingStatus = (string) $booking['status'];

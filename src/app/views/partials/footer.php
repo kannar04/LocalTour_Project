@@ -1,5 +1,5 @@
 <?php declare(strict_types=1); ?>
-<?php /* Footer chung. CR3 (Nguyễn Tuấn Khôi): link Trợ giúp và Điều khoản sử dụng. */ ?>
+<?php /* Footer chung. CR2 (Nguyễn Tuấn Khôi): link Trợ giúp và Điều khoản sử dụng. */ ?>
 <footer class="lt-footer">
     <div class="container-xl lt-container lt-footer__inner">
         <p>© 2026 LocalTour · Dữ liệu tour, giá và đánh giá là minh họa phục vụ đồ án.</p>

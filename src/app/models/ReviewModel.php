@@ -7,7 +7,7 @@ namespace App\Models;
 use Core\Database;
 
 /**
- * Đánh giá sao (FR-16, CR3 – Nguyễn Tuấn Khôi): khách hàng đánh giá đơn đã hoàn thành, quản trị viên duyệt
+ * Đánh giá sao (FR-16, CR2 – Nguyễn Tuấn Khôi): khách hàng đánh giá đơn đã hoàn thành, quản trị viên duyệt
  * trước khi đánh giá hiện trên trang tour.
  * Procedure: NTK_sp_review_get, NTK_sp_review_save, NTK_sp_review_state_list, NTK_sp_admin_review_list,
  *            NTK_sp_admin_review_summary, NTK_sp_admin_review_decide (file 36).

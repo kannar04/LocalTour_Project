@@ -1,7 +1,7 @@
 <?php declare(strict_types=1); ?>
 <?php
 /*
- * Điều khoản sử dụng (CR3, Nguyễn Tuấn Khôi).
+ * Điều khoản sử dụng (CR2, Nguyễn Tuấn Khôi).
  * Biến: $rules (PageController::rules(): hold_minutes, booking_cutoff_minutes, vietqr_cutoff_hours,
  *       commission_percent – đã định dạng), $title.
  * Các mục đánh số, mục lục nhảy tới từng mục. Mốc thời gian và % phí dịch vụ là thông số đang áp dụng.

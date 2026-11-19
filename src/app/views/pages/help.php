@@ -1,11 +1,11 @@
 <?php declare(strict_types=1); ?>
 <?php
 /*
- * Trợ giúp – câu hỏi thường gặp (CR3, Nguyễn Tuấn Khôi).
+ * Trợ giúp – câu hỏi thường gặp (CR2, Nguyễn Tuấn Khôi).
  * Biến: $rules (PageController::rules(): hold_minutes, booking_cutoff_minutes, vietqr_cutoff_hours,
  *       commission_percent – đã định dạng), $title.
  * Mỗi nhóm là một <section> có id (mục lục nhảy tới); mỗi câu hỏi là một <details> (mở/đóng không cần JS).
- * Nội dung lấy theo Hướng dẫn sử dụng (docs/sprint6/03) và các chức năng của CR3.
+ * Nội dung lấy theo Hướng dẫn sử dụng (docs/sprint6/03) và các chức năng của CR2.
  */
 $hold = $rules['hold_minutes'];
 $cutoff = $rules['booking_cutoff_minutes'];

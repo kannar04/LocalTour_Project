@@ -1,7 +1,7 @@
 <?php declare(strict_types=1); ?>
 <?php
 /*
- * Trang "Bình luận" của quản trị viên (CR3 – Nguyễn Minh Thức).
+ * Trang "Bình luận" của quản trị viên (CR2 – Nguyễn Minh Thức).
  * Biến: $filter ('visible' | 'hidden' | 'all'), $keyword, $page, $pageSize, $total (số dòng khớp bộ lọc),
  *       $comments (NMT_sp_admin_comment_list, mới nhất trước), $success, $error (thông báo sau khi ẩn / hiện).
  * Ẩn: bắt buộc lý do (tối đa 255 ký tự). Hiện lại: bình luận về trang tour, xóa thông tin ẩn.

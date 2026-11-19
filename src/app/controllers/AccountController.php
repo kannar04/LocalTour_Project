@@ -13,7 +13,7 @@ use finfo;
 use GdImage;
 
 /**
- * Trang "Tài khoản" của khách hàng (CR3 – Lê Trung Phong): ảnh đại diện, thông tin cá nhân (họ tên, số điện thoại,
+ * Trang "Tài khoản" của khách hàng (CR2 – Lê Trung Phong): ảnh đại diện, thông tin cá nhân (họ tên, số điện thoại,
  * số CCCD, ngày sinh, giới tính, địa chỉ) và mật khẩu.
  * Chỉ tài khoản khách hàng; chế độ khách được chuyển tới đăng nhập (quay lại /tai-khoan), tài khoản quản trị viên /
  * đơn vị tổ chức thấy trang 403 như "Đơn của tôi". Email không đổi được (dùng để đăng nhập).

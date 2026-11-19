@@ -1,9 +1,9 @@
 -- =====================================================================
 -- LocalTour v0.7 - 37_procedures_LTP_account.sql
--- Mục đích  : Trang "Tài khoản" của khách hàng (CR3): xem và sửa họ tên, số điện thoại, số CCCD,
+-- Mục đích  : Trang "Tài khoản" của khách hàng (CR2): xem và sửa họ tên, số điện thoại, số CCCD,
 --             ngày sinh, giới tính, địa chỉ (cột mới ở 39_migration_profile_LTP.sql), ảnh đại diện
---             (users.avatar_url, cột mới ở 33_migration_cr3_NTK.sql) và đổi / đặt mật khẩu.
--- Phụ trách : Lê Trung Phong (LTP) - CR3
+--             (users.avatar_url, cột mới ở 33_migration_cr2_NTK.sql) và đổi / đặt mật khẩu.
+-- Phụ trách : Lê Trung Phong (LTP) - CR2
 -- Procedures: LTP_sp_account_get, LTP_sp_account_update_profile, LTP_sp_account_set_avatar,
 --             LTP_sp_account_get_password_hash, LTP_sp_account_set_password
 -- Quy tắc   : * Chỉ tài khoản khách hàng (role 'customer') đang hoạt động ('active') được đọc /

@@ -22,7 +22,7 @@ DROP PROCEDURE IF EXISTS NTK_sp_tour_image_list;
 -- NTK_sp_tour_review_list(p_tour_id, p_limit)
 --   Chỉ đánh giá moderation_status = 'approved'.
 --   Cột: review_id, reviewer_name (= users.name của tài khoản đã đặt đơn được đánh giá),
---        reviewer_avatar_url (CR3: users.avatar_url, NULL = chưa có ảnh đại diện),
+--        reviewer_avatar_url (CR2: users.avatar_url, NULL = chưa có ảnh đại diện),
 --        rating, content,
 --        tour_date (giờ khởi hành của lịch trong đơn được đánh giá).
 --   Sắp xếp: tour_date mới nhất trước. p_limit NULL hoặc 0 = lấy 5 đánh giá.

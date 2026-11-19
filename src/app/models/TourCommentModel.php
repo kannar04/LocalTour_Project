@@ -7,7 +7,7 @@ namespace App\Models;
 use Core\Database;
 
 /**
- * Bình luận trên trang tour và trang "Bình luận" của quản trị viên (CR3 – Nguyễn Minh Thức).
+ * Bình luận trên trang tour và trang "Bình luận" của quản trị viên (CR2 – Nguyễn Minh Thức).
  * Procedure (file 35): NMT_sp_tour_comment_list, NMT_sp_tour_comment_count, NMT_sp_tour_comment_create,
  *            NMT_sp_tour_comment_delete_own, NMT_sp_admin_comment_list, NMT_sp_admin_comment_set_status.
  */

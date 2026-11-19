@@ -1,7 +1,7 @@
 <?php declare(strict_types=1); ?>
 <?php
 /*
- * Duyệt đánh giá sao (FR-16, CR3 – Nguyễn Tuấn Khôi).
+ * Duyệt đánh giá sao (FR-16, CR2 – Nguyễn Tuấn Khôi).
  * Biến: $filter ('pending' | 'approved' | 'rejected' | 'all'), $keyword (mã đơn, tour, tên hoặc email khách),
  *       $page / $pages (trang đang xem / số trang), $summary (total, pending, approved, rejected, all – theo từ khóa),
  *       $reviews (NTK_sp_admin_review_list), $success / $error ('' = không có).

@@ -26,7 +26,7 @@ final class TourListController extends Controller
 
     /**
      * GET / và /tours – khung trang; danh sách được tải bằng AJAX từ /api/tours.
-     * Bộ lọc nâng cao (CR3) được tour-list.js đọc từ URL; ở đây chỉ đưa lựa chọn cho ô "Ngày đi" và "Bộ lọc".
+     * Bộ lọc nâng cao (CR2) được tour-list.js đọc từ URL; ở đây chỉ đưa lựa chọn cho ô "Ngày đi" và "Bộ lọc".
      */
     public function index(): void
     {
@@ -56,7 +56,7 @@ final class TourListController extends Controller
 
     /**
      * GET /api/tours?q=&destination_id=&category_id=&sort=
-     *   &date=YYYY-MM-DD&price_min=&price_max=&duration=short|medium|long&language=&hotel_pickup=1 (CR3)
+     *   &date=YYYY-MM-DD&price_min=&price_max=&duration=short|medium|long&language=&hotel_pickup=1 (CR2)
      */
     public function apiIndex(): void
     {
@@ -94,7 +94,7 @@ final class TourListController extends Controller
     }
 
     /**
-     * Ngày đi + bộ lọc nâng cao của /api/tours (CR3, Lê Trung Phong). Tham số rỗng = không lọc;
+     * Ngày đi + bộ lọc nâng cao của /api/tours (CR2, Lê Trung Phong). Tham số rỗng = không lọc;
      * giá trị sai thì trả 422 kèm thông báo và dừng.
      *
      * @return array{date: ?string, price_min: ?int, price_max: ?int, duration: ?string, language: ?string, hotel_pickup: bool}
