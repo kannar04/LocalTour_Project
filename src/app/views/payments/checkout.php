@@ -9,6 +9,8 @@
  *       $justCreated (vừa đặt xong, khách được chuyển thẳng tới đây), $vietqrOpen (false = sát giờ khởi hành,
  *       không nhận VietQR), $vietqrCutoffHours (số giờ trước giờ khởi hành ngừng nhận VietQR).
  * Đặt ngay: chỗ đã được giữ lúc đặt tới $booking['hold_expires_at']; quá hạn chưa thanh toán thì đơn tự hủy.
+ * Sprint 7 (6.6, góp ý UAT): bấm một nút thanh toán thì các nút bị khóa tới khi chuyển trang (js/payment-submit.js),
+ * không tạo nhiều lượt thanh toán khi bấm liên tiếp.
  */
 $code = (string) $booking['code'];
 $holdUntil = format_datetime($booking['hold_expires_at'] === null ? null : (string) $booking['hold_expires_at']);
@@ -67,19 +69,19 @@ $adjustment = $totalVnd - (int) $booking['tickets_vnd'] - (int) $booking['extras
                     <p class="lt-field__hint">Môi trường thử nghiệm của đồ án: VNPay<?= $momoEnabled ? ' và MoMo' : '' ?> chạy môi trường thử, vui lòng không chuyển tiền thật.</p>
 
                     <div class="lt-pay-methods">
-                        <form class="lt-pay-method" action="<?= e(url('/bookings/' . $code . '/pay/vnpay')) ?>" method="post">
+                        <form class="lt-pay-method js-pay-once" action="<?= e(url('/bookings/' . $code . '/pay/vnpay')) ?>" method="post">
                             <?= csrf_field() ?>
                             <h3 class="lt-pay-method__title">VNPay</h3>
                             <p class="lt-pay-method__text">Thẻ ATM nội địa, thẻ quốc tế hoặc QR ngân hàng qua cổng VNPay. Đơn được xác nhận ngay khi thanh toán thành công.</p>
 <?php if ($vnpayEnabled): ?>
-                            <button class="lt-btn lt-btn--primary lt-btn--block" type="submit">Thanh toán qua VNPay</button>
+                            <button class="lt-btn lt-btn--primary lt-btn--block" type="submit" data-busy-text="Đang chuyển tới VNPay…">Thanh toán qua VNPay</button>
 <?php else: ?>
                             <button class="lt-btn lt-btn--outline lt-btn--block" type="button" disabled>VNPay đang tạm ngưng</button>
 <?php endif; ?>
                         </form>
 
 <?php if ($momoEnabled): ?>
-                        <form class="lt-pay-method" action="<?= e(url('/payments/momo/' . $code)) ?>" method="post">
+                        <form class="lt-pay-method js-pay-once" action="<?= e(url('/payments/momo/' . $code)) ?>" method="post">
                             <?= csrf_field() ?>
                             <h3 class="lt-pay-method__title">MoMo</h3>
                             <p class="lt-pay-method__text">Ví MoMo, thẻ ATM nội địa hoặc thẻ quốc tế qua cổng MoMo. Đơn được xác nhận ngay khi thanh toán thành công.</p>
@@ -87,18 +89,18 @@ $adjustment = $totalVnd - (int) $booking['tickets_vnd'] - (int) $booking['extras
                             <button class="lt-btn lt-btn--outline lt-btn--block" type="button" disabled aria-describedby="momo-limit">Không dùng được MoMo</button>
                             <p class="lt-field__hint" id="momo-limit">MoMo chỉ nhận thanh toán từ 10.000đ đến 50.000.000đ.</p>
 <?php else: ?>
-                            <button class="lt-btn lt-btn--outline lt-btn--block" type="submit">Thanh toán qua MoMo</button>
+                            <button class="lt-btn lt-btn--outline lt-btn--block" type="submit" data-busy-text="Đang chuyển tới MoMo…">Thanh toán qua MoMo</button>
 <?php endif; ?>
                         </form>
 <?php endif; ?>
 
 <?php if ($vietqrOpen): ?>
-                        <form class="lt-pay-method" action="<?= e(url('/bookings/' . $code . '/pay/vietqr')) ?>" method="post">
+                        <form class="lt-pay-method js-pay-once" action="<?= e(url('/bookings/' . $code . '/pay/vietqr')) ?>" method="post">
                             <?= csrf_field() ?>
                             <h3 class="lt-pay-method__title">Chuyển khoản VietQR</h3>
                             <p class="lt-pay-method__text">Quét mã bằng ứng dụng ngân hàng. LocalTour đối chiếu chuyển khoản rồi xác nhận đơn; chỗ được giữ trong lúc chờ đối chiếu.</p>
 <?php if ($vietqrEnabled): ?>
-                            <button class="lt-btn lt-btn--outline lt-btn--block" type="submit">Lấy mã VietQR</button>
+                            <button class="lt-btn lt-btn--outline lt-btn--block" type="submit" data-busy-text="Đang lấy mã…">Lấy mã VietQR</button>
 <?php else: ?>
                             <button class="lt-btn lt-btn--outline lt-btn--block" type="button" disabled>VietQR đang tạm ngưng</button>
 <?php endif; ?>
@@ -110,6 +112,7 @@ $adjustment = $totalVnd - (int) $booking['tickets_vnd'] - (int) $booking['extras
                         </div>
 <?php endif; ?>
                     </div>
+                    <p class="lt-field__hint js-pay-status" role="status" aria-live="polite" hidden></p>
                 </section>
             </div>
 

@@ -36,6 +36,7 @@ final class PaymentController extends Controller
         'momo' => 'Chưa tạo được yêu cầu thanh toán MoMo, vui lòng thử lại.',
         'momo_amount' => 'MoMo chỉ nhận thanh toán từ 10.000đ đến 50.000.000đ, vui lòng chọn phương thức khác.',
         'vietqr_closed' => 'Đã sát giờ khởi hành nên không nhận chuyển khoản VietQR nữa. Vui lòng thanh toán qua VNPay.',
+        'transfer_stale' => 'Không tìm thấy mã VietQR của lần báo chuyển khoản vừa rồi. Vui lòng lấy lại mã VietQR rồi báo chuyển khoản.',
     ];
 
     private CustomerBookingModel $bookings;
@@ -95,6 +96,7 @@ final class PaymentController extends Controller
             'momoAmountOk' => MomoGateway::amountAllowed((int) $booking['total_vnd']),
             'error' => self::ERRORS[$this->query('error')] ?? '',
             'pageStyles' => self::PAGE_STYLES,
+            'pageScripts' => ['js/payment-submit.js'],
         ]);
     }
 
@@ -174,6 +176,7 @@ final class PaymentController extends Controller
             'qrUrl' => VietQr::enabled($config) ? VietQr::imageUrl($config, (int) $payment['amount_vnd'], (string) $payment['reference']) : '',
             'error' => self::ERRORS[$this->query('error')] ?? '',
             'pageStyles' => self::PAGE_STYLES,
+            'pageScripts' => ['js/payment-submit.js'],
         ]);
     }
 
@@ -192,8 +195,8 @@ final class PaymentController extends Controller
         match ($result) {
             'ok', 'already' => $this->redirect('/bookings/' . $code . '?pay=transfer'),
             'expired' => $this->redirect('/bookings/' . $code . '?pay=expired'),
-            'not_payable' => $this->redirect('/bookings/' . $code),
-            default => $this->redirect('/bookings/' . $code . '/pay'),
+            'not_payable' => $this->redirect('/bookings/' . $code . '?pay=transfer_stale'),
+            default => $this->redirect('/bookings/' . $code . '/pay?error=transfer_stale'),
         };
     }
 

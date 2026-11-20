@@ -35,6 +35,7 @@ final class CustomerBookingController extends Controller
         'late' => ['error', 'VNPay báo đã trừ tiền nhưng đơn không còn chờ thanh toán. LocalTour sẽ hoàn tiền cho bạn.'],
         'amount' => ['error', 'Số tiền VNPay trả về không khớp với đơn nên chưa được ghi nhận. Vui lòng liên hệ LocalTour.'],
         'expired' => ['error', 'Đơn đã quá hạn thanh toán nên không thanh toán được nữa.'],
+        'transfer_stale' => ['error', 'Lần báo chuyển khoản này chưa được ghi nhận: mã VietQR trên trang đã cũ (bạn đã chọn phương thức khác) hoặc đơn không còn chờ thanh toán. Trạng thái mới nhất của đơn ở bên dưới.'],
         'momo' => ['success', 'Thanh toán MoMo thành công. Đơn đã được xác nhận và voucher đã sẵn sàng.'],
         'momo_late' => ['error', 'MoMo báo đã trừ tiền nhưng đơn không còn chờ thanh toán. LocalTour sẽ hoàn tiền cho bạn.'],
         'momo_amount' => ['error', 'Số tiền MoMo trả về không khớp với đơn nên chưa được ghi nhận. Vui lòng liên hệ LocalTour.'],

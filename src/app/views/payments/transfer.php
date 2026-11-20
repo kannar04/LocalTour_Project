@@ -5,6 +5,8 @@
  * chuyển khoản (mã thanh toán của đơn), rồi khách bấm "Tôi đã chuyển khoản" để LocalTour đối chiếu.
  * Biến: $booking, $payment (NMT_sp_payment_get), $waiting (đã báo chuyển khoản), $bank (config/payment.php),
  *       $qrUrl ('' = VietQR đang tạm ngưng), $error, $title.
+ * Sprint 7 (6.6, góp ý UAT): bấm "Tôi đã chuyển khoản" thì nút chuyển sang "Đang gửi…" và không bấm lại được
+ * (js/payment-submit.js); kết quả hiện ở trang đơn.
  */
 $code = (string) $booking['code'];
 $amount = (int) $payment['amount_vnd'];
@@ -80,12 +82,13 @@ $bankName = $bank['bank_name'] !== '' ? $bank['bank_name'] : $bank['bank_id'];
                         <a class="lt-btn lt-btn--primary" href="<?= e(url('/bookings/' . $code)) ?>">Về trang đơn</a>
                     </div>
 <?php else: ?>
-                    <form class="lt-book-actions" action="<?= e(url('/bookings/' . $code . '/pay/vietqr/submit')) ?>" method="post">
+                    <form class="lt-book-actions js-pay-once" data-busy-status="Đang gửi thông báo chuyển khoản cho LocalTour, vui lòng đợi trong giây lát." action="<?= e(url('/bookings/' . $code . '/pay/vietqr/submit')) ?>" method="post">
                         <?= csrf_field() ?>
                         <input type="hidden" name="payment_id" value="<?= e($payment['payment_id']) ?>">
                         <a class="lt-btn lt-btn--outline" href="<?= e(url('/bookings/' . $code . '/pay')) ?>">Chọn phương thức khác</a>
-                        <button class="lt-btn lt-btn--primary" type="submit">Tôi đã chuyển khoản</button>
+                        <button class="lt-btn lt-btn--primary" type="submit" data-busy-text="Đang gửi…">Tôi đã chuyển khoản</button>
                     </form>
+                    <p class="lt-field__hint js-pay-status" role="status" aria-live="polite" hidden></p>
 <?php endif; ?>
                 </section>
             </div>
