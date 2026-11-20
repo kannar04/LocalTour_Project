@@ -316,6 +316,21 @@ function booking_status_label(?string $status): string
     return $labels[(string) $status] ?? (string) $status;
 }
 
+/**
+ * Trạng thái đơn khách hàng thấy ở "Đơn của tôi" và trang đơn (Sprint 7, 6.6, góp ý UAT): đơn "Chờ thanh toán" đã báo
+ * chuyển khoản VietQR (khoản thanh toán 'awaiting_reconciliation') hiện "Chờ LocalTour đối chiếu".
+ *
+ * @return array{0: string, 1: string} [khóa lớp CSS lt-status--, nhãn]
+ */
+function customer_booking_status(?string $status, bool $awaitingReconciliation): array
+{
+    if ($status === 'awaiting_payment' && $awaitingReconciliation) {
+        return ['awaiting_reconciliation', 'Chờ LocalTour đối chiếu'];
+    }
+
+    return [(string) preg_replace('/[^a-z_]/', '', (string) $status), booking_status_label($status)];
+}
+
 /** Trạng thái thanh toán (payments.status) → nhãn; null = chưa có khoản thanh toán nào. */
 function payment_status_label(?string $status): string
 {

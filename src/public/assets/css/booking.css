@@ -488,7 +488,8 @@
     white-space: nowrap;
 }
 
-.lt-status--pending {
+.lt-status--pending,
+.lt-status--awaiting_reconciliation {
     background: var(--lt-highlight);
     color: var(--lt-highlight-text);
 }

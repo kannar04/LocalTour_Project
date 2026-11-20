@@ -21,7 +21,8 @@
 -- NTK_sp_customer_booking_list(p_user_id)
 --   Tối đa 100 đơn, mới đặt trước. Cột: booking_id, code, status, created_at,
 --   hold_expires_at, total_vnd, tour_id, tour_title, tour_public (1/0), destination_name,
---   starts_at, ends_at, people (tổng số vé), cover_url (ảnh bìa của tour, NULL = chưa có ảnh).
+--   starts_at, ends_at, people (tổng số vé), cover_url (ảnh bìa của tour, NULL = chưa có ảnh),
+--   awaiting_reconciliation (1 = khách đã báo chuyển khoản VietQR, đang chờ đối chiếu; Sprint 7, 6.6).
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS NTK_sp_customer_booking_list;
 
@@ -51,7 +52,11 @@ BEGIN
            FROM tour_images ti
           WHERE ti.tour_id = t.id
           ORDER BY ti.sort_order, ti.id
-          LIMIT 1)        AS cover_url
+          LIMIT 1)        AS cover_url,
+        EXISTS (SELECT 1
+                  FROM payments p
+                 WHERE p.booking_id = b.id
+                   AND p.status = 'awaiting_reconciliation') AS awaiting_reconciliation
     FROM bookings b
     JOIN schedules s  ON s.id = b.schedule_id
     JOIN tours t      ON t.id = s.tour_id

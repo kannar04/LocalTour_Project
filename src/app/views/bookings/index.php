@@ -5,6 +5,7 @@
  * Biến: $bookings (NTK_sp_customer_booking_list), $notice (kết quả thanh toán không gắn được với đơn, '' = không có), $title,
  *       $reviewStates (CR2, FR-16: booking_id => trạng thái đánh giá; đơn đã hoàn thành chưa có đánh giá hoặc đánh giá
  *       không được duyệt hiện nhắc "Viết đánh giá" / "Sửa đánh giá").
+ * Sprint 7 (6.6): đơn đã báo chuyển khoản VietQR hiện "Chờ LocalTour đối chiếu" thay cho hạn thanh toán.
  */
 ?>
 <?php $sidebarMode = 'mobile'; require __DIR__ . '/../partials/sidebar.php'; ?>
@@ -47,7 +48,8 @@
 <?php foreach ($bookings as $booking): ?>
 <?php
     $coverUrl = $booking['cover_url'] === null ? null : image_src((string) $booking['cover_url']);
-    $statusKey = preg_replace('/[^a-z_]/', '', (string) $booking['status']);
+    $awaitingReconciliation = (int) ($booking['awaiting_reconciliation'] ?? 0) === 1;
+    [$statusKey, $statusLabel] = customer_booking_status((string) $booking['status'], $awaitingReconciliation);
     $reviewState = $reviewStates[(string) $booking['booking_id']] ?? null;
     $reviewPrompt = $booking['status'] !== 'completed' ? '' : match ($reviewState) {
         null => 'Viết đánh giá',
@@ -67,7 +69,7 @@
                     <span class="lt-order__body">
                         <span class="lt-order__top">
                             <span class="lt-order__code">Đơn <?= e($booking['code']) ?></span>
-                            <span class="lt-status lt-status--<?= e($statusKey) ?>"><?= e(booking_status_label((string) $booking['status'])) ?></span>
+                            <span class="lt-status lt-status--<?= e($statusKey) ?>"><?= e($statusLabel) ?></span>
                         </span>
                         <span class="lt-order__title"><?= e($booking['tour_title']) ?></span>
                         <span class="lt-order__meta">
@@ -76,7 +78,9 @@
                             <span><span class="lt-icon lt-icon--pin" aria-hidden="true"></span><?= e(or_missing((string) $booking['destination_name'])) ?></span>
                         </span>
                         <span class="lt-order__foot">
-<?php if ($booking['status'] === 'awaiting_payment' && $booking['hold_expires_at'] !== null): ?>
+<?php if ($booking['status'] === 'awaiting_payment' && $awaitingReconciliation): ?>
+                            <span class="lt-order__due">Đã báo chuyển khoản, LocalTour đang đối chiếu</span>
+<?php elseif ($booking['status'] === 'awaiting_payment' && $booking['hold_expires_at'] !== null): ?>
                             <span class="lt-order__due">Thanh toán trước <?= e(format_datetime((string) $booking['hold_expires_at'])) ?></span>
 <?php else: ?>
                             <span>Đặt lúc <?= e(format_datetime((string) $booking['created_at'])) ?><?php if ($reviewPrompt !== ''): ?> · <span class="lt-order__review"><span class="lt-icon lt-icon--star" aria-hidden="true"></span><?= e($reviewPrompt) ?></span><?php endif; ?></span>

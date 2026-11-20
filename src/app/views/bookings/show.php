@@ -9,6 +9,7 @@
  * Sprint 4: "Chờ thanh toán" có nút thanh toán VNPay / VietQR và hạn giữ chỗ; đơn đã xác nhận có voucher.
  * Sprint 5: gói tour đã chọn; thẻ "Đổi ngày / hủy tour" (gửi yêu cầu hoặc xem yêu cầu đang chờ xử lý).
  * CR2 (FR-16): thẻ "Đánh giá tour" (review-card.php; biến $review, $reviewFlash).
+ * Sprint 7 (6.6): đã báo chuyển khoản VietQR thì trạng thái hiện "Chờ LocalTour đối chiếu" (customer_booking_status).
  */
 $missing = or_missing(null);
 $bookingStatus = (string) $booking['status'];
@@ -22,6 +23,7 @@ $extrasVnd = (int) $booking['extras_vnd'];
 $totalVnd = (int) $booking['total_vnd'];
 // Đang chờ LocalTour đối chiếu chuyển khoản VietQR: không thanh toán thêm, đơn không bị tự hủy.
 $awaitingReconciliation = in_array('awaiting_reconciliation', array_column($payments, 'status'), true);
+[$badgeKey, $statusLabel] = customer_booking_status($bookingStatus, $awaitingReconciliation);
 $hasVoucher = $booking['voucher_code'] !== null && in_array($bookingStatus, ['confirmed', 'completed'], true);
 $holdUntil = format_datetime($booking['hold_expires_at'] === null ? null : (string) $booking['hold_expires_at']);
 $meetingPoint = trim((string) ($booking['meeting_point'] ?? ''));
@@ -108,7 +110,7 @@ $steps = [
             </a>
             <div class="lt-book-head__row">
                 <h1 class="lt-book-head__title">Đơn <?= e($booking['code']) ?></h1>
-                <span class="lt-status lt-status--<?= e($statusKey) ?>"><?= e(booking_status_label($bookingStatus)) ?></span>
+                <span class="lt-status lt-status--<?= e($badgeKey) ?>"><?= e($statusLabel) ?></span>
             </div>
             <p class="lt-book-head__lead">Đặt lúc <?= e(format_datetime((string) $booking['created_at'])) ?></p>
 <?php if (!$isClosed): ?>
@@ -125,7 +127,7 @@ $steps = [
         <div class="row">
             <div class="col-12 col-lg-7 col-xl-8">
                 <section class="lt-book-card lt-book-state lt-book-state--<?= e($statusKey) ?>" aria-labelledby="order-state-title">
-                    <h2 class="lt-book-card__title" id="order-state-title">Trạng thái: <?= e(booking_status_label($bookingStatus)) ?></h2>
+                    <h2 class="lt-book-card__title" id="order-state-title">Trạng thái: <?= e($statusLabel) ?></h2>
                     <p><?= e($nextStep) ?></p>
 <?php if ($isClosed): ?>
                     <p class="lt-book-state__reason"><strong>Lý do:</strong> <?= e($statusNote !== '' ? $statusNote : 'LocalTour chưa ghi lý do.') ?></p>
