@@ -12,6 +12,7 @@
  * Không bao giờ in lại mật khẩu. Số CCCD chỉ hiện trong ô của chính chủ tài khoản (không đưa vào thông báo lỗi).
  * account.js: xem trước ảnh, kiểm tra loại / dung lượng / kích thước trước khi gửi, hỏi lại trước khi xóa ảnh,
  * nút hiện / ẩn mật khẩu.
+ * Sprint 7 (6.6, UAT-63): ô "Địa chỉ" hiện số ký tự còn lại; gõ hoặc dán quá 255 ký tự thì chỉ giữ 255 ký tự đầu.
  */
 $avatarUrl = $account['avatar_url'];
 // File không có trên máy đang chạy (database chép từ máy khác): hiện chữ cái đầu tên, không hiện ảnh vỡ.
@@ -30,7 +31,7 @@ $profileFields = [
     ['name' => 'citizen_id', 'label' => 'Số CCCD', 'type' => 'text', 'maxlength' => 12, 'autocomplete' => 'off', 'inputmode' => 'numeric', 'required' => false, 'optional' => true, 'hint' => '12 chữ số trên thẻ căn cước. Chỉ bạn xem được số này.'],
     ['name' => 'date_of_birth', 'label' => 'Ngày sinh', 'type' => 'date', 'autocomplete' => 'bday', 'min' => $birthMin, 'max' => $birthMax, 'required' => false, 'optional' => true, 'hint' => 'Bạn cần đủ ' . $minAge . ' tuổi.', 'row' => 'start'],
     ['name' => 'gender', 'label' => 'Giới tính', 'type' => 'select', 'options' => ['' => 'Không nêu'] + $genders, 'autocomplete' => 'sex', 'required' => false, 'optional' => true, 'hint' => '', 'row' => 'end'],
-    ['name' => 'address', 'label' => 'Địa chỉ', 'type' => 'text', 'maxlength' => $addressMaxLength, 'autocomplete' => 'street-address', 'required' => false, 'optional' => true, 'hint' => ''],
+    ['name' => 'address', 'label' => 'Địa chỉ', 'type' => 'text', 'maxlength' => $addressMaxLength, 'autocomplete' => 'street-address', 'required' => false, 'optional' => true, 'hint' => '', 'counter' => true],
 ];
 $passwordFields = array_values(array_filter([
     $hasPassword ? ['name' => 'current_password', 'label' => 'Mật khẩu hiện tại', 'autocomplete' => 'current-password', 'hint' => ''] : null,
@@ -147,8 +148,10 @@ $focusField = array_key_first(array_diff_key($profileErrors, ['form' => true]))
     $name = $field['name'];
     $id = 'account-' . str_replace('_', '-', $name);
     $error = (string) ($profileErrors[$name] ?? '');
-    $describedBy = trim(($field['hint'] !== '' ? $id . '-hint ' : '') . ($error !== '' ? $id . '-error' : ''));
+    $hasCounter = !empty($field['counter']);
+    $describedBy = trim(($field['hint'] !== '' ? $id . '-hint ' : '') . ($hasCounter ? $id . '-count ' : '') . ($error !== '' ? $id . '-error' : ''));
     $value = (string) ($old[$name] ?? '');
+    $remaining = $hasCounter ? (int) $field['maxlength'] - mb_strlen($value) : 0;
     $attributes = 'id="' . e($id) . '" name="' . e($name) . '" autocomplete="' . e($field['autocomplete']) . '"'
         . ($field['required'] ? ' required' : '')
         . ($error !== '' ? ' aria-invalid="true"' : '')
@@ -172,8 +175,11 @@ $focusField = array_key_first(array_diff_key($profileErrors, ['form' => true]))
                             <input class="lt-input<?= $error !== '' ? ' is-invalid' : '' ?>" type="date" <?= $attributes ?>
                                    value="<?= e($value) ?>" min="<?= e($field['min']) ?>" max="<?= e($field['max']) ?>">
 <?php else: ?>
-                            <input class="lt-input<?= $error !== '' ? ' is-invalid' : '' ?>" type="<?= e($field['type']) ?>" <?= $attributes ?>
-                                   value="<?= e($value) ?>" maxlength="<?= e($field['maxlength']) ?>"<?= isset($field['inputmode']) ? ' inputmode="' . e($field['inputmode']) . '"' : '' ?>>
+                            <input class="lt-input<?= $error !== '' ? ' is-invalid' : '' ?><?= $hasCounter ? ' js-char-limit' : '' ?>" type="<?= e($field['type']) ?>" <?= $attributes ?>
+                                   value="<?= e($value) ?>" maxlength="<?= e($field['maxlength']) ?>"<?= isset($field['inputmode']) ? ' inputmode="' . e($field['inputmode']) . '"' : '' ?><?= $hasCounter ? ' data-count-id="' . e($id) . '-count"' : '' ?>>
+<?php endif; ?>
+<?php if ($hasCounter): ?>
+                            <p class="lt-field__hint" id="<?= e($id) ?>-count"><span class="js-char-count"><?= e($remaining >= 0 ? 'Còn ' . $remaining . ' ký tự.' : 'Vượt ' . -$remaining . ' ký tự.') ?></span> <span class="js-char-trimmed" role="status"></span></p>
 <?php endif; ?>
 <?php if ($field['hint'] !== ''): ?>
                             <p class="lt-field__hint" id="<?= e($id) ?>-hint"><?= e($field['hint']) ?></p>

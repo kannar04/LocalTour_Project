@@ -2,6 +2,7 @@
  * LocalTour – account.js (CR2 – Lê Trung Phong)
  * Trang "Tài khoản": xem trước ảnh đại diện và kiểm tra loại / dung lượng / kích thước ngay khi chọn file
  * (máy chủ vẫn kiểm tra lại), hỏi lại trước khi xóa ảnh, nút hiện / ẩn mật khẩu.
+ * Sprint 7 (6.6, UAT-63): ô "Địa chỉ" đếm số ký tự còn lại và cắt phần gõ / dán vượt 255 ký tự.
  * Dữ liệu chỉ đưa vào DOM bằng .text() / .attr().
  */
 (function ($) {
@@ -145,9 +146,47 @@
         });
     }
 
+    /**
+     * Ô có giới hạn ký tự (.js-char-limit, vd. "Địa chỉ"): hiện số ký tự còn lại; nội dung gõ hoặc dán vượt giới hạn
+     * (kể cả công cụ điền form bỏ qua maxlength) được cắt về đúng giới hạn và báo cho người dùng.
+     */
+    function initCharLimits() {
+        $('.js-char-limit').each(function () {
+            var $input = $(this);
+            var max = parseInt($input.attr('maxlength'), 10);
+            var $count = $('#' + $input.attr('data-count-id'));
+            var $left = $count.find('.js-char-count');
+            var $trimmed = $count.find('.js-char-trimmed');
+            if (!max || !$count.length) {
+                return;
+            }
+
+            function update(event) {
+                var value = String($input.val());
+                if (value.length > max) {
+                    var cut = value.slice(0, max);
+                    // Không để lại nửa ký tự (cặp surrogate bị cắt đôi).
+                    if (/[\uD800-\uDBFF]$/.test(cut)) {
+                        cut = cut.slice(0, -1);
+                    }
+                    $input.val(cut);
+                    value = cut;
+                    $trimmed.text('Chỉ giữ ' + max + ' ký tự đầu, phần dư đã bị bỏ.');
+                } else if (event) {
+                    $trimmed.text('');
+                }
+                $left.text('Còn ' + Math.max(0, max - value.length) + ' ký tự.');
+            }
+
+            $input.on('input change', update);
+            update(null);
+        });
+    }
+
     $(function () {
         initAvatar();
         initConfirm();
         initPasswordToggles();
+        initCharLimits();
     });
 })(jQuery);
