@@ -4,6 +4,7 @@
  * Quy ước: dữ liệu từ server chỉ được đưa vào DOM bằng .text() / .attr(), không ghép chuỗi HTML.
  * CR2: nút "Menu" trên máy tính (ẩn/hiện cột trái của bảng tin, nhớ trong localStorage; trang khác mở ngăn menu nổi)
  * và ảnh đại diện ở header không tải được thì đổi về chữ cái đầu tên.
+ * Sprint 7 (6.6): bấm ra ngoài thì menu đóng ở mọi cỡ màn hình (UAT-64).
  */
 (function (window, document, $) {
     'use strict';
@@ -232,16 +233,18 @@
                 }
             });
 
-            // Ngăn menu nổi trên máy tính: bấm ra ngoài thì đóng.
-            $(document).on('click', function (event) {
-                if (!isDesktop() || !$sidebar.hasClass('show')) {
-                    return;
-                }
-                if (!$(event.target).closest('#lt-sidebar, .js-menu-desktop, .js-menu-toggle').length) {
-                    $sidebar.collapse('hide');
-                }
-            });
         }
+
+        // Bấm ra ngoài menu thì đóng (góp ý UAT-64): ngăn menu nổi trên máy tính và panel menu trên màn hình nhỏ.
+        // Cột trái của bảng tin trên máy tính luôn hiện nên không đóng.
+        $(document).on('click', function (event) {
+            if (!$sidebar.hasClass('show') || (isDesktop() && !isDrawer)) {
+                return;
+            }
+            if (!$(event.target).closest('#lt-sidebar, .js-menu-desktop, .js-menu-toggle').length) {
+                $sidebar.collapse('hide');
+            }
+        });
 
         // Thu panel / ngăn menu lại bằng phím Esc và trả focus cho nút Menu đang hiện.
         $(document).on('keydown', function (event) {
