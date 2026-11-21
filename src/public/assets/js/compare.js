@@ -1,7 +1,8 @@
 /*
  * LocalTour – compare.js (Nguyễn Tuấn Khôi)
  * So sánh tour (US04-S5-01, FR-15): khách chọn / bỏ tour để so sánh, tối đa 3 tour, lưu trong localStorage
- * của trình duyệt (không cần đăng nhập).
+ * của trình duyệt (không cần đăng nhập). Danh sách gắn với tài khoản đang đăng nhập (<meta name="lt-account">,
+ * chế độ khách là "guest"): đăng xuất, đăng nhập hoặc đổi tài khoản thì danh sách cũ bị xóa.
  *   - Nút .js-compare-toggle [data-tour-id, data-tour-title, data-tour-image] trên thẻ tour và trang chi tiết;
  *   - Khung "Tour đang so sánh" ở bảng tin (#compare-panel) và thanh so sánh dưới màn hình (#compare-bar);
  *   - Link .js-compare-link mở /compare?ids=<mã 1>,<mã 2>,... theo các tour đã chọn;
@@ -29,6 +30,12 @@
         }
     }
 
+    /** Mã tài khoản của trang đang mở (layout in ra); không có thì coi là chế độ khách. */
+    function owner() {
+        var meta = document.querySelector('meta[name="lt-account"]');
+        return (meta && meta.getAttribute('content')) || 'guest';
+    }
+
     /** Ảnh chỉ nhận đường dẫn trong site hoặc http(s). */
     function safeImage(value) {
         var text = String(value || '');
@@ -41,7 +48,16 @@
         var storage = store();
         if (storage) {
             try {
-                items = JSON.parse(storage.getItem(KEY) || '[]');
+                var saved = JSON.parse(storage.getItem(KEY) || 'null');
+                if (saved && saved.owner === owner()) {
+                    items = saved.items;
+                } else {
+                    // Danh sách của tài khoản khác (hoặc dạng cũ chưa có chủ): xóa, không cho tài khoản này thấy.
+                    items = [];
+                    if (saved !== null) {
+                        storage.removeItem(KEY);
+                    }
+                }
             } catch (error) {
                 items = [];
             }
@@ -64,7 +80,7 @@
         var storage = store();
         if (storage) {
             try {
-                storage.setItem(KEY, JSON.stringify(memory));
+                storage.setItem(KEY, JSON.stringify({ owner: owner(), items: memory }));
             } catch (error) {
                 // Bộ nhớ đầy / bị chặn: vẫn dùng được trong trang này.
             }

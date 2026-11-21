@@ -44,7 +44,7 @@ $groups = [
                 'q' => 'So sánh nhiều tour?',
                 'a' => [
                     'Bấm “Thêm vào so sánh” trên thẻ tour hoặc ở trang tour, chọn 2–3 tour rồi bấm “So sánh tour”. Không cần đăng nhập.',
-                    'Tối đa 3 tour. Danh sách so sánh lưu trên trình duyệt bạn đang dùng.',
+                    'Tối đa 3 tour. Danh sách so sánh lưu trên trình duyệt bạn đang dùng và được xóa khi bạn đăng nhập, đăng xuất hoặc đổi tài khoản.',
                 ],
                 'links' => [['Mở trang so sánh', '/compare']],
             ],

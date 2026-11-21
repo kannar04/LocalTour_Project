@@ -6,6 +6,9 @@
  * Mỗi view tự đặt landmark <main id="main-content"> để link "Bỏ qua đến nội dung chính" nhảy đúng chỗ.
  */
 $pageTitle = ($title ?? '') === '' || $title === 'LocalTour' ? 'LocalTour' : $title . ' · LocalTour';
+// Mã ngắn của tài khoản đang đăng nhập ("guest" ở chế độ khách): compare.js chỉ giữ danh sách so sánh của đúng mã này.
+$layoutUser = Core\Auth::user();
+$accountKey = $layoutUser === null ? 'guest' : substr(hash('sha256', 'compare:' . $layoutUser['user_id']), 0, 16);
 ?>
 <!doctype html>
 <html lang="vi">
@@ -14,6 +17,7 @@ $pageTitle = ($title ?? '') === '' || $title === 'LocalTour' ? 'LocalTour' : $ti
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="app-base-url" content="<?= e(url('/')) ?>">
     <meta name="csrf-token" content="<?= e(Core\Auth::csrfToken()) ?>">
+    <meta name="lt-account" content="<?= e($accountKey) ?>">
     <meta name="description" content="LocalTour – khám phá tour địa phương do người bản địa dẫn. Dữ liệu minh họa phục vụ đồ án.">
     <meta name="theme-color" content="#176b5f">
     <title><?= e($pageTitle) ?></title>

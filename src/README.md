@@ -531,7 +531,7 @@ Script chạy thử `expire_holds.php` một lần (in "đã hủy N đơn quá 
 
 | Thử | Kết quả mong đợi |
 | --- | --- |
-| `/tours`, bấm "Thêm vào so sánh" ở 3 thẻ tour | Khung "Tour đang so sánh" có 3 tour; thêm tour thứ 4 → "Chỉ so sánh tối đa 3 tour…". Bấm "So sánh tour" → `/compare?ids=…` đặt 3 tour cạnh nhau theo nhóm (giá / người, thời lượng, quy mô nhóm, chính sách hủy, lịch trình, dịch vụ…); ô thiếu ghi "Chưa cập nhật". Tải lại trang, các tour đã chọn vẫn còn. |
+| `/tours`, bấm "Thêm vào so sánh" ở 3 thẻ tour | Khung "Tour đang so sánh" có 3 tour; thêm tour thứ 4 → "Chỉ so sánh tối đa 3 tour…". Bấm "So sánh tour" → `/compare?ids=…` đặt 3 tour cạnh nhau theo nhóm (giá / người, thời lượng, quy mô nhóm, chính sách hủy, lịch trình, dịch vụ…); ô thiếu ghi "Chưa cập nhật". Tải lại trang, các tour đã chọn vẫn còn; đăng xuất hoặc đăng nhập tài khoản khác thì danh sách trống. |
 | `/compare?ids=c0000000-0000-4000-8000-000000000001` | "Cần ít nhất 2 tour để so sánh". |
 | `/tours/c0000000-0000-4000-8000-000000000003` | Mục "Gói tour" có 3 gói; thẻ đặt tour có ô chọn gói, giá vé tính theo gói. Chọn "Đền chùa và tín ngưỡng", 2 người lớn → tạm tính 1.900.000đ; trang đơn ghi tên gói. Tour 1 không có gói, đặt như Bước 8. |
 | Mở một đơn ở "Đơn của tôi" → "Đổi ngày / hủy tour" | Trang hiện chính sách hủy của đơn, tiền đã trả và số tiền dự kiến hoàn. Gửi yêu cầu hủy (lý do bắt buộc) → yêu cầu "Chờ xử lý"; khi yêu cầu chưa xử lý thì không gửi được yêu cầu thứ hai. Đổi ngày phải chọn lịch mới cùng tour. |
