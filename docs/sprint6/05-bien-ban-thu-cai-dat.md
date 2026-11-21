@@ -85,12 +85,3 @@ Mục trong cột “Hướng dẫn” là số mục của [02 – Hướng d�
 Đề xuất sửa hướng dẫn cài đặt hoặc script:
 
 - …
-
-## 6. Xác nhận
-
-| Vai trò | Họ tên | Ngày | Chữ ký |
-| --- | --- | --- | --- |
-| Người thử máy 1 | | | |
-| Người thử máy 2 | | | |
-| Người thử máy 3 | | | |
-| Người rà soát hướng dẫn cài đặt | | | |

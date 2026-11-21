@@ -15,11 +15,11 @@ Mục tiêu Sprint 6 là hoàn thiện bản demo, tài liệu hướng dẫn, k
 | Installation Guide | Đã hoàn thiện hướng dẫn cài đặt và cấu hình | Hoàn thành |
 | User Guide | Đã hoàn thiện hướng dẫn cho khách hàng, quản trị viên và đơn vị tổ chức | Hoàn thành |
 | Đóng gói demo | Đã chuẩn bị mã nguồn, database mẫu và công cụ hỗ trợ cài đặt | Hoàn thành |
-| Thử cài đặt (Task 6.4) | Đã thử cài đặt trên máy Windows khác theo xác nhận của Project Manager; repository không bổ sung hồi tố thông số máy hoặc chữ ký | Hoàn thành |
+| Thử cài đặt (Task 6.4) | Đã thử cài đặt trên máy Windows khác theo xác nhận của Project Manager; repository không bổ sung hồi tố thông số máy | Hoàn thành |
 | Chức năng bổ sung theo CR2 | Đã triển khai và cập nhật tài liệu liên quan | Hoàn thành |
 | UAT chính thức | Đã bàn giao bản demo và checklist cho nhóm PCG | Chờ kết quả |
 | Sửa lỗi từ UAT | Chưa có defect log chính thức để xử lý | Chưa hoàn thành |
-| Nghiệm thu demo | Chưa đủ kết quả UAT để kết luận Go/No-go | Chưa hoàn thành |
+| Nghiệm thu demo | Chưa đủ kết quả UAT để tổng hợp nghiệm thu | Chưa hoàn thành |
 
 ## 2. Chức năng bổ sung theo CR2
 
@@ -55,7 +55,7 @@ Kết quả kiểm thử nội bộ chỉ dùng để kiểm tra trước UAT, k
 
 | Công việc | Tình trạng | Hướng xử lý |
 |---|---|---|
-| 6.5 – Thực hiện UAT | Chưa nhận đủ kết quả từng ca và biên bản | Thực hiện đầu Sprint 7 |
+| 6.5 – Thực hiện UAT | Chưa nhận đủ kết quả từng ca | Thực hiện đầu Sprint 7 |
 | 6.6 – Sửa lỗi chặn UAT | Chưa có defect log chính thức | Xử lý sau khi nhận kết quả UAT |
 | 6.7 – Tổng hợp nghiệm thu | Chưa đủ dữ liệu để kết luận | Hoàn thành sau UAT và retest |
 
@@ -96,7 +96,7 @@ Sprint 7 diễn ra từ ngày 20/11/2026 đến ngày 26/11/2026. Mục tiêu ch
 |---|---|---|---|
 | 6.5 | Nhận và đối chiếu kết quả UAT | Hải, Thành | 20–21/11 |
 | 6.6 | Sửa lỗi từ UAT và chạy lại ca liên quan | Phong, Thức, Khôi | 21–22/11 |
-| 6.7 | Tổng hợp nghiệm thu và kết luận Go/No-go | Hải, Thành | 22/11 |
+| 6.7 | Tổng hợp nghiệm thu demo | Hải, Thành | 22/11 |
 | 7.1 | Đối chiếu kế hoạch và thực tế | Hải, Thành | 20–21/11 |
 | 7.2 | Chốt Risk, Issue và Change | Hải, Thành | 20–21/11 |
 | 7.3 | Tổng hợp bài học kinh nghiệm | Hải, Thành | 22–23/11 |

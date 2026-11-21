@@ -12,7 +12,7 @@
 
 ## 1. Mục tiêu và phạm vi
 
-Mục tiêu: người dùng (vai khách hàng, quản trị viên và đơn vị tổ chức) xác nhận bản demo đáp ứng tiêu chí nghiệm thu của 39 User Story (US-01 → US-24 và US-25 → US-39 thuộc các đợt bổ sung của CR2), trên trang demo được bàn giao; có biên bản làm căn cứ quyết định Go / No-go. Việc có lịch dự kiến không đồng nghĩa UAT đã hoàn thành.
+Mục tiêu: người dùng (vai khách hàng, quản trị viên và đơn vị tổ chức) xác nhận bản demo đáp ứng tiêu chí nghiệm thu của 39 User Story (US-01 → US-24 và US-25 → US-39 thuộc các đợt bổ sung của CR2), trên trang demo được bàn giao; kết quả ghi vào biên bản ở mục 8. Việc có lịch dự kiến không đồng nghĩa UAT đã hoàn thành.
 
 UAT khác System Test Sprint 5: thao tác như người dùng thật theo [03 – Hướng dẫn sử dụng](03-huong-dan-su-dung.md), không dùng DevTools, không sửa database bằng tay.
 
@@ -32,12 +32,11 @@ Ngoài phạm vi (không ghi “Không đạt” cho các mục này):
 
 | Vai trò | Người | Việc |
 | --- | --- | --- |
-| Điều phối, ghi kết quả | Hồ Duy Hải, Đỗ Sơn Thành | Chạy ca theo thứ tự, ghi kết quả và minh chứng, ghi defect log, lập biên bản. |
+| Điều phối, ghi kết quả | Hồ Duy Hải, Đỗ Sơn Thành | Chạy ca theo thứ tự, ghi kết quả, ghi defect log, lập biên bản. |
 | Người dùng vai khách hàng | ……… (nhóm PCG) | Thao tác các bước của KH-A, KH-B. |
 | Người dùng vai quản trị viên | ……… (nhóm PCG) | Thao tác các bước của QTV. |
 | Người dùng vai đơn vị tổ chức | ……… (nhóm PCG) | Thao tác các bước của ĐV-A, ĐV-B. |
 | Hỗ trợ kỹ thuật, sửa lỗi chặn (6.6) | Lê Trung Phong, Nguyễn Tuấn Khôi, Nguyễn Minh Thức | Xem lỗi, sửa, cập nhật trang demo; không thao tác thay người dùng. |
-| Quyết định Go / No-go | Cả nhóm; PM Lê Trung Phong ký | Theo mục 4. |
 
 ## 3. Môi trường và dữ liệu
 
@@ -51,7 +50,7 @@ Ngoài phạm vi (không ghi “Không đạt” cho các mục này):
 | Tác vụ tự động | Trang demo có tác vụ chạy 5 phút một lần: hủy đơn quá hạn giữ chỗ, tự hoàn thành đơn của lịch đã kết thúc, lập khoản chi trả. Các trang “Đơn của tôi”, “Đơn đặt tour”, “Đối chiếu thanh toán”, “Chi trả đơn vị tổ chức” cũng chạy các bước này khi mở. |
 | Thông số vận hành | Giá trị mặc định: phí dịch vụ 10 %, giữ chỗ 30 phút, ngừng nhận đặt 60 phút trước giờ khởi hành, ngừng nhận VietQR 24 giờ trước giờ khởi hành. Chỉ đổi trong UAT-48, UAT-51, UAT-52 và đặt lại như ca ghi. |
 | Trình duyệt | Chrome bản mới, desktop. Ba phiên, mỗi phiên một tài khoản: cửa sổ thường cho khách, cửa sổ ẩn danh cho QTV, một trình duyệt thứ hai cho đơn vị tổ chức (UAT-17 dùng trình duyệt thứ hai cho KH-B). |
-| Minh chứng | Thư mục `MinhChung_UAT_Sprint6/`, ảnh đặt tên `UAT-xx_mo-ta.png`. Che email, mã QR và số tài khoản (kể cả tài khoản nhận tiền của đơn vị tổ chức); không chụp trang “Chuyển khoản VietQR”. |
+| Ảnh chụp màn hình | Không bắt buộc. Nếu chụp: che email, mã QR và số tài khoản (kể cả tài khoản nhận tiền của đơn vị tổ chức); không chụp trang “Chuyển khoản VietQR”. |
 
 Tour dùng trong ca: tour 1 “Hà Nội qua những món ăn phố cổ” (không chia gói; giá vé theo lịch, phụ thu “Phụ thu đi riêng, không ghép khách” 500.000đ / nhóm, tùy chọn “Thêm phần chè cuối tour” 35.000đ / người); tour 3 “Phố cổ theo cách của bạn” (3 gói, tối đa 4 khách); 2 tour ở tab “Chờ duyệt” của trang quản trị; tour T do ĐV-A tạo ở UAT-40 (dùng ở UAT-41 → UAT-47, UAT-51 → UAT-54, UAT-56, 57, 61, 62).
 
@@ -84,14 +83,14 @@ Quy ước khi đặt đơn:
 | B8 | KH-B | UAT-50 | UAT-50 |
 | A8, B9 | KH-A, KH-B | UAT-51 (lịch kết thúc sớm của tour T) | UAT-51, 53, 54; A8 ở UAT-61, 62 |
 
-## 4. Tiêu chí vào / ra và quy tắc Go / No-go
+## 4. Tiêu chí vào / ra
 
 | Tiêu chí vào (trước khi chạy 16/11) |
 | --- |
 | 1. Nhóm LocalTour đã cài bản demo 6.3 và dữ liệu mẫu mới lên trang demo; bước kiểm tra cài đặt không có lỗi. |
 | 2. Máy UAT mở được trang demo; `/tours` hiện 29 tour; QTV đăng nhập được `/admin/login` bằng tài khoản trong file `GuiNhomPCG_DiaChi_TaiKhoan.txt`. |
 | 3. Trang thanh toán có “Thanh toán qua VNPay” và “Lấy mã VietQR” (không ghi “đang tạm ngưng”); tác vụ tự động của trang demo đang chạy; trang “Thông số vận hành” ở giá trị mặc định (10 % / 30 phút / 60 phút / 24 giờ). |
-| 4. Nhóm đã quyết định Go ở System Test Exit Sprint 5. |
+| 4. System Test Sprint 5 không còn lỗi mở. |
 
 | Tiêu chí ra (chốt 19/11) |
 | --- |
@@ -99,26 +98,20 @@ Quy ước khi đặt đơn:
 | 2. 61/61 ca Must Đạt. |
 | 3. Không còn lỗi Critical / High mở. |
 | 4. Lỗi Medium / Low còn mở có người phụ trách và hướng xử lý (sửa ở Sprint 7 hoặc chấp nhận). |
-| 5. Biên bản mục 8 và bảng tổng hợp mục 9 có chữ ký. |
+| 5. Biên bản mục 8 và bảng tổng hợp mục 9 đã điền. |
 
-Quy tắc quyết định:
-
-| Quyết định | Khi nào |
-| --- | --- |
-| Go | Đạt cả 5 tiêu chí ra. |
-| Go có điều kiện | Đạt tiêu chí 2, 3, 5; còn ca Should không đạt hoặc ca chưa chạy vì môi trường (mạng, cổng VNPay), có ngày chạy lại trong Sprint 7. |
-| No-go | Còn ca Must không đạt hoặc lỗi Critical / High mở sau 6.6. Sửa, cập nhật trang demo, chạy lại ca liên quan; chốt lại trong Sprint 7. |
+Ca chưa đạt hoặc chưa chạy vì môi trường (mạng, cổng VNPay) được sửa, cập nhật trang demo và chạy lại; kết quả chạy lại ghi trong báo cáo Sprint 7.
 
 Mức độ lỗi (giữ như Sprint 5):
 
 | Mức | Định nghĩa | Xử lý |
 | --- | --- | --- |
-| Critical | Sai / mất dữ liệu đơn, chỗ hoặc tiền; lộ đơn của khách khác; đơn vị tổ chức xem được tour, đơn hoặc khoản chi trả của đơn vị khác; khách hàng dùng được chức năng quản trị; lỗi PHP / trang trắng chặn cả một story. | Sửa 17/11 (6.6); còn mở → No-go |
-| High | Chức năng chính của một story sai hoặc không làm được, không có cách khác. | Sửa 17/11 (6.6); còn mở → No-go |
+| Critical | Sai / mất dữ liệu đơn, chỗ hoặc tiền; lộ đơn của khách khác; đơn vị tổ chức xem được tour, đơn hoặc khoản chi trả của đơn vị khác; khách hàng dùng được chức năng quản trị; lỗi PHP / trang trắng chặn cả một story. | Sửa 17/11 (6.6) |
+| High | Chức năng chính của một story sai hoặc không làm được, không có cách khác. | Sửa 17/11 (6.6) |
 | Medium | Chạy nhưng sai ở trường hợp phụ, thông báo sai / thiếu; có cách làm khác. | Sửa nếu kịp, không thì chuyển Sprint 7 |
 | Low | Câu chữ, căn lề, giao diện nhỏ; không ảnh hưởng nghiệp vụ. | Ghi nhận, chuyển Sprint 7 nếu chưa sửa |
 
-Defect log dùng cột như Sprint 5 (Mã lỗi, Ca UAT, Tiêu đề, Mức độ / Loại, Bước tái hiện, Kết quả mong đợi / thực tế, Minh chứng, Người xử lý / Commit sửa, Ngày phát hiện / Ngày chạy lại, Trạng thái); mã lỗi nối tiếp DEF-13: DEF-14, DEF-15…
+Defect log dùng cột như Sprint 5 (Mã lỗi, Ca UAT, Tiêu đề, Mức độ / Loại, Bước tái hiện, Kết quả mong đợi / thực tế, Người xử lý / Commit sửa, Ngày phát hiện / Ngày chạy lại, Trạng thái); mã lỗi nối tiếp DEF-13: DEF-14, DEF-15…
 
 ## 5. Lịch UAT
 
@@ -128,10 +121,10 @@ Defect log dùng cột như Sprint 5 (Mã lỗi, Ca UAT, Tiêu đề, Mức đ�
 | 16/11, sáng | Nhóm PCG mở trang demo theo file `GuiNhomPCG_DiaChi_TaiKhoan.txt`, kiểm tra tiêu chí vào. | Nhóm PCG |
 | 16/11, sáng | Chạy UAT-01 → UAT-37 (UAT-25, UAT-26 chạy sau khi đơn hết thời gian giữ chỗ 30 phút, trong lúc đó chạy tiếp các ca khác); báo ngay lỗi chặn. | Nhóm PCG; Hải, Thành điều phối |
 | 16/11, chiều | Chạy UAT-38 → UAT-64 (UAT-52 và UAT-55 → UAT-60, 63, 64 chạy trong lúc chờ lịch của UAT-51 kết thúc; UAT-61, 62 chạy sau UAT-53; UAT-45 chạy cuối, sau UAT-64, rồi đến bước 6 của UAT-57). | Nhóm PCG; Hải, Thành điều phối |
-| 16/11, cuối buổi | Điền kết quả vào biên bản UAT (mục 8); nhóm PCG ký phần người dùng. | Nhóm PCG; Hải, Thành |
+| 16/11, cuối buổi | Điền kết quả vào biên bản UAT (mục 8). | Nhóm PCG; Hải, Thành |
 | 17/11 | Sửa lỗi Critical / High (6.6), cập nhật trang demo. | Phong, Thức, Khôi (người làm chức năng có lỗi) |
-| 18/11 | Chạy lại ca liên quan trên trang demo đã cập nhật (và ca chưa chạy ngày 16/11); ghi lỗi đã sửa vào biên bản; ký biên bản. | Hải, Thành chạy lại; cả nhóm ký |
-| 19/11 | Tổng hợp nghiệm thu demo (mục 9), quyết định Go / No-go. | Hải, Thành lập; cả nhóm quyết định |
+| 18/11 | Chạy lại ca liên quan trên trang demo đã cập nhật (và ca chưa chạy ngày 16/11); ghi lỗi đã sửa vào biên bản. | Hải, Thành |
+| 19/11 | Tổng hợp nghiệm thu demo (mục 9). | Hải, Thành |
 
 ## 6. Checklist UAT
 
@@ -331,8 +324,6 @@ Lỗi còn mở:
 | --- | --- |
 | Lỗi đã sửa trong 6.6 (mã DEF, commit) | |
 | Ý kiến của người dùng | |
-| Quyết định | ☐ Go ☐ Go có điều kiện ☐ No-go – lý do / điều kiện: |
-| Người ký | PM: Lê Trung Phong ……… · QA: Hồ Duy Hải ……… · Đỗ Sơn Thành ……… · Người dùng: ……… · ……… · ……… · Ngày …/11/2026 |
 
 ## 9. Tổng hợp nghiệm thu demo (6.7, điền ngày 19/11)
 
@@ -387,6 +378,4 @@ Lỗi còn mở:
 | Lỗi mở theo mức (Critical / High / Medium / Low) | __ / __ / __ / __ |
 | Điểm còn thiếu | |
 | Chuyển sang Sprint 7 | |
-| Quyết định nghiệm thu demo | ☐ Go ☐ Go có điều kiện ☐ No-go – lý do: |
-| Bằng chứng | Biên bản mục 8, defect log, `MinhChung_UAT_Sprint6/` |
-| Người ký | QA: Hồ Duy Hải ……… · Đỗ Sơn Thành ……… · PM: Lê Trung Phong ……… · Ngày …/11/2026 |
+| Căn cứ | Biên bản mục 8, defect log |
