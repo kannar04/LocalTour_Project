@@ -3,7 +3,8 @@
 /*
  * Header (Lê Trung Phong): logo, ô tìm kiếm (GET /tours?q=), tài khoản, "Menu".
  * Chế độ khách: nút "Đăng nhập" (quay lại đúng trang đang xem sau khi đăng nhập) và "Đăng ký".
- * Đã đăng nhập: "Đơn của tôi" (tài khoản khách hàng), tên khách hàng và nút "Đăng xuất" (form POST kèm mã CSRF).
+ * Đã đăng nhập: "Đơn của tôi" (tài khoản khách hàng), "Tour của tôi" (đơn vị tổ chức) hoặc "Trang quản trị"
+ * (quản trị viên, để quay lại /admin từ trang của khách), tên tài khoản và nút "Đăng xuất" (form POST kèm mã CSRF).
  * Trên trang danh sách, tour-list.js chặn submit và tải lại kết quả bằng AJAX.
  * "Menu" dưới 992px: mở/đóng thanh bên #lt-sidebar (Bootstrap collapse).
  * CR2 (Nguyễn Tuấn Khôi):
@@ -69,6 +70,11 @@ $desktopMenuMode = isset($sidebarMode) ? ($sidebarMode === 'column' ? 'column' :
             <a class="lt-header-btn" href="<?= e(url('/host/tours')) ?>" aria-label="Tour của tôi"<?= str_starts_with($currentPath, '/host') ? ' aria-current="page"' : '' ?>>
                 <span class="lt-icon lt-icon--verified" aria-hidden="true"></span>
                 <span class="d-none d-md-inline" aria-hidden="true">Tour của tôi</span>
+            </a>
+<?php elseif ($currentUser['role'] === 'admin'): ?>
+            <a class="lt-header-btn" href="<?= e(url('/admin')) ?>" aria-label="Trang quản trị"<?= str_starts_with($currentPath, '/admin') ? ' aria-current="page"' : '' ?>>
+                <span class="lt-icon lt-icon--shield" aria-hidden="true"></span>
+                <span class="d-none d-md-inline" aria-hidden="true">Trang quản trị</span>
             </a>
 <?php endif; ?>
 <?php if ($isCustomerUser): ?>
